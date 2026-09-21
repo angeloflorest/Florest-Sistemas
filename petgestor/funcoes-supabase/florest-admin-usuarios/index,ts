@@ -1,0 +1,431 @@
+// =====================================================================
+// CENTRAL (Supabase ERP PETSHOP) — Edge Function "florest-admin-usuarios"  (ARQUIVO ÚNICO para o Dashboard)
+// Navegador (admin.html, JWT do administrador) -> ESTA função -> DistGestor "florest-admin-usuarios-remoto" (HMAC c2s).
+//
+// Configurar: Verify JWT = LIGADO.
+// Secrets (somente NOMES; valores só no painel) — TODOS JÁ EXISTEM, nada novo a criar:
+//   FLOREST_ALLOWED_ORIGINS               mesma origem onde o admin.html é aberto (a mesma do florest-admin-assinatura)
+//   FLOREST_SYNC_SECRET_DISTGESTOR        HMAC Central -> DistGestor (+ opcional _NEXT na rotação)
+// SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são injetados pela Supabase. Nada disso vai para o navegador.
+// Não precisa de migration: usa service_role para LER admins, florest_assinaturas e florest_sistemas.
+//
+// Corpo (POST JSON, <= 2 KB):
+//   { "assinatura_id":"<uuid>", "acao":"listar" }
+//   { "assinatura_id":"<uuid>", "acao":"redefinir_senha", "user_id":"<uuid>", "senha":"<nova senha temporária>" }
+// O navegador NÃO informa empresa_id: a empresa remota é descoberta AQUI, a partir da assinatura (florest_assinaturas.ref_externa),
+// e o DistGestor ainda confere que empresas.assinatura_id é a mesma. O user_id só vale se pertencer a essa empresa.
+// Respostas:
+//   listar           -> { ok:true, usuarios:[{ user_id, nome, email, papel, ativo, permissoes }] }
+//   redefinir_senha  -> { ok:true }            (nunca devolve senha, hash ou token)
+//   erro             -> { ok:false, erro:"<codigo>", mensagem:"..." }
+// =====================================================================
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const SISTEMA_SLUG = "distgestor";
+const ENDPOINT_REMOTO = "florest-admin-usuarios-remoto";
+const PATH_SYNC = "/functions/v1/florest-sync";                 // formato validado do sync_url cadastrado
+const PATH_REMOTO = "/functions/v1/" + ENDPOINT_REMOTO;
+const MAX_BODY_BYTES = 2 * 1024;
+const PROTOCOL_VERSION = "1";
+const SIGNING_PREFIX = "FLOREST-SYNC";
+const MIN_SECRET_LENGTH = 32;
+const ACOES = ["listar", "redefinir_senha"] as const;
+
+const HEADER = {
+  version: "x-florest-version",
+  system: "x-florest-system",
+  direction: "x-florest-direction",
+  timestamp: "x-florest-timestamp",
+  nonce: "x-florest-nonce",
+  signature: "x-florest-signature",
+} as const;
+
+const encoder = new TextEncoder();
+
+// ---------------------------------------------------------------------
+// 1) Assinatura HMAC (Florest Sync v1) — direção c2s
+// ---------------------------------------------------------------------
+function bytesToHex(bytes: Uint8Array): string {
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+async function sha256Hex(data: Uint8Array): Promise<string> {
+  return bytesToHex(new Uint8Array(await crypto.subtle.digest("SHA-256", data as BufferSource)));
+}
+function randomNonce(): string {
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  return bytesToHex(b);
+}
+async function signRequest(o: { secret: string; system: string; endpoint: string; body: string; nowSeconds: number }): Promise<Record<string, string>> {
+  if (o.secret.length < MIN_SECRET_LENGTH) throw new Error("segredo_invalido");
+  const nonce = randomNonce();
+  const bodySha256 = await sha256Hex(encoder.encode(o.body));
+  const texto = [SIGNING_PREFIX, PROTOCOL_VERSION, "c2s", o.system, o.endpoint, String(o.nowSeconds), nonce, bodySha256].join("\n");
+  const key = await crypto.subtle.importKey("raw", encoder.encode(o.secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(texto));
+  return {
+    "content-type": "application/json",
+    [HEADER.version]: PROTOCOL_VERSION,
+    [HEADER.system]: o.system,
+    [HEADER.direction]: "c2s",
+    [HEADER.timestamp]: String(o.nowSeconds),
+    [HEADER.nonce]: nonce,
+    [HEADER.signature]: "v1=" + bytesToHex(new Uint8Array(sig)),
+  };
+}
+function getSecret(slug: string): string | null {
+  const base = "FLOREST_SYNC_SECRET_" + slug.toUpperCase();
+  for (const nome of [base, base + "_NEXT"]) {
+    const v = Deno.env.get(nome);
+    if (typeof v === "string" && v.length >= MIN_SECRET_LENGTH) return v;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------
+// 2) Utilidades HTTP / validação / log seguro
+// ---------------------------------------------------------------------
+function jsonResponse(status: number, body: unknown, extra: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...extra },
+  });
+}
+const erro = (status: number, codigo: string, mensagem: string, extra: Record<string, string> = {}) =>
+  jsonResponse(status, { ok: false, erro: codigo, mensagem }, extra);
+const isJsonContentType = (h: Headers) => /^application\/json\s*(;\s*charset=utf-8\s*)?$/.test((h.get("content-type") ?? "").toLowerCase());
+
+type BodyResult = { ok: true; bytes: Uint8Array } | { ok: false; status: number; erro: string };
+async function readStreamLimited(body: ReadableStream<Uint8Array> | null, maxBytes: number): Promise<BodyResult> {
+  if (!body) return { ok: true, bytes: new Uint8Array(0) };
+  const reader = body.getReader();
+  const partes: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        try { await reader.cancel(); } catch { /* ignora */ }
+        return { ok: false, status: 413, erro: "corpo_grande_demais" };
+      }
+      partes.push(value);
+    }
+  } catch {
+    return { ok: false, status: 400, erro: "requisicao_invalida" };
+  }
+  const bytes = new Uint8Array(total);
+  let off = 0;
+  for (const p of partes) { bytes.set(p, off); off += p.byteLength; }
+  return { ok: true, bytes };
+}
+async function readBodyLimited(req: Request, maxBytes: number): Promise<BodyResult> {
+  const cl = req.headers.get("content-length");
+  if (cl !== null) {
+    if (!/^\d{1,10}$/.test(cl)) return { ok: false, status: 400, erro: "requisicao_invalida" };
+    if (Number(cl) > maxBytes) return { ok: false, status: 413, erro: "corpo_grande_demais" };
+  }
+  return await readStreamLimited(req.body, maxBytes);
+}
+function parseJsonObject(bytes: Uint8Array): Record<string, unknown> | null {
+  try {
+    const v = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    return v === null || typeof v !== "object" || Array.isArray(v) ? null : (v as Record<string, unknown>);
+  } catch { return null; }
+}
+const onlyKeys = (o: Record<string, unknown>, permitidas: readonly string[]) => Object.keys(o).every((k) => permitidas.includes(k));
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
+/** Regra única da senha: de 5 a 18 caracteres. Não exige maiúscula, minúscula, número nem símbolo. */
+function senhaValida(s: unknown): s is string {
+  return typeof s === "string" && s.length >= 5 && s.length <= 18;
+}
+
+type CorsDecision = { tipo: "sem_origem" } | { tipo: "permitida"; headers: Record<string, string> } | { tipo: "negada" };
+function decideCors(req: Request, permitidas: string[]): CorsDecision {
+  const origin = req.headers.get("origin");
+  if (origin === null) return { tipo: "sem_origem" };
+  if (!permitidas.includes(origin)) return { tipo: "negada" };
+  return {
+    tipo: "permitida",
+    headers: {
+      "access-control-allow-origin": origin,
+      "access-control-allow-methods": "POST, OPTIONS",
+      "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
+      "access-control-max-age": "600",
+      "vary": "Origin",
+    },
+  };
+}
+
+// log seguro: descarta chaves sensíveis; nunca registra corpo, senha, e-mail, nomes, tokens ou segredos
+const CHAVES_SENSIVEIS = /secret|token|authorization|signature|hmac|key|jwt|cookie|senha|password|email|cnpj|cpf|telefone|nome|dados|body|payload/i;
+function log(nivel: "info" | "warn" | "error", evento: string, campos: Record<string, unknown> = {}) {
+  const limpo: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(campos)) {
+    if (CHAVES_SENSIVEIS.test(k)) continue;
+    if (typeof v === "string") limpo[k] = v.length > 120 ? v.slice(0, 120) + "…" : v;
+    else if (typeof v === "number" || typeof v === "boolean" || v === null) limpo[k] = v;
+  }
+  console.log(JSON.stringify({ fn: "florest-admin-usuarios", nivel, evento, ...limpo }));
+}
+function errInfo(e: unknown): { erro_tipo: string; erro_codigo?: string } {
+  if (e && typeof e === "object") {
+    const o = e as { name?: unknown; code?: unknown };
+    return {
+      erro_tipo: typeof o.name === "string" ? o.name : "Error",
+      ...(typeof o.code === "string" && /^[A-Za-z0-9_]{1,12}$/.test(o.code) ? { erro_codigo: o.code } : {}),
+    };
+  }
+  return { erro_tipo: "desconhecido" };
+}
+
+// anti-SSRF: só https://<ref de 20 chars>.supabase.co/functions/v1/florest-sync (o mesmo sync_url já validado no banco);
+// a URL do endpoint novo é derivada DELE, trocando só o caminho.
+function urlRemoto(syncUrl: unknown): string | null {
+  if (typeof syncUrl !== "string") return null;
+  let url: URL;
+  try { url = new URL(syncUrl); } catch { return null; }
+  if (url.protocol !== "https:" || url.username || url.password || url.port || url.search || url.hash) return null;
+  if (!/^[a-z0-9]{20}\.supabase\.co$/.test(url.hostname)) return null;
+  if (url.pathname !== PATH_SYNC) return null;
+  return `https://${url.hostname}${PATH_REMOTO}`;
+}
+
+// ---------------------------------------------------------------------
+// 3) Banco central (service_role SOMENTE aqui, no servidor)
+// ---------------------------------------------------------------------
+function resolveServerKey(): string | null {
+  const legado = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (legado && legado.length > 20) return legado;
+  const json = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (json) {
+    try {
+      const o = JSON.parse(json) as Record<string, unknown>;
+      const v = typeof o["default"] === "string" ? o["default"] : Object.values(o).find((x) => typeof x === "string");
+      if (typeof v === "string" && v.length > 20) return v;
+    } catch { /* cai para null */ }
+  }
+  return null;
+}
+let dbc: ReturnType<typeof createClient> | null = null;
+function client() {
+  if (!dbc) {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = resolveServerKey();
+    if (!url || !key) throw new Error("configuracao_supabase_ausente");
+    dbc = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { headers: { "x-florest-origem": "edge-function" } },
+    });
+  }
+  return dbc;
+}
+async function autenticar(jwt: string): Promise<string | null> {
+  const { data, error } = await client().auth.getUser(jwt);
+  if (error || !data?.user?.id) return null;
+  return data.user.id;
+}
+const falhaDb = (e: unknown): never => { throw Object.assign(new Error("db"), { code: (e as { code?: string })?.code }); };
+
+class ErroNegocio extends Error {
+  constructor(public status: number, public codigo: string, public mensagem: string) { super(codigo); }
+}
+
+/** Administrador de verdade? (mesma tabela public.admins que as RPCs admin_* usam). */
+async function exigirAdmin(uid: string): Promise<void> {
+  const { data, error } = await client().from("admins").select("id").eq("id", uid).maybeSingle();
+  if (error) falhaDb(error);
+  if (!data) throw new ErroNegocio(403, "acesso_restrito", "Essa conta não tem acesso de administrador.");
+}
+
+interface AlvoRemoto { assinaturaId: string; empresaRemotaId: string; url: string; }
+
+/** A partir da ASSINATURA (única informação do navegador) descobre a empresa remota e valida que é do DistGestor. */
+async function resolverAlvo(assinaturaId: string): Promise<AlvoRemoto> {
+  const { data: a, error: ea } = await client().from("florest_assinaturas").select("id, sistema_id, ref_externa").eq("id", assinaturaId).maybeSingle();
+  if (ea) falhaDb(ea);
+  if (!a) throw new ErroNegocio(404, "assinatura_nao_encontrada", "Assinatura não encontrada.");
+  const ass = a as { id: string; sistema_id: string; ref_externa: string | null };
+
+  const { data: s, error: es } = await client().from("florest_sistemas").select("slug, modo_sync, sync_url, ativo").eq("id", ass.sistema_id).maybeSingle();
+  if (es) falhaDb(es);
+  const sis = s as { slug: string; modo_sync: string; sync_url: string | null; ativo: boolean } | null;
+  if (!sis || sis.slug !== SISTEMA_SLUG) {
+    throw new ErroNegocio(400, "sistema_invalido", "Usuários e Acessos só existe para clientes do DistGestor.");
+  }
+  if (sis.modo_sync !== "remoto" || !sis.ativo) {
+    throw new ErroNegocio(409, "sistema_indisponivel", "O DistGestor não está configurado para comunicação com a Central.");
+  }
+  if (!isUuid(ass.ref_externa)) {
+    throw new ErroNegocio(409, "sem_vinculo", "Este cliente ainda não está vinculado a uma empresa no DistGestor.");
+  }
+  const url = urlRemoto(sis.sync_url);
+  if (!url) throw new ErroNegocio(409, "sistema_indisponivel", "Endereço do DistGestor não configurado corretamente.");
+  return { assinaturaId: ass.id, empresaRemotaId: ass.ref_externa, url };
+}
+
+// ---------------------------------------------------------------------
+// 4) Chamada servidor -> servidor ao DistGestor
+// ---------------------------------------------------------------------
+type Resp = { status: number; json: Record<string, unknown> | null } | { falha: "rede" | "timeout" | "grande" };
+
+async function chamarRemoto(alvo: AlvoRemoto, body: Record<string, unknown>): Promise<Resp> {
+  const segredo = getSecret(SISTEMA_SLUG);
+  if (!segredo) throw new ErroNegocio(500, "configuracao_ausente", "Comunicação com o DistGestor não configurada na Central.");
+  const corpo = JSON.stringify(body);
+  const headers = await signRequest({ secret: segredo, system: SISTEMA_SLUG, endpoint: ENDPOINT_REMOTO, body: corpo, nowSeconds: Math.floor(Date.now() / 1000) });
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const resp = await fetch(alvo.url, { method: "POST", headers, body: corpo, redirect: "error", signal: ctrl.signal });
+    const lido = await readStreamLimited(resp.body, 256 * 1024);
+    if (!lido.ok) return { falha: "grande" };
+    return { status: resp.status, json: parseJsonObject(lido.bytes) };
+  } catch (e) {
+    const nome = e && typeof e === "object" ? (e as { name?: string }).name : "";
+    return { falha: nome === "AbortError" ? "timeout" : "rede" };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Códigos do remoto -> mensagem ao Admin. Nada do texto do remoto é repassado. */
+const ERROS_REMOTO: Record<string, { status: number; mensagem: string }> = {
+  empresa_nao_encontrada: { status: 404, mensagem: "Empresa não encontrada no DistGestor para esta assinatura." },
+  usuario_nao_encontrado: { status: 404, mensagem: "Usuário não encontrado nesta empresa." },
+  senha_fraca: { status: 400, mensagem: "Use uma senha de 5 a 18 caracteres." },
+  senha_recusada: { status: 400, mensagem: "Use uma senha de 5 a 18 caracteres." },
+  dados_invalidos: { status: 400, mensagem: "Dados inválidos." },
+};
+
+function falhaDeRemoto(r: Resp): ErroNegocio {
+  if ("falha" in r) {
+    return new ErroNegocio(502, "remoto_indisponivel", "Não foi possível falar com o DistGestor. Nada foi alterado; tente novamente.");
+  }
+  const cod = r.json && typeof r.json["erro"] === "string" ? r.json["erro"] : "";
+  const conhecido = ERROS_REMOTO[cod];
+  if (conhecido) return new ErroNegocio(conhecido.status, cod, conhecido.mensagem);
+  if (r.status === 401) return new ErroNegocio(502, "remoto_recusou", "O DistGestor recusou a comunicação (assinatura). Verifique o segredo configurado nos dois lados.");
+  return new ErroNegocio(502, "remoto_erro", "O DistGestor não conseguiu concluir a operação. Nada foi confirmado.");
+}
+
+const PAPEIS = ["proprietario", "funcionario"];
+/** Só campos conhecidos e do tipo certo saem daqui, mesmo que o remoto mande mais coisa. */
+function sanearUsuarios(json: Record<string, unknown> | null): Array<Record<string, unknown>> | null {
+  const lista = json ? json["usuarios"] : null;
+  if (!Array.isArray(lista) || lista.length > 200) return null;
+  const out: Array<Record<string, unknown>> = [];
+  for (const u of lista) {
+    if (!u || typeof u !== "object") return null;
+    const o = u as Record<string, unknown>;
+    if (!isUuid(o["user_id"])) return null;
+    out.push({
+      user_id: o["user_id"],
+      nome: typeof o["nome"] === "string" ? o["nome"].slice(0, 200) : "",
+      email: typeof o["email"] === "string" ? o["email"].slice(0, 320) : "",
+      papel: typeof o["papel"] === "string" && PAPEIS.includes(o["papel"]) ? o["papel"] : "funcionario",
+      ativo: o["ativo"] === true,
+      permissoes: Array.isArray(o["permissoes"]) ? o["permissoes"].filter((x) => typeof x === "string" && /^[a-z_]{1,30}$/.test(x)).slice(0, 20) : [],
+    });
+  }
+  return out;
+}
+
+// freio simples por administrador (por instância): no máximo 20 redefinições a cada 10 min
+const janelaReset = new Map<string, number[]>();
+function limiteReset(uid: string): boolean {
+  const agora = Date.now();
+  const l = (janelaReset.get(uid) ?? []).filter((t) => agora - t < 10 * 60 * 1000);
+  if (l.length >= 20) { janelaReset.set(uid, l); return false; }
+  l.push(agora); janelaReset.set(uid, l);
+  return true;
+}
+
+// ---------------------------------------------------------------------
+// 5) Handler
+// ---------------------------------------------------------------------
+const ORIGENS = (Deno.env.get("FLOREST_ALLOWED_ORIGINS") ?? "").split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+
+async function handler(req: Request): Promise<Response> {
+  const cors = decideCors(req, ORIGENS);
+  if (cors.tipo === "negada") return erro(403, "origem_nao_permitida", "Origem não permitida.");
+  const ch = cors.tipo === "permitida" ? cors.headers : {};
+
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: ch });
+  if (req.method !== "POST") return erro(405, "metodo_nao_permitido", "Método não permitido.", { ...ch, allow: "POST, OPTIONS" });
+
+  // --- 1) autenticação: JWT do administrador ---
+  const m = /^Bearer\s+([A-Za-z0-9._~+/=-]{20,4096})$/.exec(req.headers.get("authorization") ?? "");
+  if (!m) return erro(401, "nao_autenticado", "Sessão inválida. Entre novamente.", ch);
+  let uid: string | null;
+  try { uid = await autenticar(m[1]); } catch (e) {
+    log("error", "auth_falhou", errInfo(e));
+    return erro(500, "erro_interno", "Erro interno. Tente novamente.", ch);
+  }
+  if (!uid) return erro(401, "nao_autenticado", "Sessão inválida. Entre novamente.", ch);
+
+  // --- 2) corpo ---
+  if (!isJsonContentType(req.headers)) return erro(415, "tipo_de_conteudo_invalido", "Tipo de conteúdo inválido.", ch);
+  const corpo = await readBodyLimited(req, MAX_BODY_BYTES);
+  if (!corpo.ok) return erro(corpo.status, corpo.erro, "Requisição inválida.", ch);
+  const b = parseJsonObject(corpo.bytes);
+  if (!b || !onlyKeys(b, ["assinatura_id", "acao", "user_id", "senha"])) return erro(400, "dados_invalidos", "Dados inválidos.", ch);
+  const acao = b["acao"];
+  if (!isUuid(b["assinatura_id"]) || typeof acao !== "string" || !(ACOES as readonly string[]).includes(acao)) {
+    return erro(400, "dados_invalidos", "Dados inválidos.", ch);
+  }
+  if (acao === "listar" && (b["user_id"] !== undefined || b["senha"] !== undefined)) return erro(400, "dados_invalidos", "Dados inválidos.", ch);
+  if (acao === "redefinir_senha") {
+    if (!isUuid(b["user_id"])) return erro(400, "dados_invalidos", "Dados inválidos.", ch);
+    if (!senhaValida(b["senha"])) return erro(400, "senha_fraca", "Use uma senha de 5 a 18 caracteres.", ch);
+  }
+  const assinaturaId = b["assinatura_id"] as string;
+
+  try {
+    // --- 3) é administrador? / a assinatura é do DistGestor? / qual é a empresa remota? ---
+    await exigirAdmin(uid);
+    const alvo = await resolverAlvo(assinaturaId);
+    const ator = "admin:" + uid;
+
+    if (acao === "listar") {
+      const r = await chamarRemoto(alvo, { action: "listar", empresa_id: alvo.empresaRemotaId, assinatura_id: alvo.assinaturaId, ator });
+      if ("falha" in r || r.status !== 200 || !r.json || r.json["ok"] !== true) {
+        log("warn", "listar_falhou", { assinatura_id: assinaturaId, http: "status" in r ? r.status : 0 });
+        throw falhaDeRemoto(r);
+      }
+      const usuarios = sanearUsuarios(r.json);
+      if (!usuarios) throw new ErroNegocio(502, "remoto_erro", "Resposta inesperada do DistGestor.");
+      log("info", "listar", { assinatura_id: assinaturaId, total: usuarios.length, ator });
+      return jsonResponse(200, { ok: true, usuarios }, ch);
+    }
+
+    // redefinir_senha
+    if (!limiteReset(uid)) throw new ErroNegocio(429, "muitas_tentativas", "Muitas redefinições em pouco tempo. Aguarde alguns minutos.");
+    const r = await chamarRemoto(alvo, {
+      action: "redefinir_senha", empresa_id: alvo.empresaRemotaId, assinatura_id: alvo.assinaturaId,
+      user_id: b["user_id"], senha: b["senha"], ator,
+    });
+    if ("falha" in r || r.status !== 200 || !r.json || r.json["ok"] !== true) {
+      log("warn", "redefinir_falhou", { assinatura_id: assinaturaId, http: "status" in r ? r.status : 0, ator });
+      throw falhaDeRemoto(r);
+    }
+    log("info", "senha_redefinida", { assinatura_id: assinaturaId, user_id: b["user_id"] as string, ator });
+    return jsonResponse(200, { ok: true }, ch);      // SÓ sucesso: sem senha, sem hash, sem dados do usuário
+  } catch (e) {
+    if (e instanceof ErroNegocio) return erro(e.status, e.codigo, e.mensagem, ch);
+    log("error", "acao_falhou", { acao, ...errInfo(e) });
+    return erro(500, "erro_interno", "Erro interno. Tente novamente.", ch);
+  }
+}
+
+Deno.serve(async (req) => {
+  try { return await handler(req); } catch (e) {
+    log("error", "excecao_nao_tratada", errInfo(e));
+    return erro(500, "erro_interno", "Erro interno. Tente novamente.");
+  }
+});
