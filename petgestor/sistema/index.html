@@ -729,7 +729,115 @@
   .status-neutro{ background: var(--border); color: var(--ink-soft); }
   .status-aviso2{ background: var(--accent-soft); color:#8A6D00; }
 
-  /* ---------- PDV ---------- */
+  /* ---------- NOVO PDV (tela cheia) ---------- */
+  #view-pdv.pdv-tela-cheia{
+    position:fixed; inset:0; z-index:500;
+    background: var(--bg);
+    display:flex; flex-direction:column;
+  }
+  .pdx-header{
+    display:flex; align-items:center; gap:18px;
+    background: var(--sidebar); color:#fff;
+    padding:12px 22px;
+    flex-shrink:0;
+  }
+  .pdx-brand{ display:flex; align-items:center; gap:10px; }
+  .pdx-brand-mark{ width:30px; height:30px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pdx-brand-mark svg{ width:18px; height:18px; stroke:var(--sidebar); fill:none; stroke-width:1.8; }
+  .pdx-brand-txt{ display:flex; flex-direction:column; line-height:1.25; }
+  .pdx-brand-txt strong{ font-size:15px; }
+  .pdx-brand-txt span{ font-size:12px; opacity:.75; }
+  .pdx-hinfo{ display:flex; gap:26px; margin-left:auto; }
+  .pdx-hinfo div{ display:flex; flex-direction:column; font-size:12px; line-height:1.5; opacity:.85; }
+  .pdx-hinfo b{ font-size:13px; opacity:1; }
+  .pdx-btn-sair{ background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; flex-shrink:0; }
+  .pdx-btn-sair:hover{ background:rgba(255,255,255,.1); }
+
+  .pdx-atalhos{ display:flex; align-items:center; gap:10px; background:#fff; border-bottom:1px solid var(--border); padding:8px 16px; flex-shrink:0; }
+  .pdx-atalhos-rot{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); flex-shrink:0; }
+  .pdx-atalhos-lista{ display:flex; gap:8px; overflow-x:auto; flex:1; }
+  .pdx-atalho-btn{
+    flex-shrink:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    background: var(--accent-soft); border:1px solid var(--accent); color:var(--ink);
+    border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; max-width:150px;
+  }
+  .pdx-atalho-btn b{ font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
+  .pdx-atalho-btn span{ opacity:.75; }
+  .pdx-atalhos-vazio{ font-size:12.5px; color:var(--ink-soft); }
+  .pdx-atalhos-cfg{ flex-shrink:0; background:transparent; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12.5px; cursor:pointer; color:var(--ink-soft); }
+
+  .pdx-main{ flex:1; display:grid; grid-template-columns: 1.1fr 1.3fr .9fr; gap:16px; padding:16px 20px; overflow:hidden; }
+  @media (max-width: 1100px){ .pdx-main{ grid-template-columns:1fr; overflow:auto; } }
+  .pdx-painel{ background:#fff; border-radius:12px; padding:18px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,.05); overflow-y:auto; }
+  .pdx-rotulo{ font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); font-weight:700; display:block; margin-bottom:6px; }
+  .pdx-input, .pdx-input-barras{ width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; }
+  .pdx-input-barras{ font-size:16px; font-weight:600; border-color:var(--accent); }
+  .pdx-input-barras:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-soft); }
+  .pdx-busca-wrap{ position:relative; margin-bottom:16px; }
+  .pdx-produto-box{ background:var(--bg); border-radius:10px; padding:14px; margin-bottom:16px; }
+  .pdx-produto-nome{ font-weight:700; font-size:15px; margin-top:2px; }
+  .pdx-produto-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+  .pdx-linha2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .pdx-valor-ro{ padding:11px 12px; background:var(--bg); border-radius:8px; font-weight:700; }
+  .pdx-botoes-esq{ margin-top:auto; display:flex; flex-direction:column; gap:8px; }
+  .pdx-botoes-esq2{ display:flex; gap:8px; }
+  .pdx-btn{ border:none; border-radius:8px; padding:12px 0; font-size:14px; font-weight:700; cursor:pointer; width:100%; }
+  .pdx-btn-amarelo{ background:var(--accent); color:var(--sidebar); }
+  .pdx-btn-amarelo:hover{ filter:brightness(0.95); }
+  .pdx-btn-cinza{ background:var(--bg); color:var(--ink); border:1px solid var(--border); flex:1; }
+  .pdx-dica{ font-size:11.5px; color:var(--ink-soft); margin-top:10px; }
+
+  .pdx-cupom-topo{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .pdx-itens{ font-size:12.5px; color:var(--ink-soft); }
+  .pdx-cupom-lista{ flex:1; overflow-y:auto; min-height:120px; }
+  .pdx-totais{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
+  .pdx-tot-linha{ display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:14px; }
+  .pdx-tot-linha input{ width:110px; padding:8px; border:1px solid var(--border); border-radius:6px; text-align:right; }
+  .pdx-tot-total{ display:flex; align-items:center; justify-content:space-between; padding-top:10px; font-size:20px; font-weight:800; color:var(--sidebar); }
+
+  .pdx-pagto{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .pdx-pg{ display:flex; align-items:center; gap:10px; padding:12px; border:1.5px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; font-size:13.5px; text-align:left; }
+  .pdx-pg i{ font-style:normal; width:22px; text-align:center; color:var(--ink-soft); }
+  .pdx-pg.ativo{ border-color:var(--accent); background:var(--accent-soft); font-weight:700; }
+  .pdx-finalizar-wrap{ margin-top:auto; }
+  .pdx-fin-total{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; font-size:14px; color:var(--ink-soft); }
+  .pdx-fin-total b{ font-size:18px; color:var(--ink); }
+  .pdx-btn-finalizar{ width:100%; padding:16px 0; border:none; border-radius:10px; background:var(--teal, #1B8A6B); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+  .pdx-btn-finalizar:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .pdx-rodape{ display:flex; align-items:center; gap:16px; background:#fff; border-top:1px solid var(--border); padding:10px 20px; flex-shrink:0; flex-wrap:wrap; }
+  .pdx-cliente{ display:flex; align-items:center; gap:8px; font-size:13.5px; }
+  .pdx-btn-mini{ background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; }
+  .pdx-btn-mini-perigo{ margin-left:auto; color:var(--danger); border-color:var(--danger-soft); }
+  .pdx-teclas{ font-size:12px; color:var(--ink-soft); }
+  .pdx-teclas kbd{ background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-family:inherit; }
+
+  .pdx-modal{ position:fixed; inset:0; background:rgba(10,20,35,.55); display:flex; align-items:center; justify-content:center; z-index:600; }
+  .pdx-modal.hidden{ display:none; }
+  .pdx-card{ background:#fff; border-radius:14px; padding:24px; width:100%; max-width:420px; max-height:88vh; overflow-y:auto; }
+  .pdx-card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .pdx-add-img{ display:flex; justify-content:center; margin-bottom:10px; color:var(--ink-soft); }
+  .pdx-add-nome{ font-weight:700; text-align:center; font-size:16px; }
+  .pdx-add-preco{ text-align:center; color:var(--ink-soft); margin-bottom:4px; }
+  .pdx-add-estoque{ text-align:center; font-size:12.5px; color:var(--ink-soft); margin-bottom:14px; }
+  .pdx-input-grande{ font-size:22px; text-align:center; font-weight:700; }
+  .pdx-add-erro{ color:var(--danger); font-size:12.5px; min-height:16px; margin-top:6px; }
+  .pdx-add-botoes{ display:flex; gap:10px; margin-top:16px; }
+  .pdx-add-botoes .pdx-btn{ flex:1; }
+  .pdx-cliente-lista{ margin-top:12px; max-height:280px; overflow-y:auto; }
+  .pdx-cliente-item{ padding:10px; border-radius:8px; cursor:pointer; font-size:14px; }
+  .pdx-cliente-item:hover{ background:var(--bg); }
+  .pdx-card-atalho{ max-width:640px; }
+  .pdx-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-top:10px; }
+  .pdx-atalho-slot{ border:1.5px dashed var(--border); border-radius:10px; padding:12px 8px; text-align:center; font-size:12.5px; cursor:pointer; min-height:76px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+  .pdx-atalho-slot.preenchido{ border-style:solid; border-color:var(--accent); background:var(--accent-soft); }
+  .pdx-aviso{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin-bottom:10px; }
+  .pdx-cfg-status{ font-weight:600; }
+  .pdx-cfg-status.erro{ color:var(--danger); }
+  .pdx-select-produto{ width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:13px; margin-top:6px; }
+  .pdx-remover-atalho{ font-size:11px; color:var(--danger); background:none; border:none; cursor:pointer; margin-top:4px; }
+
+  /* ---------- PDV (painéis reaproveitados em Configurações Fiscais) ---------- */
   .pdv-grid{
     display:grid;
     grid-template-columns: 1.86fr 1fr;
@@ -1569,7 +1677,7 @@
           <div class="field auth-input-wrap">
             <label>Senha</label>
             <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-            <input type="password" id="cad-senha" required minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+            <input type="password" id="cad-senha" required minlength="6" maxlength="18" autocomplete="new-password" placeholder="6 a 18 caracteres">
             <button type="button" class="auth-toggle-senha" data-target="cad-senha" aria-label="Mostrar senha">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -1577,7 +1685,7 @@
           <div class="field auth-input-wrap">
             <label>Confirmar senha</label>
             <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-            <input type="password" id="cad-senha2" required minlength="6" autocomplete="new-password" placeholder="Repita a senha">
+            <input type="password" id="cad-senha2" required minlength="6" maxlength="18" autocomplete="new-password" placeholder="Repita a senha">
             <button type="button" class="auth-toggle-senha" data-target="cad-senha2" aria-label="Mostrar senha">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -1621,6 +1729,7 @@
     <div class="nav-item enabled" data-view="fiscal" id="nav-fiscal"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5M8 12h8M8 16h5"/></svg></span><span class="nav-label">Fiscal</span></div>
     <div class="nav-item enabled" data-view="notas-entrada" id="nav-notas-entrada"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13l2 2 4-4"/></svg></span><span class="nav-label">Notas de Entrada</span></div>
     <div class="nav-item enabled" data-view="configuracoes" id="nav-configuracoes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.3-2-3.4-2.2.7a7.8 7.8 0 0 0-1.3-.8L15.4 5h-4l-.4 2.2c-.5.2-.9.5-1.3.8l-2.2-.7-2 3.4L7.4 12c-.1.5-.1 1 0 1.5l-1.9 1.3 2 3.4 2.2-.7c.4.3.8.6 1.3.8l.4 2.2h4l.4-2.2c.5-.2.9-.5 1.3-.8l2.2.7 2-3.4-1.9-1.3Z"/></svg></span><span class="nav-label">Configurações</span></div>
+    <div class="nav-item enabled" data-view="usuarios" id="nav-usuarios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16.5 4.8c1.3.5 2.2 1.7 2.2 3.2s-.9 2.7-2.2 3.2M19 14.5c1.8.6 3 2.2 3 4.5"/></svg></span><span class="nav-label">Usuários e Acessos</span></div>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-script-tagline">Juntos pelo crescimento do seu negócio.</div>
@@ -1880,125 +1989,166 @@
       </div>
     </div>
 
-    <!-- ===== VIEW: PDV ===== -->
-    <div id="view-pdv" class="hidden">
-      <div class="view-header">
-        <div>
-          <h2>PDV</h2>
-          <p>Nova venda. O estoque é descontado automaticamente.</p>
+    <!-- ===== VIEW: PDV (tela própria, layout novo) ===== -->
+    <div id="view-pdv" class="hidden pdv-tela-cheia">
+
+      <header class="pdx-header">
+        <div class="pdx-brand">
+          <span class="pdx-brand-mark"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span>
+          <div class="pdx-brand-txt">
+            <strong>PetGestor PDV</strong>
+            <span id="pdx-empresa">—</span>
+          </div>
         </div>
-        <button type="button" class="btn-secondary" id="btn-limpar-venda">
-          <span style="display:inline-flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vertical-align:-3px;"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
-            Limpar venda
-          </span>
-        </button>
+        <div class="pdx-hinfo">
+          <div><small>Operador</small><b id="pdx-operador">—</b></div>
+          <div><small>Data / hora</small><b id="pdx-relogio">—</b></div>
+        </div>
+        <button type="button" class="pdx-btn-sair" id="btn-sair-pdv">&larr; Sair do PDV</button>
+      </header>
+
+      <div class="pdx-atalhos">
+        <span class="pdx-atalhos-rot">Atalhos</span>
+        <div class="pdx-atalhos-lista" id="pdx-atalhos-lista"><span class="pdx-atalhos-vazio">Nenhum atalho configurado.</span></div>
+        <button type="button" class="pdx-atalhos-cfg hidden" id="btn-pdx-config-atalhos" title="Escolher os produtos/serviços de acesso rápido">&#9881; Configurar</button>
       </div>
 
-      <div class="pdv-grid">
-        <div class="pdv-col-left">
+      <div class="pdx-main">
 
-          <div class="pdv-panel">
-            <h3><span class="card-icon-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg></span>1. Cliente (opcional)</h3>
-            <div class="field" style="margin-bottom:0;">
-              <select id="pdv-cliente">
-                <option value="">Não identificado</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="pdv-panel">
-            <h3><span class="card-icon-badge"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span>2. Produtos</h3>
-            <div class="field-row" style="grid-template-columns: 2.5fr 1fr;">
-              <div class="field" style="margin-bottom:0;">
-                <label>Código ou nome do produto</label>
-                <div class="pdv-input-wrap">
-                  <input type="text" id="pdv-busca-produto" placeholder="Digite, escaneie ou pesquise o produto..." autocomplete="off">
-                  <svg viewBox="0 0 24 24"><path d="M4 5v14M8 5v14M11 5v14M14 5v10M17 5v14M20 5v14" stroke="currentColor" fill="none" stroke-width="1.6"/></svg>
-                </div>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Qtd.</label>
-                <input type="number" id="pdv-qtd" value="1" min="1">
-              </div>
-            </div>
+        <!-- ESQUERDA: leitura / produto -->
+        <section class="pdx-painel">
+          <label class="pdx-rotulo" for="pdv-busca-produto">Código de barras ou nome</label>
+          <div class="pdx-busca-wrap">
+            <input type="text" id="pdv-busca-produto" class="pdx-input-barras" placeholder="Bipe o código de barras ou digite para pesquisar..." autocomplete="off" autocapitalize="off" spellcheck="false">
             <div class="search-results hidden" id="pdv-resultados"></div>
-
-            <div id="pdv-preview" class="pdv-preview hidden">
-              <div class="pdv-preview-info">
-                <div class="pdv-preview-nome" id="pdv-preview-nome">—</div>
-                <div class="pdv-preview-sub" id="pdv-preview-sub">—</div>
-              </div>
-              <div class="pdv-preview-preco" id="pdv-preview-preco">R$ 0,00</div>
-            </div>
-            <button type="button" class="btn-accent" id="btn-adicionar-pdv" style="width:100%; margin-top:14px; padding:14px 0; font-size:15px;">Adicionar no cupom</button>
           </div>
 
-          <div class="pdv-panel">
-            <h3><span class="card-icon-badge"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2 3h2.6l2.2 12a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20.5 8H5.6"/></svg></span>3. Cupom</h3>
-            <div id="pdv-msg"></div>
-
-            <div class="cart-header-row">
-              <span>Produto</span>
-              <span>Qtd.</span>
-              <span>Valor unit.</span>
-              <span>Total</span>
-              <span></span>
-            </div>
-            <div id="pdv-carrinho">
-              <div class="cart-empty">Nenhum item no cupom ainda.</div>
-            </div>
+          <div id="pdv-preview" class="pdx-produto-box hidden">
+            <label class="pdx-rotulo">Produto/serviço selecionado</label>
+            <div class="pdx-produto-nome" id="pdv-preview-nome">—</div>
+            <div class="pdx-produto-sub" id="pdv-preview-sub">—</div>
           </div>
 
-        </div>
-
-        <div class="pdv-panel pdv-panel-pagamento">
-          <div class="pdv-pagamento-header">
-            <span class="card-icon-badge" style="background:rgba(255,255,255,0.15);"><svg viewBox="0 0 24 24" style="stroke:#fff;"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 9.5h19"/></svg></span>
+          <div class="pdx-linha2">
             <div>
-              <div>4. Pagamento</div>
-              <div class="pdv-pagamento-header-sub">Confirme os dados e finalize a venda.</div>
+              <label class="pdx-rotulo" for="pdv-qtd">Quantidade</label>
+              <input type="number" id="pdv-qtd" class="pdx-input" value="1" min="1">
+            </div>
+            <div>
+              <label class="pdx-rotulo">Valor unitário</label>
+              <div class="pdx-valor-ro" id="pdv-preview-preco">—</div>
             </div>
           </div>
-          <div class="pdv-pagamento-body">
-            <div class="field">
-              <label>Forma de pagamento</label>
-              <select id="pdv-pagamento">
-                <option value="Dinheiro">Dinheiro</option>
-                <option value="Pix">Pix</option>
-                <option value="Cartão de Débito">Cartão de Débito</option>
-                <option value="Cartão de Crédito">Cartão de Crédito</option>
-              </select>
-            </div>
 
-            <div class="pdv-info-box">
-              <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:#2C4A66; fill:none; stroke-width:2; flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v5h1"/></svg>
-              <span>Ao finalizar a venda, será gerado o registro com a forma de pagamento selecionada.</span>
-            </div>
+          <div class="pdx-botoes-esq">
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-adicionar-pdv">Adicionar ao cupom</button>
+          </div>
+          <p class="pdx-dica">Leitor de código de barras: deixe o campo em foco e bipe — o produto é localizado na hora.</p>
+        </section>
 
-            <div class="pdv-subtotal-row">
-              <span class="label">Subtotal</span>
-              <span class="value" id="pdv-subtotal">R$ 0,00</span>
-            </div>
-
-            <div class="field">
-              <label>Desconto (R$)</label>
+        <!-- CENTRO: cupom -->
+        <section class="pdx-painel">
+          <div class="pdx-cupom-topo">
+            <h3 style="margin:0; font-size:15px;">Cupom da venda</h3>
+            <span class="pdx-itens" id="pdx-itens">0 itens</span>
+          </div>
+          <div id="pdv-msg"></div>
+          <div class="cart-header-row">
+            <span>Produto</span>
+            <span>Qtd.</span>
+            <span>Valor unit.</span>
+            <span>Total</span>
+            <span></span>
+          </div>
+          <div id="pdv-carrinho" class="pdx-cupom-lista">
+            <div class="cart-empty">Nenhum item no cupom ainda.</div>
+          </div>
+          <div id="pdv-pacote-nota" class="modal-section-hint"></div>
+          <div class="pdx-totais">
+            <div class="pdx-tot-linha"><span>Subtotal</span><b id="pdv-subtotal">R$ 0,00</b></div>
+            <div class="pdx-tot-linha">
+              <span>Desconto (R$)</span>
               <input type="number" id="pdv-desconto" min="0" step="0.01" value="0">
             </div>
+            <div class="pdx-tot-total"><span>TOTAL</span><b id="pdv-total">R$ 0,00</b></div>
+          </div>
+        </section>
 
-            <div class="pdv-total-row">
-              <span class="label">Total</span>
-              <span class="value" id="pdv-total">R$ 0,00</span>
-            </div>
-            <div id="pdv-pacote-nota" class="modal-section-hint" style="margin-top:-10px;"></div>
+        <!-- DIREITA: pagamento -->
+        <section class="pdx-painel">
+          <label class="pdx-rotulo">Forma de pagamento</label>
+          <select id="pdv-pagamento" style="display:none;" tabindex="-1" aria-hidden="true">
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Pix">Pix</option>
+            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+          </select>
+          <div class="pdx-pagto" id="pdx-pagto">
+            <button type="button" class="pdx-pg ativo" data-forma="Dinheiro"><i>$</i>Dinheiro</button>
+            <button type="button" class="pdx-pg" data-forma="Pix"><i>&#9632;</i>PIX</button>
+            <button type="button" class="pdx-pg" data-forma="Cartão de Débito"><i>&#9645;</i>Cartão de Débito</button>
+            <button type="button" class="pdx-pg" data-forma="Cartão de Crédito"><i>&#9645;</i>Cartão de Crédito</button>
+          </div>
+          <div class="pdx-finalizar-wrap">
+            <div class="pdx-fin-total"><span>Total a pagar</span><b id="pdx-fin-total">R$ 0,00</b></div>
+            <button class="pdx-btn-finalizar" id="btn-finalizar-venda" disabled>FINALIZAR VENDA (F3)</button>
+          </div>
+        </section>
+      </div>
 
-            <div class="pdv-pagamento-acoes">
-              <button class="btn-accent" id="btn-finalizar-venda" style="width:100%;" disabled>Finalizar venda</button>
-              <div class="pdv-trust-text">
-                <svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
-                Venda segura e dados protegidos.
-              </div>
-            </div>
+      <footer class="pdx-rodape">
+        <div class="pdx-cliente">
+          <span>Cliente:</span>
+          <b id="pdx-cliente-nome">Não identificado</b>
+          <button type="button" class="pdx-btn-mini" id="btn-pdx-cliente">Alterar (F2)</button>
+          <select id="pdv-cliente" style="display:none;" tabindex="-1" aria-hidden="true">
+            <option value="">Não identificado</option>
+          </select>
+        </div>
+        <div class="pdx-teclas"><kbd>F2</kbd> Cliente &nbsp; <kbd>F3</kbd> Finalizar &nbsp; <kbd>ESC</kbd> Cancelar</div>
+        <button type="button" class="pdx-btn-mini pdx-btn-mini-perigo" id="btn-limpar-venda">Limpar cupom</button>
+      </footer>
+
+      <!-- Modal: adicionar item de atalho ao cupom (quantidade) -->
+      <div id="pdx-modal-add" class="pdx-modal hidden">
+        <div class="pdx-card">
+          <div class="pdx-card-head"><h3>Adicionar ao cupom</h3></div>
+          <div class="pdx-add-nome" id="pdx-add-nome">—</div>
+          <div class="pdx-add-preco" id="pdx-add-preco">—</div>
+          <div class="pdx-add-estoque" id="pdx-add-estoque"></div>
+          <label class="pdx-rotulo" for="pdx-add-qtd">Quantidade</label>
+          <input type="number" id="pdx-add-qtd" class="pdx-input pdx-input-grande" value="1" min="1" autocomplete="off">
+          <div class="pdx-add-erro" id="pdx-add-erro"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-pdx-add-cancelar">Cancelar (Esc)</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-pdx-add-ok">Adicionar (Enter)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: escolher cliente -->
+      <div id="pdx-modal-cliente" class="pdx-modal hidden">
+        <div class="pdx-card">
+          <div class="pdx-card-head">
+            <h3>Cliente da venda</h3>
+            <button type="button" class="pdx-btn-mini" id="btn-pdx-cliente-fechar">Fechar (Esc)</button>
+          </div>
+          <input type="text" id="pdx-cliente-busca" class="pdx-input" placeholder="Pesquisar cliente pelo nome..." autocomplete="off">
+          <div class="pdx-cliente-lista" id="pdx-cliente-lista"></div>
+        </div>
+      </div>
+
+      <!-- Modal: configurar atalhos (só proprietário) -->
+      <div id="pdx-modal-config" class="pdx-modal hidden">
+        <div class="pdx-card pdx-card-atalho">
+          <div class="pdx-card-head">
+            <h3>Configurar atalhos do PDV</h3>
+            <button type="button" class="pdx-btn-mini" id="btn-pdx-cfg-fechar">Fechar</button>
+          </div>
+          <p class="pdx-aviso">Escolha até 10 produtos ou serviços de acesso rápido. Os atalhos valem para toda a empresa — qualquer funcionário com acesso ao PDV os utiliza. <span id="pdx-cfg-status" class="pdx-cfg-status"></span></p>
+          <div class="pdx-grid" id="pdx-config-grid"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn-primary" id="btn-pdx-cfg-salvar" style="width:auto; padding:10px 20px;">Salvar atalhos</button>
           </div>
         </div>
       </div>
@@ -2087,115 +2237,53 @@
       </div>
     </div>
 
-    <!-- ===== VIEW: RELATÓRIOS ===== -->
+    <!-- ===== VIEW: RELATÓRIOS (Central de Relatórios) ===== -->
     <div id="view-relatorios" class="hidden">
       <div class="view-header">
         <div>
-          <h2>Relatórios</h2>
-          <p>Escolha o período para ver vendas, produtos e clientes.</p>
+          <h2>Central de Relatórios</h2>
+          <p>Escolha o relatório, o período e gere a consulta na tela ou em PDF.</p>
         </div>
       </div>
 
-      <div class="search-row" style="align-items:flex-end;">
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>De</label>
-          <input type="date" id="rel-data-inicio">
-        </div>
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>Até</label>
-          <input type="date" id="rel-data-fim">
-        </div>
-        <button class="btn-accent" id="btn-aplicar-relatorio">Aplicar filtro</button>
-      </div>
-
-      <div class="subsection" style="margin-top:24px;">
-        <div class="subsection-header">
-          <div>
-            <h3>Vendas do período</h3>
-            <p>Separado entre venda normal e venda de pacote novo.</p>
+      <div class="pdv-panel">
+        <div class="field-row">
+          <div class="field">
+            <label>Tipo de relatório</label>
+            <select id="rel-tipo"></select>
+          </div>
+          <div class="field" id="rel-filtro-extra-wrap" style="display:none;">
+            <label id="rel-filtro-extra-label">Filtro</label>
+            <select id="rel-filtro-extra"></select>
           </div>
         </div>
-        <div class="metric-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="metric-card">
-            <span class="num" id="rel-vendas-normais">R$ 0</span>
-            <span class="label" id="rel-vendas-normais-qtd">Vendas normais</span>
+        <div class="field-row">
+          <div class="field">
+            <label>Data inicial</label>
+            <input type="date" id="rel-data-inicio">
           </div>
-          <div class="metric-card c-accent">
-            <span class="num" id="rel-vendas-pacote">R$ 0</span>
-            <span class="label" id="rel-vendas-pacote-qtd">Vendas de pacote</span>
+          <div class="field">
+            <label>Data final</label>
+            <input type="date" id="rel-data-fim">
           </div>
-          <div class="metric-card c-teal">
-            <span class="num" id="rel-vendas-total">R$ 0</span>
-            <span class="label">Total geral</span>
-          </div>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;">
+          <button class="btn-accent" id="btn-aplicar-relatorio" style="width:auto; padding:10px 22px;">Gerar relatório</button>
+          <button class="btn-secondary hidden" id="btn-gerar-pdf-relatorio" style="width:auto; padding:10px 22px;">Gerar PDF</button>
         </div>
       </div>
 
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos mais vendidos</h3>
-            <p>Top 10 por quantidade, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
+      <div id="rel-resultado" class="hidden">
+        <div id="rel-resumo" class="metric-grid" style="margin-top:20px;"></div>
+        <div class="table-card" style="margin-top:20px;">
           <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Quantidade</th>
-                <th>Total vendido</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-produtos-body"></tbody>
+            <thead><tr id="rel-tabela-head"></tr></thead>
+            <tbody id="rel-tabela-body"></tbody>
           </table>
-          <div id="rel-produtos-empty" class="empty-state hidden">Nenhuma venda de produto neste período.</div>
+          <div id="rel-tabela-empty" class="empty-state hidden">Nenhum registro encontrado para os filtros escolhidos.</div>
         </div>
       </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Clientes que mais compraram</h3>
-            <p>Top 10 por valor total gasto, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Nº de compras</th>
-                <th>Total gasto</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-clientes-body"></tbody>
-          </table>
-          <div id="rel-clientes-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Usos de pacote no período</h3>
-            <p>Sessões descontadas de pacotes já pagos — não gera financeiro, só o registro de quando foi feito.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Cliente</th>
-                <th>Pacote</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-usos-body"></tbody>
-          </table>
-          <div id="rel-usos-empty" class="empty-state hidden">Nenhum uso de pacote neste período.</div>
-        </div>
-      </div>
+      <div id="rel-msg"></div>
     </div>
 
     <!-- ===== VIEW: FISCAL ===== -->
@@ -2312,6 +2400,34 @@
           <tbody id="tabela-notas-entrada-body"></tbody>
         </table>
         <div id="notas-entrada-empty" class="empty-state hidden">Nenhuma nota de entrada lançada ainda.</div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: USUÁRIOS E ACESSOS ===== -->
+    <div id="view-usuarios" class="hidden">
+      <div class="view-header">
+        <div>
+          <h2>Usuários e Acessos</h2>
+          <p>Crie funcionários e escolha exatamente quais módulos cada um pode acessar.</p>
+        </div>
+        <button class="btn-accent" id="btn-novo-usuario">+ Novo funcionário</button>
+      </div>
+
+      <div id="usuarios-msg"></div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Papel</th>
+              <th>Módulos liberados</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tabela-usuarios-body"></tbody>
+        </table>
+        <div id="usuarios-empty" class="empty-state hidden">Nenhum funcionário cadastrado ainda.</div>
       </div>
     </div>
 
@@ -2562,6 +2678,60 @@
     <div id="ne-detalhe-conteudo"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="btn-fechar-detalhe-nota">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: NOVO/EDITAR FUNCIONÁRIO ===== -->
+<div id="modal-usuario" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="modal-usuario-titulo">Novo funcionário</h3>
+    <div id="usuario-msg"></div>
+    <form id="form-usuario">
+      <input type="hidden" id="usuario-id">
+      <div class="field">
+        <label>Nome</label>
+        <input type="text" id="usuario-nome" required>
+      </div>
+      <div class="field" id="usuario-campo-email">
+        <label>E-mail (login)</label>
+        <input type="email" id="usuario-email" autocomplete="off">
+      </div>
+      <div class="field" id="usuario-campo-senha">
+        <label>Senha</label>
+        <input type="password" id="usuario-senha" minlength="6" maxlength="18" autocomplete="new-password" placeholder="6 a 18 caracteres">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="usuario-status">
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+      <div class="modal-section-label">Módulos liberados</div>
+      <div id="usuario-permissoes-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px;"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
+        <button type="submit" class="btn-primary" id="btn-salvar-usuario" style="width:auto; padding:10px 20px;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== MODAL: REDEFINIR SENHA DO FUNCIONÁRIO ===== -->
+<div id="modal-redefinir-senha" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:380px;">
+    <h3>Redefinir senha</h3>
+    <div id="redefinir-senha-msg"></div>
+    <input type="hidden" id="redefinir-senha-usuario-id">
+    <div class="field">
+      <label>Nova senha</label>
+      <input type="password" id="redefinir-senha-valor" minlength="6" maxlength="18" autocomplete="new-password" placeholder="6 a 18 caracteres">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cancelar-redefinir-senha">Cancelar</button>
+      <button type="button" class="btn-primary" id="btn-confirmar-redefinir-senha" style="width:auto; padding:10px 20px;">Redefinir</button>
     </div>
   </div>
 </div>
@@ -2989,6 +3159,8 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -3113,6 +3285,10 @@ $('form-cadastro').addEventListener('submit', async (e) => {
     showMsg('Informe um CNPJ válido.', 'error');
     return;
   }
+  if(senha.length < 6 || senha.length > 18){
+    showMsg('Use uma senha de 6 a 18 caracteres.', 'error');
+    return;
+  }
   if(senha !== senha2){
     showMsg('As senhas não coincidem.', 'error');
     return;
@@ -3222,14 +3398,63 @@ function mostrarApp({ nomeEmpresa, nomeResponsavel, email }){
   $('topbar-avatar-inicial').textContent = inicial;
   $('greeting-nome').textContent = 'Olá, ' + (nomeResponsavel || 'bem-vindo') + '!';
   $('greeting-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  if($('pdx-empresa')) $('pdx-empresa').textContent = nomeEmpresa || '—';
+  if($('pdx-operador')) $('pdx-operador').textContent = nomeResponsavel || '—';
   authScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
+}
+
+let acesso = { userId: null, nome: '', papel: 'proprietario', permissoes: [], ativo: true };
+
+const MODULOS_ACESSO = [
+  { k: 'dashboard',     navId: 'nav-dashboard',     rotulo: 'Dashboard' },
+  { k: 'agenda',        navId: 'nav-agenda',        rotulo: 'Agenda' },
+  { k: 'clientes',      navId: 'nav-clientes',      rotulo: 'Clientes' },
+  { k: 'pets',          navId: 'nav-pets',          rotulo: 'Pets' },
+  { k: 'pacotes',       navId: 'nav-pacotes',       rotulo: 'Pacotes' },
+  { k: 'financeiro',    navId: 'nav-financeiro',    rotulo: 'Financeiro' },
+  { k: 'produtos',      navId: 'nav-produtos',      rotulo: 'Produtos' },
+  { k: 'produtos',      navId: 'nav-estoque',       rotulo: 'Estoque' },
+  { k: 'pdv',           navId: 'nav-pdv',           rotulo: 'PDV' },
+  { k: 'fiscal',        navId: 'nav-fiscal',        rotulo: 'Fiscal' },
+  { k: 'notas_entrada', navId: 'nav-notas-entrada', rotulo: 'Notas de Entrada' },
+  { k: 'relatorios',    navId: 'nav-relatorios',    rotulo: 'Relatórios' },
+  { k: 'configuracoes', navId: 'nav-configuracoes', rotulo: 'Configurações' },
+];
+// Módulos que aparecem na tela de permissões do funcionário (sem duplicar Produtos/Estoque,
+// que compartilham a mesma permissão no banco — ver migration de usuários/permissões).
+const MODULOS_PERMISSAO_UNICOS = [
+  { k: 'dashboard', rotulo: 'Dashboard' },
+  { k: 'agenda', rotulo: 'Agenda' },
+  { k: 'clientes', rotulo: 'Clientes' },
+  { k: 'pets', rotulo: 'Pets' },
+  { k: 'pacotes', rotulo: 'Pacotes' },
+  { k: 'financeiro', rotulo: 'Financeiro' },
+  { k: 'produtos', rotulo: 'Produtos e Estoque' },
+  { k: 'pdv', rotulo: 'PDV' },
+  { k: 'fiscal', rotulo: 'Fiscal' },
+  { k: 'notas_entrada', rotulo: 'Notas de Entrada' },
+  { k: 'relatorios', rotulo: 'Relatórios' },
+  { k: 'configuracoes', rotulo: 'Configurações' },
+];
+function temAcesso(modulo){
+  return acesso.papel === 'proprietario' || acesso.permissoes.includes(modulo);
+}
+function aplicarControleAcesso(){
+  MODULOS_ACESSO.forEach(m => {
+    const el = $(m.navId);
+    if(el) el.classList.toggle('hidden', !temAcesso(m.k));
+  });
+  const navUsuarios = $('nav-usuarios');
+  if(navUsuarios) navUsuarios.classList.toggle('hidden', acesso.papel !== 'proprietario');
+  const btnCfgAtalhos = $('btn-pdx-config-atalhos');
+  if(btnCfgAtalhos) btnCfgAtalhos.classList.toggle('hidden', acesso.papel !== 'proprietario');
 }
 
 async function carregarPerfilEMostrarApp(userId, email){
   const { data: perfil, error } = await supabase
     .from('perfis')
-    .select('nome, empresas(nome, bloqueado, vencimento, status_conta)')
+    .select('nome, papel, permissoes, ativo, empresas(nome, bloqueado, vencimento, status_conta)')
     .eq('id', userId)
     .single();
 
@@ -3243,6 +3468,23 @@ async function carregarPerfilEMostrarApp(userId, email){
     showMsg('Sua sessão expirou. Faça login novamente.', 'error');
     return;
   }
+
+  if(perfil.ativo === false){
+    await supabase.auth.signOut();
+    appScreen.classList.add('hidden');
+    loading.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+    showMsg('Seu acesso foi desativado. Fale com o proprietário da empresa.', 'error');
+    return;
+  }
+
+  acesso = {
+    userId,
+    nome: perfil.nome,
+    papel: perfil.papel === 'funcionario' ? 'funcionario' : 'proprietario',
+    permissoes: Array.isArray(perfil.permissoes) ? perfil.permissoes : [],
+    ativo: perfil.ativo !== false,
+  };
 
   const empresa = perfil.empresas;
 
@@ -3269,6 +3511,8 @@ async function carregarPerfilEMostrarApp(userId, email){
     nomeResponsavel: perfil.nome,
     email
   });
+
+  aplicarControleAcesso();
 
   if(empresa && empresa.vencimento){
     const hoje = new Date();
@@ -3313,6 +3557,7 @@ document.querySelectorAll('.nav-item.enabled').forEach(item => {
     $('view-fiscal').classList.toggle('hidden', view !== 'fiscal');
     $('view-notas-entrada').classList.toggle('hidden', view !== 'notas-entrada');
     $('view-configuracoes').classList.toggle('hidden', view !== 'configuracoes');
+    $('view-usuarios').classList.toggle('hidden', view !== 'usuarios');
     if(view === 'clientes'){ carregarClientes(); }
     if(view === 'pets'){ carregarPets(); }
     if(view === 'agenda'){ carregarAgendaCompleta(); }
@@ -3325,6 +3570,7 @@ document.querySelectorAll('.nav-item.enabled').forEach(item => {
     if(view === 'fiscal'){ carregarFiscal(); }
     if(view === 'notas-entrada'){ carregarNotasEntrada(); }
     if(view === 'configuracoes'){ carregarConfiguracoesFiscais(); }
+    if(view === 'usuarios'){ carregarUsuarios(); }
     if(view === 'dashboard'){ atualizarMetricaClientes(); atualizarMetricaPets(); atualizarMetricaEstoqueBaixo(); atualizarMetricaVendasHoje(); carregarAgendaWidget(); }
     fecharMenuMobile();
   });
@@ -3953,6 +4199,7 @@ $('form-estoque').addEventListener('submit', async (e) => {
 
 // ---------- PDV ----------
 let pdvProdutos = [];
+let pdvClientes = [];
 let pdvCarrinho = []; // { produto_id, nome, preco_unitario, quantidade, estoque_disponivel, tipo }
 let pdvProdutoAtivo = null;
 
@@ -3967,6 +4214,7 @@ async function prepararPdv(){
     .from('clientes')
     .select('id, nome')
     .order('nome', { ascending: true });
+  pdvClientes = clientesData || [];
 
   const select = $('pdv-cliente');
   select.innerHTML = '<option value="">Não identificado</option>';
@@ -3976,6 +4224,9 @@ async function prepararPdv(){
     opt.textContent = c.nome;
     select.appendChild(opt);
   });
+
+  carregarAtalhosPdv();
+  pdxAtualizarClienteNome();
 }
 
 let pdvResultadosAtuais = [];
@@ -4116,6 +4367,221 @@ $('pdv-cliente').addEventListener('change', () => {
   }
 });
 
+// ---------- Novo layout do PDV: cliente por modal, pagamento em botões, relógio, sair ----------
+function pdxAtualizarClienteNome(){
+  const id = $('pdv-cliente').value;
+  const cliente = pdvClientes.find(c => c.id === id);
+  $('pdx-cliente-nome').textContent = cliente ? cliente.nome : 'Não identificado';
+}
+
+function renderListaClientesPdx(lista){
+  const container = $('pdx-cliente-lista');
+  container.innerHTML = '';
+  const itemNaoIdent = document.createElement('div');
+  itemNaoIdent.className = 'pdx-cliente-item';
+  itemNaoIdent.textContent = 'Não identificado';
+  itemNaoIdent.addEventListener('click', () => selecionarClientePdx(''));
+  container.appendChild(itemNaoIdent);
+  lista.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'pdx-cliente-item';
+    item.textContent = c.nome;
+    item.addEventListener('click', () => selecionarClientePdx(c.id));
+    container.appendChild(item);
+  });
+}
+function selecionarClientePdx(id){
+  $('pdv-cliente').value = id;
+  $('pdv-cliente').dispatchEvent(new Event('change'));
+  pdxAtualizarClienteNome();
+  $('pdx-modal-cliente').classList.add('hidden');
+  $('pdv-busca-produto').focus();
+}
+
+$('btn-pdx-cliente').addEventListener('click', () => {
+  $('pdx-cliente-busca').value = '';
+  renderListaClientesPdx(pdvClientes);
+  $('pdx-modal-cliente').classList.remove('hidden');
+  setTimeout(() => $('pdx-cliente-busca').focus(), 50);
+});
+$('btn-pdx-cliente-fechar').addEventListener('click', () => { $('pdx-modal-cliente').classList.add('hidden'); $('pdv-busca-produto').focus(); });
+$('pdx-modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'pdx-modal-cliente'){ $('pdx-modal-cliente').classList.add('hidden'); $('pdv-busca-produto').focus(); } });
+$('pdx-cliente-busca').addEventListener('input', (e) => {
+  const t = e.target.value.toLowerCase();
+  renderListaClientesPdx(pdvClientes.filter(c => c.nome.toLowerCase().includes(t)));
+});
+
+// Formas de pagamento: os botões só espelham o <select id="pdv-pagamento"> oculto,
+// que continua sendo o que o restante do código (finalizar venda) já lê.
+document.querySelectorAll('.pdx-pg').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pdx-pg').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    $('pdv-pagamento').value = btn.dataset.forma;
+  });
+});
+
+$('btn-sair-pdv').addEventListener('click', () => { $('nav-dashboard').click(); });
+
+function pdxAtualizarRelogio(){
+  const el = $('pdx-relogio');
+  if(el) el.textContent = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+setInterval(pdxAtualizarRelogio, 30000);
+pdxAtualizarRelogio();
+
+// Atalhos de teclado (só quando a tela de PDV está ativa e nenhum modal está aberto)
+document.addEventListener('keydown', (e) => {
+  if($('view-pdv').classList.contains('hidden')) return;
+  const modalAberto = !$('pdx-modal-add').classList.contains('hidden')
+    || !$('pdx-modal-cliente').classList.contains('hidden')
+    || !$('pdx-modal-config').classList.contains('hidden');
+  if(modalAberto) return;
+
+  if(e.key === 'F2'){
+    e.preventDefault();
+    $('btn-pdx-cliente').click();
+  } else if(e.key === 'F3'){
+    e.preventDefault();
+    if(!$('btn-finalizar-venda').disabled) $('btn-finalizar-venda').click();
+  } else if(e.key === 'Escape'){
+    $('pdv-busca-produto').value = '';
+    atualizarPreviewPdv(null);
+    $('pdv-resultados').classList.add('hidden');
+  }
+});
+
+// ---------- Atalhos configuráveis do PDV (até 10 produtos/serviços, por empresa) ----------
+let pdxAtalhos = [];
+let pdxAtalhoPendente = null;
+
+async function carregarAtalhosPdv(){
+  const { data, error } = await supabase.rpc('pdv_atalhos_listar');
+  pdxAtalhos = error ? [] : (data || []);
+  renderAtalhosPdv();
+}
+
+function renderAtalhosPdv(){
+  const lista = $('pdx-atalhos-lista');
+  lista.innerHTML = '';
+  if(pdxAtalhos.length === 0){
+    lista.innerHTML = '<span class="pdx-atalhos-vazio">Nenhum atalho configurado.</span>';
+    return;
+  }
+  pdxAtalhos.forEach(a => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pdx-atalho-btn';
+    btn.innerHTML = `<b>${escapeHtml(a.nome)}</b><span>${formatarReais(a.preco_venda)}</span>`;
+    btn.addEventListener('click', () => abrirModalAdicionarAtalho(a));
+    lista.appendChild(btn);
+  });
+}
+
+function abrirModalAdicionarAtalho(atalho){
+  pdxAtalhoPendente = atalho;
+  $('pdx-add-nome').textContent = atalho.nome;
+  $('pdx-add-preco').textContent = formatarReais(atalho.preco_venda);
+  $('pdx-add-estoque').textContent = atalho.tipo_fiscal === 'servico' ? 'Serviço' : `${atalho.quantidade_estoque} em estoque`;
+  $('pdx-add-qtd').value = 1;
+  $('pdx-add-erro').textContent = '';
+  $('pdx-modal-add').classList.remove('hidden');
+  setTimeout(() => { $('pdx-add-qtd').focus(); $('pdx-add-qtd').select(); }, 50);
+}
+$('btn-pdx-add-cancelar').addEventListener('click', () => { $('pdx-modal-add').classList.add('hidden'); $('pdv-busca-produto').focus(); });
+$('pdx-modal-add').addEventListener('click', (e) => { if(e.target.id === 'pdx-modal-add'){ $('pdx-modal-add').classList.add('hidden'); $('pdv-busca-produto').focus(); } });
+
+function confirmarAdicaoAtalho(){
+  const qtd = parseInt($('pdx-add-qtd').value, 10) || 1;
+  if(qtd < 1){ $('pdx-add-erro').textContent = 'Quantidade inválida.'; return; }
+
+  const produtoCompleto = pdvProdutos.find(p => p.id === pdxAtalhoPendente.produto_id);
+  if(!produtoCompleto){
+    $('pdx-add-erro').textContent = 'Produto não encontrado no cadastro atual.';
+    return;
+  }
+  if(!produtoCompleto.vendavel_pacote && produtoCompleto.tipo_fiscal !== 'servico' && qtd > produtoCompleto.quantidade_estoque){
+    $('pdx-add-erro').textContent = 'Quantidade maior que o estoque disponível.';
+    return;
+  }
+
+  adicionarAoCarrinho(produtoCompleto, qtd);
+  $('pdx-modal-add').classList.add('hidden');
+  $('pdv-busca-produto').focus();
+}
+$('btn-pdx-add-ok').addEventListener('click', confirmarAdicaoAtalho);
+$('pdx-add-qtd').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); confirmarAdicaoAtalho(); }
+  if(e.key === 'Escape'){ e.preventDefault(); $('pdx-modal-add').classList.add('hidden'); $('pdv-busca-produto').focus(); }
+});
+
+// Configuração dos atalhos — só o proprietário (o botão já fica escondido pra funcionário via aplicarControleAcesso)
+$('btn-pdx-config-atalhos').addEventListener('click', abrirModalConfigAtalhos);
+$('btn-pdx-cfg-fechar').addEventListener('click', () => $('pdx-modal-config').classList.add('hidden'));
+$('pdx-modal-config').addEventListener('click', (e) => { if(e.target.id === 'pdx-modal-config') $('pdx-modal-config').classList.add('hidden'); });
+
+let pdxSelecaoAtalhos = [];
+function abrirModalConfigAtalhos(){
+  pdxSelecaoAtalhos = pdxAtalhos.map(a => a.produto_id);
+  $('pdx-cfg-status').className = 'pdx-cfg-status';
+  $('pdx-cfg-status').textContent = '';
+  renderGridConfigAtalhos();
+  $('pdx-modal-config').classList.remove('hidden');
+}
+function renderGridConfigAtalhos(){
+  const grid = $('pdx-config-grid');
+  grid.innerHTML = '';
+  for(let i = 0; i < 10; i++){
+    const produtoId = pdxSelecaoAtalhos[i];
+    const produto = produtoId ? pdvProdutos.find(p => p.id === produtoId) : null;
+    const slot = document.createElement('div');
+    slot.className = 'pdx-atalho-slot' + (produto ? ' preenchido' : '');
+
+    const opcoes = pdvProdutos.map(p => `<option value="${p.id}" ${p.id === produtoId ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+    slot.innerHTML = `
+      <span>${i+1}ª posição</span>
+      <select class="pdx-select-produto" data-slot="${i}">
+        <option value="">— vazio —</option>
+        ${opcoes}
+      </select>
+      ${produto ? `<button type="button" class="pdx-remover-atalho" data-slot="${i}">Remover</button>` : ''}
+    `;
+    grid.appendChild(slot);
+  }
+  grid.querySelectorAll('.pdx-select-produto').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const slot = parseInt(e.target.dataset.slot, 10);
+      pdxSelecaoAtalhos[slot] = e.target.value || null;
+      renderGridConfigAtalhos();
+    });
+  });
+  grid.querySelectorAll('.pdx-remover-atalho').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const slot = parseInt(e.target.dataset.slot, 10);
+      pdxSelecaoAtalhos[slot] = null;
+      renderGridConfigAtalhos();
+    });
+  });
+}
+$('btn-pdx-cfg-salvar').addEventListener('click', async () => {
+  const btn = $('btn-pdx-cfg-salvar');
+  btn.disabled = true;
+  $('pdx-cfg-status').className = 'pdx-cfg-status';
+  $('pdx-cfg-status').textContent = 'Salvando...';
+
+  const payload = pdxSelecaoAtalhos.filter(Boolean).map(id => ({ produto_id: id }));
+  const { error } = await supabase.rpc('pdv_atalhos_salvar', { p_atalhos: payload });
+
+  btn.disabled = false;
+  if(error){
+    $('pdx-cfg-status').className = 'pdx-cfg-status erro';
+    $('pdx-cfg-status').textContent = 'Erro ao salvar: ' + error.message;
+    return;
+  }
+  $('pdx-cfg-status').textContent = 'Atalhos salvos.';
+  await carregarAtalhosPdv();
+});
+
 function adicionarAoCarrinho(produto, quantidadeAdicionar = 1){
   if(produto.vendavel_pacote){
     const existente = pdvCarrinho.find(i => i.produto_id === produto.id && i.tipo === 'pacote');
@@ -4231,6 +4697,8 @@ function atualizarTotalPdv(){
 
   $('pdv-subtotal').textContent = formatarReais(subtotalGeral);
   $('pdv-total').textContent = formatarReais(total);
+  if($('pdx-fin-total')) $('pdx-fin-total').textContent = formatarReais(total);
+  if($('pdx-itens')) $('pdx-itens').textContent = pdvCarrinho.reduce((s,i) => s + i.quantidade, 0) + ' item(ns)';
 
   const qtdPacotes = pdvCarrinho.filter(i => i.tipo === 'pacote').reduce((s,i) => s + i.quantidade, 0);
   $('pdv-pacote-nota').textContent = qtdPacotes > 0
@@ -4676,173 +5144,543 @@ $('form-despesa').addEventListener('submit', async (e) => {
 });
 
 // ---------- Relatórios ----------
+// ---------- Central de Relatórios ----------
+
+// Tamanho do lote de cada requisição ao Supabase. O PostgREST tem um limite
+// padrão de linhas por resposta (normalmente 1000) — para nunca ficar preso
+// nisso, toda consulta usada pelos relatórios busca em lotes de LOTE_RELATORIO
+// registros via .range(), concatenando os lotes até a API devolver menos
+// linhas do que o tamanho do lote (sinal de que chegou ao fim).
+const LOTE_RELATORIO = 1000;
+
+// construirQuery(inicio, fim) deve devolver a MESMA query (com os mesmos
+// filtros de empresa/período/cliente/fornecedor já aplicados pela RLS e pelos
+// .eq()/.gte()/.lte() de cada relatório), só adicionando .range(inicio, fim).
+// Continua buscando enquanto o lote vier cheio; para assim que vier incompleto
+// (ou vazio), sem impor nenhum teto arbitrário de registros.
+async function buscarTodasLinhas(construirQuery){
+  let todas = [];
+  let inicio = 0;
+  while(true){
+    const { data, error } = await construirQuery(inicio, inicio + LOTE_RELATORIO - 1);
+    if(error) throw error;
+    const lote = data || [];
+    todas = todas.concat(lote);
+    if(lote.length < LOTE_RELATORIO) break;
+    inicio += LOTE_RELATORIO;
+  }
+  return todas;
+}
+
+const REL_TIPOS = [
+  { v:'vendas_periodo', l:'Vendas no período', g:'Geral' },
+  { v:'vendas_forma_pagamento', l:'Vendas por forma de pagamento', g:'Geral' },
+  { v:'produtos_mais_vendidos', l:'Produtos mais vendidos', g:'Geral' },
+  { v:'produtos_menos_vendidos', l:'Produtos menos vendidos', g:'Geral' },
+  { v:'produtos_sem_venda', l:'Produtos sem venda no período', g:'Geral' },
+  { v:'clientes_mais_compraram', l:'Clientes que mais compraram', g:'Geral' },
+  { v:'vendas_por_cliente', l:'Vendas por cliente', g:'Geral', filtro:'cliente' },
+  { v:'estoque_baixo', l:'Produtos com estoque baixo', g:'Geral', semPeriodo:true },
+  { v:'estoque_posicao', l:'Posição atual de estoque', g:'Geral', semPeriodo:true },
+  { v:'movimentacao_estoque', l:'Movimentação de estoque', g:'Geral' },
+  { v:'compras_por_fornecedor', l:'Compras por fornecedor', g:'Geral' },
+  { v:'compras_periodo', l:'Compras/Notas de entrada no período', g:'Geral' },
+  { v:'produtos_comprados_fornecedor', l:'Produtos comprados por fornecedor', g:'Geral', filtro:'fornecedor' },
+  { v:'contas_a_pagar', l:'Contas a pagar', g:'Geral' },
+  { v:'despesas_periodo', l:'Despesas no período', g:'Geral' },
+  { v:'despesas_por_categoria', l:'Despesas por categoria', g:'Geral' },
+  { v:'resumo_financeiro', l:'Resumo financeiro', g:'Geral' },
+  { v:'margem_produto', l:'Margem/lucro estimado por produto', g:'Geral' },
+  { v:'servicos_mais_vendidos', l:'Serviços mais vendidos', g:'PetGestor' },
+  { v:'servicos_menos_vendidos', l:'Serviços menos vendidos', g:'PetGestor' },
+  { v:'atendimentos_periodo', l:'Atendimentos no período', g:'PetGestor' },
+  { v:'clientes_mais_atendimentos', l:'Clientes/tutores com mais atendimentos', g:'PetGestor' },
+  { v:'pets_mais_atendimentos', l:'Pets com mais atendimentos', g:'PetGestor' },
+  { v:'pacotes_vendidos_periodo', l:'Pacotes vendidos no período', g:'PetGestor' },
+  { v:'pacotes_em_andamento', l:'Pacotes em andamento', g:'PetGestor', semPeriodo:true },
+  { v:'pacotes_concluidos', l:'Pacotes concluídos', g:'PetGestor', semPeriodo:true },
+  { v:'sessoes_utilizadas', l:'Sessões utilizadas de pacotes', g:'PetGestor' },
+  { v:'atendimentos_realizados', l:'Agenda/Atendimentos realizados no período', g:'PetGestor' },
+  { v:'atendimentos_cancelados', l:'Agenda/Atendimentos cancelados no período', g:'PetGestor' },
+];
+
+function popularSelectRelTipo(){
+  const select = $('rel-tipo');
+  select.innerHTML = '';
+  const grupos = {};
+  REL_TIPOS.forEach(t => { grupos[t.g] = grupos[t.g] || []; grupos[t.g].push(t); });
+  Object.entries(grupos).forEach(([g, itens]) => {
+    const og = document.createElement('optgroup');
+    og.label = g;
+    itens.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.v; opt.textContent = t.l;
+      og.appendChild(opt);
+    });
+    select.appendChild(og);
+  });
+}
+
+async function atualizarFiltroExtraRel(){
+  const def = REL_TIPOS.find(t => t.v === $('rel-tipo').value);
+  const wrap = $('rel-filtro-extra-wrap');
+  if(!def || !def.filtro){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const select = $('rel-filtro-extra');
+  select.innerHTML = '';
+  if(def.filtro === 'cliente'){
+    $('rel-filtro-extra-label').textContent = 'Cliente';
+    const lista = await buscarTodasLinhas((de, ate) => supabase.from('clientes').select('id, nome').order('nome').range(de, ate));
+    lista.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.nome; select.appendChild(opt); });
+  } else if(def.filtro === 'fornecedor'){
+    $('rel-filtro-extra-label').textContent = 'Fornecedor';
+    const lista = await buscarTodasLinhas((de, ate) => supabase.from('fornecedores').select('id, razao_social').order('razao_social').range(de, ate));
+    lista.forEach(f => { const opt = document.createElement('option'); opt.value = f.id; opt.textContent = f.razao_social; select.appendChild(opt); });
+  }
+}
+$('rel-tipo').addEventListener('change', atualizarFiltroExtraRel);
+
+function periodoISO(){
+  const inicio = $('rel-data-inicio').value;
+  const fim = $('rel-data-fim').value;
+  return {
+    inicio, fim,
+    inicioISO: inicio ? new Date(inicio + 'T00:00:00').toISOString() : null,
+    fimISO: fim ? new Date(fim + 'T23:59:59').toISOString() : null,
+  };
+}
+
 function prepararRelatorios(){
+  if(!$('rel-tipo').options.length) popularSelectRelTipo();
   if(!$('rel-data-inicio').value){
     const hoje = new Date();
     const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     $('rel-data-inicio').value = inicioMes.toISOString().slice(0,10);
     $('rel-data-fim').value = hoje.toISOString().slice(0,10);
   }
-  carregarRelatorios();
+  atualizarFiltroExtraRel();
+  $('rel-resultado').classList.add('hidden');
+  $('btn-gerar-pdf-relatorio').classList.add('hidden');
 }
 
-$('btn-aplicar-relatorio').addEventListener('click', carregarRelatorios);
+// ---------- Consultas de cada relatório (todas em lotes completos via buscarTodasLinhas) ----------
+async function relBaseItensVenda(p){
+  const vendasIds = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('id').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).range(de, ate)
+  );
+  const ids = vendasIds.map(v => v.id);
+  if(ids.length === 0) return [];
+  return await buscarTodasLinhas((de, ate) =>
+    supabase.from('itens_venda').select('quantidade, subtotal, produto_id, produtos(nome, tipo_fiscal)').in('venda_id', ids).range(de, ate)
+  );
+}
+function agruparPorProduto(itens, tipo){
+  const mapa = {};
+  itens.filter(i => (i.produtos?.tipo_fiscal || 'produto') === tipo).forEach(i => {
+    const nome = i.produtos ? i.produtos.nome : 'Removido';
+    mapa[i.produto_id] = mapa[i.produto_id] || { nome, quantidade: 0, total: 0 };
+    mapa[i.produto_id].quantidade += Number(i.quantidade);
+    mapa[i.produto_id].total += Number(i.subtotal);
+  });
+  return Object.values(mapa);
+}
 
-async function carregarRelatorios(){
-  const dataInicio = $('rel-data-inicio').value;
-  const dataFim = $('rel-data-fim').value;
-  if(!dataInicio || !dataFim) return;
+async function relVendasPeriodo(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('numero_venda, total, tipo, forma_pagamento, criado_em, clientes(nome)').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).order('criado_em').range(de, ate)
+  );
+  const total = data.reduce((s,v) => s + Number(v.total), 0);
+  return { titulo:'Vendas no período', colunas:['Nº','Data','Cliente','Tipo','Pagamento','Total'],
+    linhas: data.map(v => ['#'+(v.numero_venda ?? '—'), new Date(v.criado_em).toLocaleString('pt-BR'), v.clientes?v.clientes.nome:'Não identificado', v.tipo==='pacote_novo'?'Pacote':'Produto/Serviço', v.forma_pagamento, formatarReais(v.total)]),
+    resumo:[{label:'Qtd. vendas', valor:data.length},{label:'Total vendido', valor:formatarReais(total)}] };
+}
+async function relVendasFormaPagamento(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('forma_pagamento, total').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).range(de, ate)
+  );
+  const grupos = {};
+  data.forEach(v => { grupos[v.forma_pagamento] = grupos[v.forma_pagamento] || {qtd:0,total:0}; grupos[v.forma_pagamento].qtd++; grupos[v.forma_pagamento].total += Number(v.total); });
+  const lista = Object.entries(grupos).sort((a,b) => b[1].total - a[1].total);
+  return { titulo:'Vendas por forma de pagamento', colunas:['Forma de pagamento','Qtd.','Total'],
+    linhas: lista.map(([forma,g]) => [forma, g.qtd, formatarReais(g.total)]),
+    resumo:[{label:'Total geral', valor: formatarReais(data.reduce((s,v)=>s+Number(v.total),0))}] };
+}
+async function relProdutosMaisVendidos(p){
+  const lista = agruparPorProduto(await relBaseItensVenda(p), 'produto').sort((a,b) => b.quantidade - a.quantidade);
+  return { titulo:'Produtos mais vendidos', colunas:['Produto','Quantidade','Total vendido'], linhas: lista.map(x => [x.nome, formatarQuantidade(x.quantidade), formatarReais(x.total)]), resumo:[{label:'Produtos distintos', valor:lista.length}] };
+}
+async function relProdutosMenosVendidos(p){
+  const lista = agruparPorProduto(await relBaseItensVenda(p), 'produto').sort((a,b) => a.quantidade - b.quantidade);
+  return { titulo:'Produtos menos vendidos', colunas:['Produto','Quantidade','Total vendido'], linhas: lista.map(x => [x.nome, formatarQuantidade(x.quantidade), formatarReais(x.total)]), resumo:[{label:'Produtos distintos', valor:lista.length}] };
+}
+async function relProdutosSemVenda(p){
+  const itens = await relBaseItensVenda(p);
+  const idsComVenda = new Set(itens.map(i => i.produto_id));
+  const todos = await buscarTodasLinhas((de, ate) => supabase.from('produtos').select('id, nome').eq('tipo_fiscal', 'produto').range(de, ate));
+  const semVenda = todos.filter(pr => !idsComVenda.has(pr.id));
+  return { titulo:'Produtos sem venda no período', colunas:['Produto'], linhas: semVenda.map(x => [x.nome]), resumo:[{label:'Sem venda', valor:semVenda.length}] };
+}
+async function relClientesMaisCompraram(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('total, cliente_id, clientes(nome)').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).range(de, ate)
+  );
+  const mapa = {};
+  data.forEach(v => { const chave=v.cliente_id||'none'; const nome=v.clientes?v.clientes.nome:'Não identificado'; mapa[chave]=mapa[chave]||{nome,qtd:0,total:0}; mapa[chave].qtd++; mapa[chave].total+=Number(v.total); });
+  const lista = Object.values(mapa).sort((a,b) => b.total - a.total);
+  return { titulo:'Clientes que mais compraram', colunas:['Cliente','Nº compras','Total gasto'], linhas: lista.map(x => [x.nome, x.qtd, formatarReais(x.total)]), resumo:[{label:'Clientes', valor:lista.length}] };
+}
+async function relVendasPorCliente(p, clienteId){
+  if(!clienteId) return { titulo:'Vendas por cliente', colunas:['Nº','Data','Pagamento','Total'], linhas:[], resumo:[{label:'Aviso', valor:'Selecione um cliente'}] };
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('numero_venda, total, criado_em, forma_pagamento').eq('cliente_id', clienteId).gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).order('criado_em').range(de, ate)
+  );
+  const total = data.reduce((s,v) => s + Number(v.total), 0);
+  return { titulo:'Vendas por cliente', colunas:['Nº','Data','Pagamento','Total'], linhas: data.map(v => ['#'+(v.numero_venda??'—'), new Date(v.criado_em).toLocaleString('pt-BR'), v.forma_pagamento, formatarReais(v.total)]), resumo:[{label:'Qtd. compras', valor:data.length},{label:'Total gasto', valor:formatarReais(total)}] };
+}
+async function relEstoqueBaixo(){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('produtos').select('nome, codigo, quantidade_estoque').eq('tipo_fiscal','produto').lte('quantidade_estoque', 5).order('quantidade_estoque').range(de, ate)
+  );
+  return { titulo:'Produtos com estoque baixo', colunas:['Produto','Código','Estoque atual'], linhas:data.map(x => [x.nome, x.codigo||'—', formatarQuantidade(x.quantidade_estoque)]), resumo:[{label:'Itens em alerta', valor:data.length}] };
+}
+async function relEstoquePosicao(){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('produtos').select('nome, codigo, quantidade_estoque, preco_custo').eq('tipo_fiscal','produto').order('nome').range(de, ate)
+  );
+  const valorTotal = data.reduce((s,x) => s + (Number(x.quantidade_estoque) * Number(x.preco_custo||0)), 0);
+  return { titulo:'Posição atual de estoque', colunas:['Produto','Código','Estoque','Custo unit.'], linhas:data.map(x => [x.nome, x.codigo||'—', formatarQuantidade(x.quantidade_estoque), x.preco_custo?formatarReais(x.preco_custo):'—']), resumo:[{label:'Itens', valor:data.length},{label:'Valor em custo', valor:formatarReais(valorTotal)}] };
+}
+async function relMovimentacaoEstoque(p){
+  const notas = await buscarTodasLinhas((de, ate) =>
+    supabase.from('notas_entrada').select('id, data_entrada').gte('data_entrada', p.inicio).lte('data_entrada', p.fim).range(de, ate)
+  );
+  const notaIds = notas.map(n => n.id);
+  let entradas = [];
+  if(notaIds.length > 0){
+    const itensEntrada = await buscarTodasLinhas((de, ate) =>
+      supabase.from('notas_entrada_itens').select('descricao, quantidade, nota_entrada_id').in('nota_entrada_id', notaIds).range(de, ate)
+    );
+    entradas = itensEntrada.map(it => ({ data: notas.find(n=>n.id===it.nota_entrada_id).data_entrada, produto: it.descricao, tipo:'Entrada', quantidade: Number(it.quantidade) }));
+  }
+  const vendasP = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('id, criado_em').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).range(de, ate)
+  );
+  const idsV = vendasP.map(v => v.id);
+  let saidas = [];
+  if(idsV.length > 0){
+    const itensSaida = await buscarTodasLinhas((de, ate) =>
+      supabase.from('itens_venda').select('quantidade, venda_id, produtos(nome, tipo_fiscal)').in('venda_id', idsV).range(de, ate)
+    );
+    saidas = itensSaida.filter(it => (it.produtos?.tipo_fiscal||'produto')==='produto').map(it => ({ data: vendasP.find(v=>v.id===it.venda_id).criado_em, produto: it.produtos?it.produtos.nome:'—', tipo:'Saída', quantidade: Number(it.quantidade) }));
+  }
+  const tudo = [...entradas, ...saidas].sort((a,b) => new Date(a.data) - new Date(b.data));
+  return { titulo:'Movimentação de estoque', colunas:['Data','Produto','Tipo','Quantidade'], linhas: tudo.map(m => [new Date(m.data).toLocaleDateString('pt-BR'), m.produto, m.tipo, formatarQuantidade(m.quantidade)]), resumo:[{label:'Movimentações', valor:tudo.length}] };
+}
+async function relComprasPorFornecedor(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('notas_entrada').select('valor_total, fornecedores(razao_social)').gte('data_entrada', p.inicio).lte('data_entrada', p.fim).range(de, ate)
+  );
+  const mapa = {};
+  data.forEach(n => { const nome=n.fornecedores?n.fornecedores.razao_social:'—'; mapa[nome]=mapa[nome]||{qtd:0,total:0}; mapa[nome].qtd++; mapa[nome].total+=Number(n.valor_total); });
+  const lista = Object.entries(mapa).sort((a,b) => b[1].total - a[1].total);
+  return { titulo:'Compras por fornecedor', colunas:['Fornecedor','Nº notas','Total comprado'], linhas: lista.map(([nome,g]) => [nome, g.qtd, formatarReais(g.total)]), resumo:[{label:'Fornecedores', valor:lista.length}] };
+}
+async function relComprasPeriodo(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('notas_entrada').select('numero, valor_total, data_entrada, fornecedores(razao_social)').gte('data_entrada', p.inicio).lte('data_entrada', p.fim).order('data_entrada').range(de, ate)
+  );
+  const total = data.reduce((s,n) => s + Number(n.valor_total), 0);
+  return { titulo:'Compras/Notas de entrada no período', colunas:['Nº','Data','Fornecedor','Valor'], linhas:data.map(n => ['#'+(n.numero||'—'), new Date(n.data_entrada+'T12:00:00').toLocaleDateString('pt-BR'), n.fornecedores?n.fornecedores.razao_social:'—', formatarReais(n.valor_total)]), resumo:[{label:'Notas', valor:data.length},{label:'Total comprado', valor:formatarReais(total)}] };
+}
+async function relProdutosCompradosFornecedor(p, fornecedorId){
+  if(!fornecedorId) return { titulo:'Produtos comprados por fornecedor', colunas:['Produto','Quantidade','Total'], linhas:[], resumo:[{label:'Aviso', valor:'Selecione um fornecedor'}] };
+  const notas = await buscarTodasLinhas((de, ate) =>
+    supabase.from('notas_entrada').select('id').eq('fornecedor_id', fornecedorId).gte('data_entrada', p.inicio).lte('data_entrada', p.fim).range(de, ate)
+  );
+  const ids = notas.map(n => n.id);
+  if(ids.length === 0) return { titulo:'Produtos comprados por fornecedor', colunas:['Produto','Quantidade','Total'], linhas:[], resumo:[{label:'Notas no período', valor:0}] };
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('notas_entrada_itens').select('descricao, quantidade, valor_total').in('nota_entrada_id', ids).range(de, ate)
+  );
+  const mapa = {};
+  data.forEach(it => { mapa[it.descricao]=mapa[it.descricao]||{quantidade:0,total:0}; mapa[it.descricao].quantidade+=Number(it.quantidade); mapa[it.descricao].total+=Number(it.valor_total); });
+  const lista = Object.entries(mapa).sort((a,b) => b[1].total - a[1].total);
+  return { titulo:'Produtos comprados por fornecedor', colunas:['Produto','Quantidade','Total'], linhas: lista.map(([nome,g]) => [nome, formatarQuantidade(g.quantidade), formatarReais(g.total)]), resumo:[{label:'Itens distintos', valor:lista.length}] };
+}
+async function relContasAPagar(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('despesas').select('descricao, valor, vencimento, fornecedores(razao_social)').eq('status','pendente').gte('vencimento', p.inicio).lte('vencimento', p.fim).order('vencimento').range(de, ate)
+  );
+  const total = data.reduce((s,d) => s + Number(d.valor), 0);
+  return { titulo:'Contas a pagar', colunas:['Descrição','Fornecedor','Vencimento','Valor'], linhas:data.map(d => [d.descricao, d.fornecedores?d.fornecedores.razao_social:'—', new Date(d.vencimento+'T12:00:00').toLocaleDateString('pt-BR'), formatarReais(d.valor)]), resumo:[{label:'Contas pendentes', valor:data.length},{label:'Total a pagar', valor:formatarReais(total)}] };
+}
+async function relDespesasPeriodo(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('despesas').select('descricao, categoria, valor, data, status').gte('data', p.inicio).lte('data', p.fim).order('data').range(de, ate)
+  );
+  const total = data.reduce((s,d) => s + Number(d.valor), 0);
+  return { titulo:'Despesas no período', colunas:['Descrição','Categoria','Data','Status','Valor'], linhas:data.map(d => [d.descricao, d.categoria||'—', new Date(d.data+'T12:00:00').toLocaleDateString('pt-BR'), d.status==='pago'?'Pago':'Pendente', formatarReais(d.valor)]), resumo:[{label:'Lançamentos', valor:data.length},{label:'Total', valor:formatarReais(total)}] };
+}
+async function relDespesasPorCategoria(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('despesas').select('categoria, valor').gte('data', p.inicio).lte('data', p.fim).range(de, ate)
+  );
+  const mapa = {};
+  data.forEach(d => { const cat=d.categoria||'Sem categoria'; mapa[cat]=(mapa[cat]||0)+Number(d.valor); });
+  const lista = Object.entries(mapa).sort((a,b) => b[1]-a[1]);
+  return { titulo:'Despesas por categoria', colunas:['Categoria','Total'], linhas: lista.map(([c,v]) => [c, formatarReais(v)]), resumo:[{label:'Categorias', valor:lista.length}] };
+}
+async function relResumoFinanceiro(p){
+  const vendas = await buscarTodasLinhas((de, ate) =>
+    supabase.from('vendas').select('total').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).range(de, ate)
+  );
+  const despesas = await buscarTodasLinhas((de, ate) =>
+    supabase.from('despesas').select('valor, status').gte('data', p.inicio).lte('data', p.fim).range(de, ate)
+  );
+  const totalVendas = vendas.reduce((s,v) => s + Number(v.total), 0);
+  const totalDespesasPagas = despesas.filter(d => d.status==='pago').reduce((s,d) => s + Number(d.valor), 0);
+  const totalDespesasPendentes = despesas.filter(d => d.status==='pendente').reduce((s,d) => s + Number(d.valor), 0);
+  const saldo = totalVendas - totalDespesasPagas;
+  return { titulo:'Resumo financeiro', colunas:['Item','Valor'],
+    linhas:[['Total vendido', formatarReais(totalVendas)],['Despesas pagas', formatarReais(totalDespesasPagas)],['Despesas pendentes', formatarReais(totalDespesasPendentes)],['Saldo (vendas − despesas pagas)', formatarReais(saldo)]],
+    resumo:[{label:'Total vendido', valor:formatarReais(totalVendas)},{label:'Saldo', valor:formatarReais(saldo)}] };
+}
+async function relMargemProduto(p){
+  const itens = await relBaseItensVenda(p);
+  const produtosCusto = await buscarTodasLinhas((de, ate) =>
+    supabase.from('produtos').select('id, preco_custo').not('preco_custo', 'is', null).range(de, ate)
+  );
+  const custoMap = {}; produtosCusto.forEach(pr => custoMap[pr.id] = Number(pr.preco_custo));
+  const mapa = {};
+  itens.forEach(i => {
+    if(!(i.produto_id in custoMap)) return;
+    const nome = i.produtos ? i.produtos.nome : '—';
+    mapa[i.produto_id] = mapa[i.produto_id] || { nome, quantidade:0, receita:0, custo:0 };
+    mapa[i.produto_id].quantidade += Number(i.quantidade);
+    mapa[i.produto_id].receita += Number(i.subtotal);
+    mapa[i.produto_id].custo += Number(i.quantidade) * custoMap[i.produto_id];
+  });
+  const lista = Object.values(mapa).map(x => ({...x, margem: x.receita - x.custo})).sort((a,b) => b.margem - a.margem);
+  return { titulo:'Margem/lucro estimado por produto', colunas:['Produto','Qtd.','Receita','Custo','Margem estimada'], linhas: lista.map(x => [x.nome, formatarQuantidade(x.quantidade), formatarReais(x.receita), formatarReais(x.custo), formatarReais(x.margem)]), resumo:[{label:'Produtos com custo cadastrado', valor:lista.length}] };
+}
+async function relServicosMaisVendidos(p){
+  const lista = agruparPorProduto(await relBaseItensVenda(p), 'servico').sort((a,b) => b.quantidade - a.quantidade);
+  return { titulo:'Serviços mais vendidos', colunas:['Serviço','Quantidade','Total'], linhas: lista.map(x => [x.nome, formatarQuantidade(x.quantidade), formatarReais(x.total)]), resumo:[{label:'Serviços distintos', valor:lista.length}] };
+}
+async function relServicosMenosVendidos(p){
+  const lista = agruparPorProduto(await relBaseItensVenda(p), 'servico').sort((a,b) => a.quantidade - b.quantidade);
+  return { titulo:'Serviços menos vendidos', colunas:['Serviço','Quantidade','Total'], linhas: lista.map(x => [x.nome, formatarQuantidade(x.quantidade), formatarReais(x.total)]), resumo:[{label:'Serviços distintos', valor:lista.length}] };
+}
+async function relAtendimentosPeriodo(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('agendamentos').select('servico, data, horario, status, clientes(nome), pets(nome)').gte('data', p.inicio).lte('data', p.fim).order('data').range(de, ate)
+  );
+  return { titulo:'Atendimentos no período', colunas:['Data','Horário','Cliente','Pet','Serviço','Status'], linhas:data.map(a => [new Date(a.data+'T12:00:00').toLocaleDateString('pt-BR'), (a.horario||'').slice(0,5), a.clientes?a.clientes.nome:'—', a.pets?a.pets.nome:'—', a.servico, statusAgendaTexto(a.status)]), resumo:[{label:'Total agendamentos', valor:data.length}] };
+}
+async function relClientesMaisAtendimentos(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('agendamentos').select('clientes(nome)').gte('data', p.inicio).lte('data', p.fim).range(de, ate)
+  );
+  const mapa = {}; data.forEach(a => { const nome=a.clientes?a.clientes.nome:'—'; mapa[nome]=(mapa[nome]||0)+1; });
+  const lista = Object.entries(mapa).sort((a,b) => b[1]-a[1]);
+  return { titulo:'Clientes/tutores com mais atendimentos', colunas:['Cliente','Atendimentos'], linhas: lista.map(([n,q]) => [n,q]), resumo:[{label:'Clientes', valor:lista.length}] };
+}
+async function relPetsMaisAtendimentos(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('agendamentos').select('pets(nome)').gte('data', p.inicio).lte('data', p.fim).range(de, ate)
+  );
+  const mapa = {}; data.forEach(a => { const nome=a.pets?a.pets.nome:'—'; mapa[nome]=(mapa[nome]||0)+1; });
+  const lista = Object.entries(mapa).sort((a,b) => b[1]-a[1]);
+  return { titulo:'Pets com mais atendimentos', colunas:['Pet','Atendimentos'], linhas: lista.map(([n,q]) => [n,q]), resumo:[{label:'Pets', valor:lista.length}] };
+}
+async function relPacotesVendidosPeriodo(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('pacotes_clientes').select('sessoes_totais, sessoes_usadas, criado_em, clientes(nome), produtos(nome)').gte('criado_em', p.inicioISO).lte('criado_em', p.fimISO).order('criado_em', {ascending:false}).range(de, ate)
+  );
+  return { titulo:'Pacotes vendidos no período', colunas:['Data','Cliente','Pacote','Sessões'], linhas:data.map(pc => [new Date(pc.criado_em).toLocaleDateString('pt-BR'), pc.clientes?pc.clientes.nome:'—', pc.produtos?pc.produtos.nome:'—', `${pc.sessoes_usadas}/${pc.sessoes_totais}`]), resumo:[{label:'Pacotes vendidos', valor:data.length}] };
+}
+async function relPacotesEmAndamento(){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('pacotes_clientes').select('sessoes_totais, sessoes_usadas, clientes(nome), produtos(nome)').range(de, ate)
+  );
+  const lista = data.filter(pc => pc.sessoes_usadas < pc.sessoes_totais);
+  return { titulo:'Pacotes em andamento', colunas:['Cliente','Pacote','Sessões'], linhas: lista.map(pc => [pc.clientes?pc.clientes.nome:'—', pc.produtos?pc.produtos.nome:'—', `${pc.sessoes_usadas}/${pc.sessoes_totais}`]), resumo:[{label:'Em andamento', valor:lista.length}] };
+}
+async function relPacotesConcluidos(){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('pacotes_clientes').select('sessoes_totais, sessoes_usadas, clientes(nome), produtos(nome)').range(de, ate)
+  );
+  const lista = data.filter(pc => pc.sessoes_usadas >= pc.sessoes_totais);
+  return { titulo:'Pacotes concluídos', colunas:['Cliente','Pacote','Sessões'], linhas: lista.map(pc => [pc.clientes?pc.clientes.nome:'—', pc.produtos?pc.produtos.nome:'—', `${pc.sessoes_usadas}/${pc.sessoes_totais}`]), resumo:[{label:'Concluídos', valor:lista.length}] };
+}
+async function relSessoesUtilizadas(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('pacote_usos').select('usado_em, pacotes_clientes(clientes(nome), produtos(nome))').gte('usado_em', p.inicioISO).lte('usado_em', p.fimISO).order('usado_em', {ascending:false}).range(de, ate)
+  );
+  return { titulo:'Sessões utilizadas de pacotes', colunas:['Data','Cliente','Pacote'], linhas:data.map(u => [new Date(u.usado_em).toLocaleString('pt-BR'), u.pacotes_clientes?.clientes?u.pacotes_clientes.clientes.nome:'—', u.pacotes_clientes?.produtos?u.pacotes_clientes.produtos.nome:'—']), resumo:[{label:'Sessões usadas', valor:data.length}] };
+}
+async function relAtendimentosRealizados(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('agendamentos').select('data, horario, servico, clientes(nome), pets(nome)').eq('status','concluido').gte('data', p.inicio).lte('data', p.fim).order('data').range(de, ate)
+  );
+  return { titulo:'Atendimentos realizados no período', colunas:['Data','Horário','Cliente','Pet','Serviço'], linhas:data.map(a => [new Date(a.data+'T12:00:00').toLocaleDateString('pt-BR'), (a.horario||'').slice(0,5), a.clientes?a.clientes.nome:'—', a.pets?a.pets.nome:'—', a.servico]), resumo:[{label:'Realizados', valor:data.length}] };
+}
+async function relAtendimentosCancelados(p){
+  const data = await buscarTodasLinhas((de, ate) =>
+    supabase.from('agendamentos').select('data, horario, servico, clientes(nome), pets(nome)').eq('status','cancelado').gte('data', p.inicio).lte('data', p.fim).order('data').range(de, ate)
+  );
+  return { titulo:'Atendimentos cancelados no período', colunas:['Data','Horário','Cliente','Pet','Serviço'], linhas:data.map(a => [new Date(a.data+'T12:00:00').toLocaleDateString('pt-BR'), (a.horario||'').slice(0,5), a.clientes?a.clientes.nome:'—', a.pets?a.pets.nome:'—', a.servico]), resumo:[{label:'Cancelados', valor:data.length}] };
+}
 
-  const inicioISO = new Date(dataInicio + 'T00:00:00').toISOString();
-  const fimISO = new Date(dataFim + 'T23:59:59').toISOString();
+let ultimoRelatorio = null;
 
-  const { data: vendasData, error: erroVendas } = await supabase
-    .from('vendas')
-    .select('id, total, tipo, cliente_id, criado_em, clientes(nome)')
-    .gte('criado_em', inicioISO)
-    .lte('criado_em', fimISO);
-
-  if(erroVendas){
-    console.error(erroVendas);
+async function gerarRelatorio(){
+  const tipo = $('rel-tipo').value;
+  const def = REL_TIPOS.find(t => t.v === tipo);
+  $('rel-msg').innerHTML = '';
+  const p = periodoISO();
+  if(!def.semPeriodo && (!p.inicio || !p.fim)){
+    $('rel-msg').innerHTML = '<div class="msg error">Escolha o período.</div>';
     return;
   }
 
-  const vendas = vendasData || [];
+  const btn = $('btn-aplicar-relatorio');
+  btn.disabled = true; btn.textContent = 'Gerando...';
 
-  // --- Vendas por tipo ---
-  const vendasNormais = vendas.filter(v => v.tipo !== 'pacote_novo');
-  const vendasPacote = vendas.filter(v => v.tipo === 'pacote_novo');
-  const totalNormais = vendasNormais.reduce((s, v) => s + Number(v.total), 0);
-  const totalPacote = vendasPacote.reduce((s, v) => s + Number(v.total), 0);
-
-  $('rel-vendas-normais').textContent = formatarReais(totalNormais);
-  $('rel-vendas-normais-qtd').textContent = `Vendas normais (${vendasNormais.length})`;
-  $('rel-vendas-pacote').textContent = formatarReais(totalPacote);
-  $('rel-vendas-pacote-qtd').textContent = `Vendas de pacote (${vendasPacote.length})`;
-  $('rel-vendas-total').textContent = formatarReais(totalNormais + totalPacote);
-
-  // --- Clientes que mais compraram ---
-  const porCliente = {};
-  vendas.forEach(v => {
-    const chave = v.cliente_id || 'sem-cliente';
-    const nome = v.clientes ? v.clientes.nome : 'Não identificado';
-    if(!porCliente[chave]) porCliente[chave] = { nome, total: 0, qtd: 0 };
-    porCliente[chave].total += Number(v.total);
-    porCliente[chave].qtd += 1;
-  });
-  const rankingClientes = Object.values(porCliente).sort((a,b) => b.total - a.total).slice(0, 10);
-  renderRelClientes(rankingClientes);
-
-  // --- Produtos mais vendidos (via itens_venda das vendas do período) ---
-  const idsVendas = vendas.map(v => v.id);
-  let itensData = [];
-
-  if(idsVendas.length > 0){
-    const { data, error: erroItens } = await supabase
-      .from('itens_venda')
-      .select('quantidade, subtotal, produto_id, produtos(nome)')
-      .in('venda_id', idsVendas);
-
-    if(erroItens){
-      console.error(erroItens);
-    } else {
-      itensData = data || [];
+  const filtroExtra = $('rel-filtro-extra').value;
+  let resultado;
+  try{
+    switch(tipo){
+      case 'vendas_periodo': resultado = await relVendasPeriodo(p); break;
+      case 'vendas_forma_pagamento': resultado = await relVendasFormaPagamento(p); break;
+      case 'produtos_mais_vendidos': resultado = await relProdutosMaisVendidos(p); break;
+      case 'produtos_menos_vendidos': resultado = await relProdutosMenosVendidos(p); break;
+      case 'produtos_sem_venda': resultado = await relProdutosSemVenda(p); break;
+      case 'clientes_mais_compraram': resultado = await relClientesMaisCompraram(p); break;
+      case 'vendas_por_cliente': resultado = await relVendasPorCliente(p, filtroExtra); break;
+      case 'estoque_baixo': resultado = await relEstoqueBaixo(); break;
+      case 'estoque_posicao': resultado = await relEstoquePosicao(); break;
+      case 'movimentacao_estoque': resultado = await relMovimentacaoEstoque(p); break;
+      case 'compras_por_fornecedor': resultado = await relComprasPorFornecedor(p); break;
+      case 'compras_periodo': resultado = await relComprasPeriodo(p); break;
+      case 'produtos_comprados_fornecedor': resultado = await relProdutosCompradosFornecedor(p, filtroExtra); break;
+      case 'contas_a_pagar': resultado = await relContasAPagar(p); break;
+      case 'despesas_periodo': resultado = await relDespesasPeriodo(p); break;
+      case 'despesas_por_categoria': resultado = await relDespesasPorCategoria(p); break;
+      case 'resumo_financeiro': resultado = await relResumoFinanceiro(p); break;
+      case 'margem_produto': resultado = await relMargemProduto(p); break;
+      case 'servicos_mais_vendidos': resultado = await relServicosMaisVendidos(p); break;
+      case 'servicos_menos_vendidos': resultado = await relServicosMenosVendidos(p); break;
+      case 'atendimentos_periodo': resultado = await relAtendimentosPeriodo(p); break;
+      case 'clientes_mais_atendimentos': resultado = await relClientesMaisAtendimentos(p); break;
+      case 'pets_mais_atendimentos': resultado = await relPetsMaisAtendimentos(p); break;
+      case 'pacotes_vendidos_periodo': resultado = await relPacotesVendidosPeriodo(p); break;
+      case 'pacotes_em_andamento': resultado = await relPacotesEmAndamento(); break;
+      case 'pacotes_concluidos': resultado = await relPacotesConcluidos(); break;
+      case 'sessoes_utilizadas': resultado = await relSessoesUtilizadas(p); break;
+      case 'atendimentos_realizados': resultado = await relAtendimentosRealizados(p); break;
+      case 'atendimentos_cancelados': resultado = await relAtendimentosCancelados(p); break;
+      default: resultado = null;
     }
+  } catch(err){
+    console.error(err);
+    $('rel-msg').innerHTML = `<div class="msg error">Erro ao gerar relatório: ${err.message}</div>`;
+    btn.disabled = false; btn.textContent = 'Gerar relatório';
+    return;
   }
 
-  const porProduto = {};
-  (itensData || []).forEach(item => {
-    const chave = item.produto_id;
-    const nome = item.produtos ? item.produtos.nome : 'Produto removido';
-    if(!porProduto[chave]) porProduto[chave] = { nome, quantidade: 0, total: 0 };
-    porProduto[chave].quantidade += item.quantidade;
-    porProduto[chave].total += Number(item.subtotal);
+  btn.disabled = false; btn.textContent = 'Gerar relatório';
+  if(!resultado) return;
+
+  resultado.periodo = def.semPeriodo ? null : { inicio: p.inicio, fim: p.fim };
+  resultado.filtroTexto = (filtroExtra && def.filtro) ? ($('rel-filtro-extra').selectedOptions[0]?.textContent || null) : null;
+  ultimoRelatorio = resultado;
+  renderResultadoRelatorio(resultado);
+  $('btn-gerar-pdf-relatorio').classList.remove('hidden');
+}
+$('btn-aplicar-relatorio').addEventListener('click', gerarRelatorio);
+
+function renderResultadoRelatorio(r){
+  $('rel-resultado').classList.remove('hidden');
+
+  const resumo = $('rel-resumo');
+  resumo.innerHTML = '';
+  resumo.style.gridTemplateColumns = `repeat(${Math.max(1, Math.min(r.resumo.length, 4))}, 1fr)`;
+  r.resumo.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'metric-card';
+    card.innerHTML = `<span class="num">${escapeHtml(String(item.valor))}</span><span class="label">${escapeHtml(item.label)}</span>`;
+    resumo.appendChild(card);
   });
-  const rankingProdutos = Object.values(porProduto).sort((a,b) => b.quantidade - a.quantidade).slice(0, 10);
-  renderRelProdutos(rankingProdutos);
 
-  // --- Usos de pacote no período (sem valor financeiro) ---
-  const { data: usosData, error: erroUsos } = await supabase
-    .from('pacote_usos')
-    .select('usado_em, pacotes_clientes(clientes(nome), produtos(nome))')
-    .gte('usado_em', inicioISO)
-    .lte('usado_em', fimISO)
-    .order('usado_em', { ascending: false });
+  $('rel-tabela-head').innerHTML = r.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('');
 
-  if(erroUsos){
-    console.error(erroUsos);
-    renderRelUsos([]);
+  const body = $('rel-tabela-body');
+  body.innerHTML = '';
+  const empty = $('rel-tabela-empty');
+  if(r.linhas.length === 0){
+    empty.classList.remove('hidden');
   } else {
-    renderRelUsos(usosData || []);
+    empty.classList.add('hidden');
+    r.linhas.forEach(linha => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = linha.map(v => `<td>${escapeHtml(String(v))}</td>`).join('');
+      body.appendChild(tr);
+    });
   }
 }
 
-function renderRelUsos(lista){
-  const body = $('tabela-rel-usos-body');
-  const empty = $('rel-usos-empty');
-  body.innerHTML = '';
-
-  if(lista.length === 0){
-    empty.classList.remove('hidden');
+// ---------- PDF do relatório (jsPDF + AutoTable) — usa exatamente ultimoRelatorio,
+// o mesmo conjunto completo de dados (todos os lotes) já mostrado na tela. ----------
+$('btn-gerar-pdf-relatorio').addEventListener('click', () => {
+  if(!ultimoRelatorio || !window.jspdf){
+    $('rel-msg').innerHTML = '<div class="msg error">Não foi possível carregar o gerador de PDF. Verifique a conexão e tente novamente.</div>';
     return;
   }
-  empty.classList.add('hidden');
+  const r = ultimoRelatorio;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  lista.forEach(u => {
-    const pc = u.pacotes_clientes;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${new Date(u.usado_em).toLocaleDateString('pt-BR')}</td>
-      <td>${escapeHtml(pc && pc.clientes ? pc.clientes.nome : '—')}</td>
-      <td>${escapeHtml(pc && pc.produtos ? pc.produtos.nome : '—')}</td>
-    `;
-    body.appendChild(tr);
-  });
-}
+  doc.setFontSize(14);
+  doc.text('Florest Sistemas — PetGestor', 14, 15);
+  doc.setFontSize(11);
+  doc.text($('topbar-empresa') ? ($('topbar-empresa').textContent || '') : '', 14, 22);
+  doc.setFontSize(13);
+  doc.text(r.titulo, 14, 31);
 
-function renderRelProdutos(lista){
-  const body = $('tabela-rel-produtos-body');
-  const empty = $('rel-produtos-empty');
-  body.innerHTML = '';
-
-  if(lista.length === 0){
-    empty.classList.remove('hidden');
-    return;
+  doc.setFontSize(9);
+  let y = 38;
+  if(r.periodo){
+    doc.text(`Período: ${new Date(r.periodo.inicio+'T12:00:00').toLocaleDateString('pt-BR')} a ${new Date(r.periodo.fim+'T12:00:00').toLocaleDateString('pt-BR')}`, 14, y);
+    y += 5;
   }
-  empty.classList.add('hidden');
+  if(r.filtroTexto){ doc.text(`Filtro: ${r.filtroTexto}`, 14, y); y += 5; }
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, y); y += 6;
 
-  lista.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(p.nome)}</td>
-      <td>${p.quantidade}</td>
-      <td>${formatarReais(p.total)}</td>
-    `;
-    body.appendChild(tr);
-  });
-}
-
-function renderRelClientes(lista){
-  const body = $('tabela-rel-clientes-body');
-  const empty = $('rel-clientes-empty');
-  body.innerHTML = '';
-
-  if(lista.length === 0){
-    empty.classList.remove('hidden');
-    return;
+  if(r.resumo && r.resumo.length){
+    doc.setFontSize(10);
+    r.resumo.forEach(item => { doc.text(`${item.label}: ${item.valor}`, 14, y); y += 5; });
+    y += 2;
   }
-  empty.classList.add('hidden');
 
-  lista.forEach(c => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(c.nome)}</td>
-      <td>${c.qtd}</td>
-      <td>${formatarReais(c.total)}</td>
-    `;
-    body.appendChild(tr);
+  doc.autoTable({
+    head: [r.colunas],
+    body: r.linhas.length ? r.linhas : [['Nenhum registro encontrado']],
+    startY: y,
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [16, 32, 62] },
+    margin: { top: 30 },
   });
-}
+
+  const totalPaginas = doc.internal.getNumberOfPages();
+  for(let i = 1; i <= totalPaginas; i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.text(`Página ${i} de ${totalPaginas}`, doc.internal.pageSize.getWidth() - 32, doc.internal.pageSize.getHeight() - 8);
+  }
+
+  doc.save(r.titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-') + '.pdf');
+});
 
 // ---------- Agenda ----------
 const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -6227,6 +7065,183 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
   notaEmConferencia = null;
   carregarNotasEntrada();
   atualizarMetricaEstoqueBaixo();
+});
+
+// ---------- Usuários e Acessos ----------
+async function carregarUsuarios(){
+  $('usuarios-msg').innerHTML = '';
+  const { data, error } = await supabase.rpc('usuarios_listar');
+
+  const body = $('tabela-usuarios-body');
+  const empty = $('usuarios-empty');
+  body.innerHTML = '';
+
+  if(error){
+    $('usuarios-msg').innerHTML = `<div class="msg error">Erro ao carregar: ${error.message}</div>`;
+    return;
+  }
+
+  if(!data || data.length === 0){
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  data.forEach(u => {
+    const dono = u.papel === 'proprietario';
+    const modulosTexto = dono
+      ? 'Acesso completo'
+      : ((u.permissoes || []).length
+          ? (u.permissoes || []).map(k => escapeHtml((MODULOS_PERMISSAO_UNICOS.find(m => m.k === k) || {}).rotulo || k)).join(', ')
+          : '—');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(u.nome)}</td>
+      <td>${dono ? 'Proprietário' : 'Funcionário'}</td>
+      <td>${modulosTexto}</td>
+      <td><span class="status-badge ${u.ativo ? 'status-ok' : 'status-baixo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td style="text-align:right;">
+        ${dono ? '' : `<button class="link-btn btn-editar-usuario" data-id="${u.id}">Editar</button> · <button class="link-btn btn-redefinir-senha-usuario" data-id="${u.id}">Redefinir senha</button>`}
+      </td>
+    `;
+    if(!dono){
+      tr.querySelector('.btn-editar-usuario').addEventListener('click', () => abrirModalUsuario(u));
+      tr.querySelector('.btn-redefinir-senha-usuario').addEventListener('click', () => abrirModalRedefinirSenha(u.id));
+    }
+    body.appendChild(tr);
+  });
+}
+
+function renderPermsUsuario(marcados){
+  const grid = $('usuario-permissoes-grid');
+  grid.innerHTML = '';
+  MODULOS_PERMISSAO_UNICOS.forEach(m => {
+    const id = 'perm-' + m.k;
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px;';
+    label.innerHTML = `<input type="checkbox" class="usuario-perm-checkbox" value="${m.k}" id="${id}" ${marcados.includes(m.k) ? 'checked' : ''}> ${escapeHtml(m.rotulo)}`;
+    grid.appendChild(label);
+  });
+}
+function permsMarcadas(){
+  return Array.from(document.querySelectorAll('.usuario-perm-checkbox:checked')).map(el => el.value);
+}
+
+function abrirModalUsuario(usuario){
+  $('usuario-msg').innerHTML = '';
+  $('form-usuario').reset();
+  const novo = !usuario;
+
+  $('modal-usuario-titulo').textContent = novo ? 'Novo funcionário' : 'Editar funcionário';
+  $('usuario-id').value = novo ? '' : usuario.id;
+  $('usuario-nome').value = novo ? '' : usuario.nome;
+  $('usuario-status').value = novo ? 'ativo' : (usuario.ativo ? 'ativo' : 'inativo');
+
+  // E-mail e senha só fazem sentido na criação (login já existe depois)
+  $('usuario-campo-email').classList.toggle('hidden', !novo);
+  $('usuario-campo-senha').classList.toggle('hidden', !novo);
+  $('usuario-email').required = novo;
+
+  renderPermsUsuario(novo ? [] : (usuario.permissoes || []));
+  $('modal-usuario').classList.remove('hidden');
+}
+
+$('btn-novo-usuario').addEventListener('click', () => abrirModalUsuario(null));
+$('btn-cancelar-usuario').addEventListener('click', () => $('modal-usuario').classList.add('hidden'));
+$('modal-usuario').addEventListener('click', (e) => { if(e.target.id === 'modal-usuario') $('modal-usuario').classList.add('hidden'); });
+
+$('form-usuario').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('usuario-msg').innerHTML = '';
+
+  const id = $('usuario-id').value;
+  const nome = $('usuario-nome').value.trim();
+  const ativo = $('usuario-status').value === 'ativo';
+  const permissoes = permsMarcadas();
+
+  const btn = $('btn-salvar-usuario');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  if(!id){
+    // Criação: precisa da Edge Function (Admin API), nunca service_role no navegador.
+    const email = $('usuario-email').value.trim();
+    const senha = $('usuario-senha').value;
+
+    if(senha.length < 6 || senha.length > 18){
+      $('usuario-msg').innerHTML = '<div class="msg error">Use uma senha de 6 a 18 caracteres.</div>';
+      btn.disabled = false; btn.textContent = 'Salvar';
+      return;
+    }
+    if(permissoes.length === 0 && !confirm('Nenhum módulo foi marcado: este funcionário não conseguirá usar nada. Criar mesmo assim?')){
+      btn.disabled = false; btn.textContent = 'Salvar';
+      return;
+    }
+
+    const { data, error } = await supabase.functions.invoke('petgestor-usuarios', {
+      body: { acao: 'criar', nome, email, senha, permissoes }
+    });
+
+    btn.disabled = false; btn.textContent = 'Salvar';
+
+    if(error || data?.error){
+      $('usuario-msg').innerHTML = `<div class="msg error">${escapeHtml((data && data.error) || error.message)}</div>`;
+      return;
+    }
+  } else {
+    // Edição: nome/ativo/permissões via RPC (não precisa de Admin API)
+    const { error } = await supabase.rpc('usuarios_atualizar', {
+      p_id: id, p_nome: nome, p_ativo: ativo, p_permissoes: permissoes
+    });
+
+    btn.disabled = false; btn.textContent = 'Salvar';
+
+    if(error){
+      $('usuario-msg').innerHTML = `<div class="msg error">Erro ao salvar: ${error.message}</div>`;
+      return;
+    }
+  }
+
+  $('modal-usuario').classList.add('hidden');
+  carregarUsuarios();
+});
+
+function abrirModalRedefinirSenha(usuarioId){
+  $('redefinir-senha-msg').innerHTML = '';
+  $('redefinir-senha-usuario-id').value = usuarioId;
+  $('redefinir-senha-valor').value = '';
+  $('modal-redefinir-senha').classList.remove('hidden');
+}
+$('btn-cancelar-redefinir-senha').addEventListener('click', () => $('modal-redefinir-senha').classList.add('hidden'));
+$('modal-redefinir-senha').addEventListener('click', (e) => { if(e.target.id === 'modal-redefinir-senha') $('modal-redefinir-senha').classList.add('hidden'); });
+
+$('btn-confirmar-redefinir-senha').addEventListener('click', async () => {
+  const usuarioId = $('redefinir-senha-usuario-id').value;
+  const senha = $('redefinir-senha-valor').value;
+
+  if(senha.length < 6 || senha.length > 18){
+    $('redefinir-senha-msg').innerHTML = '<div class="msg error">Use uma senha de 6 a 18 caracteres.</div>';
+    return;
+  }
+
+  const btn = $('btn-confirmar-redefinir-senha');
+  btn.disabled = true;
+  btn.textContent = 'Redefinindo...';
+
+  const { data, error } = await supabase.functions.invoke('petgestor-usuarios', {
+    body: { acao: 'redefinir_senha', usuario_id: usuarioId, senha }
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Redefinir';
+
+  if(error || data?.error){
+    $('redefinir-senha-msg').innerHTML = `<div class="msg error">${escapeHtml((data && data.error) || error.message)}</div>`;
+    return;
+  }
+
+  $('modal-redefinir-senha').classList.add('hidden');
 });
 
 // ---------- Verifica sessão ao carregar ----------
