@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DistGestor — Florest Sistemas</title>
+<title>Florest ERP — Florest Sistemas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1713,7 +1713,7 @@
         <span>Florest Sistemas</span>
       </div>
 
-      <div class="auth-product">DistGestor</div>
+      <div class="auth-product">Florest ERP</div>
       <div class="auth-product-sub">Gestão simples para sua distribuidora.</div>
       <p class="auth-desc">Clientes, produtos, estoque, vendas com leitor de código de barras, notas de entrada e financeiro em um só lugar.</p>
     </div>
@@ -1756,7 +1756,7 @@
           <span class="brand-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="#082B59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
           </span>
-          <h1 id="auth-card-titulo">Bem-vindo ao DistGestor</h1>
+          <h1 id="auth-card-titulo">Bem-vindo ao Florest ERP</h1>
           <p id="auth-card-subtitulo">Acesse sua conta para continuar</p>
         </div>
 
@@ -1824,7 +1824,7 @@
       </div>
 
       <div class="auth-page-foot">
-        <strong>DistGestor</strong>
+        <strong>Florest ERP</strong>
         Um sistema Florest Sistemas
       </div>
     </div>
@@ -1883,7 +1883,7 @@
             <svg style="stroke:var(--ink);" viewBox="0 0 24 24" fill="none"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
           </span>
           <div>
-            <div class="topbar-product-nome">DistGestor</div>
+            <div class="topbar-product-nome">Florest ERP</div>
             <div class="topbar-product-sub">Gestão simples para sua distribuidora</div>
           </div>
         </div>
@@ -2092,7 +2092,7 @@
         <div class="pdx-brand">
           <span class="pdx-brand-mark"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span>
           <div class="pdx-brand-txt">
-            <strong>DistGestor PDV</strong>
+            <strong>Florest ERP PDV</strong>
             <span id="pdx-empresa">—</span>
           </div>
         </div>
@@ -2803,7 +2803,7 @@
             <button type="button" class="btn-secondary" id="btn-atualizar-numeracao-nfce">Atualizar numeração</button>
           </div>
           <p class="modal-section-hint" style="margin-top:8px;">
-            Preencha isso apenas se essa empresa já emitia NFC-e em outro sistema, para a próxima emissão pelo DistGestor continuar a numeração corretamente (ex: informe 3857 para a próxima sair como 3858). Depois de emitido pelo DistGestor, esse número nunca pode ser diminuído.
+            Preencha isso apenas se essa empresa já emitia NFC-e em outro sistema, para a próxima emissão pelo Florest ERP continuar a numeração corretamente (ex: informe 3857 para a próxima sair como 3858). Depois de emitido pelo Florest ERP, esse número nunca pode ser diminuído.
           </p>
         </div>
 
@@ -2822,7 +2822,7 @@
 
       <div class="pdv-panel" style="margin-top:20px;">
         <h3>Certificado digital A1</h3>
-        <p class="modal-section-hint" style="margin-top:-4px;">O arquivo e a senha vão direto para a integração segura — nunca ficam guardados no DistGestor.</p>
+        <p class="modal-section-hint" style="margin-top:-4px;">O arquivo e a senha vão direto para a integração segura — nunca ficam guardados no Florest ERP.</p>
         <div id="cert-upload-msg"></div>
         <div class="field-row">
           <div class="field"><label>Arquivo do certificado (.pfx/.p12)</label><input type="file" id="cf-cert-arquivo" accept=".pfx,.p12"></div>
@@ -4398,7 +4398,7 @@ function renderPaginacao(elId, { pagina, total, porPagina, aoMudar }){
   el.querySelector('[data-a="prox"]').addEventListener('click', () => aoMudar(pagina + 1));
 }
 
-const MSG_NAO_CONFIGURADO = 'O DistGestor ainda não está conectado a um banco de dados. Preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script do index.html com os dados do projeto Supabase do DistGestor.';
+const MSG_NAO_CONFIGURADO = 'O Florest ERP ainda não está conectado a um banco de dados. Preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script do index.html com os dados do projeto Supabase do Florest ERP.';
 
 function showMsg(text, type){
   const box = $('auth-msg');
@@ -4426,7 +4426,7 @@ $('tab-login').addEventListener('click', () => {
   $('tab-cadastro').classList.remove('active');
   $('form-login').classList.remove('hidden');
   $('form-cadastro').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Bem-vindo ao DistGestor';
+  $('auth-card-titulo').textContent = 'Bem-vindo ao Florest ERP';
   $('auth-card-subtitulo').textContent = 'Acesse sua conta para continuar';
   clearMsg();
 });
@@ -4528,7 +4528,7 @@ $('form-cadastro').addEventListener('submit', async (e) => {
   $('tab-cadastro').classList.remove('active');
   $('form-login').classList.remove('hidden');
   $('form-cadastro').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Bem-vindo ao DistGestor';
+  $('auth-card-titulo').textContent = 'Bem-vindo ao Florest ERP';
   $('auth-card-subtitulo').textContent = 'Acesse sua conta para continuar';
   showMsg('Cadastro recebido! Sua conta está em análise — assim que for aprovada, você poderá entrar normalmente com o e-mail e senha que acabou de criar.', 'success');
 });
