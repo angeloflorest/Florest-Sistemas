@@ -1696,6 +1696,59 @@
   .usr-chips{ display:flex; flex-wrap:wrap; gap:4px; }
   .usr-chip{ font-size:11px; font-weight:600; background:#EEF0F4; color:var(--ink-soft); border-radius:12px; padding:2px 8px; }
   @media (max-width: 760px){ .usr-perms{ grid-template-columns:1fr 1fr; } }
+  /* ---------- Relatórios ---------- */
+  .rel-painel{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px 16px;
+    margin-bottom:16px;
+  }
+  .rel-linha{
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap:16px;
+  }
+  .rel-linha .field{ margin-bottom:12px; }
+  .rel-descricao{ margin:0 0 12px; font-size:13px; color: var(--ink-soft); }
+  .rel-descricao:empty{ display:none; }
+  .rel-filtros{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px;
+    margin-bottom:4px;
+  }
+  .rel-filtros .field{ margin-bottom:12px; }
+  .rel-acoes{ display:flex; gap:10px; flex-wrap:wrap; }
+  .rel-acoes button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .rel-cabecalho{ margin: 4px 0 14px; }
+  .rel-cabecalho h3{ margin:0 0 4px; font-family: var(--font-display); font-size:20px; color: var(--ink); }
+  .rel-cabecalho p{ margin:2px 0; font-size:13px; color: var(--ink-soft); }
+  .rel-resumo{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .rel-card{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-left:4px solid var(--teal);
+    border-radius:10px;
+    padding:12px 14px;
+  }
+  .rel-card-num{ display:block; font-size:20px; font-weight:700; color: var(--ink); word-break:break-word; }
+  .rel-card-rot{ display:block; font-size:12px; color: var(--ink-soft); margin-top:2px; }
+  .rel-scroll{ overflow-x:auto; width:0; min-width:100%; }
+  .rel-tabela th.num, .rel-tabela td.num{ text-align:right; white-space:nowrap; }
+  .rel-tabela tfoot td{ font-weight:700; border-top:2px solid var(--border); background:#FAFBFC; }
+  .rel-tabela-titulo{ margin:18px 0 8px; font-size:15px; font-weight:700; color: var(--ink); }
+  .rel-contagem{ margin:8px 2px 0; font-size:12px; color: var(--ink-soft); }
+  .rel-notas{ margin:14px 2px 0; font-size:12px; color: var(--ink-soft); }
+  .rel-notas p{ margin:3px 0; }
+  @media (max-width:700px){
+    .rel-linha{ grid-template-columns: 1fr; gap:0; }
+  }
 </style>
 </head>
 <body>
@@ -2334,182 +2387,38 @@
       <div class="view-header">
         <div>
           <h2>Relatórios</h2>
-          <p>Escolha o período para ver vendas, produtos, clientes e compras. A posição de estoque é sempre a atual.</p>
+          <p>Escolha o tipo de relatório e o período, gere na tela e, se quiser, baixe em PDF.</p>
         </div>
       </div>
 
-      <div class="search-row" style="align-items:flex-end;">
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>De</label>
-          <input type="date" id="rel-data-inicio">
+      <div class="rel-painel">
+        <div class="rel-linha">
+          <div class="field">
+            <label for="rel-tipo">Tipo de relatório</label>
+            <select id="rel-tipo"></select>
+          </div>
+          <div class="field" id="rel-campo-inicio">
+            <label for="rel-data-inicio">Data inicial</label>
+            <input type="date" id="rel-data-inicio">
+          </div>
+          <div class="field" id="rel-campo-fim">
+            <label for="rel-data-fim">Data final</label>
+            <input type="date" id="rel-data-fim">
+          </div>
+          <div class="field hidden" id="rel-sem-periodo">
+            <label>Período</label>
+            <input type="text" value="Posição atual (sem período)" disabled>
+          </div>
         </div>
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>Até</label>
-          <input type="date" id="rel-data-fim">
+        <p class="rel-descricao" id="rel-descricao"></p>
+        <div class="rel-filtros hidden" id="rel-filtros"></div>
+        <div class="rel-acoes">
+          <button type="button" class="btn-accent" id="btn-gerar-relatorio">Gerar relatório</button>
+          <button type="button" class="btn-secondary" id="btn-relatorio-pdf" disabled>Gerar PDF</button>
         </div>
-        <button class="btn-accent" id="btn-aplicar-relatorio">Aplicar filtro</button>
       </div>
       <div id="rel-msg"></div>
-
-      <div class="subsection" style="margin-top:24px;">
-        <div class="subsection-header">
-          <div>
-            <h3>Vendas do período</h3>
-            <p>Total vendido, quantidade de vendas e ticket médio.</p>
-          </div>
-        </div>
-        <div class="metric-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="metric-card c-teal">
-            <span class="num" id="rel-vendas-total">R$ 0</span>
-            <span class="label">Total vendido</span>
-          </div>
-          <div class="metric-card">
-            <span class="num" id="rel-vendas-qtd">0</span>
-            <span class="label">Vendas realizadas</span>
-          </div>
-          <div class="metric-card c-accent">
-            <span class="num" id="rel-ticket-medio">R$ 0</span>
-            <span class="label">Ticket médio</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Vendas por forma de pagamento</h3>
-            <p>Distribuição do valor vendido no período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Forma de pagamento</th>
-                <th>Vendas</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-pagamento-body"></tbody>
-          </table>
-          <div id="rel-pagamento-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos mais vendidos</h3>
-            <p>Top 10 por quantidade, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Quantidade</th>
-                <th>Total vendido</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-produtos-body"></tbody>
-          </table>
-          <div id="rel-produtos-empty" class="empty-state hidden">Nenhuma venda de produto neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Clientes que mais compraram</h3>
-            <p>Top 10 por valor total gasto, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Nº de compras</th>
-                <th>Total gasto</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-clientes-body"></tbody>
-          </table>
-          <div id="rel-clientes-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Compras por fornecedor</h3>
-            <p>Notas de entrada lançadas no período (pela data de emissão), agrupadas por fornecedor.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Fornecedor</th>
-                <th>Notas</th>
-                <th>Total comprado</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-fornecedores-body"></tbody>
-          </table>
-          <div id="rel-fornecedores-empty" class="empty-state hidden">Nenhuma nota de entrada neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Posição do estoque</h3>
-            <p>Situação atual de todos os produtos cadastrados.</p>
-          </div>
-        </div>
-        <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
-          <div class="metric-card">
-            <span class="num" id="rel-estoque-produtos">0</span>
-            <span class="label">Produtos cadastrados</span>
-          </div>
-          <div class="metric-card c-teal">
-            <span class="num" id="rel-estoque-custo">R$ 0</span>
-            <span class="label">Estoque a preço de custo</span>
-          </div>
-          <div class="metric-card c-accent">
-            <span class="num" id="rel-estoque-venda">R$ 0</span>
-            <span class="label">Estoque a preço de venda</span>
-          </div>
-          <div class="metric-card c-danger">
-            <span class="num" id="rel-estoque-baixo">0</span>
-            <span class="label">Com estoque baixo</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos com estoque baixo</h3>
-            <p>Até 30 produtos, dos mais críticos para os menos.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Estoque</th>
-                <th>Mínimo</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-baixo-body"></tbody>
-          </table>
-          <div id="rel-baixo-empty" class="empty-state hidden">Nenhum produto com estoque baixo.</div>
-        </div>
-      </div>
+      <div id="rel-resultado" class="hidden"></div>
     </div>
 
     <!-- ===== VIEW: FISCAL ===== -->
@@ -7120,163 +7029,1030 @@ $('form-despesa').addEventListener('submit', async (e) => {
   carregarFinanceiro();
 });
 
-// ---------- Relatórios ----------
+// ---------- Relatórios (central de relatórios) ----------
+// Tela: escolher o relatório + período + filtros → "Gerar relatório" (tela) → "Gerar PDF".
+// Todas as consultas usam o cliente Supabase do usuário logado (RLS por empresa) e ainda filtram por
+// empresa_id de forma explícita. Nenhum relatório usa a paginação visual das outras telas: os dados são
+// lidos em páginas de 1.000 linhas (buscarTodos) até acabar. O PDF é gerado no navegador (jsPDF + AutoTable,
+// carregadas por CDN só quando o usuário clica em "Gerar PDF").
+const REL_LIMITES = [['0', 'Todos'], ['10', '10 primeiros'], ['20', '20 primeiros'], ['50', '50 primeiros'], ['100', '100 primeiros']];
+const REL_FORMAS = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito', 'Outros'];
+const REL_PDF_JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const REL_PDF_AUTOTABLE = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+
+const relCache = { produtos: null, clientes: null, fornecedores: null, categorias: null };
+let relAtual = null;        // último relatório gerado (é ele que o PDF imprime)
+let relSeq = 0;             // descarta respostas antigas se o usuário gerar outro relatório em seguida
+let relSeqFiltros = 0;
+let relPdfPromessa = null;
+
+// ---- formatação ----
+const relR = (v) => formatarReais(v);
+const relSomar = (lista, fn) => lista.reduce((s, x) => s + (Number(fn(x)) || 0), 0);
+const relInt = (n) => Number(n).toLocaleString('pt-BR');
+const relPct = (n) => (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+function relDataBR(v){
+  if(!v) return '—';
+  const s = String(v);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ const [a, m, d] = s.split('-'); return `${d}/${m}/${a}`; }
+  return new Date(s).toLocaleDateString('pt-BR');
+}
+function relDataHoraBR(v){
+  return v ? new Date(v).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+}
+const relCol = (r, a) => ({ r, a: a || 'l' });
+const relProdutoRotulo = (p) => (p.codigo ? p.codigo + ' — ' : '') + (p.nome || 'Produto removido');
+const relPagamentoNota = (f) => ({ a_vista: 'À vista', a_prazo: 'A prazo' }[f] || f || '—');
+const relStatusNota = (s) => ({ confirmada: 'Confirmada', em_conferencia: 'Em conferência', cancelada: 'Cancelada' }[s] || s || '—');
+
+// ---- filtros (especificações reutilizáveis) ----
+const fProduto = (obrig) => ({ id: 'produto', tipo: 'entidade', entidade: 'produtos', rotulo: 'Produto', obrigatorio: !!obrig, art: 'o' });
+const fCliente = (obrig) => ({ id: 'cliente', tipo: 'entidade', entidade: 'clientes', rotulo: 'Cliente', obrigatorio: !!obrig, art: 'o' });
+const fFornecedor = (obrig) => ({ id: 'fornecedor', tipo: 'entidade', entidade: 'fornecedores', rotulo: 'Fornecedor', obrigatorio: !!obrig, art: 'o' });
+const fPagamento = { id: 'pagamento', tipo: 'select', rotulo: 'Forma de pagamento', opcoes: [['', 'Todas'], ...REL_FORMAS.map(f => [f, f])] };
+const fCategoria = { id: 'categoria', tipo: 'select', rotulo: 'Categoria', dinamico: 'categorias', opcoes: [['', 'Todas']] };
+const fLimite = { id: 'limite', tipo: 'select', rotulo: 'Quantidade de registros', opcoes: REL_LIMITES };
+const fStatus = (rotulo, opcoes) => ({ id: 'status', tipo: 'select', rotulo, opcoes });
+const fDataNota = { id: 'datanota', tipo: 'select', rotulo: 'Período pela data de', opcoes: [['data_entrada', 'Entrada da nota'], ['data_emissao', 'Emissão da nota']] };
+const fStatusNota = fStatus('Situação da nota', [['confirmada', 'Confirmadas'], ['em_conferencia', 'Em conferência'], ['cancelada', 'Canceladas'], ['todas', 'Todas']]);
+
+// ---- definição dos relatórios ----
+const REL_DEFS = [
+  { id: 'vendas_periodo', grupo: 'Vendas', titulo: 'Vendas no período', usaPeriodo: true, filtros: [fPagamento, fCliente(false)], gerar: relGerarVendasPeriodo,
+    descricao: 'Quantidade de vendas, valor total vendido e ticket médio, com a lista completa das vendas do período.' },
+  { id: 'vendas_forma', grupo: 'Vendas', titulo: 'Vendas por forma de pagamento', usaPeriodo: true, filtros: [], gerar: relGerarVendasForma,
+    descricao: 'Quantidade de vendas e valor vendido em cada forma de pagamento.' },
+  { id: 'mais_vendidos', grupo: 'Vendas', titulo: 'Produtos mais vendidos', usaPeriodo: true, filtros: [fCategoria, fLimite], gerar: (c) => relGerarRankingProdutos(c, false),
+    descricao: 'Produtos com maior quantidade vendida no período, com o faturamento de cada um.' },
+  { id: 'menos_vendidos', grupo: 'Vendas', titulo: 'Produtos menos vendidos', usaPeriodo: true, filtros: [fCategoria, fLimite], gerar: (c) => relGerarRankingProdutos(c, true),
+    descricao: 'Produtos com menor quantidade vendida no período (somente os que tiveram ao menos uma venda; os que não venderam nada estão em "Produtos sem venda").' },
+  { id: 'sem_venda', grupo: 'Vendas', titulo: 'Produtos sem venda', usaPeriodo: true, filtros: [fCategoria], gerar: relGerarSemVenda,
+    descricao: 'Produtos cadastrados que não tiveram nenhuma venda dentro do período.' },
+  { id: 'clientes_top', grupo: 'Vendas', titulo: 'Clientes que mais compraram', usaPeriodo: true, filtros: [fLimite], gerar: relGerarClientesTop,
+    descricao: 'Clientes identificados nas vendas, com quantidade de compras e valor total comprado.' },
+  { id: 'vendas_cliente', grupo: 'Vendas', titulo: 'Vendas por cliente', usaPeriodo: true, filtros: [fCliente(true)], gerar: relGerarVendasCliente,
+    descricao: 'Todas as vendas de um cliente no período, com os itens de cada venda.' },
+  { id: 'canceladas', grupo: 'Vendas', titulo: 'Vendas canceladas', usaPeriodo: true, indisponivel: 'a tabela de vendas não possui status nem registro de cancelamento; é preciso ajustar o banco de dados antes de gerar este relatório',
+    descricao: 'Ainda não disponível neste banco de dados (as vendas não guardam situação de cancelamento).' },
+  { id: 'estoque_baixo', grupo: 'Estoque', titulo: 'Produtos com estoque baixo', usaPeriodo: false, filtros: [fCategoria, fStatus('Situação', [['', 'Zerados e baixos'], ['zerado', 'Somente zerados'], ['baixo', 'Somente baixos']])], gerar: relGerarEstoqueBaixo,
+    descricao: 'Posição atual: produtos zerados ou com estoque igual/abaixo do mínimo, e quanto falta para atingir o mínimo.' },
+  { id: 'posicao_estoque', grupo: 'Estoque', titulo: 'Posição atual de estoque', usaPeriodo: false, filtros: [fCategoria, fStatus('Situação', [['', 'Todos'], ['com', 'Com estoque'], ['sem', 'Zerados ou negativos']])], gerar: relGerarPosicaoEstoque,
+    descricao: 'Posição atual: todos os produtos e suas quantidades. Quando há custo cadastrado, mostra o valor estimado do estoque.' },
+  { id: 'movimentacao', grupo: 'Estoque', titulo: 'Movimentação de estoque', usaPeriodo: true, filtros: [fProduto(false), fStatus('Tipo de movimento', [['', 'Entradas e saídas'], ['entradas', 'Somente entradas'], ['saidas', 'Somente saídas']])], gerar: relGerarMovimentacao,
+    descricao: 'Entradas (notas de entrada confirmadas) e saídas (vendas) do período. Ajustes manuais de estoque não são registrados pelo sistema.' },
+  { id: 'compras_fornecedor', grupo: 'Compras', titulo: 'Compras por fornecedor', usaPeriodo: true, filtros: [fFornecedor(false), fStatusNota, fDataNota], gerar: relGerarComprasFornecedor,
+    descricao: 'Quantidade de notas de entrada e valor total comprado de cada fornecedor.' },
+  { id: 'compras_periodo', grupo: 'Compras', titulo: 'Compras no período', usaPeriodo: true, filtros: [fFornecedor(false), fStatusNota, fDataNota], gerar: relGerarComprasPeriodo,
+    descricao: 'Lista completa das notas de entrada do período, com fornecedor, datas, valores e situação.' },
+  { id: 'produtos_fornecedor', grupo: 'Compras', titulo: 'Produtos comprados por fornecedor', usaPeriodo: true, filtros: [fFornecedor(true), fStatusNota, fDataNota], gerar: relGerarProdutosFornecedor,
+    descricao: 'Produtos, quantidades e valores comprados de um fornecedor no período.' },
+  { id: 'contas_pagar', grupo: 'Financeiro', titulo: 'Contas a pagar', usaPeriodo: true, filtros: [fStatus('Situação', [['', 'Todas'], ['paga', 'Pagas'], ['pendente', 'Pendentes (a vencer)'], ['vencida', 'Vencidas']])], gerar: relGerarContasPagar,
+    descricao: 'Contas com vencimento no período (parcelas das notas de entrada e demais contas com vencimento): pagas, pendentes e vencidas.' },
+  { id: 'despesas', grupo: 'Financeiro', titulo: 'Despesas', usaPeriodo: true, filtros: [{ id: 'categoriatexto', tipo: 'texto', rotulo: 'Categoria (contém)', placeholder: 'Ex.: aluguel' }], gerar: relGerarDespesas,
+    descricao: 'Despesas lançadas no período (data do lançamento), com totais por categoria.' },
+  { id: 'resumo_financeiro', grupo: 'Financeiro', titulo: 'Resumo financeiro', usaPeriodo: true, filtros: [], gerar: relGerarResumoFinanceiro,
+    descricao: 'Vendas (receitas), despesas e resultado do período, mês a mês.' },
+  { id: 'margem_produto', grupo: 'Financeiro', titulo: 'Margem/Lucro estimado por produto', usaPeriodo: true, filtros: [fCategoria, fLimite], gerar: relGerarMargem,
+    descricao: 'Somente produtos com preço de custo cadastrado: faturamento, custo estimado e margem estimada.' },
+];
+const relDefPorId = (id) => REL_DEFS.find(d => d.id === id);
+const relDefAtual = () => relDefPorId($('rel-tipo').value) || REL_DEFS[0];
+
+// ---- consultas base ----
+async function relBuscar(erroMsg, montar){
+  const { data, error } = await buscarTodos(montar);
+  if(error) throw new Error(erroMsg + ': ' + (error.message || error));
+  return data || [];
+}
+
+async function relBuscarVendas(ctx, { cliente, forma } = {}){
+  return relBuscar('Não foi possível ler as vendas', () => {
+    let q = supabase.from('vendas')
+      .select('id, numero_venda, total, forma_pagamento, cliente_id, criado_em, clientes(nome, cpf)')
+      .eq('empresa_id', ctx.emp)
+      .gte('criado_em', ctx.iniISO)
+      .lte('criado_em', ctx.fimISO);
+    if(cliente) q = q.eq('cliente_id', cliente);
+    if(forma) q = q.eq('forma_pagamento', forma);
+    return q.order('criado_em', { ascending: true }).order('id', { ascending: true });
+  });
+}
+
+async function relBuscarItensVendidos(ctx, { custo } = {}){
+  const cols = 'produto_id, quantidade, preco_unitario, subtotal, produtos(nome, codigo, unidade_comercial'
+    + (recursos.categoria ? ', categoria' : '') + (custo ? ', preco_custo' : '') + '), vendas!inner(criado_em)';
+  return relBuscar('Não foi possível ler os itens vendidos', () => supabase.from('itens_venda')
+    .select(cols)
+    .eq('empresa_id', ctx.emp)
+    .gte('vendas.criado_em', ctx.iniISO)
+    .lte('vendas.criado_em', ctx.fimISO)
+    .order('id', { ascending: true }));
+}
+
+async function relBuscarProdutos(ctx){
+  const cols = 'id, nome, codigo, unidade_comercial, quantidade_estoque, preco_venda, preco_custo'
+    + (recursos.estoqueMinimo ? ', estoque_minimo' : '') + (recursos.categoria ? ', categoria' : '');
+  return relBuscar('Não foi possível ler os produtos', () => supabase.from('produtos')
+    .select(cols).eq('empresa_id', ctx.emp).order('nome', { ascending: true }).order('id', { ascending: true }));
+}
+
+async function relBuscarNotas(ctx){
+  const col = ctx.f.datanota === 'data_emissao' ? 'data_emissao' : 'data_entrada';
+  return relBuscar('Não foi possível ler as notas de entrada', () => {
+    let q = supabase.from('notas_entrada')
+      .select('id, numero, serie, data_emissao, data_entrada, valor_produtos, valor_desconto, valor_frete, valor_outras_despesas, valor_total, forma_pagamento, status, fornecedor_id, fornecedores(razao_social, cnpj)')
+      .eq('empresa_id', ctx.emp)
+      .gte(col, ctx.ini)
+      .lte(col, ctx.fim);
+    if(ctx.f.status && ctx.f.status !== 'todas') q = q.eq('status', ctx.f.status);
+    if(ctx.f.fornecedor) q = q.eq('fornecedor_id', ctx.f.fornecedor);
+    return q.order(col, { ascending: true }).order('id', { ascending: true });
+  });
+}
+
+function relPassaCategoria(p, sel){
+  if(!sel) return true;
+  if(sel === '__sem') return !p.categoria;
+  return p.categoria === sel;
+}
+function relLimitar(lista, limite){
+  const n = Number(limite) || 0;
+  return n > 0 ? lista.slice(0, n) : lista;
+}
+function relAgruparProdutos(itens){
+  const m = new Map();
+  itens.forEach(i => {
+    const p = i.produtos || {};
+    let g = m.get(i.produto_id);
+    if(!g){
+      g = { id: i.produto_id, nome: p.nome || 'Produto removido', codigo: p.codigo || '', categoria: p.categoria || '', custo: p.preco_custo, qtd: 0, fat: 0, vendas: 0 };
+      m.set(i.produto_id, g);
+    }
+    g.qtd += Number(i.quantidade) || 0;
+    g.fat += Number(i.subtotal ?? (Number(i.quantidade) * Number(i.preco_unitario))) || 0;
+    g.vendas += 1;
+  });
+  return [...m.values()];
+}
+
+// ---- 1. Vendas no período ----
+async function relGerarVendasPeriodo(ctx){
+  const vendas = await relBuscarVendas(ctx, { cliente: ctx.f.cliente, forma: ctx.f.pagamento });
+  const total = relSomar(vendas, v => v.total);
+  return {
+    resumo: [['Vendas realizadas', relInt(vendas.length)], ['Total vendido', relR(total)], ['Ticket médio', relR(vendas.length ? total / vendas.length : 0)]],
+    tabelas: [{
+      colunas: [relCol('Venda nº', 'r'), relCol('Data e hora'), relCol('Cliente'), relCol('Forma de pagamento'), relCol('Total', 'r')],
+      linhas: vendas.map(v => [String(v.numero_venda ?? '—'), relDataHoraBR(v.criado_em), v.clientes ? v.clientes.nome : 'Não identificado', v.forma_pagamento || 'Não informada', relR(v.total)]),
+      rodape: ['', '', '', 'Total do período', relR(total)],
+      vazio: 'Nenhuma venda encontrada no período.',
+    }],
+    notas: ['O sistema não registra desconto por venda: o valor bruto é igual ao total vendido.'],
+  };
+}
+
+// ---- 2. Vendas por forma de pagamento ----
+async function relGerarVendasForma(ctx){
+  const vendas = await relBuscarVendas(ctx);
+  const total = relSomar(vendas, v => v.total);
+  const m = new Map();
+  vendas.forEach(v => {
+    const k = v.forma_pagamento || 'Não informada';
+    const g = m.get(k) || { qtd: 0, total: 0 };
+    g.qtd += 1; g.total += Number(v.total) || 0;
+    m.set(k, g);
+  });
+  const grupos = [...m.entries()].sort((a, b) => b[1].total - a[1].total);
+  return {
+    resumo: [['Vendas realizadas', relInt(vendas.length)], ['Total vendido', relR(total)], ['Formas de pagamento usadas', relInt(grupos.length)]],
+    tabelas: [{
+      colunas: [relCol('Forma de pagamento'), relCol('Vendas', 'r'), relCol('Valor', 'r'), relCol('% do total', 'r'), relCol('Ticket médio', 'r')],
+      linhas: grupos.map(([k, g]) => [k, relInt(g.qtd), relR(g.total), relPct(total ? g.total / total * 100 : 0), relR(g.qtd ? g.total / g.qtd : 0)]),
+      rodape: ['Total', relInt(vendas.length), relR(total), total ? relPct(100) : relPct(0), relR(vendas.length ? total / vendas.length : 0)],
+      vazio: 'Nenhuma venda encontrada no período.',
+    }],
+    notas: [],
+  };
+}
+
+// ---- 3 e 4. Produtos mais / menos vendidos ----
+async function relGerarRankingProdutos(ctx, menos){
+  const itens = await relBuscarItensVendidos(ctx);
+  let prods = relAgruparProdutos(itens).filter(p => relPassaCategoria(p, ctx.f.categoria));
+  prods.sort(menos
+    ? (a, b) => a.qtd - b.qtd || a.fat - b.fat || a.nome.localeCompare(b.nome, 'pt-BR')
+    : (a, b) => b.qtd - a.qtd || b.fat - a.fat || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const totalQtd = relSomar(prods, p => p.qtd), totalFat = relSomar(prods, p => p.fat);
+  const lista = relLimitar(prods, ctx.f.limite);
+  const cols = [relCol('Pos.', 'r'), relCol('Produto'), relCol('Código')];
+  if(recursos.categoria) cols.push(relCol('Categoria'));
+  cols.push(relCol('Qtd. vendida', 'r'), relCol('Faturamento', 'r'));
+  const notas = [];
+  if(lista.length < prods.length) notas.push(`Exibindo ${relInt(lista.length)} de ${relInt(prods.length)} produtos vendidos no período; os totais acima consideram todos.`);
+  if(menos) notas.push('Somente produtos com ao menos uma venda no período. Produtos sem nenhuma venda estão no relatório "Produtos sem venda".');
+  return {
+    resumo: [['Produtos vendidos', relInt(prods.length)], ['Quantidade total vendida', formatarQuantidade(totalQtd)], ['Faturamento', relR(totalFat)]],
+    tabelas: [{
+      colunas: cols,
+      linhas: lista.map((p, i) => [String(i + 1), p.nome, p.codigo || '—', ...(recursos.categoria ? [p.categoria || '—'] : []), formatarQuantidade(p.qtd), relR(p.fat)]),
+      vazio: 'Nenhum produto vendido no período.',
+    }],
+    notas,
+  };
+}
+
+// ---- 5. Produtos sem venda ----
+async function relGerarSemVenda(ctx){
+  const [produtos, itens] = await Promise.all([relBuscarProdutos(ctx), relBuscar('Não foi possível ler os itens vendidos', () => supabase.from('itens_venda')
+    .select('produto_id, vendas!inner(criado_em)')
+    .eq('empresa_id', ctx.emp)
+    .gte('vendas.criado_em', ctx.iniISO)
+    .lte('vendas.criado_em', ctx.fimISO)
+    .order('id', { ascending: true }))]);
+  const vendidos = new Set(itens.map(i => i.produto_id));
+  const base = produtos.filter(p => relPassaCategoria(p, ctx.f.categoria));
+  const sem = base.filter(p => !vendidos.has(p.id));
+  const cols = [relCol('Código'), relCol('Produto')];
+  if(recursos.categoria) cols.push(relCol('Categoria'));
+  cols.push(relCol('Un.'), relCol('Estoque atual', 'r'), relCol('Preço de venda', 'r'));
+  return {
+    resumo: [['Produtos cadastrados', relInt(base.length)], ['Com venda no período', relInt(base.length - sem.length)], ['Sem nenhuma venda', relInt(sem.length)]],
+    tabelas: [{
+      colunas: cols,
+      linhas: sem.map(p => [p.codigo || '—', p.nome, ...(recursos.categoria ? [p.categoria || '—'] : []), p.unidade_comercial || '—', formatarQuantidade(p.quantidade_estoque), relR(p.preco_venda)]),
+      vazio: 'Todos os produtos tiveram venda no período.',
+    }],
+    notas: [],
+  };
+}
+
+// ---- 6. Clientes que mais compraram ----
+async function relGerarClientesTop(ctx){
+  const vendas = await relBuscarVendas(ctx);
+  const m = new Map();
+  let semCli = { qtd: 0, total: 0 };
+  vendas.forEach(v => {
+    if(!v.cliente_id){ semCli.qtd += 1; semCli.total += Number(v.total) || 0; return; }
+    const g = m.get(v.cliente_id) || { nome: v.clientes ? v.clientes.nome : 'Cliente removido', qtd: 0, total: 0, ultima: null };
+    g.qtd += 1; g.total += Number(v.total) || 0;
+    if(!g.ultima || v.criado_em > g.ultima) g.ultima = v.criado_em;
+    m.set(v.cliente_id, g);
+  });
+  const todos = [...m.values()].sort((a, b) => b.total - a.total || b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const lista = relLimitar(todos, ctx.f.limite);
+  const notas = [];
+  if(lista.length < todos.length) notas.push(`Exibindo ${relInt(lista.length)} de ${relInt(todos.length)} clientes; os totais acima consideram todos.`);
+  if(semCli.qtd) notas.push(`Vendas sem cliente identificado (não entram no ranking): ${relInt(semCli.qtd)} venda(s), ${relR(semCli.total)}.`);
+  return {
+    resumo: [['Clientes que compraram', relInt(todos.length)], ['Compras de clientes identificados', relInt(relSomar(todos, c => c.qtd))], ['Valor comprado', relR(relSomar(todos, c => c.total))]],
+    tabelas: [{
+      colunas: [relCol('Pos.', 'r'), relCol('Cliente'), relCol('Compras', 'r'), relCol('Valor total', 'r'), relCol('Ticket médio', 'r'), relCol('Última compra')],
+      linhas: lista.map((c, i) => [String(i + 1), c.nome, relInt(c.qtd), relR(c.total), relR(c.qtd ? c.total / c.qtd : 0), relDataBR(c.ultima)]),
+      vazio: 'Nenhuma venda para clientes identificados no período.',
+    }],
+    notas,
+  };
+}
+
+// ---- 7. Vendas por cliente ----
+async function relGerarVendasCliente(ctx){
+  const vendas = await relBuscarVendas(ctx, { cliente: ctx.f.cliente });
+  const itens = await relBuscar('Não foi possível ler os itens das vendas', () => supabase.from('itens_venda')
+    .select('id, venda_id, quantidade, preco_unitario, subtotal, produtos(nome, codigo), vendas!inner(numero_venda, criado_em, cliente_id)')
+    .eq('empresa_id', ctx.emp)
+    .eq('vendas.cliente_id', ctx.f.cliente)
+    .gte('vendas.criado_em', ctx.iniISO)
+    .lte('vendas.criado_em', ctx.fimISO)
+    .order('id', { ascending: true }));
+  const total = relSomar(vendas, v => v.total);
+  itens.sort((a, b) => (a.vendas.criado_em < b.vendas.criado_em ? -1 : a.vendas.criado_em > b.vendas.criado_em ? 1 : 0) || (a.id - b.id));
+  return {
+    resumo: [['Vendas no período', relInt(vendas.length)], ['Valor comprado', relR(total)], ['Ticket médio', relR(vendas.length ? total / vendas.length : 0)]],
+    tabelas: [
+      {
+        titulo: 'Vendas do cliente',
+        colunas: [relCol('Venda nº', 'r'), relCol('Data e hora'), relCol('Forma de pagamento'), relCol('Total', 'r')],
+        linhas: vendas.map(v => [String(v.numero_venda ?? '—'), relDataHoraBR(v.criado_em), v.forma_pagamento || 'Não informada', relR(v.total)]),
+        rodape: ['', '', 'Total', relR(total)],
+        vazio: 'Este cliente não tem vendas no período.',
+      },
+      {
+        titulo: 'Itens das vendas',
+        colunas: [relCol('Venda nº', 'r'), relCol('Data'), relCol('Produto'), relCol('Qtd.', 'r'), relCol('Preço unit.', 'r'), relCol('Subtotal', 'r')],
+        linhas: itens.map(i => [String(i.vendas.numero_venda ?? '—'), relDataBR(i.vendas.criado_em), relProdutoRotulo(i.produtos || {}), formatarQuantidade(i.quantidade), relR(i.preco_unitario), relR(i.subtotal ?? (Number(i.quantidade) * Number(i.preco_unitario)))]),
+        vazio: 'Nenhum item no período.',
+      },
+    ],
+    notas: [],
+  };
+}
+
+// ---- 8. Estoque baixo ----
+async function relGerarEstoqueBaixo(ctx){
+  const produtos = (await relBuscarProdutos(ctx)).filter(p => relPassaCategoria(p, ctx.f.categoria));
+  let baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok');
+  const zerados = baixos.filter(p => situacaoEstoque(p) === 'zerado').length;
+  if(ctx.f.status) baixos = baixos.filter(p => situacaoEstoque(p) === ctx.f.status);
+  baixos.sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const temMin = recursos.estoqueMinimo;
+  const falta = (p) => temMin && Number(p.estoque_minimo) > 0 ? Math.max(Number(p.estoque_minimo) - Number(p.quantidade_estoque ?? 0), 0) : null;
+  const cols = [relCol('Código'), relCol('Produto')];
+  if(recursos.categoria) cols.push(relCol('Categoria'));
+  cols.push(relCol('Estoque atual', 'r'), relCol('Estoque mínimo', 'r'), relCol('Falta p/ o mínimo', 'r'), relCol('Situação'));
+  const notas = ['Posição atual do estoque (não depende de período).'];
+  if(!temMin) notas.push('A coluna de estoque mínimo ainda não existe no banco: o alerta usa o limite padrão de 5 unidades e não há como calcular a diferença até o mínimo.');
+  else notas.push('Produtos sem estoque mínimo cadastrado só aparecem quando estão zerados.');
+  return {
+    resumo: [['Produtos avaliados', relInt(produtos.length)], ['Em alerta (zerados + baixos)', relInt(produtos.filter(p => situacaoEstoque(p) !== 'ok').length)], ['Zerados', relInt(zerados)]],
+    tabelas: [{
+      colunas: cols,
+      linhas: baixos.map(p => {
+        const f = falta(p);
+        return [p.codigo || '—', p.nome, ...(recursos.categoria ? [p.categoria || '—'] : []), formatarQuantidade(p.quantidade_estoque),
+          temMin && p.estoque_minimo != null ? formatarQuantidade(p.estoque_minimo) : '—', f === null ? '—' : formatarQuantidade(f), situacaoEstoque(p) === 'zerado' ? 'Zerado' : 'Baixo'];
+      }),
+      vazio: 'Nenhum produto com estoque baixo.',
+    }],
+    notas,
+  };
+}
+
+// ---- 9. Posição atual de estoque ----
+async function relGerarPosicaoEstoque(ctx){
+  let produtos = (await relBuscarProdutos(ctx)).filter(p => relPassaCategoria(p, ctx.f.categoria));
+  if(ctx.f.status === 'com') produtos = produtos.filter(p => Number(p.quantidade_estoque) > 0);
+  if(ctx.f.status === 'sem') produtos = produtos.filter(p => Number(p.quantidade_estoque) <= 0);
+  const temCusto = (p) => p.preco_custo !== null && p.preco_custo !== undefined && Number(p.preco_custo) > 0;
+  const valor = (p) => temCusto(p) ? Math.max(Number(p.quantidade_estoque) || 0, 0) * Number(p.preco_custo) : null;
+  const valorTotal = relSomar(produtos, p => valor(p));
+  const semCusto = produtos.filter(p => !temCusto(p) && Number(p.quantidade_estoque) > 0).length;
+  const cols = [relCol('Código'), relCol('Produto')];
+  if(recursos.categoria) cols.push(relCol('Categoria'));
+  cols.push(relCol('Un.'), relCol('Estoque atual', 'r'), relCol('Custo unit.', 'r'), relCol('Valor estimado', 'r'));
+  return {
+    resumo: [['Produtos listados', relInt(produtos.length)], ['Unidades em estoque', formatarQuantidade(relSomar(produtos, p => Math.max(Number(p.quantidade_estoque) || 0, 0)))], ['Valor estimado (custo)', relR(valorTotal)], ['Com estoque e sem custo', relInt(semCusto)]],
+    tabelas: [{
+      colunas: cols,
+      linhas: produtos.map(p => [p.codigo || '—', p.nome, ...(recursos.categoria ? [p.categoria || '—'] : []), p.unidade_comercial || '—', formatarQuantidade(p.quantidade_estoque), temCusto(p) ? relR(p.preco_custo) : '—', valor(p) === null ? '—' : relR(valor(p))]),
+      rodape: ['', 'Total', ...(recursos.categoria ? [''] : []), '', '', '', relR(valorTotal)],
+      vazio: 'Nenhum produto encontrado.',
+    }],
+    notas: ['Posição atual do estoque (não depende de período). O valor estimado usa o preço de custo cadastrado × quantidade em estoque (estoque negativo conta como zero); produtos sem custo cadastrado ficam sem valor estimado.'],
+  };
+}
+
+// ---- 10. Movimentação de estoque ----
+async function relGerarMovimentacao(ctx){
+  const tipo = ctx.f.status || '';
+  const mov = [];
+  if(tipo !== 'saidas'){
+    const entradas = await relBuscar('Não foi possível ler as entradas de estoque', () => {
+      let q = supabase.from('notas_entrada_itens')
+        .select('id, quantidade, quantidade_estoque_anterior, quantidade_estoque_nova, produto_id, produtos(nome, codigo), notas_entrada!inner(numero, serie, data_entrada, status, fornecedores(razao_social))')
+        .eq('empresa_id', ctx.emp)
+        .eq('notas_entrada.status', 'confirmada')
+        .gte('notas_entrada.data_entrada', ctx.ini)
+        .lte('notas_entrada.data_entrada', ctx.fim);
+      if(ctx.f.produto) q = q.eq('produto_id', ctx.f.produto);
+      return q.order('id', { ascending: true });
+    });
+    entradas.forEach(i => {
+      const n = i.notas_entrada || {};
+      mov.push({
+        quando: new Date((n.data_entrada || ctx.ini) + 'T00:00:00').getTime(), data: relDataBR(n.data_entrada), tipo: 'Entrada',
+        produto: relProdutoRotulo(i.produtos || {}),
+        doc: `Nota de entrada nº ${n.numero || '—'}${n.serie ? '/' + n.serie : ''}${n.fornecedores ? ' — ' + n.fornecedores.razao_social : ''}`,
+        qtd: Number(i.quantidade) || 0,
+        saldo: `${formatarQuantidade(i.quantidade_estoque_anterior)} → ${formatarQuantidade(i.quantidade_estoque_nova)}`,
+      });
+    });
+  }
+  if(tipo !== 'entradas'){
+    const saidas = await relBuscar('Não foi possível ler as saídas de estoque', () => {
+      let q = supabase.from('itens_venda')
+        .select('id, quantidade, produto_id, produtos(nome, codigo), vendas!inner(criado_em, numero_venda)')
+        .eq('empresa_id', ctx.emp)
+        .gte('vendas.criado_em', ctx.iniISO)
+        .lte('vendas.criado_em', ctx.fimISO);
+      if(ctx.f.produto) q = q.eq('produto_id', ctx.f.produto);
+      return q.order('id', { ascending: true });
+    });
+    saidas.forEach(i => mov.push({
+      quando: new Date(i.vendas.criado_em).getTime(), data: relDataHoraBR(i.vendas.criado_em), tipo: 'Saída',
+      produto: relProdutoRotulo(i.produtos || {}), doc: `Venda nº ${i.vendas.numero_venda ?? '—'}`,
+      qtd: -(Number(i.quantidade) || 0), saldo: '—',
+    }));
+  }
+  mov.sort((a, b) => a.quando - b.quando || a.tipo.localeCompare(b.tipo));
+  const ent = mov.filter(m => m.tipo === 'Entrada'), sai = mov.filter(m => m.tipo === 'Saída');
+  const totEnt = relSomar(ent, m => m.qtd), totSai = -relSomar(sai, m => m.qtd);
+  return {
+    resumo: [['Entradas (unidades)', `${formatarQuantidade(totEnt)} em ${relInt(ent.length)} lançamento(s)`], ['Saídas (unidades)', `${formatarQuantidade(totSai)} em ${relInt(sai.length)} lançamento(s)`], ['Saldo do período', formatarQuantidade(totEnt - totSai)], ['Ajustes manuais', 'não registrados pelo sistema']],
+    tabelas: [{
+      colunas: [relCol('Data'), relCol('Tipo'), relCol('Produto'), relCol('Documento'), relCol('Quantidade', 'r'), relCol('Estoque (antes → depois)', 'r')],
+      linhas: mov.map(m => [m.data, m.tipo, m.produto, m.doc, (m.qtd > 0 ? '+' : '-') + formatarQuantidade(Math.abs(m.qtd)), m.saldo]),
+      vazio: 'Nenhuma movimentação no período.',
+    }],
+    notas: ['Entradas: itens de notas de entrada confirmadas, pela data de entrada. Saídas: itens de vendas, pela data da venda. Alterações manuais de estoque (tela Estoque) e cadastro de produto não geram histórico no banco, por isso não aparecem aqui.'],
+  };
+}
+
+// ---- 11. Compras por fornecedor ----
+async function relGerarComprasFornecedor(ctx){
+  const notas = await relBuscarNotas(ctx);
+  const col = ctx.f.datanota === 'data_emissao' ? 'data_emissao' : 'data_entrada';
+  const m = new Map();
+  notas.forEach(n => {
+    const k = n.fornecedor_id;
+    const g = m.get(k) || { nome: n.fornecedores ? n.fornecedores.razao_social : 'Fornecedor removido', cnpj: n.fornecedores ? n.fornecedores.cnpj : '', qtd: 0, total: 0, ultima: null };
+    g.qtd += 1; g.total += Number(n.valor_total) || 0;
+    if(n[col] && (!g.ultima || n[col] > g.ultima)) g.ultima = n[col];
+    m.set(k, g);
+  });
+  const lista = [...m.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const total = relSomar(lista, g => g.total);
+  return {
+    resumo: [['Fornecedores', relInt(lista.length)], ['Notas de entrada', relInt(notas.length)], ['Valor total comprado', relR(total)]],
+    tabelas: [{
+      colunas: [relCol('Fornecedor'), relCol('CNPJ/CPF'), relCol('Notas', 'r'), relCol('Valor total', 'r'), relCol('Ticket médio', 'r'), relCol('Última compra')],
+      linhas: lista.map(g => [g.nome, formatarDocumento(g.cnpj), relInt(g.qtd), relR(g.total), relR(g.qtd ? g.total / g.qtd : 0), relDataBR(g.ultima)]),
+      rodape: ['Total', '', relInt(notas.length), relR(total), '', ''],
+      vazio: 'Nenhuma nota de entrada encontrada no período.',
+    }],
+    notas: [],
+  };
+}
+
+// ---- 12. Compras no período ----
+async function relGerarComprasPeriodo(ctx){
+  const notas = await relBuscarNotas(ctx);
+  const total = relSomar(notas, n => n.valor_total);
+  return {
+    resumo: [['Notas de entrada', relInt(notas.length)], ['Valor dos produtos', relR(relSomar(notas, n => n.valor_produtos))], ['Valor total', relR(total)]],
+    tabelas: [{
+      colunas: [relCol('Entrada'), relCol('Emissão'), relCol('Nota (nº/série)'), relCol('Fornecedor'), relCol('Pagamento'), relCol('Situação'), relCol('Produtos', 'r'), relCol('Desconto', 'r'), relCol('Frete', 'r'), relCol('Outras desp.', 'r'), relCol('Total', 'r')],
+      linhas: notas.map(n => [relDataBR(n.data_entrada), relDataBR(n.data_emissao), `${n.numero || '—'}${n.serie ? '/' + n.serie : ''}`, n.fornecedores ? n.fornecedores.razao_social : '—', relPagamentoNota(n.forma_pagamento), relStatusNota(n.status), relR(n.valor_produtos), relR(n.valor_desconto), relR(n.valor_frete), relR(n.valor_outras_despesas), relR(n.valor_total)]),
+      rodape: ['Total', '', '', '', '', '', relR(relSomar(notas, n => n.valor_produtos)), relR(relSomar(notas, n => n.valor_desconto)), relR(relSomar(notas, n => n.valor_frete)), relR(relSomar(notas, n => n.valor_outras_despesas)), relR(total)],
+      vazio: 'Nenhuma nota de entrada encontrada no período.',
+    }],
+    notas: [],
+  };
+}
+
+// ---- 13. Produtos comprados por fornecedor ----
+async function relGerarProdutosFornecedor(ctx){
+  const col = ctx.f.datanota === 'data_emissao' ? 'data_emissao' : 'data_entrada';
+  const itens = await relBuscar('Não foi possível ler os itens das notas de entrada', () => {
+    let q = supabase.from('notas_entrada_itens')
+      .select('id, produto_id, quantidade, valor_total, produtos(nome, codigo, unidade_comercial), notas_entrada!inner(fornecedor_id, status, data_entrada, data_emissao)')
+      .eq('empresa_id', ctx.emp)
+      .eq('notas_entrada.fornecedor_id', ctx.f.fornecedor)
+      .gte('notas_entrada.' + col, ctx.ini)
+      .lte('notas_entrada.' + col, ctx.fim);
+    if(ctx.f.status && ctx.f.status !== 'todas') q = q.eq('notas_entrada.status', ctx.f.status);
+    return q.order('id', { ascending: true });
+  });
+  const m = new Map();
+  itens.forEach(i => {
+    const p = i.produtos || {};
+    const g = m.get(i.produto_id) || { nome: p.nome || 'Produto removido', codigo: p.codigo || '', un: p.unidade_comercial || '', qtd: 0, total: 0, linhas: 0 };
+    g.qtd += Number(i.quantidade) || 0; g.total += Number(i.valor_total) || 0; g.linhas += 1;
+    m.set(i.produto_id, g);
+  });
+  const lista = [...m.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const total = relSomar(lista, g => g.total);
+  return {
+    resumo: [['Produtos diferentes', relInt(lista.length)], ['Quantidade comprada', formatarQuantidade(relSomar(lista, g => g.qtd))], ['Valor comprado', relR(total)]],
+    tabelas: [{
+      colunas: [relCol('Código'), relCol('Produto'), relCol('Un.'), relCol('Qtd. comprada', 'r'), relCol('Valor total', 'r'), relCol('Custo médio unit.', 'r')],
+      linhas: lista.map(g => [g.codigo || '—', g.nome, g.un || '—', formatarQuantidade(g.qtd), relR(g.total), g.qtd ? relR(g.total / g.qtd) : '—']),
+      rodape: ['', 'Total', '', formatarQuantidade(relSomar(lista, g => g.qtd)), relR(total), ''],
+      vazio: 'Nenhum produto comprado deste fornecedor no período.',
+    }],
+    notas: [],
+  };
+}
+
+// ---- despesas (com fallback quando o vínculo com a nota não puder ser lido) ----
+async function relBuscarDespesas(ctx, aplicar, comNota){
+  const base = 'id, descricao, categoria, valor, data, vencimento, status, pago_em, nota_entrada_id';
+  const montar = (cols) => () => aplicar(supabase.from('despesas').select(cols).eq('empresa_id', ctx.emp))
+    .order('data', { ascending: true }).order('id', { ascending: true });
+  let r = await buscarTodos(montar(comNota ? base + ', notas_entrada(numero, fornecedores(razao_social))' : base));
+  if(r.error && comNota) r = await buscarTodos(montar(base));
+  if(r.error) throw new Error('Não foi possível ler as despesas: ' + (r.error.message || r.error));
+  return r.data || [];
+}
+
+// ---- 14. Contas a pagar ----
+async function relGerarContasPagar(ctx){
+  const hoje = dataLocalISO(new Date());
+  let contas = await relBuscarDespesas(ctx, (q) => q.not('vencimento', 'is', null).gte('vencimento', ctx.ini).lte('vencimento', ctx.fim), true);
+  const sit = (c) => c.status === 'pago' ? 'paga' : (c.vencimento < hoje ? 'vencida' : 'pendente');
+  const nomeSit = { paga: 'Paga', pendente: 'Pendente', vencida: 'Vencida' };
+  if(ctx.f.status) contas = contas.filter(c => sit(c) === ctx.f.status);
+  contas.sort((a, b) => (a.vencimento < b.vencimento ? -1 : a.vencimento > b.vencimento ? 1 : 0) || String(a.id).localeCompare(String(b.id)));
+  const soma = (s) => contas.filter(c => sit(c) === s);
+  const linhaResumo = (rot, l) => [rot, `${relR(relSomar(l, c => c.valor))} (${relInt(l.length)})`];
+  return {
+    resumo: [linhaResumo('Vencidas', soma('vencida')), linhaResumo('Pendentes (a vencer)', soma('pendente')), linhaResumo('Pagas', soma('paga')), linhaResumo('Total do período', contas)],
+    tabelas: [{
+      colunas: [relCol('Vencimento'), relCol('Descrição'), relCol('Origem'), relCol('Categoria'), relCol('Valor', 'r'), relCol('Situação'), relCol('Pago em')],
+      linhas: contas.map(c => [relDataBR(c.vencimento), c.descricao || '—',
+        c.notas_entrada ? `Nota ${c.notas_entrada.numero || '—'}${c.notas_entrada.fornecedores ? ' — ' + c.notas_entrada.fornecedores.razao_social : ''}` : (c.nota_entrada_id ? 'Nota de entrada' : 'Lançamento manual'),
+        c.categoria || '—', relR(c.valor), nomeSit[sit(c)], c.status === 'pago' ? relDataBR(c.pago_em) : '—']),
+      rodape: ['', 'Total', '', '', relR(relSomar(contas, c => c.valor)), '', ''],
+      vazio: 'Nenhuma conta com vencimento no período.',
+    }],
+    notas: ['Período pela data de vencimento. Consideradas as contas que têm vencimento informado (parcelas das notas de entrada e lançamentos com vencimento). "Vencida" = não paga e com vencimento anterior a hoje.'],
+  };
+}
+
+// ---- 15. Despesas ----
+async function relGerarDespesas(ctx){
+  const termo = termoSeguro(ctx.f.categoriatexto);
+  const desp = await relBuscarDespesas(ctx, (q) => {
+    q = q.gte('data', ctx.ini).lte('data', ctx.fim);
+    return termo ? q.ilike('categoria', '%' + termo + '%') : q;
+  }, false);
+  const total = relSomar(desp, d => d.valor);
+  const m = new Map();
+  desp.forEach(d => {
+    const k = (d.categoria || '').trim() || 'Sem categoria';
+    const g = m.get(k) || { qtd: 0, total: 0 };
+    g.qtd += 1; g.total += Number(d.valor) || 0;
+    m.set(k, g);
+  });
+  const cats = [...m.entries()].sort((a, b) => b[1].total - a[1].total);
+  return {
+    resumo: [['Lançamentos', relInt(desp.length)], ['Total de despesas', relR(total)], ['Categorias', relInt(cats.length)]],
+    tabelas: [
+      {
+        titulo: 'Despesas do período',
+        colunas: [relCol('Data'), relCol('Descrição'), relCol('Categoria'), relCol('Vencimento'), relCol('Situação'), relCol('Valor', 'r')],
+        linhas: desp.map(d => [relDataBR(d.data), d.descricao || '—', d.categoria || '—', relDataBR(d.vencimento), d.status === 'pago' ? 'Paga' : 'Pendente', relR(d.valor)]),
+        rodape: ['', '', '', '', 'Total', relR(total)],
+        vazio: 'Nenhuma despesa no período.',
+      },
+      {
+        titulo: 'Total por categoria',
+        colunas: [relCol('Categoria'), relCol('Lançamentos', 'r'), relCol('Valor', 'r'), relCol('% do total', 'r')],
+        linhas: cats.map(([k, g]) => [k, relInt(g.qtd), relR(g.total), relPct(total ? g.total / total * 100 : 0)]),
+        rodape: ['Total', relInt(desp.length), relR(total), total ? relPct(100) : relPct(0)],
+        vazio: 'Sem despesas para agrupar.',
+      },
+    ],
+    notas: ['Período pela data do lançamento (mesmo critério da tela Financeiro).'],
+  };
+}
+
+// ---- 16. Resumo financeiro ----
+async function relGerarResumoFinanceiro(ctx){
+  const [vendas, desp] = await Promise.all([
+    relBuscarVendas(ctx),
+    relBuscarDespesas(ctx, (q) => q.gte('data', ctx.ini).lte('data', ctx.fim), false),
+  ]);
+  const receitas = relSomar(vendas, v => v.total), despesas = relSomar(desp, d => d.valor);
+  const meses = new Map();
+  const mes = (k) => { let g = meses.get(k); if(!g){ g = { qtd: 0, rec: 0, desp: 0 }; meses.set(k, g); } return g; };
+  vendas.forEach(v => { const d = new Date(v.criado_em); const g = mes(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); g.qtd += 1; g.rec += Number(v.total) || 0; });
+  desp.forEach(d => { const g = mes(String(d.data).slice(0, 7)); g.desp += Number(d.valor) || 0; });
+  const linhas = [...meses.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, g]) => {
+    const [a, m] = k.split('-');
+    return [`${m}/${a}`, relInt(g.qtd), relR(g.rec), relR(g.desp), relR(g.rec - g.desp)];
+  });
+  return {
+    resumo: [['Receitas (vendas)', relR(receitas)], ['Despesas', relR(despesas)], ['Resultado do período', relR(receitas - despesas)], ['Vendas realizadas', relInt(vendas.length)]],
+    tabelas: [{
+      titulo: 'Resultado mês a mês',
+      colunas: [relCol('Mês'), relCol('Vendas', 'r'), relCol('Receitas', 'r'), relCol('Despesas', 'r'), relCol('Resultado', 'r')],
+      linhas,
+      rodape: ['Total', relInt(vendas.length), relR(receitas), relR(despesas), relR(receitas - despesas)],
+      vazio: 'Sem vendas nem despesas no período.',
+    }],
+    notas: ['Receitas = total das vendas do período. Despesas = lançamentos do Financeiro pela data do lançamento. Resultado = receitas − despesas (não considera custo das mercadorias vendidas).'],
+  };
+}
+
+// ---- 17. Margem estimada por produto ----
+async function relGerarMargem(ctx){
+  const itens = await relBuscarItensVendidos(ctx, { custo: true });
+  const todos = relAgruparProdutos(itens).filter(p => relPassaCategoria(p, ctx.f.categoria));
+  const comCusto = todos.filter(p => p.custo !== null && p.custo !== undefined && Number(p.custo) > 0);
+  const semCusto = todos.filter(p => !(p.custo !== null && p.custo !== undefined && Number(p.custo) > 0));
+  comCusto.forEach(p => { p.custoTotal = p.qtd * Number(p.custo); p.margem = p.fat - p.custoTotal; });
+  comCusto.sort((a, b) => b.margem - a.margem || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const fat = relSomar(comCusto, p => p.fat), custo = relSomar(comCusto, p => p.custoTotal), margem = fat - custo;
+  const lista = relLimitar(comCusto, ctx.f.limite);
+  const notas = ['Custo estimado = preço de custo ATUAL do produto × quantidade vendida (o sistema não guarda o custo na data da venda). Produtos sem custo cadastrado (vazio ou zero) não entram no cálculo.'];
+  if(lista.length < comCusto.length) notas.push(`Exibindo ${relInt(lista.length)} de ${relInt(comCusto.length)} produtos; os totais acima consideram todos.`);
+  if(semCusto.length) notas.push(`Produtos vendidos sem custo cadastrado (fora do cálculo): ${relInt(semCusto.length)}, faturamento de ${relR(relSomar(semCusto, p => p.fat))}.`);
+  const cols = [relCol('Produto'), relCol('Código')];
+  if(recursos.categoria) cols.push(relCol('Categoria'));
+  cols.push(relCol('Qtd. vendida', 'r'), relCol('Faturamento', 'r'), relCol('Custo estimado', 'r'), relCol('Margem estimada', 'r'), relCol('Margem %', 'r'));
+  return {
+    resumo: [['Faturamento (com custo)', relR(fat)], ['Custo estimado', relR(custo)], ['Margem estimada', relR(margem)], ['Margem % estimada', relPct(fat ? margem / fat * 100 : 0)]],
+    tabelas: [{
+      colunas: cols,
+      linhas: lista.map(p => [p.nome, p.codigo || '—', ...(recursos.categoria ? [p.categoria || '—'] : []), formatarQuantidade(p.qtd), relR(p.fat), relR(p.custoTotal), relR(p.margem), relPct(p.fat ? p.margem / p.fat * 100 : 0)]),
+      vazio: 'Nenhum produto vendido no período possui preço de custo cadastrado.',
+    }],
+    notas,
+  };
+}
+
+// ---- entidades para os filtros (produto / cliente / fornecedor / categoria) ----
+function relMontarEntidade(lista, rotuloFn){
+  const porRotulo = new Map();
+  lista.forEach(e => {
+    let r = rotuloFn(e);
+    if(porRotulo.has(r)) r += ' #' + String(e.id).slice(0, 4);
+    porRotulo.set(r, e.id);
+  });
+  return { porRotulo, rotulos: [...porRotulo.keys()] };
+}
+async function relEntidade(nome){
+  if(relCache[nome]) return relCache[nome];
+  const emp = await obterEmpresaId();
+  let lista;
+  if(nome === 'produtos'){
+    lista = await relBuscar('Não foi possível ler os produtos', () => supabase.from('produtos').select('id, nome, codigo').eq('empresa_id', emp).order('nome').order('id'));
+    relCache[nome] = relMontarEntidade(lista, p => (p.codigo ? p.codigo + ' — ' : '') + p.nome);
+  } else if(nome === 'clientes'){
+    lista = await relBuscar('Não foi possível ler os clientes', () => supabase.from('clientes').select('id, nome, cpf').eq('empresa_id', emp).order('nome').order('id'));
+    relCache[nome] = relMontarEntidade(lista, c => c.nome + (c.cpf ? ' — ' + formatarDocumento(c.cpf) : ''));
+  } else {
+    lista = await relBuscar('Não foi possível ler os fornecedores', () => supabase.from('fornecedores').select('id, razao_social, cnpj').eq('empresa_id', emp).order('razao_social').order('id'));
+    relCache[nome] = relMontarEntidade(lista, f => f.razao_social + (f.cnpj ? ' — ' + formatarDocumento(f.cnpj) : ''));
+  }
+  return relCache[nome];
+}
+async function relCategorias(){
+  if(relCache.categorias) return relCache.categorias;
+  const emp = await obterEmpresaId();
+  const lista = await relBuscar('Não foi possível ler as categorias', () => supabase.from('produtos').select('id, categoria').eq('empresa_id', emp).order('id'));
+  const set = new Set();
+  let sem = false;
+  lista.forEach(p => { if(p.categoria && p.categoria.trim()) set.add(p.categoria); else sem = true; });
+  relCache.categorias = { nomes: [...set].sort((a, b) => a.localeCompare(b, 'pt-BR')), temSem: sem };
+  return relCache.categorias;
+}
+
+// ---- tela: montar seletor, filtros e ações ----
+function relMontarSeletor(){
+  const sel = $('rel-tipo');
+  sel.innerHTML = '';
+  const grupos = [];
+  REL_DEFS.forEach(d => {
+    let g = grupos.find(x => x.nome === d.grupo);
+    if(!g){ g = { nome: d.grupo, defs: [] }; grupos.push(g); }
+    g.defs.push(d);
+  });
+  grupos.forEach(g => {
+    const og = document.createElement('optgroup');
+    og.label = g.nome;
+    g.defs.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.indisponivel ? `${d.titulo} (indisponível)` : d.titulo;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  sel.value = REL_DEFS[0].id;
+}
+
+function relEspecFiltros(def){
+  return (def.filtros || []).filter(f => !(f.dinamico === 'categorias' && !recursos.categoria));
+}
+
+function relRenderFiltros(){
+  const def = relDefAtual();
+  const box = $('rel-filtros');
+  box.innerHTML = '';
+  relEspecFiltros(def).forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    const id = 'rel-f-' + f.id;
+    let ctrl;
+    if(f.tipo === 'entidade') ctrl = `<input type="text" id="${id}" list="${id}-lista" placeholder="Digite para buscar..." autocomplete="off"><datalist id="${id}-lista"></datalist>`;
+    else if(f.tipo === 'texto') ctrl = `<input type="text" id="${id}" placeholder="${escapeHtml(f.placeholder || '')}" autocomplete="off">`;
+    else ctrl = `<select id="${id}">${(f.opcoes || []).map(([v, t]) => `<option value="${escapeHtml(v)}">${escapeHtml(t)}</option>`).join('')}</select>`;
+    div.innerHTML = `<label for="${id}">${escapeHtml(f.rotulo)}${f.obrigatorio ? ' *' : ''}</label>${ctrl}`;
+    box.appendChild(div);
+  });
+  box.classList.toggle('hidden', box.children.length === 0);
+}
+
+async function relPreencherFiltros(){
+  const def = relDefAtual();
+  const seq = ++relSeqFiltros;
+  try {
+    for(const f of relEspecFiltros(def)){
+      if(f.tipo === 'entidade'){
+        const ent = await relEntidade(f.entidade);
+        if(seq !== relSeqFiltros) return;
+        const dl = $('rel-f-' + f.id + '-lista');
+        if(dl) dl.innerHTML = ent.rotulos.map(r => `<option value="${escapeHtml(r)}"></option>`).join('');
+      } else if(f.dinamico === 'categorias'){
+        const cat = await relCategorias();
+        if(seq !== relSeqFiltros) return;
+        const sel = $('rel-f-' + f.id);
+        if(sel){
+          const atual = sel.value;
+          sel.innerHTML = '<option value="">Todas</option>'
+            + (cat.temSem ? '<option value="__sem">Sem categoria</option>' : '')
+            + cat.nomes.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+          sel.value = atual;
+        }
+      }
+    }
+  } catch(err){
+    if(seq === relSeqFiltros) $('rel-msg').innerHTML = `<div class="msg error">${escapeHtml(err.message || err)}</div>`;
+  }
+}
+
+function relTrocarTipo(){
+  const def = relDefAtual();
+  $('rel-descricao').textContent = def.descricao || '';
+  $('rel-campo-inicio').classList.toggle('hidden', !def.usaPeriodo);
+  $('rel-campo-fim').classList.toggle('hidden', !def.usaPeriodo);
+  $('rel-sem-periodo').classList.toggle('hidden', !!def.usaPeriodo);
+  $('rel-msg').innerHTML = def.indisponivel ? `<div class="msg error">Relatório indisponível: ${escapeHtml(def.indisponivel)}.</div>` : '';
+  relLimparResultado();
+  relRenderFiltros();
+  relPreencherFiltros();
+}
+
+function relLimparResultado(){
+  relAtual = null;
+  $('rel-resultado').classList.add('hidden');
+  $('rel-resultado').innerHTML = '';
+  $('btn-relatorio-pdf').disabled = true;
+}
+
 function prepararRelatorios(){
+  if(!$('rel-tipo').options.length) relMontarSeletor();
   if(!$('rel-data-inicio').value){
     const hoje = new Date();
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    $('rel-data-inicio').value = dataLocalISO(inicioMes);
+    $('rel-data-inicio').value = dataLocalISO(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
     $('rel-data-fim').value = dataLocalISO(hoje);
   }
-  carregarRelatorios();
+  // recarrega as listas (produtos/clientes/fornecedores/categorias) a cada abertura da tela
+  relCache.produtos = relCache.clientes = relCache.fornecedores = relCache.categorias = null;
+  if(!$('rel-filtros').dataset.pronto){ $('rel-filtros').dataset.pronto = '1'; relTrocarTipo(); }
+  else relPreencherFiltros();
 }
 
-$('btn-aplicar-relatorio').addEventListener('click', carregarRelatorios);
+$('rel-tipo').addEventListener('change', relTrocarTipo);
+$('btn-gerar-relatorio').addEventListener('click', gerarRelatorio);
+$('btn-relatorio-pdf').addEventListener('click', gerarPdfRelatorio);
 
-function preencherTabelaRel(bodyId, emptyId, linhas){
-  const body = $(bodyId);
-  body.innerHTML = '';
-  $(emptyId).classList.toggle('hidden', linhas.length > 0);
-  linhas.forEach(celulas => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = celulas.map(c => `<td>${c}</td>`).join('');
-    body.appendChild(tr);
-  });
+async function relLerFiltros(def){
+  const f = {};
+  const textos = [];
+  for(const s of relEspecFiltros(def)){
+    const el = $('rel-f-' + s.id);
+    if(!el) continue;
+    if(s.tipo === 'entidade'){
+      const txt = el.value.trim();
+      if(!txt){
+        if(s.obrigatorio) throw new Error(`Selecione ${s.art} ${s.rotulo.toLowerCase()} para gerar este relatório.`);
+        f[s.id] = '';
+        continue;
+      }
+      const ent = await relEntidade(s.entidade);
+      const id = ent.porRotulo.get(txt);
+      if(!id) throw new Error(`Escolha ${s.art} ${s.rotulo.toLowerCase()} na lista de sugestões.`);
+      f[s.id] = id;
+      textos.push([s.rotulo, txt]);
+    } else if(s.tipo === 'texto'){
+      f[s.id] = el.value.trim();
+      if(f[s.id]) textos.push([s.rotulo, f[s.id]]);
+    } else {
+      f[s.id] = el.value;
+      if(el.value !== '' && el.value !== '0') textos.push([s.rotulo, el.options[el.selectedIndex].textContent]);
+    }
+  }
+  return { f, textos };
 }
 
-async function carregarRelatorios(){
-  const dataInicio = $('rel-data-inicio').value;
-  const dataFim = $('rel-data-fim').value;
-  if(!dataInicio || !dataFim) return;
-
-  const inicioISO = new Date(dataInicio + 'T00:00:00').toISOString();
-  const fimISO = new Date(dataFim + 'T23:59:59.999').toISOString();
-  const proximoDia = new Date(dataFim + 'T00:00:00'); proximoDia.setDate(proximoDia.getDate() + 1);
-
-  const btn = $('btn-aplicar-relatorio');
-  btn.disabled = true;
+async function gerarRelatorio(){
+  const def = relDefAtual();
+  if(def.indisponivel){
+    $('rel-msg').innerHTML = `<div class="msg error">Relatório indisponível: ${escapeHtml(def.indisponivel)}.</div>`;
+    return;
+  }
+  const seq = ++relSeq;
+  const btn = $('btn-gerar-relatorio');
   $('rel-msg').innerHTML = '';
   try {
-    await Promise.all([
-      relVendasEClientes(inicioISO, fimISO),
-      relProdutosMaisVendidos(inicioISO, fimISO),
-      relComprasPorFornecedor(dataInicio, dataLocalISO(proximoDia)),
-      relPosicaoEstoque(),
-    ]);
+    const ini = $('rel-data-inicio').value, fim = $('rel-data-fim').value;
+    if(def.usaPeriodo){
+      if(!ini || !fim) throw new Error('Informe a data inicial e a data final.');
+      if(ini > fim) throw new Error('A data inicial não pode ser maior que a data final.');
+    }
+    const { f, textos } = await relLerFiltros(def);
+    btn.disabled = true;
+    btn.textContent = 'Gerando...';
+    $('btn-relatorio-pdf').disabled = true;
+    const ctx = {
+      emp: await obterEmpresaId(), f, ini, fim,
+      iniISO: def.usaPeriodo ? new Date(ini + 'T00:00:00').toISOString() : '',
+      fimISO: def.usaPeriodo ? new Date(fim + 'T23:59:59.999').toISOString() : '',
+    };
+    const res = await def.gerar(ctx);
+    if(seq !== relSeq) return;
+    relAtual = {
+      def, res, filtros: textos, geradoEm: new Date(),
+      periodo: def.usaPeriodo ? `${relDataBR(ini)} a ${relDataBR(fim)}` : 'Posição atual (não depende de período)',
+    };
+    renderRelatorio();
+    $('btn-relatorio-pdf').disabled = false;
   } catch(err){
     console.error(err);
-    $('rel-msg').innerHTML = `<div class="msg error">Não foi possível carregar todos os relatórios: ${escapeHtml(err.message || err)}</div>`;
+    if(seq === relSeq){
+      relLimparResultado();
+      $('rel-msg').innerHTML = `<div class="msg error">${escapeHtml(err.message || err)}</div>`;
+    }
   } finally {
-    btn.disabled = false;
+    if(seq === relSeq){ btn.disabled = false; btn.textContent = 'Gerar relatório'; }
   }
 }
 
-async function relVendasEClientes(inicioISO, fimISO){
-  const { data, error } = await buscarTodos(() => supabase
-    .from('vendas')
-    .select('id, total, forma_pagamento, cliente_id, criado_em, clientes(nome)')
-    .gte('criado_em', inicioISO)
-    .lte('criado_em', fimISO)
-    .order('criado_em', { ascending: true })
-    .order('id', { ascending: true }));
-  if(error) throw error;
-
-  const vendas = data || [];
-  const total = vendas.reduce((s, v) => s + Number(v.total), 0);
-  $('rel-vendas-total').textContent = formatarReais(total);
-  $('rel-vendas-qtd').textContent = vendas.length.toLocaleString('pt-BR');
-  $('rel-ticket-medio').textContent = formatarReais(vendas.length ? total / vendas.length : 0);
-
-  const porForma = {};
-  vendas.forEach(v => {
-    const chave = v.forma_pagamento || 'Não informada';
-    porForma[chave] = porForma[chave] || { qtd: 0, total: 0 };
-    porForma[chave].qtd += 1;
-    porForma[chave].total += Number(v.total);
+function renderRelatorio(){
+  const r = relAtual;
+  const box = $('rel-resultado');
+  const filtros = r.filtros.length ? r.filtros.map(([k, v]) => `${escapeHtml(k)}: <strong>${escapeHtml(v)}</strong>`).join(' · ') : 'Nenhum filtro adicional';
+  let html = `<div class="rel-cabecalho">
+      <h3>${escapeHtml(r.def.titulo)}</h3>
+      <p>Período: <strong>${escapeHtml(r.periodo)}</strong> · ${filtros}</p>
+      <p>Gerado em ${escapeHtml(relDataHoraBR(r.geradoEm.toISOString()))}</p>
+    </div>`;
+  if(r.res.resumo.length){
+    html += '<div class="rel-resumo">' + r.res.resumo.map(([k, v]) => `<div class="rel-card"><span class="rel-card-num">${escapeHtml(v)}</span><span class="rel-card-rot">${escapeHtml(k)}</span></div>`).join('') + '</div>';
+  }
+  r.res.tabelas.forEach(t => {
+    if(t.titulo) html += `<h4 class="rel-tabela-titulo">${escapeHtml(t.titulo)}</h4>`;
+    if(!t.linhas.length){
+      html += `<div class="table-card"><div class="empty-state">${escapeHtml(t.vazio || 'Nenhum registro.')}</div></div>`;
+      return;
+    }
+    const cls = (c) => c.a === 'r' ? ' class="num"' : (c.a === 'c' ? ' style="text-align:center"' : '');
+    html += `<div class="table-card rel-scroll"><table class="rel-tabela"><thead><tr>${t.colunas.map(c => `<th${cls(c)}>${escapeHtml(c.r)}</th>`).join('')}</tr></thead><tbody>`
+      + t.linhas.map(l => `<tr>${l.map((v, i) => `<td${cls(t.colunas[i])}>${escapeHtml(v)}</td>`).join('')}</tr>`).join('')
+      + '</tbody>'
+      + (t.rodape ? `<tfoot><tr>${t.rodape.map((v, i) => `<td${cls(t.colunas[i])}>${escapeHtml(v)}</td>`).join('')}</tr></tfoot>` : '')
+      + `</table></div><p class="rel-contagem">${relInt(t.linhas.length)} registro(s)</p>`;
   });
-  preencherTabelaRel('tabela-rel-pagamento-body', 'rel-pagamento-empty',
-    Object.entries(porForma).sort((a, b) => b[1].total - a[1].total)
-      .map(([forma, d]) => [escapeHtml(forma), d.qtd, formatarReais(d.total)]));
-
-  const porCliente = {};
-  vendas.forEach(v => {
-    const chave = v.cliente_id || 'sem-cliente';
-    const nome = v.clientes ? v.clientes.nome : 'Não identificado';
-    porCliente[chave] = porCliente[chave] || { nome, total: 0, qtd: 0 };
-    porCliente[chave].total += Number(v.total);
-    porCliente[chave].qtd += 1;
-  });
-  preencherTabelaRel('tabela-rel-clientes-body', 'rel-clientes-empty',
-    Object.values(porCliente).sort((a, b) => b.total - a.total).slice(0, 10)
-      .map(c => [escapeHtml(c.nome), c.qtd, formatarReais(c.total)]));
+  if(r.res.notas.length) html += '<div class="rel-notas">' + r.res.notas.map(n => `<p>${escapeHtml(n)}</p>`).join('') + '</div>';
+  box.innerHTML = html;
+  box.classList.remove('hidden');
 }
 
-async function relProdutosMaisVendidos(inicioISO, fimISO){
-  // filtra os itens pela data da venda direto no servidor (sem montar lista gigante de ids)
-  const { data, error } = await buscarTodos(() => supabase
-    .from('itens_venda')
-    .select('quantidade, subtotal, produto_id, produtos(nome), vendas!inner(criado_em)')
-    .gte('vendas.criado_em', inicioISO)
-    .lte('vendas.criado_em', fimISO)
-    .order('id', { ascending: true }));
-  if(error) throw error;
-
-  const porProduto = {};
-  (data || []).forEach(item => {
-    const chave = item.produto_id;
-    porProduto[chave] = porProduto[chave] || { nome: item.produtos ? item.produtos.nome : 'Produto removido', quantidade: 0, total: 0 };
-    porProduto[chave].quantidade += Number(item.quantidade);
-    porProduto[chave].total += Number(item.subtotal);
+// ---- PDF ----
+function relCarregarScript(src){
+  return new Promise((ok, falha) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ok;
+    s.onerror = () => falha(new Error('Não foi possível carregar a biblioteca de PDF. Verifique a conexão com a internet e tente novamente.'));
+    document.head.appendChild(s);
   });
-  preencherTabelaRel('tabela-rel-produtos-body', 'rel-produtos-empty',
-    Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10)
-      .map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]));
+}
+function relCarregarPdf(){
+  if(relPdfPromessa) return relPdfPromessa;
+  relPdfPromessa = (async () => {
+    if(!(window.jspdf && window.jspdf.jsPDF)) await relCarregarScript(REL_PDF_JSPDF);
+    if(!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable)) await relCarregarScript(REL_PDF_AUTOTABLE);
+    if(!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable)) throw new Error('Biblioteca de PDF incompleta.');
+  })();
+  relPdfPromessa.catch(() => { relPdfPromessa = null; });   // permite tentar de novo
+  return relPdfPromessa;
+}
+// As fontes padrão do PDF aceitam Latin-1 (acentos do português); troca o que estiver fora dele.
+function relPdfTxt(s){
+  return String(s ?? '')
+    .replace(/[–—−]/g, '-').replace(/→/g, '->').replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+    .replace(/•/g, '-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/ /g, ' ')
+    .replace(/[^\u0000-ÿ]/g, '?');
 }
 
-async function relComprasPorFornecedor(dataInicio, diaSeguinte){
-  const { data, error } = await buscarTodos(() => supabase
-    .from('notas_entrada')
-    .select('id, valor_total, data_emissao, fornecedores(razao_social, cnpj)')
-    .gte('data_emissao', dataInicio)
-    .lt('data_emissao', diaSeguinte)
-    .order('id', { ascending: true }));
-  if(error) throw error;
+async function gerarPdfRelatorio(){
+  const r = relAtual;
+  if(!r) return;
+  const btn = $('btn-relatorio-pdf');
+  const rotulo = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Gerando PDF...';
+  try {
+    await relCarregarPdf();
+    const { jsPDF } = window.jspdf;
+    const T = relPdfTxt;
+    const maxCols = Math.max(0, ...r.res.tabelas.map(t => t.colunas.length));
+    const paisagem = maxCols > 6;
+    const doc = new jsPDF({ orientation: paisagem ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    const ML = 12, MT = 24, MB = 16;
+    const empresa = ($('topbar-empresa').textContent || '').trim();
+    const geradoTxt = relDataHoraBR(r.geradoEm.toISOString());
+    const margem = { left: ML, right: ML, top: MT, bottom: MB };
+    let y = MT;
 
-  const porFornecedor = {};
-  (data || []).forEach(n => {
-    const chave = n.fornecedores ? (n.fornecedores.cnpj || n.fornecedores.razao_social) : 'sem-fornecedor';
-    porFornecedor[chave] = porFornecedor[chave] || { nome: n.fornecedores ? n.fornecedores.razao_social : 'Fornecedor não identificado', qtd: 0, total: 0 };
-    porFornecedor[chave].qtd += 1;
-    porFornecedor[chave].total += Number(n.valor_total);
-  });
-  preencherTabelaRel('tabela-rel-fornecedores-body', 'rel-fornecedores-empty',
-    Object.values(porFornecedor).sort((a, b) => b.total - a.total)
-      .map(f => [escapeHtml(f.nome), f.qtd, formatarReais(f.total)]));
+    // bloco de identificação do relatório
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(16, 32, 62);
+    doc.text(T(r.def.titulo), ML, y + 2);
+    y += 9;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(55, 55, 55);
+    const filtrosTxt = r.filtros.length ? r.filtros.map(([k, v]) => `${k}: ${v}`).join(' | ') : 'nenhum filtro adicional';
+    [['Empresa', empresa || '-'], ['Período', r.periodo], ['Filtros', filtrosTxt], ['Gerado em', geradoTxt]].forEach(([k, v]) => {
+      const linhas = doc.splitTextToSize(T(`${k}: ${v}`), pw - 2 * ML);
+      doc.text(linhas, ML, y);
+      y += linhas.length * 4.6;
+    });
+    y += 2;
+
+    if(r.res.resumo.length){
+      doc.autoTable({
+        startY: y, margin: margem, theme: 'grid', tableWidth: 'wrap',
+        body: r.res.resumo.map(([k, v]) => [T(k), T(v)]),
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 1.8, lineColor: [210, 214, 222], lineWidth: 0.2, textColor: [30, 30, 30] },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 243, 248] }, 1: { halign: 'right' } },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    for(const t of r.res.tabelas){
+      if(y > ph - MB - 30){ doc.addPage(); y = MT; }
+      if(t.titulo){
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(16, 32, 62);
+        doc.text(T(t.titulo), ML, y + 1);
+        y += 4;
+      }
+      if(!t.linhas.length){
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(9.5); doc.setTextColor(90, 90, 90);
+        doc.text(T(t.vazio || 'Nenhum registro.'), ML, y + 4);
+        y += 12;
+        continue;
+      }
+      const colunasEst = {};
+      t.colunas.forEach((c, i) => { if(c.a === 'r') colunasEst[i] = { halign: 'right' }; else if(c.a === 'c') colunasEst[i] = { halign: 'center' }; });
+      doc.autoTable({
+        startY: y, margin: margem, theme: 'grid',
+        head: [t.colunas.map(c => T(c.r))],
+        body: t.linhas.map(l => l.map(T)),
+        foot: t.rodape ? [t.rodape.map(T)] : undefined,
+        showHead: 'everyPage', showFoot: 'lastPage', rowPageBreak: 'avoid',
+        styles: { font: 'helvetica', fontSize: paisagem ? 7.5 : 8.5, cellPadding: 1.6, overflow: 'linebreak', valign: 'middle', lineColor: [210, 214, 222], lineWidth: 0.2, textColor: [30, 30, 30] },
+        headStyles: { fillColor: [16, 32, 62], textColor: [255, 255, 255], fontStyle: 'bold' },
+        footStyles: { fillColor: [232, 236, 243], textColor: [16, 32, 62], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 249, 251] },
+        columnStyles: colunasEst,
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    if(r.res.notas.length){
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      r.res.notas.forEach(n => {
+        const linhas = doc.splitTextToSize(T('Obs.: ' + n), pw - 2 * ML);
+        if(y + linhas.length * 4 > ph - MB){ doc.addPage(); y = MT; }
+        doc.text(linhas, ML, y);
+        y += linhas.length * 4 + 1.5;
+      });
+    }
+
+    // cabeçalho e rodapé em todas as páginas (com "Página X de Y")
+    const total = doc.getNumberOfPages();
+    for(let i = 1; i <= total; i++){
+      doc.setPage(i);
+      doc.setFillColor(16, 32, 62); doc.rect(0, 0, pw, 15, 'F');
+      doc.setFillColor(243, 198, 35); doc.rect(0, 15, pw, 1.2, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+      doc.text('Florest ERP', ML, 9.6);
+      const wMarca = doc.getTextWidth('Florest ERP');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(243, 198, 35);
+      doc.text('Florest Sistemas', ML + wMarca + 3, 9.6);
+      doc.setTextColor(255, 255, 255); doc.setFontSize(9);
+      doc.text(T(empresa || ''), pw - ML, 9.6, { align: 'right' });
+      doc.setDrawColor(200, 204, 212); doc.setLineWidth(0.2); doc.line(ML, ph - 11, pw - ML, ph - 11);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110, 110, 110);
+      doc.text(T(`Florest ERP - Florest Sistemas  |  ${r.def.titulo}  |  Gerado em ${geradoTxt}`), ML, ph - 6.5);
+      doc.text(T(`Página ${i} de ${total}`), pw - ML, ph - 6.5, { align: 'right' });
+    }
+
+    const carimbo = r.geradoEm;
+    const pad = (n) => String(n).padStart(2, '0');
+    const nome = 'Florest-ERP_' + r.def.id + '_' + carimbo.getFullYear() + pad(carimbo.getMonth() + 1) + pad(carimbo.getDate()) + '-' + pad(carimbo.getHours()) + pad(carimbo.getMinutes()) + '.pdf';
+    doc.save(nome);
+  } catch(err){
+    console.error(err);
+    $('rel-msg').innerHTML = `<div class="msg error">Não foi possível gerar o PDF: ${escapeHtml(err.message || err)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = rotulo;
+  }
 }
-
-async function relPosicaoEstoque(){
-  const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
-  const { data, error } = await buscarTodos(() => supabase.from('produtos').select(colunas).order('id', { ascending: true }));
-  if(error) throw error;
-
-  const produtos = data || [];
-  let custo = 0, venda = 0;
-  produtos.forEach(p => {
-    const qtd = Math.max(Number(p.quantidade_estoque ?? 0), 0);
-    custo += qtd * Number(p.preco_custo ?? 0);
-    venda += qtd * Number(p.preco_venda ?? 0);
-  });
-  const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok')
-    .sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
-
-  $('rel-estoque-produtos').textContent = produtos.length.toLocaleString('pt-BR');
-  $('rel-estoque-custo').textContent = formatarReais(custo);
-  $('rel-estoque-venda').textContent = formatarReais(venda);
-  $('rel-estoque-baixo').textContent = baixos.length.toLocaleString('pt-BR');
-  preencherTabelaRel('tabela-rel-baixo-body', 'rel-baixo-empty',
-    baixos.slice(0, 30).map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade_estoque), recursos.estoqueMinimo && p.estoque_minimo ? formatarQuantidade(p.estoque_minimo) : '—']));
-}
-
 
 
 // ---------- Fornecedores ----------
