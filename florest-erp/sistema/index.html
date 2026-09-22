@@ -1767,7 +1767,7 @@
       </div>
 
       <div class="auth-product">Florest ERP</div>
-      <div class="auth-product-sub">Gestão simples para sua distribuidora.</div>
+      <div class="auth-product-sub">Gestão simples para sua empresa.</div>
       <p class="auth-desc">Clientes, produtos, estoque, vendas com leitor de código de barras, notas de entrada e financeiro em um só lugar.</p>
     </div>
 
@@ -1842,8 +1842,8 @@
         <!-- CADASTRO -->
         <form id="form-cadastro" class="hidden">
           <div class="field">
-            <label>Nome da distribuidora</label>
-            <input type="text" id="cad-empresa" required placeholder="Ex: Distribuidora Bom Preço">
+            <label>Nome da empresa</label>
+            <input type="text" id="cad-empresa" required placeholder="Ex: Empresa Bom Preço">
           </div>
           <div class="field">
             <label>Seu nome</label>
@@ -1937,7 +1937,7 @@
           </span>
           <div>
             <div class="topbar-product-nome">Florest ERP</div>
-            <div class="topbar-product-sub">Gestão simples para sua distribuidora</div>
+            <div class="topbar-product-sub">Gestão simples para sua empresa</div>
           </div>
         </div>
       </div>
@@ -2037,7 +2037,7 @@
       <div class="view-header">
         <div>
           <h2>Clientes</h2>
-          <p>Clientes da sua distribuidora.</p>
+          <p>Clientes da sua empresa.</p>
         </div>
         <button class="btn-accent" id="btn-novo-cliente">+ Novo cliente</button>
       </div>
@@ -2069,7 +2069,7 @@
       <div class="view-header">
         <div>
           <h2>Produtos</h2>
-          <p>Catálogo de produtos da sua distribuidora.</p>
+          <p>Catálogo de produtos da sua empresa.</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn-secondary" id="btn-importar-produtos">Importar produtos</button>
@@ -2513,7 +2513,7 @@
       <div class="view-header">
         <div>
           <h2>Fornecedores</h2>
-          <p>Fornecedores da sua distribuidora. Os mesmos cadastros são usados e vinculados nas Notas de Entrada.</p>
+          <p>Fornecedores da sua empresa. Os mesmos cadastros são usados e vinculados nas Notas de Entrada.</p>
         </div>
         <button class="btn-accent" id="btn-novo-fornecedor">+ Novo fornecedor</button>
       </div>
@@ -4344,7 +4344,7 @@ $('tab-cadastro').addEventListener('click', () => {
   $('tab-login').classList.remove('active');
   $('form-cadastro').classList.remove('hidden');
   $('form-login').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Criar conta da distribuidora';
+  $('auth-card-titulo').textContent = 'Criar conta da sua empresa';
   $('auth-card-subtitulo').textContent = 'Leva menos de um minuto.';
   clearMsg();
 });
