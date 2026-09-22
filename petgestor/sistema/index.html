@@ -2443,6 +2443,18 @@
         </div>
       </div>
 
+      <div class="pdv-panel">
+        <h3>Venda sem estoque</h3>
+        <div id="venda-sem-estoque-msg"></div>
+        <label style="display:flex; align-items:flex-start; gap:10px; font-weight:400; cursor:pointer;">
+          <input type="checkbox" id="chk-venda-sem-estoque" style="margin-top:3px;">
+          <span>
+            <strong>Permitir vender produtos sem estoque disponível</strong>
+            <p class="modal-section-hint" style="margin:4px 0 0;">Quando ativado, o PDV permitirá finalizar uma venda mesmo quando o produto estiver sem estoque ou quando a quantidade vendida for maior que o estoque disponível.</p>
+          </span>
+        </label>
+      </div>
+
       <div id="config-fiscal-msg"></div>
 
       <form id="form-config-fiscal">
@@ -3408,6 +3420,7 @@ function mostrarApp({ nomeEmpresa, nomeResponsavel, email }){
 }
 
 let acesso = { userId: null, nome: '', papel: 'proprietario', permissoes: [], ativo: true };
+let configVendaSemEstoque = false;
 
 const MODULOS_ACESSO = [
   { k: 'dashboard',     navId: 'nav-dashboard',     rotulo: 'Dashboard' },
@@ -3457,7 +3470,7 @@ function aplicarControleAcesso(){
 async function carregarPerfilEMostrarApp(userId, email){
   const { data: perfil, error } = await supabase
     .from('perfis')
-    .select('nome, papel, permissoes, ativo, empresas(nome, bloqueado, vencimento, status_conta)')
+    .select('nome, papel, permissoes, ativo, empresas(nome, bloqueado, vencimento, status_conta, venda_sem_estoque)')
     .eq('id', userId)
     .single();
 
@@ -3490,6 +3503,7 @@ async function carregarPerfilEMostrarApp(userId, email){
   };
 
   const empresa = perfil.empresas;
+  configVendaSemEstoque = !!(empresa && empresa.venda_sem_estoque);
 
   if(empresa && empresa.status_conta === 'pendente'){
     await supabase.auth.signOut();
@@ -4209,7 +4223,7 @@ let pdvProdutoAtivo = null;
 async function prepararPdv(){
   const { data: produtosData } = await supabase
     .from('produtos')
-    .select('id, nome, codigo, gtin, preco_venda, quantidade_estoque, vendavel_pacote, pacote_qtd, pacote_preco')
+    .select('id, nome, codigo, gtin, preco_venda, quantidade_estoque, vendavel_pacote, pacote_qtd, pacote_preco, tipo_fiscal')
     .order('nome', { ascending: true });
   pdvProdutos = produtosData || [];
 
@@ -4301,7 +4315,7 @@ function confirmarAdicaoPdv(produto){
     return;
   }
 
-  if(!produto.vendavel_pacote && produto.quantidade_estoque <= 0){
+  if(!produto.vendavel_pacote && produto.tipo_fiscal !== 'servico' && !configVendaSemEstoque && produto.quantidade_estoque <= 0){
     $('pdv-msg').innerHTML = '<div class="msg error">Esse produto está sem estoque disponível.</div>';
     return;
   }
@@ -4503,7 +4517,7 @@ function confirmarAdicaoAtalho(){
     $('pdx-add-erro').textContent = 'Produto não encontrado no cadastro atual.';
     return;
   }
-  if(!produtoCompleto.vendavel_pacote && produtoCompleto.tipo_fiscal !== 'servico' && qtd > produtoCompleto.quantidade_estoque){
+  if(!produtoCompleto.vendavel_pacote && produtoCompleto.tipo_fiscal !== 'servico' && !configVendaSemEstoque && qtd > produtoCompleto.quantidade_estoque){
     $('pdx-add-erro').textContent = 'Quantidade maior que o estoque disponível.';
     return;
   }
@@ -4601,16 +4615,20 @@ function adicionarAoCarrinho(produto, quantidadeAdicionar = 1){
       });
     }
   } else {
+    const semControleEstoque = produto.tipo_fiscal === 'servico' || configVendaSemEstoque;
     const existente = pdvCarrinho.find(i => i.produto_id === produto.id && i.tipo === 'produto');
     if(existente){
-      existente.quantidade = Math.min(existente.quantidade + quantidadeAdicionar, produto.quantidade_estoque);
+      existente.quantidade = semControleEstoque
+        ? (existente.quantidade + quantidadeAdicionar)
+        : Math.min(existente.quantidade + quantidadeAdicionar, produto.quantidade_estoque);
     } else {
       pdvCarrinho.push({
         produto_id: produto.id,
         nome: produto.nome,
         tipo: 'produto',
+        tipo_fiscal: produto.tipo_fiscal,
         preco_unitario: produto.preco_venda,
-        quantidade: Math.min(quantidadeAdicionar, produto.quantidade_estoque),
+        quantidade: semControleEstoque ? quantidadeAdicionar : Math.min(quantidadeAdicionar, produto.quantidade_estoque),
         estoque_disponivel: produto.quantidade_estoque
       });
     }
@@ -4624,7 +4642,8 @@ function alterarQuantidadeCarrinho(idx, delta){
 
   let nova = item.quantidade + delta;
   if(nova < 1) nova = 1;
-  if(item.tipo === 'produto' && nova > item.estoque_disponivel) nova = item.estoque_disponivel;
+  const semControleEstoque = item.tipo_fiscal === 'servico' || configVendaSemEstoque;
+  if(item.tipo === 'produto' && !semControleEstoque && nova > item.estoque_disponivel) nova = item.estoque_disponivel;
   item.quantidade = nova;
   renderCarrinho();
 }
@@ -6243,7 +6262,30 @@ async function emitirNotaDaVenda(vendaId){
 // ---------- Configurações Fiscais ----------
 let configuracaoFiscalId = null;
 
+$('chk-venda-sem-estoque').addEventListener('change', async (e) => {
+  const ativo = e.target.checked;
+  e.target.disabled = true;
+  $('venda-sem-estoque-msg').innerHTML = '';
+
+  const { error } = await supabase.rpc('configurar_venda_sem_estoque', { p_ativo: ativo });
+
+  e.target.disabled = false;
+
+  if(error){
+    e.target.checked = !ativo; // reverte visualmente se der erro
+    $('venda-sem-estoque-msg').innerHTML = `<div class="msg error">Erro ao salvar: ${error.message}</div>`;
+    return;
+  }
+
+  configVendaSemEstoque = ativo;
+  $('venda-sem-estoque-msg').innerHTML = '<div class="msg success">Configuração salva.</div>';
+});
+
 async function carregarConfiguracoesFiscais(){
+  $('chk-venda-sem-estoque').checked = configVendaSemEstoque;
+  if(acesso.papel !== 'proprietario'){
+    $('chk-venda-sem-estoque').disabled = true;
+  }
   $('config-fiscal-msg').innerHTML = '';
 
   const { data, error } = await supabase
