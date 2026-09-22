@@ -1857,7 +1857,7 @@
           <div class="field auth-input-wrap">
             <label>Senha</label>
             <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-            <input type="password" id="cad-senha" required minlength="5" maxlength="18" autocomplete="new-password" placeholder="De 5 a 18 caracteres">
+            <input type="password" id="cad-senha" required minlength="6" maxlength="18" autocomplete="new-password" placeholder="De 6 a 18 caracteres">
             <button type="button" class="auth-toggle-senha" data-target="cad-senha" aria-label="Mostrar senha">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -1865,7 +1865,7 @@
           <div class="field auth-input-wrap">
             <label>Confirmar senha</label>
             <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-            <input type="password" id="cad-senha2" required minlength="5" maxlength="18" autocomplete="new-password" placeholder="Repita a senha">
+            <input type="password" id="cad-senha2" required minlength="6" maxlength="18" autocomplete="new-password" placeholder="Repita a senha">
             <button type="button" class="auth-toggle-senha" data-target="cad-senha2" aria-label="Mostrar senha">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -3195,7 +3195,7 @@
         <div class="field">
           <label id="usr-senha-rotulo">Senha inicial</label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="usr-senha" maxlength="18" autocomplete="new-password" placeholder="de 5 a 18 caracteres" style="flex:1;">
+            <input type="text" id="usr-senha" maxlength="18" autocomplete="new-password" placeholder="de 6 a 18 caracteres" style="flex:1;">
             <button type="button" class="btn-secondary" id="btn-usr-gerar-senha" style="white-space:nowrap;">Gerar</button>
           </div>
           <div class="modal-section-hint" id="usr-senha-dica" style="margin:6px 0 0;">Entregue esta senha ao funcionário. Ele entra com este e-mail, na mesma tela de login.</div>
@@ -4315,9 +4315,9 @@ function showMsg(text, type){
 }
 function clearMsg(){ $('auth-msg').innerHTML = ''; }
 
-// Regra única de senha (cadastro, funcionário e redefinição): de 5 a 18 caracteres, sem exigir maiúscula, minúscula, número ou símbolo.
-const SENHA_MIN = 5, SENHA_MAX = 18;
-const MSG_SENHA = 'Use uma senha de 5 a 18 caracteres.';
+// Regra única de senha (cadastro, funcionário e redefinição): de 6 a 18 caracteres, sem exigir maiúscula, minúscula, número ou símbolo.
+const SENHA_MIN = 6, SENHA_MAX = 18;
+const MSG_SENHA = 'Use uma senha de 6 a 18 caracteres.';
 const senhaValida = (s) => typeof s === 'string' && s.length >= SENHA_MIN && s.length <= SENHA_MAX;
 
 function traduzErro(msg){
