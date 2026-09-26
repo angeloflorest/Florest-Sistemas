@@ -1842,7 +1842,7 @@
       </div>
     </div>
     <div class="sidebar-nav">
-      <div class="nav-group-label">MÓDULOS</div>
+      <div class="nav-group-label">ERP</div>
     <div class="nav-item enabled active" data-view="dashboard" id="nav-dashboard"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6M6 10v9h12v-9"/></svg></span><span class="nav-label">Dashboard</span></div>
     <div class="nav-item enabled" data-view="clientes" id="nav-clientes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 20c.3-2.2 2-3.8 4.2-4"/></svg></span><span class="nav-label">Clientes</span></div>
     <div class="nav-item enabled" data-view="produtos" id="nav-produtos"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span><span class="nav-label">Produtos</span></div>
@@ -1855,6 +1855,12 @@
     <div class="nav-item enabled" data-view="relatorios" id="nav-relatorios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span><span class="nav-label">Relatórios</span></div>
     <div class="nav-item enabled" data-view="configuracoes" id="nav-configuracoes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.3-2-3.4-2.2.7a7.8 7.8 0 0 0-1.3-.8L15.4 5h-4l-.4 2.2c-.5.2-.9.5-1.3.8l-2.2-.7-2 3.4L7.4 12c-.1.5-.1 1 0 1.5l-1.9 1.3 2 3.4 2.2-.7c.4.3.8.6 1.3.8l.4 2.2h4l.4-2.2c.5-.2.9-.5 1.3-.8l2.2.7 2-3.4-1.9-1.3Z"/></svg></span><span class="nav-label">Configurações</span></div>
     <div class="nav-item enabled" data-view="usuarios" id="nav-usuarios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c1.9.6 3 2.3 3 4.7"/></svg></span><span class="nav-label">Usuários e Acessos</span></div>
+    <div id="secao-modulo-pet" class="hidden">
+      <div class="nav-group-label">MÓDULO PET</div>
+    <div class="nav-item enabled" data-view="agenda" id="nav-agenda"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.5h3M13.5 16.5h3"/></svg></span><span class="nav-label">Agenda</span></div>
+    <div class="nav-item enabled" data-view="pets" id="nav-pets"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="7" cy="7.5" r="1.8"/><circle cx="12" cy="5.5" r="1.8"/><circle cx="17" cy="7.5" r="1.8"/><circle cx="19" cy="12.5" r="1.8"/><path d="M12 12.2c-3.3 0-6 2.3-6 5.4 0 1.6 1.3 2.4 3 2 1.1-.3 1.9-.9 3-.9s1.9.6 3 .9c1.7.4 3-.4 3-2 0-3.1-2.7-5.4-6-5.4Z"/></svg></span><span class="nav-label">Pets</span></div>
+    <div class="nav-item enabled" data-view="pacotes" id="nav-pacotes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Z"/><path d="M4 8.5 12 4l8 4.5"/><path d="M12 4v15.5"/></svg></span><span class="nav-label">Pacotes</span></div>
+    </div>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-script-tagline">Juntos pelo crescimento do seu negócio.</div>
@@ -2688,6 +2694,82 @@
           <tbody id="tabela-usuarios-body"></tbody>
         </table>
         <div id="usuarios-empty" class="empty-state hidden">Nenhum usuário encontrado.</div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: MÓDULO PET - AGENDA ===== -->
+    <div id="view-agenda" class="hidden">
+      <div class="view-header">
+        <div>
+          <h2>Agenda</h2>
+          <p>Agendamentos e serviços dos pets</p>
+        </div>
+        <button class="btn-accent" id="btn-novo-agendamento">+ Novo agendamento</button>
+      </div>
+      <div id="agenda-msg"></div>
+      <div class="table-card">
+        <div id="agenda-area" class="empty-state">Nenhum agendamento cadastrado ainda. A visualização de agenda chega na próxima etapa do Módulo Pet.</div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: MÓDULO PET - PETS ===== -->
+    <div id="view-pets" class="hidden">
+      <div class="view-header">
+        <div>
+          <h2>Pets</h2>
+          <p>Cadastro dos animais dos clientes</p>
+        </div>
+        <button class="btn-accent" id="btn-novo-pet">+ Novo pet</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="busca-pet" placeholder="Buscar por nome do pet ou do tutor...">
+      </div>
+      <div id="pets-msg"></div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Pet</th>
+              <th>Tutor</th>
+              <th>Raça</th>
+              <th>Telefone</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tabela-pets-body"></tbody>
+        </table>
+        <div id="pets-empty" class="empty-state hidden">Nenhum pet cadastrado ainda.</div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: MÓDULO PET - PACOTES ===== -->
+    <div id="view-pacotes" class="hidden">
+      <div class="view-header">
+        <div>
+          <h2>Pacotes</h2>
+          <p>Controle de pacotes e sessões dos clientes</p>
+        </div>
+        <button class="btn-accent" id="btn-vender-pacote">+ Vender pacote</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="busca-pacote" placeholder="Buscar por cliente...">
+      </div>
+      <div id="pacotes-msg"></div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Pacote</th>
+              <th>Sessões utilizadas</th>
+              <th>Sessões restantes</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tabela-pacotes-body"></tbody>
+        </table>
+        <div id="pacotes-empty" class="empty-state hidden">Nenhum pacote vendido ainda.</div>
       </div>
     </div>
 
@@ -4305,6 +4387,12 @@ const recursos = { estoqueMinimo: false, categoria: false };
 // ---------- Acesso por módulo (funcionários) ----------
 // A tela só ESCONDE o que o usuário não pode usar; quem realmente barra é o banco (RLS + RPCs, Migration 004).
 // Enquanto a Migration 004 não estiver aplicada, tudo continua como antes (todo usuário é tratado como proprietário).
+// Núcleo do ERP (sempre presente para toda empresa) + módulos comerciais opcionais (ex.: Módulo
+// Pet — agenda/pets/pacotes), marcados com `moduloComercial`. Um item com `moduloComercial` só
+// fica de fato acessível se, ALÉM da permissão funcional do usuário (papel/permissoes, abaixo),
+// a EMPRESA também tiver aquele módulo comercial contratado (ver `modulosComerciais`/
+// `podeAcessar`) — a mesma checagem em duas camadas que o próprio banco já aplica via RLS
+// (private.perm_alguma + private.empresa_tem_modulo, Migrations 006/007).
 const MODULOS_ACESSO = [
   { k: 'dashboard',     view: 'dashboard',     rotulo: 'Dashboard' },
   { k: 'clientes',      view: 'clientes',      rotulo: 'Clientes' },
@@ -4318,11 +4406,65 @@ const MODULOS_ACESSO = [
   { k: 'relatorios',    view: 'relatorios',    rotulo: 'Relatórios' },
   { k: 'configuracoes', view: 'configuracoes', rotulo: 'Configurações' },
   { k: 'usuarios',      view: 'usuarios',      rotulo: 'Usuários e Acessos' },
+  // ---- Módulo comercial: PET (opcional, por empresa — ver MODULOS_COMERCIAIS) ----
+  { k: 'agenda',        view: 'agenda',        rotulo: 'Agenda',  moduloComercial: 'pet' },
+  { k: 'pets',          view: 'pets',          rotulo: 'Pets',    moduloComercial: 'pet' },
+  { k: 'pacotes',       view: 'pacotes',       rotulo: 'Pacotes', moduloComercial: 'pet' },
 ];
+
+// Módulos comerciais opcionais, contratados por empresa (independente da permissão do usuário).
+// Genérico de propósito: adicionar um módulo comercial futuro (ex.: 'bar') não deve exigir
+// alterar nenhuma outra função deste arquivo além desta lista + as entradas correspondentes em
+// MODULOS_ACESSO com `moduloComercial: 'bar'` + a seção/HTML do menu daquele módulo.
+//   chave     -> nome do módulo em private.empresa_tem_modulo('<chave>') (banco)
+//   secaoId   -> id do <div> do menu lateral que agrupa o rótulo + os itens daquele módulo
+const MODULOS_COMERCIAIS = [
+  { chave: 'pet', secaoId: 'secao-modulo-pet' },
+];
+// Preenchido a cada login em carregarModulosComerciais() — nunca de localStorage. Ex.: { pet: true }
+let modulosComerciais = {};
+
 let acesso = { userId: null, papel: 'proprietario', permissoes: [], ativo: true };
 function podeAcessar(modulo){
-  return acesso.papel === 'proprietario' || acesso.permissoes.includes(modulo);
+  const temPermissaoFuncional = acesso.papel === 'proprietario' || acesso.permissoes.includes(modulo);
+  if(!temPermissaoFuncional) return false;
+  // Autorização 2 (comercial): se este módulo pertence a um módulo comercial opcional, a empresa
+  // também precisa tê-lo contratado — vale até para o proprietário (é uma trava de empresa, não
+  // de cargo). O núcleo do ERP (sem `moduloComercial`) não passa por esta checagem extra.
+  const cfg = MODULOS_ACESSO.find(m => m.k === modulo);
+  if(cfg && cfg.moduloComercial) return !!modulosComerciais[cfg.moduloComercial];
+  return true;
 }
+
+// Autorização 1 (comercial): pergunta ao banco se a empresa ativa tem `chave` contratado e
+// ativo (private.empresa_tem_modulo, Migration 006 — SECURITY DEFINER, schema private). Nunca
+// lê a tabela empresa_modulos direto (RLS dela não libera nenhuma política para o navegador,
+// de propósito) e nunca usa localStorage como fonte de verdade. Falha de qualquer tipo (função
+// ainda não exposta ao PostgREST, rede, etc.) é tratada como módulo OFF (fail-closed): uma
+// empresa sem o módulo continua usando o ERP normalmente, e uma falha de leitura nunca libera
+// por engano uma tela que não deveria aparecer.
+async function empresaTemModulo(chave){
+  try{
+    const { data, error } = await supabase.schema('private').rpc('empresa_tem_modulo', { p_modulo: chave });
+    if(error){
+      console.warn(`Não foi possível verificar o módulo comercial "${chave}" (tratando como não contratado):`, error.message || error);
+      return false;
+    }
+    return !!data;
+  } catch(e){
+    console.warn(`Não foi possível verificar o módulo comercial "${chave}" (tratando como não contratado):`, e);
+    return false;
+  }
+}
+
+async function carregarModulosComerciais(){
+  const resultado = {};
+  for(const m of MODULOS_COMERCIAIS){
+    resultado[m.chave] = await empresaTemModulo(m.chave);
+  }
+  modulosComerciais = resultado;
+}
+
 let pdvPermitirSemEstoque = false;   // configuração da EMPRESA (Configurações > Vendas); o banco é quem realmente decide
 
 
@@ -4676,6 +4818,7 @@ async function carregarPerfilEMostrarApp(userId, email){
   }
 
   await detectarRecursos();
+  await carregarModulosComerciais();   // empresa_modulos (ex.: Módulo Pet) — sempre lido do banco, nunca de cache local
   aplicarAcessoNaTela();
   irParaTelaInicial();   // proprietário: Dashboard (como antes); funcionário: primeiro módulo liberado (só PDV = direto no caixa)
 }
@@ -4686,6 +4829,13 @@ function aplicarAcessoNaTela(){
   $('btn-dash-ver-financeiro').closest('.subsection').classList.toggle('hidden', !podeAcessar('financeiro'));
   $('btn-dash-ir-pdv').classList.toggle('hidden', !podeAcessar('pdv'));
   $('btn-dash-ver-estoque').classList.toggle('hidden', !podeAcessar('estoque'));
+  // Seção inteira de cada módulo comercial (rótulo "MÓDULO PET" + itens): some junto quando a
+  // empresa não tem o módulo contratado, nunca deixando um título "órfão" sem nenhum item visível
+  // (os itens dentro dela já são individualmente controlados pela permissão do usuário, acima).
+  MODULOS_COMERCIAIS.forEach(m => {
+    const secao = $(m.secaoId);
+    if(secao) secao.classList.toggle('hidden', !modulosComerciais[m.chave]);
+  });
 }
 
 function primeiroModuloPermitido(exceto){
@@ -4768,6 +4918,9 @@ function renderPermsUsuario(marcados){
   box.innerHTML = '';
   const dono = acesso.papel === 'proprietario';
   MODULOS_ACESSO.forEach(m => {
+    // Módulo comercial que a empresa não tem contratado: nem mostra a opção de permissão (não
+    // faz sentido liberar para um funcionário um módulo que a própria empresa não contratou).
+    if(m.moduloComercial && !modulosComerciais[m.moduloComercial]) return;
     // só o proprietário libera "Usuários e Acessos"; quem não é proprietário só libera o que ele mesmo tem
     const travado = !dono && (m.k === 'usuarios' || !podeAcessar(m.k));
     const lab = document.createElement('label');
@@ -4916,6 +5069,117 @@ $('cfg-venda-sem-estoque').addEventListener('change', async (e) => {
   $('cfg-operacional-msg').innerHTML = `<div class="msg success">${novo ? 'Venda sem estoque ATIVADA: o PDV poderá vender mesmo sem saldo e o estoque poderá ficar negativo.' : 'Venda sem estoque desativada: o PDV volta a bloquear vendas acima do estoque disponível.'}</div>`;
 });
 
+// =====================================================================
+// MÓDULO PET (opcional, por empresa) — Agenda / Pets / Pacotes
+// Etapa 1: só estrutura de tela integrada ao sistema atual (navegação, listagem/leitura real das
+// tabelas já existentes no banco). Cadastro/edição completos (Novo pet, Novo agendamento, Vender
+// pacote) ficam para a próxima etapa — os botões já estão presentes e não geram erro ao clicar,
+// só avisam que a funcionalidade completa vem a seguir.
+// A visibilidade das três telas já é controlada em dois níveis (nunca só aqui no frontend):
+//   1) podeAcessar('agenda'|'pets'|'pacotes') exige a empresa ter o módulo comercial 'pet"
+//      (modulosComerciais.pet) E o usuário ter a permissão funcional correspondente;
+//   2) o próprio banco (RLS, Migrations 006/007) recusa a leitura de qualquer jeito, mesmo que
+//      alguém tente chamar estas funções via console sem ter passado pelo menu.
+// =====================================================================
+
+// ---------- Agenda ----------
+function carregarAgendaView(){
+  $('agenda-msg').innerHTML = '';
+}
+$('btn-novo-agendamento').addEventListener('click', () => {
+  $('agenda-msg').innerHTML = '<div class="msg success">O cadastro de agendamentos chega na próxima etapa do Módulo Pet.</div>';
+});
+
+// ---------- Pets ----------
+let petsCache = [];
+async function carregarPetsView(){
+  $('pets-msg').innerHTML = '';
+  const { data, error } = await buscarTodos(() => supabase
+    .from('pets')
+    .select('id, nome, raca, clientes ( nome, telefone )')
+    .order('nome', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error){
+    petsCache = [];
+    renderPets(petsCache);
+    $('pets-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível carregar os pets.')}</div>`;
+    return;
+  }
+  petsCache = data || [];
+  renderPets(petsCache);
+}
+function renderPets(lista){
+  const body = $('tabela-pets-body');
+  body.innerHTML = lista.map(p => `
+    <tr>
+      <td>${escapeHtml(p.nome)}</td>
+      <td>${escapeHtml(p.clientes ? p.clientes.nome : '—')}</td>
+      <td>${escapeHtml(p.raca || '—')}</td>
+      <td>${escapeHtml((p.clientes && p.clientes.telefone) || '—')}</td>
+      <td style="text-align:right;"><span class="soon-tag">Em breve</span></td>
+    </tr>`).join('');
+  $('pets-empty').classList.toggle('hidden', lista.length > 0);
+}
+$('busca-pet').addEventListener('input', (e) => {
+  const termo = e.target.value.trim().toLowerCase();
+  const filtrado = petsCache.filter(p =>
+    (p.nome || '').toLowerCase().includes(termo) ||
+    ((p.clientes && p.clientes.nome) || '').toLowerCase().includes(termo));
+  renderPets(filtrado);
+});
+$('btn-novo-pet').addEventListener('click', () => {
+  $('pets-msg').innerHTML = '<div class="msg success">O cadastro completo de pets chega na próxima etapa do Módulo Pet.</div>';
+});
+
+// ---------- Pacotes ----------
+let pacotesCache = [];
+async function carregarPacotesView(){
+  $('pacotes-msg').innerHTML = '';
+  const { data, error } = await buscarTodos(() => supabase
+    .from('pacotes_clientes')
+    .select('id, sessoes_totais, sessoes_usadas, clientes ( nome ), produtos ( nome )')
+    .order('criado_em', { ascending: false }));
+  if(error){
+    pacotesCache = [];
+    renderPacotes(pacotesCache);
+    $('pacotes-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível carregar os pacotes.')}</div>`;
+    return;
+  }
+  pacotesCache = data || [];
+  renderPacotes(pacotesCache);
+}
+function renderPacotes(lista){
+  const body = $('tabela-pacotes-body');
+  body.innerHTML = lista.map(p => {
+    const totais = Number(p.sessoes_totais) || 0;
+    const usadas = Number(p.sessoes_usadas) || 0;
+    const restantes = Math.max(0, totais - usadas);
+    const badge = restantes > 0
+      ? '<span class="status-badge status-ok">Ativo</span>'
+      : '<span class="status-badge status-neutro">Concluído</span>';
+    return `
+    <tr>
+      <td>${escapeHtml((p.clientes && p.clientes.nome) || '—')}</td>
+      <td>${escapeHtml((p.produtos && p.produtos.nome) || '—')}</td>
+      <td>${usadas}</td>
+      <td>${restantes}</td>
+      <td>${badge}</td>
+      <td style="text-align:right;"><span class="soon-tag">Em breve</span></td>
+    </tr>`;
+  }).join('');
+  $('pacotes-empty').classList.toggle('hidden', lista.length > 0);
+}
+$('busca-pacote').addEventListener('input', (e) => {
+  const termo = e.target.value.trim().toLowerCase();
+  const filtrado = pacotesCache.filter(p =>
+    ((p.clientes && p.clientes.nome) || '').toLowerCase().includes(termo) ||
+    ((p.produtos && p.produtos.nome) || '').toLowerCase().includes(termo));
+  renderPacotes(filtrado);
+});
+$('btn-vender-pacote').addEventListener('click', () => {
+  $('pacotes-msg').innerHTML = '<div class="msg success">A venda de pacotes por aqui chega na próxima etapa do Módulo Pet.</div>';
+});
+
 // ---------- Navegação entre módulos ----------
 const CARREGADORES_VIEW = {
   'dashboard': () => carregarDashboard(),
@@ -4930,6 +5194,10 @@ const CARREGADORES_VIEW = {
   'relatorios': () => prepararRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); },
   'usuarios': () => carregarUsuarios(),
+  // ---- Módulo comercial: PET ----
+  'agenda': () => carregarAgendaView(),
+  'pets': () => carregarPetsView(),
+  'pacotes': () => carregarPacotesView(),
 };
 
 function abrirView(view){
