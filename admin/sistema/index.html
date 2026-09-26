@@ -108,11 +108,8 @@
     outline:2px solid var(--accent); outline-offset:1px; border-color: var(--accent-strong);
   }
   .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .field-row.tres{ grid-template-columns: 1fr 1fr 1fr; }
-  .field-row.endereco{ grid-template-columns: 2fr 1fr; }
-  .field-row.cidade-uf{ grid-template-columns: 2fr 1fr; }
   @media (max-width:560px){
-    .field-row, .field-row.tres, .field-row.endereco, .field-row.cidade-uf{ grid-template-columns:1fr; }
+    .field-row{ grid-template-columns:1fr; }
   }
   .btn-primary{
     width:100%; padding:12px 0;
@@ -154,24 +151,15 @@
   }
   .main p.sub{ color: var(--ink-soft); font-size:14px; margin:0 0 24px; }
 
-  /* ---------- ABAS POR SISTEMA ---------- */
-  .tabs{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 22px; border-bottom:2px solid var(--border); padding-bottom:0; }
-  .tab-btn{
-    background:transparent; border:none; border-bottom:3px solid transparent; margin-bottom:-2px;
-    color: var(--ink-soft);
-    padding:10px 20px; font-size:15px; font-weight:700;
-    font-family: var(--font-body); cursor:pointer; border-radius:8px 8px 0 0;
-  }
-  .tab-btn:hover{ color: var(--sidebar); background: var(--accent-soft); }
-  .tab-btn.ativa{ background: var(--sidebar); color:#fff; border-bottom-color: var(--accent); }
-  .tab-btn .tab-count{ font-weight:500; opacity:0.75; margin-left:6px; }
-
   .panel-head{ display:flex; align-items:baseline; gap:12px; margin:0 0 16px; }
-  .panel-head h3{
-    font-family: var(--font-display); font-weight:600; font-size:20px; margin:0; color: var(--sidebar);
-    border-bottom:3px solid var(--accent); padding-bottom:2px;
-  }
   .panel-head span{ font-size:13px; color: var(--ink-soft); }
+
+  .modulo-chip{
+    display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px;
+    white-space:nowrap;
+  }
+  .modulo-chip.ativo{ background: var(--teal-soft); color: var(--teal); }
+  .modulo-chip.padrao{ background:#EEF1F8; color: var(--ink-soft); border:1px solid var(--border); font-weight:600; }
 
   .summary-grid{
     display:grid; grid-template-columns: repeat(5,1fr); gap:14px;
@@ -191,7 +179,7 @@
     background: var(--card); border:1px solid var(--border);
     border-radius:10px; overflow:hidden; overflow-x:auto;
   }
-  table{ width:100%; border-collapse:collapse; min-width:1240px; }
+  table{ width:100%; border-collapse:collapse; min-width:1180px; }
   thead th{
     text-align:left; font-size:12px; color: var(--sidebar); font-weight:700;
     padding:12px 16px; border-bottom:2px solid var(--accent); background:#EEF1F8;
@@ -202,7 +190,6 @@
   tbody tr:hover{ background:#F7F9FD; }
   .empresa-nome{ font-weight:600; color: var(--sidebar); }
   .empresa-sub{ font-size:12px; color: var(--ink-soft); }
-  .sync-aviso{ color: var(--danger); font-weight:600; margin-top:4px; }
 
   .status-badge{
     display:inline-block; font-size:12px; font-weight:700;
@@ -252,26 +239,14 @@
   }
   .btn-secondary:hover{ border-color: var(--sidebar); color: var(--sidebar); }
 
-  /* ---------- USUÁRIOS E ACESSOS (DistGestor) ---------- */
-  .modal-card.larga{ max-width:780px; }
-  .usr-lista{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
-  .usr-item{
-    display:grid; grid-template-columns: 1fr auto; gap:6px 16px; align-items:center;
-    border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:#fff;
+  .modulo-toggle-row{
+    display:flex; align-items:center; gap:10px; padding:10px 14px;
+    border:1px solid var(--border); border-radius:10px; background:#fff;
   }
-  .usr-item.inativo{ background:#F7F8FB; }
-  .usr-nome{ font-weight:700; color: var(--sidebar); font-size:15px; }
-  .usr-email{ font-size:13px; color: var(--ink-soft); word-break:break-all; }
-  .usr-tags{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; }
-  .usr-chip{
-    display:inline-block; font-size:12px; font-weight:600; padding:3px 9px; border-radius:20px;
-    background:#EEF1F8; color: var(--sidebar); border:1px solid var(--border);
-  }
-  .usr-chip.tipo-prop{ background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
-  .usr-perms{ font-size:12px; color: var(--ink-soft); margin-top:6px; }
-  .usr-perms b{ color: var(--sidebar); }
-  @media (max-width:560px){ .usr-item{ grid-template-columns:1fr; } }
-  .senha-regras{ font-size:12px; color: var(--ink-soft); margin:-4px 0 14px; line-height:1.5; }
+  .modulo-toggle-row input[type="checkbox"]{ width:18px; height:18px; accent-color: var(--accent-strong); }
+  .modulo-toggle-row .titulo{ font-weight:700; color: var(--sidebar); font-size:14px; }
+  .modulo-toggle-row .desc{ font-size:12px; color: var(--ink-soft); }
+  .modulo-toggle-row.salvando{ opacity:0.6; }
 </style>
 </head>
 <body>
@@ -317,14 +292,11 @@
 
   <div class="main">
     <h2>Clientes</h2>
-    <p class="sub">Gerencie os clientes de cada sistema da Florest Sistemas.</p>
-
-    <div class="tabs" id="tabs-sistemas" role="tablist" aria-label="Sistemas"></div>
+    <p class="sub">Gerencie os clientes, assinaturas e módulos do Florest ERP.</p>
 
     <div id="admin-msg"></div>
 
     <div class="panel-head">
-      <h3 id="painel-titulo">PetGestor</h3>
       <span id="painel-sub"></span>
     </div>
 
@@ -359,10 +331,10 @@
             <th>CNPJ</th>
             <th>Responsável</th>
             <th>E-mail / Telefone</th>
-            <th>Cadastro</th>
             <th>Vencimento</th>
             <th>Valor/mês</th>
             <th>Status</th>
+            <th>Módulos</th>
             <th></th>
           </tr>
         </thead>
@@ -373,104 +345,49 @@
   </div>
 </div>
 
-<!-- ===== MODAL: EDITAR CLIENTE / ASSINATURA ===== -->
+<!-- ===== MODAL: EDITAR CLIENTE ===== -->
 <div id="modal-cliente" class="modal-overlay hidden">
   <div class="modal-card">
     <h3 id="modal-titulo">Editar cliente</h3>
-    <p class="modal-sub" id="modal-sistema-label"></p>
     <div id="modal-msg"></div>
     <form id="form-cliente">
-      <input type="hidden" id="f-cliente-id">
-      <input type="hidden" id="f-assinatura-id">
+      <input type="hidden" id="f-empresa-id">
 
       <div class="modal-section-label">Dados da empresa</div>
+      <p class="modal-note">Nome Fantasia, Razão Social, CNPJ e Telefone vêm do cadastro feito no Florest ERP e ainda não têm uma tela de edição própria no Admin — por enquanto são só informativos aqui.</p>
       <div class="field-row">
         <div class="field">
           <label>Nome Fantasia</label>
-          <input type="text" id="f-nome" maxlength="200" required>
+          <input type="text" id="f-nome" readonly tabindex="-1">
         </div>
         <div class="field">
           <label>Razão Social</label>
-          <input type="text" id="f-razao" maxlength="200">
+          <input type="text" id="f-razao" readonly tabindex="-1">
         </div>
       </div>
       <div class="field-row">
         <div class="field">
           <label>CNPJ</label>
-          <input type="text" id="f-cnpj" placeholder="00.000.000/0000-00" inputmode="numeric" autocomplete="off">
+          <input type="text" id="f-cnpj" readonly tabindex="-1">
         </div>
         <div class="field">
-          <label>Data do cadastro</label>
-          <input type="text" id="f-cadastro" readonly tabindex="-1">
+          <label>Telefone/WhatsApp</label>
+          <input type="text" id="f-telefone" readonly tabindex="-1">
         </div>
       </div>
+
+      <div class="modal-section-label">Dados comerciais</div>
       <div class="field-row">
         <div class="field">
           <label>Responsável</label>
           <input type="text" id="f-responsavel" maxlength="200">
         </div>
         <div class="field">
-          <label>Telefone/WhatsApp</label>
-          <input type="text" id="f-telefone" placeholder="(00) 00000-0000" inputmode="tel" autocomplete="off">
-        </div>
-      </div>
-      <div class="field">
-        <label>E-mail</label>
-        <input type="email" id="f-email" maxlength="320">
-      </div>
-
-      <div class="modal-section-label">Endereço</div>
-      <div class="field-row tres">
-        <div class="field">
-          <label>CEP</label>
-          <input type="text" id="f-cep" placeholder="00000-000" inputmode="numeric" autocomplete="off">
-        </div>
-        <div class="field" style="grid-column: span 2;">
-          <label>Endereço</label>
-          <input type="text" id="f-logradouro" maxlength="200" placeholder="Rua, avenida...">
-        </div>
-      </div>
-      <div class="field-row tres">
-        <div class="field">
-          <label>Número</label>
-          <input type="text" id="f-numero" maxlength="20">
-        </div>
-        <div class="field" style="grid-column: span 2;">
-          <label>Complemento</label>
-          <input type="text" id="f-complemento" maxlength="100">
+          <label>E-mail</label>
+          <input type="email" id="f-email" maxlength="320">
         </div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label>Bairro</label>
-          <input type="text" id="f-bairro" maxlength="100">
-        </div>
-        <div class="field-row cidade-uf" style="margin:0;">
-          <div class="field">
-            <label>Cidade</label>
-            <input type="text" id="f-cidade" maxlength="100">
-          </div>
-          <div class="field">
-            <label>UF</label>
-            <select id="f-uf"><option value="">—</option><option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option></select>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label>Observações</label>
-        <textarea id="f-observacoes"></textarea>
-      </div>
-
-      <div class="modal-section-label">Assinatura (controle exclusivo do Admin)</div>
-      <div class="field-row">
-        <div class="field">
-          <label>Status da conta</label>
-          <select id="f-status-conta">
-            <option value="pendente">Pendente de aprovação</option>
-            <option value="aprovado">Aprovado</option>
-            <option value="bloqueado">Bloqueado</option>
-          </select>
-        </div>
         <div class="field">
           <label>Status do pagamento</label>
           <select id="f-status-pagamento">
@@ -478,17 +395,29 @@
             <option value="atrasado">Atrasado</option>
           </select>
         </div>
-      </div>
-      <div class="field-row">
         <div class="field">
           <label>Vencimento</label>
           <input type="date" id="f-vencimento">
         </div>
-        <div class="field">
-          <label>Valor mensal (R$)</label>
-          <input type="number" step="0.01" min="0" id="f-valor-mensal">
+      </div>
+      <div class="field">
+        <label>Valor mensal (R$)</label>
+        <input type="number" step="0.01" min="0" id="f-valor-mensal">
+      </div>
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="f-observacoes"></textarea>
+      </div>
+
+      <div class="modal-section-label">Módulos contratados</div>
+      <div class="modulo-toggle-row" id="modulo-pet-row">
+        <input type="checkbox" id="f-modulo-pet">
+        <div>
+          <div class="titulo">PET</div>
+          <div class="desc">Agenda, cadastro de pets e controle de pacotes. Desativar não apaga nenhum dado do módulo — só retira o acesso.</div>
         </div>
       </div>
+      <div id="modulo-pet-msg"></div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
@@ -498,49 +427,13 @@
   </div>
 </div>
 
-<!-- ===== MODAL: USUÁRIOS E ACESSOS (somente DistGestor) ===== -->
-<div id="modal-usuarios" class="modal-overlay hidden">
-  <div class="modal-card larga">
-    <h3 id="usr-titulo">Usuários e Acessos</h3>
-    <p class="modal-sub" id="usr-sub"></p>
-    <div id="usr-msg"></div>
-    <div id="usr-lista" class="usr-lista"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="btn-usr-recarregar">Atualizar lista</button>
-      <button type="button" class="btn-secondary" id="btn-usr-fechar">Fechar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: REDEFINIR SENHA (a senha nunca é exibida nem guardada) ===== -->
-<div id="modal-senha" class="modal-overlay hidden">
-  <div class="modal-card">
-    <h3>Redefinir senha</h3>
-    <p class="modal-sub" id="senha-sub"></p>
-    <div id="senha-msg"></div>
-    <form id="form-senha" autocomplete="off">
-      <div class="field">
-        <label for="senha-nova">Nova senha temporária</label>
-        <input type="password" id="senha-nova" autocomplete="new-password" minlength="5" maxlength="18" required>
-      </div>
-      <div class="field">
-        <label for="senha-confirma">Confirmar senha</label>
-        <input type="password" id="senha-confirma" autocomplete="new-password" minlength="5" maxlength="18" required>
-      </div>
-      <p class="senha-regras">Use uma senha de 5 a 18 caracteres. Entregue a senha ao usuário por um canal seguro; ela não fica salva nem aparece em nenhuma tela.</p>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="btn-senha-cancelar">Cancelar</button>
-        <button type="submit" class="btn-primary" id="btn-senha-salvar" style="width:auto; padding:10px 20px;">Redefinir senha</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://smtqxppdzemomzuawodf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdHF4cHBkemVtb216dWF3b2RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyNzY3NDksImV4cCI6MjEwNDg1Mjc0OX0.b9mhhso6wtlk11SJI2kGvqSBiBnj9WRyzKYT7guCKlU';
+// Mesma configuração Supabase do Florest ERP (florest-erp/sistema/index.html) — o Admin agora fala
+// direto com o mesmo banco do ERP, sem projeto separado e sem transporte HMAC.
+const SUPABASE_URL = 'https://etulhyboogqhyyevpnlo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_UCNen-tR3sZvlMvNBCzh3w_6Wer5Pin';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
@@ -584,26 +477,6 @@ function formatarTelefone(v){
   if(d.length === 10) return d.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
   return String(v);
 }
-function formatarCep(v){
-  if(!v) return '';
-  const d = soDigitos(v);
-  return d.length === 8 ? d.replace(/^(\d{5})(\d{3})$/, '$1-$2') : String(v);
-}
-function formatarData(iso){
-  if(!iso) return '—';
-  const dt = new Date(iso);
-  return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR');
-}
-function formatarDataHora(iso){
-  if(!iso) return '—';
-  const dt = new Date(iso);
-  return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-}
-// máscaras de digitação (só visual; o banco valida e normaliza)
-function mascaraCnpj(v){ const d = soDigitos(v).slice(0, 14); return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2'); }
-function mascaraTelefone(v){ const d = soDigitos(v).slice(0, 11); if(d.length <= 2) return d; if(d.length <= 6) return `(${d.slice(0,2)}) ${d.slice(2)}`; if(d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`; return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`; }
-function mascaraCep(v){ const d = soDigitos(v).slice(0, 8); return d.length > 5 ? `${d.slice(0,5)}-${d.slice(5)}` : d; }
-
 function escapeHtml(str){
   if(str === null || str === undefined) return '';
   return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -612,19 +485,19 @@ function formatarReais(valor){
   if(valor === null || valor === undefined || valor === '') return '—';
   return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
-const ROTULO_CAMPO = {
-  nome: 'Nome Fantasia', nome_empresa: 'Nome Fantasia', razao_social: 'Razão Social', cnpj: 'CNPJ', responsavel: 'Responsável',
-  email: 'E-mail', telefone: 'Telefone/WhatsApp', cep: 'CEP', logradouro: 'Endereço', numero: 'Número', complemento: 'Complemento',
-  bairro: 'Bairro', cidade: 'Cidade', uf: 'UF', observacoes: 'Observações'
-};
+// Dias até o vencimento — calculado no navegador a partir de `vencimento` (a RPC não devolve esse
+// número pronto). Não é dado inventado: é só a diferença entre duas datas que já vêm do banco.
+function diasRestantes(vencimentoIso){
+  if(!vencimentoIso) return null;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const venc = new Date(vencimentoIso + 'T00:00:00');
+  if(Number.isNaN(venc.getTime())) return null;
+  return Math.round((venc - hoje) / 86400000);
+}
 function traduzErro(msg){
   if(!msg) return 'Ocorreu um erro. Tente novamente.';
   if(msg.includes('Invalid login credentials')) return 'E-mail ou senha inválidos.';
-  if(msg.includes('Acesso restrito')) return 'Essa conta não tem acesso ao painel de administrador.';
-  const ce = /CE001: dado inválido ou ausente: (\w+)/.exec(msg);
-  if(ce) return `Confira o campo “${ROTULO_CAMPO[ce[1]] || ce[1]}”: valor inválido.`;
-  if(msg.includes('CE002')) return 'Algum campo enviado não é permitido.';
-  if(msg.includes('CE004')) return 'Cliente não encontrado. Atualize a lista.';
+  if(msg.includes('Acesso restrito') || msg.includes('admin')) return msg;
   return msg;
 }
 
@@ -655,19 +528,19 @@ $('form-login').addEventListener('submit', async (e) => {
 });
 
 $('btn-logout').addEventListener('click', async () => {
-  filtroSistema = 'PetGestor';
-  if(typeof fecharModalUsuarios === 'function') fecharModalUsuarios();
   await supabase.auth.signOut();
   appScreen.classList.add('hidden');
   loginScreen.classList.remove('hidden');
   $('form-login').reset();
 });
 
-// ---------- Carregar clientes (só funciona se for admin de verdade) ----------
+// ---------- Carregar clientes ----------
+// admin_listar_empresas() já valida, no servidor (SECURITY DEFINER), que quem chama é um admin
+// cadastrado em public.admins — o navegador nunca consulta essa tabela diretamente.
 let clientesCache = [];
 
 async function tentarMostrarApp(){
-  const { data, error } = await supabase.rpc('admin_listar_clientes_completo');
+  const { data, error } = await supabase.rpc('admin_listar_empresas');
 
   if(error){
     await supabase.auth.signOut();
@@ -677,18 +550,7 @@ async function tentarMostrarApp(){
     return;
   }
 
-  // Estado da sincronização com sistemas remotos (somente leitura; se a função ainda não existir, segue sem ele)
-  const syncPorAssinatura = new Map();
-  try{
-    const { data: sync, error: erroSync } = await supabase.rpc('admin_listar_sync');
-    if(erroSync){ console.warn('admin_listar_sync indisponível'); }
-    else (sync || []).forEach(s => syncPorAssinatura.set(s.assinatura_id, s));
-  }catch(_){ console.warn('admin_listar_sync indisponível'); }
-
-  clientesCache = (data || []).map(c => {
-    const s = syncPorAssinatura.get(c.assinatura_id);
-    return s ? { ...c, modo_sync: s.modo_sync, sync_status: s.sync_status, sync_erro: s.sync_erro } : c;
-  });
+  clientesCache = (data || []).map(c => ({ ...c, dias_restantes: diasRestantes(c.vencimento) }));
   loginScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
   renderClientes(clientesCache);
@@ -702,16 +564,6 @@ function statusDe(c){
   return { texto: 'Ativo', classe: 'status-ok' };
 }
 
-// Sistema remoto cuja última sincronização não foi confirmada (a Central pode estar à frente do sistema do cliente)
-function syncPendente(c){
-  if(c.modo_sync !== 'remoto') return null;
-  if(c.sync_status === 'ok') return null;
-  if(c.sync_status === 'erro') return 'Falha na sincronização com ' + c.sistema;
-  if(c.sync_status === 'pendente') return 'Sincronização pendente com ' + c.sistema;
-  if(c.status_conta === 'pendente') return null;   // nunca precisou sincronizar
-  return 'Ainda não sincronizado com ' + c.sistema;
-}
-
 function renderResumo(lista){
   $('sum-total').textContent = lista.length;
   $('sum-pendentes').textContent = lista.filter(c => c.status_conta === 'pendente').length;
@@ -720,50 +572,20 @@ function renderResumo(lista){
   $('sum-bloqueados').textContent = lista.filter(c => c.status_conta === 'bloqueado').length;
 }
 
-// ---------- Painéis por sistema: PetGestor | DistGestor (sistema novo que aparecer nos dados ganha uma aba automaticamente) ----------
-const SISTEMAS_PADRAO = ['PetGestor', 'DistGestor'];
-let filtroSistema = 'PetGestor';   // abre sempre no PetGestor
-
-function sistemasDe(lista){
-  const extras = [...new Set(lista.map(c => c.sistema).filter(Boolean))]
-    .filter(nome => !SISTEMAS_PADRAO.includes(nome))
-    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  return SISTEMAS_PADRAO.concat(extras);
-}
-
-function renderAbas(lista){
-  const sistemas = sistemasDe(lista);
-  if(!sistemas.includes(filtroSistema)) filtroSistema = 'PetGestor';
-
-  const box = $('tabs-sistemas');
-  box.innerHTML = '';
-  sistemas.forEach(nome => {
-    const total = lista.filter(c => c.sistema === nome).length;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'tab-btn' + (nome === filtroSistema ? ' ativa' : '');
-    b.setAttribute('role', 'tab');
-    b.setAttribute('aria-selected', nome === filtroSistema ? 'true' : 'false');
-    b.innerHTML = `${escapeHtml(nome)}<span class="tab-count">(${total})</span>`;
-    b.addEventListener('click', () => { filtroSistema = nome; renderClientes(clientesCache); });
-    box.appendChild(b);
-  });
-}
-
-function renderClientes(listaCompleta){
+// ---------- Base única de clientes do Florest ERP ----------
+// PetGestor e DistGestor não existem mais como sistemas separados: PET é só um módulo opcional do
+// próprio ERP (empresa_modulos.ativo). Não há mais abas, filtro por sistema, nem os campos antigos
+// da Central (assinatura_id/cliente_id/sistema/modo_sync/sync_status/sync_erro).
+function renderClientes(lista){
   const body = $('tabela-clientes-body');
   const empty = $('clientes-empty');
   body.innerHTML = '';
 
-  renderAbas(listaCompleta);
-  const lista = listaCompleta.filter(c => c.sistema === filtroSistema);
-
-  $('painel-titulo').textContent = filtroSistema;
   $('painel-sub').textContent = lista.length === 1 ? '1 cliente' : `${lista.length} clientes`;
-  renderResumo(lista);   // os cards refletem o painel selecionado
+  renderResumo(lista);
 
   if(lista.length === 0){
-    empty.textContent = `Nenhum cliente no ${filtroSistema} ainda.`;
+    empty.textContent = 'Nenhum cliente cadastrado ainda.';
     empty.classList.remove('hidden');
     return;
   }
@@ -774,28 +596,22 @@ function renderClientes(listaCompleta){
     const dataVenc = c.vencimento ? new Date(c.vencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
     const tr = document.createElement('tr');
 
-    let acoes = `<button class="link-btn btn-editar" data-id="${c.assinatura_id}">Editar</button>`;
+    let acoes = `<button class="link-btn btn-editar" data-id="${c.empresa_id}">Editar</button>`;
     if(c.status_conta === 'pendente'){
-      acoes = `<button class="link-btn accent btn-aprovar" data-id="${c.assinatura_id}">Aprovar</button>` + acoes;
+      acoes = `<button class="link-btn accent btn-aprovar" data-id="${c.empresa_id}">Aprovar</button>` + acoes;
     } else if(c.status_conta === 'aprovado'){
-      acoes = `<button class="link-btn danger btn-bloquear" data-id="${c.assinatura_id}">Bloquear</button>` + acoes;
-      acoes = `<button class="link-btn btn-renovar" data-id="${c.assinatura_id}">Renovar +30d</button>` + acoes;
+      acoes = `<button class="link-btn danger btn-bloquear" data-id="${c.empresa_id}">Bloquear</button>` + acoes;
     } else if(c.status_conta === 'bloqueado'){
-      acoes = `<button class="link-btn btn-reativar" data-id="${c.assinatura_id}">Reativar</button>` + acoes;
+      acoes = `<button class="link-btn btn-reativar" data-id="${c.empresa_id}">Reativar</button>` + acoes;
     }
 
-    if(c.sistema === 'DistGestor'){
-      acoes += `<button class="link-btn btn-usuarios" data-id="${c.assinatura_id}">Usuários e Acessos</button>`;
-    }
-
-    const avisoSync = syncPendente(c);
-    if(avisoSync){
-      acoes = `<button class="link-btn accent btn-sync" data-id="${c.assinatura_id}">Sincronizar novamente</button>` + acoes;
-    }
+    const moduloBadge = c.pet_ativo
+      ? '<span class="modulo-chip ativo">PET ativo</span>'
+      : '<span class="modulo-chip padrao">ERP padrão</span>';
 
     tr.innerHTML = `
       <td>
-        <div class="empresa-nome">${escapeHtml(c.nome_empresa)}</div>
+        <div class="empresa-nome">${escapeHtml(c.nome)}</div>
         <div class="empresa-sub">${escapeHtml(c.razao_social || 'Razão social não informada')}</div>
       </td>
       <td class="nowrap">${escapeHtml(formatarCnpj(c.cnpj))}</td>
@@ -804,13 +620,10 @@ function renderClientes(listaCompleta){
         <div>${escapeHtml(c.email || '—')}</div>
         <div class="empresa-sub">${escapeHtml(formatarTelefone(c.telefone))}</div>
       </td>
-      <td class="nowrap">${formatarData(c.cadastrado_em)}</td>
       <td class="nowrap">${dataVenc}</td>
       <td class="nowrap">${formatarReais(c.valor_mensal)}</td>
-      <td>
-        <span class="status-badge ${status.classe}">${status.texto}</span>
-        ${avisoSync ? `<div class="empresa-sub sync-aviso"${c.sync_erro ? ` title="${escapeHtml(c.sync_erro)}"` : ''}>${escapeHtml(avisoSync)} — o cliente pode não estar liberado lá.</div>` : ''}
-      </td>
+      <td><span class="status-badge ${status.classe}">${status.texto}</span></td>
+      <td>${moduloBadge}</td>
       <td><div class="acoes-cell">${acoes}</div></td>
     `;
 
@@ -818,74 +631,19 @@ function renderClientes(listaCompleta){
     if(btnEditar) btnEditar.addEventListener('click', () => abrirModalCliente(c));
 
     const btnAprovar = tr.querySelector('.btn-aprovar');
-    if(btnAprovar) btnAprovar.addEventListener('click', () => aprovarCliente(c));
+    if(btnAprovar) btnAprovar.addEventListener('click', () => aprovarEmpresa(c));
 
     const btnBloquear = tr.querySelector('.btn-bloquear');
-    if(btnBloquear) btnBloquear.addEventListener('click', () => bloquearCliente(c));
+    if(btnBloquear) btnBloquear.addEventListener('click', () => bloquearEmpresa(c));
 
     const btnReativar = tr.querySelector('.btn-reativar');
-    if(btnReativar) btnReativar.addEventListener('click', () => reativarCliente(c));
-
-    const btnRenovar = tr.querySelector('.btn-renovar');
-    if(btnRenovar) btnRenovar.addEventListener('click', () => renovarRapido(c));
-
-    const btnSync = tr.querySelector('.btn-sync');
-    if(btnSync) btnSync.addEventListener('click', () => sincronizarCliente(c));
-
-    const btnUsuarios = tr.querySelector('.btn-usuarios');
-    if(btnUsuarios) btnUsuarios.addEventListener('click', () => abrirModalUsuarios(c));
+    if(btnReativar) btnReativar.addEventListener('click', () => reativarEmpresa(c));
 
     body.appendChild(tr);
   });
 }
 
-// ---------- Alterações de assinatura: SEMPRE pela Edge Function da Central (JWT do administrador) ----------
-// O navegador não fala com o DistGestor, não tem segredo/HMAC e não calcula datas: o servidor decide
-// (aprovar = em_dia + vencimento hoje+30 se vazio; renovar = +30 sobre o vencimento futuro ou sobre hoje).
-async function chamarAdminAssinatura(assinaturaId, acao, dados){
-  const body = { assinatura_id: assinaturaId, acao };
-  if(dados) body.dados = dados;
-  const { data, error } = await supabase.functions.invoke('florest-admin-assinatura', { body });
-  if(!error) return data;
-  let corpo = null;
-  try{ if(error.context && typeof error.context.json === 'function') corpo = await error.context.json(); }catch(_){}
-  return corpo || { ok: false, erro: 'rede', mensagem: 'Não foi possível falar com o servidor. Nada foi confirmado; atualize a lista e tente novamente.' };
-}
-
-function mensagemSucesso(c, acao, r){
-  const nome = escapeHtml(c.nome_empresa);
-  const remoto = r.sync === 'ok' && r.central && r.central.sistema && c.modo_sync === 'remoto';
-  const no = remoto ? ` e confirmado(a) no ${escapeHtml(c.sistema)}` : '';
-  if(acao === 'aprovar') return remoto ? `${nome} aprovado(a)${no} — já pode acessar o sistema.` : `${nome} aprovado(a) — já pode acessar o sistema.`;
-  if(acao === 'bloquear') return `${nome} bloqueado(a)${no}.`;
-  if(acao === 'reativar') return `${nome} reativado(a)${no}.`;
-  if(acao === 'renovar'){
-    const v = r.central && r.central.vencimento ? new Date(r.central.vencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '';
-    return `${nome} renovado(a)${v ? ' até ' + v : ''}${no}.`;
-  }
-  if(acao === 'sincronizar') return `${nome} sincronizado(a) com ${escapeHtml(c.sistema)}.`;
-  return `${nome}: alterações salvas${no}.`;
-}
-
-// Retorna 'ok' | 'sync_falhou' | 'erro'
-async function executarAcao(c, acao, dados){
-  const r = await chamarAdminAssinatura(c.assinatura_id, acao, dados);
-  const msg = $('admin-msg');
-  if(r && r.ok){
-    await tentarMostrarApp();
-    msg.innerHTML = `<div class="msg success">${mensagemSucesso(c, acao, r)}</div>`;
-    return 'ok';
-  }
-  if(r && r.erro === 'sync_falhou'){
-    // A Central foi atualizada, mas o sistema do cliente NÃO confirmou: nunca dizer que o cliente já pode acessar.
-    await tentarMostrarApp();
-    msg.innerHTML = `<div class="msg error"><strong>Salvo na Central, mas NÃO sincronizado com ${escapeHtml(c.sistema)}.</strong> O cliente ainda não foi liberado/atualizado lá. Use “Sincronizar novamente” na linha dele.</div>`;
-    return 'sync_falhou';
-  }
-  msg.innerHTML = `<div class="msg error">Erro: ${escapeHtml((r && r.mensagem) || 'Tente novamente.')}</div>`;
-  return 'erro';
-}
-
+// ---------- Aprovar / Bloquear / Reativar — RPCs diretas do Florest ERP ----------
 let acaoEmAndamento = false;
 async function comTrava(fn){
   if(acaoEmAndamento) return;
@@ -895,53 +653,68 @@ async function comTrava(fn){
   finally{ acaoEmAndamento = false; document.querySelectorAll('.acoes-cell button').forEach(b => b.disabled = false); }
 }
 
-const aprovarCliente     = (c) => comTrava(() => executarAcao(c, 'aprovar'));
-const bloquearCliente    = (c) => comTrava(() => executarAcao(c, 'bloquear'));
-const reativarCliente    = (c) => comTrava(() => executarAcao(c, 'reativar'));
-const renovarRapido      = (c) => comTrava(() => executarAcao(c, 'renovar'));
-const sincronizarCliente = (c) => comTrava(() => executarAcao(c, 'sincronizar'));
+async function aprovarEmpresa(c){
+  await comTrava(async () => {
+    const { error } = await supabase.rpc('admin_aprovar_empresa', { p_empresa_id: c.empresa_id });
+    const msg = $('admin-msg');
+    if(error){
+      msg.innerHTML = `<div class="msg error">Erro ao aprovar: ${escapeHtml(traduzErro(error.message))}</div>`;
+      return;
+    }
+    await tentarMostrarApp();
+    msg.innerHTML = `<div class="msg success">${escapeHtml(c.nome)} aprovado(a) — já pode acessar o Florest ERP.</div>`;
+  });
+}
 
-// ---------- Modal completo (editar tudo) ----------
-// Dados cadastrais -> admin_atualizar_cliente_completo. Assinatura (status/pagamento/vencimento/valor) -> florest-admin-assinatura, como antes.
-const CAMPOS_CADASTRO = {
-  nome_empresa: 'f-nome', razao_social: 'f-razao', cnpj: 'f-cnpj', responsavel: 'f-responsavel', email: 'f-email', telefone: 'f-telefone',
-  cep: 'f-cep', logradouro: 'f-logradouro', numero: 'f-numero', complemento: 'f-complemento', bairro: 'f-bairro', cidade: 'f-cidade',
-  uf: 'f-uf', observacoes: 'f-observacoes'
-};
-const CAMPOS_DIGITOS = ['cnpj', 'telefone', 'cep'];
+async function bloquearEmpresa(c){
+  await comTrava(async () => {
+    const { error } = await supabase.rpc('admin_bloquear_empresa', { p_empresa_id: c.empresa_id, p_motivo: null });
+    const msg = $('admin-msg');
+    if(error){
+      msg.innerHTML = `<div class="msg error">Erro ao bloquear: ${escapeHtml(traduzErro(error.message))}</div>`;
+      return;
+    }
+    await tentarMostrarApp();
+    msg.innerHTML = `<div class="msg success">${escapeHtml(c.nome)} bloqueado(a).</div>`;
+  });
+}
 
-$('f-cnpj').addEventListener('input', (e) => { e.target.value = mascaraCnpj(e.target.value); });
-$('f-telefone').addEventListener('input', (e) => { e.target.value = mascaraTelefone(e.target.value); });
-$('f-cep').addEventListener('input', (e) => { e.target.value = mascaraCep(e.target.value); });
+async function reativarEmpresa(c){
+  await comTrava(async () => {
+    const { error } = await supabase.rpc('admin_reativar_empresa', { p_empresa_id: c.empresa_id });
+    const msg = $('admin-msg');
+    if(error){
+      msg.innerHTML = `<div class="msg error">Erro ao reativar: ${escapeHtml(traduzErro(error.message))}</div>`;
+      return;
+    }
+    await tentarMostrarApp();
+    msg.innerHTML = `<div class="msg success">${escapeHtml(c.nome)} reativado(a).</div>`;
+  });
+}
 
+// ---------- Modal: editar dados comerciais + módulo PET ----------
 function abrirModalCliente(c){
   $('modal-msg').innerHTML = '';
-  $('modal-titulo').textContent = 'Editar — ' + c.nome_empresa;
-  $('modal-sistema-label').textContent = 'Sistema: ' + c.sistema;
+  $('modulo-pet-msg').innerHTML = '';
+  $('modal-titulo').textContent = 'Editar — ' + c.nome;
 
-  $('f-cliente-id').value = c.cliente_id;
-  $('f-assinatura-id').value = c.assinatura_id;
-  $('f-cadastro').value = formatarDataHora(c.cadastrado_em);
+  $('f-empresa-id').value = c.empresa_id;
 
-  $('f-nome').value = c.nome_empresa || '';
+  $('f-nome').value = c.nome || '';
   $('f-razao').value = c.razao_social || '';
   $('f-cnpj').value = c.cnpj ? formatarCnpj(c.cnpj) : '';
+  $('f-telefone').value = c.telefone ? formatarTelefone(c.telefone) : '';
+
   $('f-responsavel').value = c.responsavel || '';
   $('f-email').value = c.email || '';
-  $('f-telefone').value = c.telefone ? formatarTelefone(c.telefone) : '';
-  $('f-cep').value = formatarCep(c.cep);
-  $('f-logradouro').value = c.logradouro || '';
-  $('f-numero').value = c.numero || '';
-  $('f-complemento').value = c.complemento || '';
-  $('f-bairro').value = c.bairro || '';
-  $('f-cidade').value = c.cidade || '';
-  $('f-uf').value = c.uf || '';
-  $('f-observacoes').value = c.observacoes || '';
-
-  $('f-status-conta').value = c.status_conta;
-  $('f-status-pagamento').value = c.status_pagamento;
+  $('f-status-pagamento').value = c.status_pagamento || 'em_dia';
   $('f-vencimento').value = c.vencimento || '';
   $('f-valor-mensal').value = c.valor_mensal ?? '';
+  $('f-observacoes').value = c.observacoes || '';
+
+  $('f-modulo-pet').checked = !!c.pet_ativo;
+  $('f-modulo-pet').disabled = false;
+  $('modulo-pet-row').classList.remove('salvando');
 
   $('modal-cliente').classList.remove('hidden');
 }
@@ -950,210 +723,69 @@ function fecharModal(){ $('modal-cliente').classList.add('hidden'); }
 $('btn-cancelar-modal').addEventListener('click', fecharModal);
 $('modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'modal-cliente') fecharModal(); });
 
-$('form-cliente').addEventListener('submit', async (e) => {
-  e.preventDefault();
+// Módulo PET: RPC própria (admin_configurar_modulo), independente do "Salvar" dos dados comerciais —
+// muda assim que o checkbox é alterado, como o próprio backend já separa os dois conceitos.
+// Nunca apaga pets/agendamentos/pacotes: só altera empresa_modulos.ativo.
+$('f-modulo-pet').addEventListener('change', async (e) => {
+  const empresaId = $('f-empresa-id').value;
+  const novoValor = e.target.checked;
+  const linha = $('modulo-pet-row');
+  const msg = $('modulo-pet-msg');
+  linha.classList.add('salvando');
+  e.target.disabled = true;
+  msg.innerHTML = '';
 
-  const c = clientesCache.find(x => x.assinatura_id === $('f-assinatura-id').value);
-  if(!c){ $('modal-msg').innerHTML = `<div class="msg error">Cliente não encontrado. Atualize a lista.</div>`; return; }
+  const { error } = await supabase.rpc('admin_configurar_modulo', {
+    p_empresa_id: empresaId, p_modulo: 'pet', p_ativo: novoValor
+  });
 
-  // só envia o que mudou (não bloqueia a edição por dado antigo que o admin nem mexeu)
-  const dados = {};
-  for(const [chave, idCampo] of Object.entries(CAMPOS_CADASTRO)){
-    let novo = $(idCampo).value.trim();
-    if(chave === 'uf') novo = novo.toUpperCase();
-    const original = c[chave] == null ? '' : String(c[chave]);
-    const mudou = CAMPOS_DIGITOS.includes(chave) ? soDigitos(novo) !== soDigitos(original) : novo !== original;
-    if(mudou) dados[chave] = novo === '' ? null : novo;
-  }
-  if('nome_empresa' in dados && dados.nome_empresa === null){
-    $('modal-msg').innerHTML = `<div class="msg error">O Nome Fantasia é obrigatório.</div>`;
+  linha.classList.remove('salvando');
+  e.target.disabled = false;
+
+  if(error){
+    e.target.checked = !novoValor;   // desfaz na tela: a gravação não aconteceu
+    msg.innerHTML = `<div class="msg error">Não foi possível alterar o módulo PET: ${escapeHtml(traduzErro(error.message))}</div>`;
     return;
   }
 
-  const novaAssinatura = {
-    status_conta: $('f-status-conta').value,
-    status_pagamento: $('f-status-pagamento').value,
-    vencimento: $('f-vencimento').value || null,
-    valor_mensal: $('f-valor-mensal').value ? parseFloat($('f-valor-mensal').value) : null,
-  };
-  const assinaturaMudou =
-    novaAssinatura.status_conta !== c.status_conta ||
-    novaAssinatura.status_pagamento !== c.status_pagamento ||
-    novaAssinatura.vencimento !== (c.vencimento || null) ||
-    novaAssinatura.valor_mensal !== (c.valor_mensal == null ? null : Number(c.valor_mensal));
-  const cadastroMudou = Object.keys(dados).length > 0;
+  const c = clientesCache.find(x => x.empresa_id === empresaId);
+  if(c) c.pet_ativo = novoValor;
+  msg.innerHTML = `<div class="msg success">${novoValor ? 'Módulo PET ativado.' : 'Módulo PET desativado — os dados de pets, agendamentos e pacotes continuam preservados.'}</div>`;
+  renderClientes(clientesCache);
+});
 
-  if(!cadastroMudou && !assinaturaMudou){ fecharModal(); return; }
+$('form-cliente').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const empresaId = $('f-empresa-id').value;
+  const c = clientesCache.find(x => x.empresa_id === empresaId);
+  if(!c){ $('modal-msg').innerHTML = `<div class="msg error">Cliente não encontrado. Atualize a lista.</div>`; return; }
 
   const btn = $('btn-salvar-modal');
   btn.disabled = true;
   btn.textContent = 'Salvando...';
-  const restaurarBotao = () => { btn.disabled = false; btn.textContent = 'Salvar'; };
 
-  if(cadastroMudou){
-    const { error } = await supabase.rpc('admin_atualizar_cliente_completo', { p_cliente_id: $('f-cliente-id').value, p_dados: dados });
-    if(error){
-      restaurarBotao();
-      $('modal-msg').innerHTML = `<div class="msg error">Erro ao salvar: ${escapeHtml(traduzErro(error.message))}</div>`;
-      return;
-    }
-  }
-
-  if(!assinaturaMudou){
-    // só dados cadastrais: nada para sincronizar com o sistema do cliente
-    restaurarBotao();
-    await tentarMostrarApp();
-    $('admin-msg').innerHTML = `<div class="msg success">${escapeHtml(dados.nome_empresa || c.nome_empresa)}: dados cadastrais salvos.</div>`;
-    fecharModal();
-    return;
-  }
-
-  const resultado = await comTrava(() => executarAcao(c, 'atualizar', novaAssinatura));
-  restaurarBotao();
-
-  // 'ok' e 'sync_falhou': a Central foi salva (o aviso já está na tela) -> fecha o modal. Outros erros: mantém aberto.
-  if(resultado === 'ok' || resultado === 'sync_falhou'){
-    fecharModal();
-  } else {
-    $('modal-msg').innerHTML = $('admin-msg').innerHTML;
-    $('admin-msg').innerHTML = '';
-    if(cadastroMudou) await tentarMostrarApp();   // dados cadastrais já foram salvos: atualiza a lista
-  }
-});
-
-// ---------- Usuários e Acessos (DistGestor) ----------
-// O navegador informa SÓ a assinatura. Quem descobre a empresa remota, valida o administrador e fala com o DistGestor é a
-// Edge Function da Central "florest-admin-usuarios" (HMAC no servidor). Aqui não há service_role, segredo nem HMAC.
-// A senha digitada só existe no campo do formulário: vai direto para a função e o campo é limpo; nunca é exibida, guardada ou registrada.
-const ROTULO_MODULO = {
-  dashboard: 'Dashboard', clientes: 'Clientes', produtos: 'Produtos', estoque: 'Estoque', pdv: 'PDV', fornecedores: 'Fornecedores',
-  notas_entrada: 'Notas de Entrada', financeiro: 'Financeiro', fiscal: 'Fiscal', relatorios: 'Relatórios',
-  configuracoes: 'Configurações', usuarios: 'Usuários e Acessos'
-};
-let usrCtx = null;          // { assinatura_id, nome_empresa } da empresa aberta no modal
-let usrLista = [];          // dados seguros devolvidos pela função (sem senha)
-let usrAlvo = null;         // usuário cuja senha está sendo redefinida
-
-async function chamarAdminUsuarios(body){
-  const { data, error } = await supabase.functions.invoke('florest-admin-usuarios', { body });
-  if(!error) return data;
-  let corpo = null;
-  try{ if(error.context && typeof error.context.json === 'function') corpo = await error.context.json(); }catch(_){}
-  return corpo || { ok: false, erro: 'rede', mensagem: 'Não foi possível falar com o servidor. Tente novamente.' };
-}
-
-function senhaAtendeRegras(s){
-  return typeof s === 'string' && s.length >= 5 && s.length <= 18;
-}
-
-async function carregarUsuarios(){
-  const box = $('usr-lista');
-  $('usr-msg').innerHTML = '';
-  box.innerHTML = '<div class="empty-state">Carregando usuários...</div>';
-  const ctx = usrCtx;
-  const r = await chamarAdminUsuarios({ assinatura_id: ctx.assinatura_id, acao: 'listar' });
-  if(usrCtx !== ctx) return;   // o modal foi fechado/trocado enquanto carregava
-  if(!r || r.ok !== true || !Array.isArray(r.usuarios)){
-    usrLista = [];
-    box.innerHTML = '';
-    $('usr-msg').innerHTML = `<div class="msg error">${escapeHtml((r && r.mensagem) || 'Não foi possível carregar os usuários.')}</div>`;
-    return;
-  }
-  usrLista = r.usuarios;
-  renderUsuarios();
-}
-
-function renderUsuarios(){
-  const box = $('usr-lista');
-  box.innerHTML = '';
-  if(!usrLista.length){
-    box.innerHTML = '<div class="empty-state">Nenhum usuário cadastrado nesta empresa.</div>';
-    return;
-  }
-  usrLista.forEach(u => {
-    const prop = u.papel === 'proprietario';
-    const perms = prop
-      ? 'Acesso total'
-      : ((u.permissoes || []).map(k => ROTULO_MODULO[k] || k).join(', ') || 'Nenhum módulo liberado');
-    const div = document.createElement('div');
-    div.className = 'usr-item' + (u.ativo ? '' : ' inativo');
-    div.innerHTML = `
-      <div>
-        <div class="usr-nome">${escapeHtml(u.nome || '—')}</div>
-        <div class="usr-email">${escapeHtml(u.email || '—')}</div>
-        <div class="usr-tags">
-          <span class="usr-chip ${prop ? 'tipo-prop' : ''}">${prop ? 'Proprietário' : 'Funcionário'}</span>
-          <span class="status-badge ${u.ativo ? 'status-ok' : 'status-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span>
-        </div>
-        <div class="usr-perms"><b>Acessos:</b> ${escapeHtml(perms)}</div>
-      </div>
-      <div><button type="button" class="link-btn btn-usr-senha">Redefinir senha</button></div>`;
-    div.querySelector('.btn-usr-senha').addEventListener('click', () => abrirModalSenha(u));
-    box.appendChild(div);
+  const { error } = await supabase.rpc('admin_atualizar_empresa', {
+    p_empresa_id: empresaId,
+    p_responsavel: $('f-responsavel').value.trim() || null,
+    p_email: $('f-email').value.trim() || null,
+    p_vencimento: $('f-vencimento').value || null,
+    p_valor_mensal: $('f-valor-mensal').value ? parseFloat($('f-valor-mensal').value) : null,
+    p_status_pagamento: $('f-status-pagamento').value,
+    p_observacoes: $('f-observacoes').value.trim() || null
   });
-}
 
-function abrirModalUsuarios(c){
-  usrCtx = { assinatura_id: c.assinatura_id, nome_empresa: c.nome_empresa };
-  usrLista = [];
-  $('usr-titulo').textContent = 'Usuários e Acessos';
-  $('usr-sub').textContent = c.nome_empresa + ' — DistGestor';
-  $('modal-usuarios').classList.remove('hidden');
-  carregarUsuarios();
-}
-function fecharModalUsuarios(){
-  fecharModalSenha();
-  $('modal-usuarios').classList.add('hidden');
-  usrCtx = null; usrLista = [];
-  $('usr-lista').innerHTML = ''; $('usr-msg').innerHTML = '';
-}
-$('btn-usr-fechar').addEventListener('click', fecharModalUsuarios);
-$('btn-usr-recarregar').addEventListener('click', () => { if(usrCtx) carregarUsuarios(); });
-$('modal-usuarios').addEventListener('click', (e) => { if(e.target.id === 'modal-usuarios') fecharModalUsuarios(); });
-
-function abrirModalSenha(u){
-  usrAlvo = { user_id: u.user_id };
-  $('form-senha').reset();
-  $('senha-msg').innerHTML = '';
-  $('senha-sub').textContent = `${u.nome || 'Usuário'}${u.email ? ' — ' + u.email : ''}`;
-  $('btn-senha-salvar').disabled = false;
-  $('btn-senha-salvar').textContent = 'Redefinir senha';
-  $('modal-senha').classList.remove('hidden');
-  $('senha-nova').focus();
-}
-function fecharModalSenha(){
-  $('form-senha').reset();             // a senha nunca fica no formulário
-  $('senha-msg').innerHTML = '';
-  usrAlvo = null;
-  $('modal-senha').classList.add('hidden');
-}
-$('btn-senha-cancelar').addEventListener('click', fecharModalSenha);
-$('modal-senha').addEventListener('click', (e) => { if(e.target.id === 'modal-senha') fecharModalSenha(); });
-
-$('form-senha').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if(!usrCtx || !usrAlvo) return;
-  const nova = $('senha-nova').value;
-  const conf = $('senha-confirma').value;
-  if(nova !== conf){ $('senha-msg').innerHTML = '<div class="msg error">As senhas não conferem.</div>'; return; }
-  if(!senhaAtendeRegras(nova)){
-    $('senha-msg').innerHTML = '<div class="msg error">Use uma senha de 5 a 18 caracteres.</div>';
-    return;
-  }
-  const btn = $('btn-senha-salvar');
-  btn.disabled = true;
-  btn.textContent = 'Redefinindo...';
-  const ctx = usrCtx, alvo = usrAlvo;
-  const r = await chamarAdminUsuarios({ assinatura_id: ctx.assinatura_id, acao: 'redefinir_senha', user_id: alvo.user_id, senha: nova });
-  $('form-senha').reset();             // limpa os campos logo após o envio, com sucesso ou erro
-  if(r && r.ok === true){
-    fecharModalSenha();
-    if(usrCtx === ctx) $('usr-msg').innerHTML = '<div class="msg success">Senha redefinida. Entregue a nova senha temporária ao usuário por um canal seguro.</div>';
-    return;
-  }
   btn.disabled = false;
-  btn.textContent = 'Redefinir senha';
-  $('senha-msg').innerHTML = `<div class="msg error">${escapeHtml((r && r.mensagem) || 'Não foi possível redefinir a senha.')}</div>`;
+  btn.textContent = 'Salvar';
+
+  if(error){
+    $('modal-msg').innerHTML = `<div class="msg error">Erro ao salvar: ${escapeHtml(traduzErro(error.message))}</div>`;
+    return;
+  }
+
+  await tentarMostrarApp();
+  $('admin-msg').innerHTML = `<div class="msg success">${escapeHtml(c.nome)}: dados comerciais salvos.</div>`;
+  fecharModal();
 });
 
 // ---------- Verifica sessão ao carregar ----------
