@@ -2706,9 +2706,27 @@
         </div>
         <button class="btn-accent" id="btn-novo-agendamento">+ Novo agendamento</button>
       </div>
+      <div class="search-row">
+        <input type="text" id="busca-agendamento" placeholder="Buscar por pet, tutor ou serviço...">
+      </div>
       <div id="agenda-msg"></div>
       <div class="table-card">
-        <div id="agenda-area" class="empty-state">Nenhum agendamento cadastrado ainda. A visualização de agenda chega na próxima etapa do Módulo Pet.</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Horário</th>
+              <th>Pet</th>
+              <th>Tutor</th>
+              <th>Serviço</th>
+              <th>Pacote</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-agenda-body"></tbody>
+        </table>
+        <div id="agenda-empty" class="empty-state hidden">Nenhum agendamento cadastrado ainda.</div>
       </div>
     </div>
 
@@ -2731,9 +2749,11 @@
             <tr>
               <th>Pet</th>
               <th>Tutor</th>
+              <th>Espécie</th>
               <th>Raça</th>
-              <th>Telefone</th>
-              <th></th>
+              <th>Telefone do tutor</th>
+              <th>Status</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody id="tabela-pets-body"></tbody>
@@ -2749,10 +2769,10 @@
           <h2>Pacotes</h2>
           <p>Controle de pacotes e sessões dos clientes</p>
         </div>
-        <button class="btn-accent" id="btn-vender-pacote">+ Vender pacote</button>
+        <button class="btn-accent" id="btn-novo-pacote">+ Novo pacote</button>
       </div>
       <div class="search-row">
-        <input type="text" id="busca-pacote" placeholder="Buscar por cliente...">
+        <input type="text" id="busca-pacote" placeholder="Buscar por cliente, pet ou pacote...">
       </div>
       <div id="pacotes-msg"></div>
       <div class="table-card">
@@ -2760,16 +2780,19 @@
           <thead>
             <tr>
               <th>Cliente</th>
+              <th>Pet</th>
               <th>Pacote</th>
-              <th>Sessões utilizadas</th>
-              <th>Sessões restantes</th>
+              <th>Sessões</th>
+              <th>Restantes</th>
+              <th>Início</th>
+              <th>Validade</th>
               <th>Status</th>
-              <th></th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody id="tabela-pacotes-body"></tbody>
         </table>
-        <div id="pacotes-empty" class="empty-state hidden">Nenhum pacote vendido ainda.</div>
+        <div id="pacotes-empty" class="empty-state hidden">Nenhum pacote cadastrado ainda.</div>
       </div>
     </div>
 
@@ -3466,6 +3489,292 @@
         <button type="submit" class="btn-primary" id="btn-salvar-cliente" style="width:auto; padding:10px 20px;">Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== MÓDULO PET: modais ===== -->
+
+<!-- MODAL: novo/editar pet -->
+<div id="modal-pet" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="modal-pet-titulo">Novo pet</h3>
+    <div id="pet-form-msg"></div>
+    <form id="form-pet">
+      <input type="hidden" id="pet-id">
+      <div class="field">
+        <label>Tutor / Cliente</label>
+        <select id="pet-cliente" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Nome do pet</label>
+          <input type="text" id="pet-nome" required>
+        </div>
+        <div class="field">
+          <label>Espécie</label>
+          <input type="text" id="pet-especie" placeholder="Ex: Cão, Gato...">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Raça</label>
+          <input type="text" id="pet-raca">
+        </div>
+        <div class="field">
+          <label>Sexo</label>
+          <select id="pet-sexo">
+            <option value="">Não informado</option>
+            <option value="macho">Macho</option>
+            <option value="femea">Fêmea</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Data de nascimento</label>
+          <input type="date" id="pet-data-nascimento">
+        </div>
+        <div class="field">
+          <label>Porte</label>
+          <select id="pet-porte">
+            <option value="">Não informado</option>
+            <option value="pequeno">Pequeno</option>
+            <option value="medio">Médio</option>
+            <option value="grande">Grande</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Peso (kg)</label>
+        <input type="number" id="pet-peso" step="0.1" min="0" placeholder="Ex: 8.5">
+      </div>
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="pet-observacoes"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-pet">Cancelar</button>
+        <button type="submit" class="btn-primary" id="btn-salvar-pet" style="width:auto; padding:10px 20px;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: novo pacote (cadastro manual) -->
+<div id="modal-pacote" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Novo pacote</h3>
+    <div id="pacote-form-msg"></div>
+    <form id="form-pacote">
+      <div class="field-row">
+        <div class="field">
+          <label>Cliente</label>
+          <select id="pacote-cliente" required></select>
+        </div>
+        <div class="field">
+          <label>Pet</label>
+          <select id="pacote-pet" required disabled><option value="">Selecione o cliente primeiro...</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Descrição do pacote</label>
+        <input type="text" id="pacote-descricao" required placeholder="Ex: Pacote 4 Banhos">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Quantidade de sessões</label>
+          <input type="number" id="pacote-sessoes" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label>Data de início</label>
+          <input type="date" id="pacote-data-inicio">
+        </div>
+      </div>
+      <div class="field">
+        <label>Data de validade (opcional)</label>
+        <input type="date" id="pacote-data-validade">
+      </div>
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="pacote-observacoes"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-pacote">Cancelar</button>
+        <button type="submit" class="btn-primary" id="btn-salvar-pacote" style="width:auto; padding:10px 20px;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: detalhe do pacote (resumo + usar sessão + gerar agendamentos + histórico) -->
+<div id="modal-detalhe-pacote" class="modal-overlay hidden">
+  <div class="modal-card modal-card-wide">
+    <h3 id="detalhe-pacote-titulo">Pacote</h3>
+    <div id="detalhe-pacote-msg"></div>
+    <div id="detalhe-pacote-resumo"></div>
+    <div class="modal-actions" style="margin:14px 0 20px; justify-content:flex-start;">
+      <button type="button" class="btn-accent" id="btn-usar-sessao" style="width:auto;">Usar sessão</button>
+      <button type="button" class="btn-secondary" id="btn-gerar-agendamentos" style="width:auto;">Gerar agendamentos</button>
+    </div>
+    <div class="modal-section-label">Histórico de utilizações</div>
+    <div class="table-card" style="margin-top:8px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Sessão</th>
+            <th>Observação</th>
+            <th>Origem</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabela-historico-pacote-body"></tbody>
+      </table>
+      <div id="historico-pacote-empty" class="empty-state hidden">Nenhuma sessão utilizada ainda.</div>
+    </div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <button type="button" class="btn-secondary" id="btn-fechar-detalhe-pacote">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: usar sessão -->
+<div id="modal-usar-sessao" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:420px;">
+    <h3>Usar sessão</h3>
+    <p class="modal-section-hint" style="margin-top:-6px;">Confirma o uso de uma sessão deste pacote?</p>
+    <div id="usar-sessao-msg"></div>
+    <div class="field">
+      <label>Observação (opcional)</label>
+      <textarea id="usar-sessao-observacao" placeholder="Ex: Banho realizado normalmente."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cancelar-usar-sessao">Cancelar</button>
+      <button type="button" class="btn-primary" id="btn-confirmar-usar-sessao" style="width:auto; padding:10px 20px;">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: estornar utilização -->
+<div id="modal-estornar-uso" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:420px;">
+    <h3>Estornar utilização</h3>
+    <p class="modal-section-hint" style="margin-top:-6px;">A sessão volta para o saldo do pacote. O registro original é mantido, marcado como estornado.</p>
+    <div id="estornar-uso-msg"></div>
+    <div class="field">
+      <label>Motivo do estorno</label>
+      <textarea id="estornar-uso-motivo" placeholder="Ex: Registrado por engano."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cancelar-estorno">Cancelar</button>
+      <button type="button" class="btn-primary" id="btn-confirmar-estorno" style="width:auto; padding:10px 20px;">Estornar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: gerar agendamentos a partir de um pacote (opcional) -->
+<div id="modal-gerar-agendamentos" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Gerar agendamentos</h3>
+    <div id="gerar-ag-msg"></div>
+    <form id="form-gerar-agendamentos">
+      <div class="field">
+        <label>Serviço / descrição</label>
+        <input type="text" id="gerar-ag-servico" required placeholder="Ex: Banho">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Frequência</label>
+          <select id="gerar-ag-frequencia" required>
+            <option value="semanal">Semanal (a cada 7 dias)</option>
+            <option value="quinzenal">Quinzenal (a cada 14 dias)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Horário</label>
+          <input type="time" id="gerar-ag-horario" required>
+        </div>
+      </div>
+      <div class="field">
+        <label>Data inicial</label>
+        <input type="date" id="gerar-ag-data-inicial" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-gerar-ag">Cancelar</button>
+        <button type="submit" class="btn-primary" id="btn-prever-gerar-ag" style="width:auto; padding:10px 20px;">Ver prévia</button>
+      </div>
+    </form>
+    <div id="gerar-ag-preview" class="hidden">
+      <div class="modal-section-label">Prévia</div>
+      <div id="gerar-ag-preview-texto" class="modal-section-hint" style="margin-top:0;"></div>
+      <div id="gerar-ag-preview-lista"></div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button type="button" class="btn-secondary" id="btn-voltar-gerar-ag">Voltar</button>
+        <button type="button" class="btn-primary" id="btn-confirmar-gerar-ag" style="width:auto; padding:10px 20px;">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: novo/editar agendamento -->
+<div id="modal-agendamento" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="modal-agendamento-titulo">Novo agendamento</h3>
+    <div id="agendamento-form-msg"></div>
+    <form id="form-agendamento">
+      <input type="hidden" id="agendamento-id">
+      <div class="field-row">
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="agendamento-data" required>
+        </div>
+        <div class="field">
+          <label>Horário</label>
+          <input type="time" id="agendamento-horario" required>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Cliente</label>
+          <select id="agendamento-cliente" required></select>
+        </div>
+        <div class="field">
+          <label>Pet</label>
+          <select id="agendamento-pet" required disabled><option value="">Selecione o cliente primeiro...</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Serviço</label>
+        <input type="text" id="agendamento-servico" required placeholder="Ex: Banho, Tosa...">
+      </div>
+      <div class="field">
+        <label>Pacote (opcional)</label>
+        <select id="agendamento-pacote"><option value="">Sem pacote</option></select>
+      </div>
+      <div class="field">
+        <label>Observações</label>
+        <textarea id="agendamento-observacao"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-agendamento">Cancelar</button>
+        <button type="submit" class="btn-primary" id="btn-salvar-agendamento" style="width:auto; padding:10px 20px;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: concluir agendamento vinculado a pacote (Agenda + Pacotes conversando) -->
+<div id="modal-concluir-agendamento" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:440px; text-align:center;">
+    <h3>Concluir atendimento</h3>
+    <p class="modal-section-hint" id="concluir-agendamento-texto" style="margin-top:-6px;"></p>
+    <div id="concluir-agendamento-msg"></div>
+    <div class="modal-actions" style="justify-content:center; flex-direction:column; gap:10px; margin-top:20px;">
+      <button type="button" class="btn-accent" id="btn-concluir-com-sessao" style="width:100%;">Sim, registrar sessão</button>
+      <button type="button" class="btn-secondary" id="btn-concluir-sem-sessao" style="width:100%;">Concluir sem usar sessão</button>
+      <button type="button" class="btn-secondary" id="btn-concluir-cancelar" style="width:100%;">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -4445,7 +4754,7 @@ function podeAcessar(modulo){
 // por engano uma tela que não deveria aparecer.
 async function empresaTemModulo(chave){
   try{
-    const { data, error } = await supabase.rpc('empresa_tem_modulo', { p_modulo: chave });
+    const { data, error } = await supabase.schema('private').rpc('empresa_tem_modulo', { p_modulo: chave });
     if(error){
       console.warn(`Não foi possível verificar o módulo comercial "${chave}" (tratando como não contratado):`, error.message || error);
       return false;
@@ -5071,55 +5380,108 @@ $('cfg-venda-sem-estoque').addEventListener('change', async (e) => {
 
 // =====================================================================
 // MÓDULO PET (opcional, por empresa) — Agenda / Pets / Pacotes
-// Etapa 1: só estrutura de tela integrada ao sistema atual (navegação, listagem/leitura real das
-// tabelas já existentes no banco). Cadastro/edição completos (Novo pet, Novo agendamento, Vender
-// pacote) ficam para a próxima etapa — os botões já estão presentes e não geram erro ao clicar,
-// só avisam que a funcionalidade completa vem a seguir.
-// A visibilidade das três telas já é controlada em dois níveis (nunca só aqui no frontend):
-//   1) podeAcessar('agenda'|'pets'|'pacotes') exige a empresa ter o módulo comercial 'pet"
+// Etapa 2: telas completas. Regra central: um pacote NUNCA nasce de uma venda no PDV — o PDV,
+// Produtos, Fiscal, Estoque e Financeiro continuam 100% como estão, sem nenhuma linha alterada
+// aqui. Quem cria um pacote é o próprio usuário, manualmente, na tela de Pacotes, usando a RPC
+// criar_pacote_manual (Migration 015). Consumo de sessão e estorno usam as RPCs dedicadas
+// registrar_uso_pacote / estornar_uso_pacote — nunca INSERT/UPDATE direto em
+// pacotes_clientes/pacote_usos (a RLS dessas duas tabelas só permite SELECT ao usuário
+// autenticado; toda escrita nelas passa obrigatoriamente por essas RPCs SECURITY DEFINER).
+// pets e agendamentos continuam com INSERT/UPDATE diretos permitidos por RLS, como já era.
+// A visibilidade das três telas continua controlada em dois níveis, como antes:
+//   1) podeAcessar('agenda'|'pets'|'pacotes') exige a empresa ter o módulo comercial 'pet'
 //      (modulosComerciais.pet) E o usuário ter a permissão funcional correspondente;
-//   2) o próprio banco (RLS, Migrations 006/007) recusa a leitura de qualquer jeito, mesmo que
-//      alguém tente chamar estas funções via console sem ter passado pelo menu.
+//   2) o próprio banco (RLS) recusa a leitura/escrita de qualquer jeito, mesmo que alguém tente
+//      chamar estas funções via console sem ter passado pelo menu.
 // =====================================================================
 
-// ---------- Agenda ----------
-function carregarAgendaView(){
-  $('agenda-msg').innerHTML = '';
+function petMsg(html, tipo = 'error'){ $('pets-msg').innerHTML = html ? `<div class="msg ${tipo}">${html}</div>` : ''; }
+function pacoteMsg(html, tipo = 'error'){ $('pacotes-msg').innerHTML = html ? `<div class="msg ${tipo}">${html}</div>` : ''; }
+function agendaMsg(html, tipo = 'error'){ $('agenda-msg').innerHTML = html ? `<div class="msg ${tipo}">${html}</div>` : ''; }
+
+function formatarDataBR(iso){
+  if(!iso) return '—';
+  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR');
 }
-$('btn-novo-agendamento').addEventListener('click', () => {
-  $('agenda-msg').innerHTML = '<div class="msg success">O cadastro de agendamentos chega na próxima etapa do Módulo Pet.</div>';
-});
+function rotuloPortePet(p){ return p === 'pequeno' ? 'Pequeno' : p === 'medio' ? 'Médio' : p === 'grande' ? 'Grande' : ''; }
+
+// Popula um <select> com os clientes do ERP (id, nome) — reaproveitado nos modais de Pet,
+// Pacote e Agendamento. O "tutor" do pet é sempre um cliente já cadastrado no ERP: nunca criamos
+// um segundo cadastro de pessoas para o Módulo Pet.
+async function popularSelectClientes(selectEl, selecionadoId){
+  const { data, error } = await buscarTodos(() => supabase
+    .from('clientes').select('id, nome').order('nome', { ascending: true }).order('id', { ascending: true }));
+  selectEl.innerHTML = '<option value="">Selecione um cliente...</option>';
+  if(error) return;
+  (data || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.nome;
+    selectEl.appendChild(opt);
+  });
+  if(selecionadoId) selectEl.value = selecionadoId;
+}
+
+// Pets ATIVOS de um cliente — usado para filtrar o select de pet nos modais de Pacote e
+// Agendamento (um pet inativado não aparece como opção para NOVOS pacotes/agendamentos, mas
+// continua existindo para preservar o histórico de tudo que já foi feito com ele).
+async function buscarPetsAtivosDoCliente(clienteId){
+  if(!clienteId) return [];
+  const { data, error } = await supabase
+    .from('pets')
+    .select('id, nome')
+    .eq('cliente_id', clienteId)
+    .eq('ativo', true)
+    .order('nome', { ascending: true });
+  if(error) return [];
+  return data || [];
+}
 
 // ---------- Pets ----------
 let petsCache = [];
+
 async function carregarPetsView(){
-  $('pets-msg').innerHTML = '';
+  petMsg('');
   const { data, error } = await buscarTodos(() => supabase
     .from('pets')
-    .select('id, nome, raca, clientes ( nome, telefone )')
+    .select('id, nome, especie, raca, ativo, cliente_id, clientes ( nome, telefone )')
     .order('nome', { ascending: true })
     .order('id', { ascending: true }));
   if(error){
     petsCache = [];
     renderPets(petsCache);
-    $('pets-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível carregar os pets.')}</div>`;
+    petMsg(escapeHtml(error.message || 'Não foi possível carregar os pets.'));
     return;
   }
   petsCache = data || [];
   renderPets(petsCache);
 }
+
 function renderPets(lista){
   const body = $('tabela-pets-body');
   body.innerHTML = lista.map(p => `
     <tr>
       <td>${escapeHtml(p.nome)}</td>
       <td>${escapeHtml(p.clientes ? p.clientes.nome : '—')}</td>
+      <td>${escapeHtml(p.especie || '—')}</td>
       <td>${escapeHtml(p.raca || '—')}</td>
       <td>${escapeHtml((p.clientes && p.clientes.telefone) || '—')}</td>
-      <td style="text-align:right;"><span class="soon-tag">Em breve</span></td>
+      <td><span class="status-badge ${p.ativo ? 'status-ok' : 'status-neutro'}">${p.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td style="text-align:right; white-space:nowrap;">
+        <button class="link-btn btn-editar-pet" data-id="${p.id}">Editar</button>
+        <button class="link-btn btn-toggle-pet" data-id="${p.id}" style="margin-left:12px;">${p.ativo ? 'Inativar' : 'Ativar'}</button>
+      </td>
     </tr>`).join('');
   $('pets-empty').classList.toggle('hidden', lista.length > 0);
+  body.querySelectorAll('.btn-editar-pet').forEach(btn => btn.addEventListener('click', () => {
+    const pet = petsCache.find(p => String(p.id) === btn.dataset.id);
+    if(pet) abrirModalPet(pet);
+  }));
+  body.querySelectorAll('.btn-toggle-pet').forEach(btn => btn.addEventListener('click', () => {
+    const pet = petsCache.find(p => String(p.id) === btn.dataset.id);
+    if(pet) alternarAtivoPet(pet);
+  }));
 }
+
 $('busca-pet').addEventListener('input', (e) => {
   const termo = e.target.value.trim().toLowerCase();
   const filtrado = petsCache.filter(p =>
@@ -5127,57 +5489,850 @@ $('busca-pet').addEventListener('input', (e) => {
     ((p.clientes && p.clientes.nome) || '').toLowerCase().includes(termo));
   renderPets(filtrado);
 });
-$('btn-novo-pet').addEventListener('click', () => {
-  $('pets-msg').innerHTML = '<div class="msg success">O cadastro completo de pets chega na próxima etapa do Módulo Pet.</div>';
+
+async function alternarAtivoPet(pet){
+  const novo = !pet.ativo;
+  if(!confirm(`${novo ? 'Ativar' : 'Inativar'} o pet "${pet.nome}"?${novo ? '' : ' O histórico dele é mantido — nada é apagado, e ele deixa de aparecer como opção para novos pacotes/agendamentos.'}`)) return;
+  const { error } = await supabase.from('pets').update({ ativo: novo }).eq('id', pet.id);
+  if(error){
+    petMsg(escapeHtml(error.message || 'Não foi possível atualizar o status do pet.'));
+    return;
+  }
+  carregarPetsView();
+  petMsg(`Pet ${novo ? 'ativado' : 'inativado'} com sucesso.`, 'success');
+}
+
+async function abrirModalPet(pet){
+  $('pet-form-msg').innerHTML = '';
+  $('form-pet').reset();
+  await popularSelectClientes($('pet-cliente'), pet ? pet.cliente_id : null);
+
+  if(pet){
+    // a listagem não traz todos os campos — recarrega o registro completo para editar
+    const { data: petCompleto, error } = await supabase.from('pets').select('*').eq('id', pet.id).single();
+    if(error || !petCompleto){
+      $('pet-form-msg').innerHTML = `<div class="msg error">${escapeHtml((error && error.message) || 'Não foi possível carregar os dados do pet.')}</div>`;
+      return;
+    }
+    $('modal-pet-titulo').textContent = 'Editar pet';
+    $('pet-id').value = petCompleto.id;
+    $('pet-cliente').value = petCompleto.cliente_id;
+    $('pet-nome').value = petCompleto.nome || '';
+    $('pet-especie').value = petCompleto.especie || '';
+    $('pet-raca').value = petCompleto.raca || '';
+    $('pet-sexo').value = petCompleto.sexo || '';
+    $('pet-data-nascimento').value = petCompleto.data_nascimento || '';
+    $('pet-porte').value = petCompleto.porte || '';
+    $('pet-peso').value = petCompleto.peso ?? '';
+    $('pet-observacoes').value = petCompleto.observacoes || '';
+  } else {
+    $('modal-pet-titulo').textContent = 'Novo pet';
+    $('pet-id').value = '';
+  }
+  $('modal-pet').classList.remove('hidden');
+}
+function fecharModalPet(){ $('modal-pet').classList.add('hidden'); }
+
+$('btn-novo-pet').addEventListener('click', () => abrirModalPet(null));
+$('btn-cancelar-pet').addEventListener('click', fecharModalPet);
+$('modal-pet').addEventListener('click', (e) => { if(e.target.id === 'modal-pet') fecharModalPet(); });
+
+$('form-pet').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = $('pet-id').value;
+  const clienteId = $('pet-cliente').value;
+  if(!clienteId){
+    $('pet-form-msg').innerHTML = '<div class="msg error">Selecione o tutor do pet.</div>';
+    return;
+  }
+
+  const payload = {
+    cliente_id: clienteId,
+    nome: $('pet-nome').value.trim(),
+    especie: $('pet-especie').value.trim() || null,
+    raca: $('pet-raca').value.trim() || null,
+    sexo: $('pet-sexo').value || null,
+    data_nascimento: $('pet-data-nascimento').value || null,
+    porte: $('pet-porte').value || null,
+    peso: $('pet-peso').value ? Number($('pet-peso').value) : null,
+    observacoes: $('pet-observacoes').value.trim() || null,
+  };
+
+  const btn = $('btn-salvar-pet');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  let error;
+  try {
+    if(id){
+      ({ error } = await supabase.from('pets').update(payload).eq('id', id));
+    } else {
+      const empresaId = await obterEmpresaId(); // nunca aceitamos empresa_id vindo de outro lugar
+      ({ error } = await supabase.from('pets').insert({ ...payload, empresa_id: empresaId, ativo: true }));
+    }
+  } catch(err){
+    error = err;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Salvar';
+
+  if(error){
+    $('pet-form-msg').innerHTML = `<div class="msg error">Erro ao salvar: ${escapeHtml(error.message || String(error))}</div>`;
+    return;
+  }
+
+  fecharModalPet();
+  carregarPetsView();
+  petMsg('Pet salvo com sucesso.', 'success');
 });
 
 // ---------- Pacotes ----------
 let pacotesCache = [];
+let pacoteDetalheAtual = null; // registro completo do pacote aberto no modal de detalhe
+let usoParaEstornarId = null;
+
+function statusPacote(p){
+  const totais = Number(p.sessoes_totais) || 0;
+  const usadas = Number(p.sessoes_usadas) || 0;
+  const restantes = Math.max(0, totais - usadas);
+  const vencido = !!p.data_validade && p.data_validade < dataLocalISO(new Date());
+  if(restantes <= 0) return { texto: 'Concluído', classe: 'status-neutro' };
+  if(vencido) return { texto: 'Vencido', classe: 'status-baixo' };
+  return { texto: 'Ativo', classe: 'status-ok' };
+}
+
 async function carregarPacotesView(){
-  $('pacotes-msg').innerHTML = '';
+  pacoteMsg('');
   const { data, error } = await buscarTodos(() => supabase
     .from('pacotes_clientes')
-    .select('id, sessoes_totais, sessoes_usadas, clientes ( nome ), produtos ( nome )')
+    .select('id, descricao, sessoes_totais, sessoes_usadas, data_inicio, data_validade, cliente_id, pet_id, clientes ( nome ), pets ( nome ), produtos ( nome )')
     .order('criado_em', { ascending: false }));
   if(error){
     pacotesCache = [];
     renderPacotes(pacotesCache);
-    $('pacotes-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível carregar os pacotes.')}</div>`;
+    pacoteMsg(escapeHtml(error.message || 'Não foi possível carregar os pacotes.'));
     return;
   }
   pacotesCache = data || [];
   renderPacotes(pacotesCache);
 }
+
 function renderPacotes(lista){
   const body = $('tabela-pacotes-body');
   body.innerHTML = lista.map(p => {
     const totais = Number(p.sessoes_totais) || 0;
     const usadas = Number(p.sessoes_usadas) || 0;
     const restantes = Math.max(0, totais - usadas);
-    const badge = restantes > 0
-      ? '<span class="status-badge status-ok">Ativo</span>'
-      : '<span class="status-badge status-neutro">Concluído</span>';
+    const st = statusPacote(p);
+    const nomePacote = p.descricao || (p.produtos && p.produtos.nome) || 'Pacote';
     return `
     <tr>
       <td>${escapeHtml((p.clientes && p.clientes.nome) || '—')}</td>
-      <td>${escapeHtml((p.produtos && p.produtos.nome) || '—')}</td>
-      <td>${usadas}</td>
+      <td>${escapeHtml((p.pets && p.pets.nome) || '—')}</td>
+      <td>${escapeHtml(nomePacote)}</td>
+      <td>${usadas}/${totais}</td>
       <td>${restantes}</td>
-      <td>${badge}</td>
-      <td style="text-align:right;"><span class="soon-tag">Em breve</span></td>
+      <td>${formatarDataBR(p.data_inicio)}</td>
+      <td>${p.data_validade ? formatarDataBR(p.data_validade) : '—'}</td>
+      <td><span class="status-badge ${st.classe}">${st.texto}</span></td>
+      <td style="text-align:right;"><button class="link-btn btn-detalhe-pacote" data-id="${p.id}">Detalhes</button></td>
     </tr>`;
   }).join('');
   $('pacotes-empty').classList.toggle('hidden', lista.length > 0);
+  body.querySelectorAll('.btn-detalhe-pacote').forEach(btn => btn.addEventListener('click', () => abrirDetalhePacote(btn.dataset.id)));
 }
+
 $('busca-pacote').addEventListener('input', (e) => {
   const termo = e.target.value.trim().toLowerCase();
   const filtrado = pacotesCache.filter(p =>
     ((p.clientes && p.clientes.nome) || '').toLowerCase().includes(termo) ||
-    ((p.produtos && p.produtos.nome) || '').toLowerCase().includes(termo));
+    ((p.pets && p.pets.nome) || '').toLowerCase().includes(termo) ||
+    (p.descricao || '').toLowerCase().includes(termo));
   renderPacotes(filtrado);
 });
-$('btn-vender-pacote').addEventListener('click', () => {
-  $('pacotes-msg').innerHTML = '<div class="msg success">A venda de pacotes por aqui chega na próxima etapa do Módulo Pet.</div>';
+
+// ---------- Modal: novo pacote (cadastro manual — nunca INSERT direto; sempre criar_pacote_manual) ----------
+async function abrirModalPacote(){
+  $('pacote-form-msg').innerHTML = '';
+  $('form-pacote').reset();
+  $('pacote-data-inicio').value = dataLocalISO(new Date());
+  await popularSelectClientes($('pacote-cliente'), null);
+  $('pacote-pet').innerHTML = '<option value="">Selecione o cliente primeiro...</option>';
+  $('pacote-pet').disabled = true;
+  $('modal-pacote').classList.remove('hidden');
+}
+function fecharModalPacote(){ $('modal-pacote').classList.add('hidden'); }
+
+$('btn-novo-pacote').addEventListener('click', () => abrirModalPacote());
+$('btn-cancelar-pacote').addEventListener('click', fecharModalPacote);
+$('modal-pacote').addEventListener('click', (e) => { if(e.target.id === 'modal-pacote') fecharModalPacote(); });
+
+$('pacote-cliente').addEventListener('change', async (e) => {
+  const clienteId = e.target.value;
+  const selectPet = $('pacote-pet');
+  if(!clienteId){
+    selectPet.innerHTML = '<option value="">Selecione o cliente primeiro...</option>';
+    selectPet.disabled = true;
+    return;
+  }
+  selectPet.innerHTML = '<option value="">Carregando pets...</option>';
+  selectPet.disabled = true;
+  const pets = await buscarPetsAtivosDoCliente(clienteId);
+  if(pets.length === 0){
+    selectPet.innerHTML = '<option value="">Este cliente não tem pets ativos cadastrados</option>';
+    selectPet.disabled = true;
+    return;
+  }
+  selectPet.innerHTML = '<option value="">Selecione o pet...</option>' +
+    pets.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+  selectPet.disabled = false;
+});
+
+$('form-pacote').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const clienteId = $('pacote-cliente').value;
+  const petId = $('pacote-pet').value;
+  if(!clienteId || !petId){
+    $('pacote-form-msg').innerHTML = '<div class="msg error">Selecione o cliente e o pet.</div>';
+    return;
+  }
+  const sessoes = parseInt($('pacote-sessoes').value, 10);
+  if(!sessoes || sessoes <= 0){
+    $('pacote-form-msg').innerHTML = '<div class="msg error">Informe uma quantidade de sessões válida.</div>';
+    return;
+  }
+
+  const btn = $('btn-salvar-pacote');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const { error } = await supabase.rpc('criar_pacote_manual', {
+    p_cliente_id: clienteId,
+    p_pet_id: petId,
+    p_descricao: $('pacote-descricao').value.trim(),
+    p_sessoes_totais: sessoes,
+    p_data_inicio: $('pacote-data-inicio').value || null,
+    p_data_validade: $('pacote-data-validade').value || null,
+    p_observacoes: $('pacote-observacoes').value.trim() || null,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Salvar';
+
+  if(error){
+    $('pacote-form-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+
+  fecharModalPacote();
+  carregarPacotesView();
+  pacoteMsg('Pacote cadastrado com sucesso.', 'success');
+});
+
+// ---------- Modal: detalhe do pacote ----------
+async function abrirDetalhePacote(pacoteId){
+  $('detalhe-pacote-msg').innerHTML = '';
+  $('detalhe-pacote-resumo').innerHTML = 'Carregando...';
+  $('tabela-historico-pacote-body').innerHTML = '';
+  $('historico-pacote-empty').classList.add('hidden');
+  $('modal-detalhe-pacote').classList.remove('hidden');
+  await recarregarDetalhePacote(pacoteId);
+}
+
+async function recarregarDetalhePacote(pacoteId){
+  const { data: pacote, error } = await supabase
+    .from('pacotes_clientes')
+    .select('*, clientes ( nome ), pets ( id, nome )')
+    .eq('id', pacoteId)
+    .single();
+  if(error || !pacote){
+    $('detalhe-pacote-resumo').innerHTML = '';
+    $('detalhe-pacote-msg').innerHTML = `<div class="msg error">${escapeHtml((error && error.message) || 'Pacote não encontrado.')}</div>`;
+    return;
+  }
+  pacoteDetalheAtual = pacote;
+
+  const totais = Number(pacote.sessoes_totais) || 0;
+  const usadas = Number(pacote.sessoes_usadas) || 0;
+  const restantes = Math.max(0, totais - usadas);
+  const st = statusPacote(pacote);
+  const nomePacote = pacote.descricao || 'Pacote';
+
+  $('detalhe-pacote-titulo').textContent = nomePacote;
+  $('detalhe-pacote-resumo').innerHTML = `
+    <div class="modal-section-hint" style="margin-top:0;">
+      <strong>${escapeHtml((pacote.pets && pacote.pets.nome) || '—')}</strong> · Tutor: ${escapeHtml((pacote.clientes && pacote.clientes.nome) || '—')}
+    </div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; margin:10px 0;">
+      <div><div class="modal-section-label">Sessões</div><div>${usadas} de ${totais} utilizadas</div></div>
+      <div><div class="modal-section-label">Restantes</div><div>${restantes}</div></div>
+      <div><div class="modal-section-label">Início</div><div>${formatarDataBR(pacote.data_inicio)}</div></div>
+      <div><div class="modal-section-label">Validade</div><div>${pacote.data_validade ? formatarDataBR(pacote.data_validade) : '—'}</div></div>
+      <div><div class="modal-section-label">Status</div><div><span class="status-badge ${st.classe}">${st.texto}</span></div></div>
+    </div>
+    ${pacote.observacoes ? `<div class="modal-section-hint">${escapeHtml(pacote.observacoes)}</div>` : ''}
+  `;
+
+  const podeUsar = restantes > 0;
+  $('btn-usar-sessao').disabled = !podeUsar;
+  $('btn-usar-sessao').textContent = podeUsar ? 'Usar sessão' : 'Pacote concluído';
+  $('btn-gerar-agendamentos').disabled = !podeUsar;
+
+  await carregarHistoricoPacote(pacoteId);
+}
+
+async function carregarHistoricoPacote(pacoteId){
+  const { data, error } = await supabase
+    .from('pacote_usos')
+    .select('id, usado_em, numero_sessao, observacao, agendamento_id, estornado, estornado_em, estorno_motivo')
+    .eq('pacote_id', pacoteId)
+    .order('usado_em', { ascending: false });
+
+  const body = $('tabela-historico-pacote-body');
+  if(error){
+    body.innerHTML = '';
+    $('detalhe-pacote-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível carregar o histórico.')}</div>`;
+    return;
+  }
+  const lista = data || [];
+  $('historico-pacote-empty').classList.toggle('hidden', lista.length > 0);
+  const totais = pacoteDetalheAtual ? (Number(pacoteDetalheAtual.sessoes_totais) || 0) : 0;
+  body.innerHTML = lista.map(u => {
+    const dataHora = new Date(u.usado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const sessaoTxt = u.numero_sessao ? `Sessão ${u.numero_sessao} de ${totais}` : '—';
+    const origem = u.agendamento_id ? 'Agenda' : 'Manual';
+    const statusTxt = u.estornado
+      ? '<span class="status-badge status-baixo">ESTORNADA</span>'
+      : '<span class="status-badge status-ok">Utilizada</span>';
+    const acao = u.estornado ? '—' : `<button class="link-btn btn-estornar-uso" data-id="${u.id}">Estornar</button>`;
+    let obs = escapeHtml(u.observacao || '—');
+    if(u.estornado && u.estorno_motivo){
+      obs += `<div class="modal-section-hint" style="margin:2px 0 0;">Motivo do estorno: ${escapeHtml(u.estorno_motivo)}</div>`;
+    }
+    return `
+    <tr>
+      <td>${escapeHtml(dataHora)}</td>
+      <td>${escapeHtml(sessaoTxt)}</td>
+      <td>${obs}</td>
+      <td>${origem}</td>
+      <td>${statusTxt}</td>
+      <td style="text-align:right;">${acao}</td>
+    </tr>`;
+  }).join('');
+  body.querySelectorAll('.btn-estornar-uso').forEach(btn => btn.addEventListener('click', () => abrirModalEstornarUso(btn.dataset.id)));
+}
+
+$('btn-fechar-detalhe-pacote').addEventListener('click', () => {
+  $('modal-detalhe-pacote').classList.add('hidden');
+  carregarPacotesView();
+});
+$('modal-detalhe-pacote').addEventListener('click', (e) => {
+  if(e.target.id === 'modal-detalhe-pacote'){
+    $('modal-detalhe-pacote').classList.add('hidden');
+    carregarPacotesView();
+  }
+});
+
+// ---------- Usar sessão (sem vínculo com agendamento) ----------
+$('btn-usar-sessao').addEventListener('click', () => {
+  $('usar-sessao-msg').innerHTML = '';
+  $('usar-sessao-observacao').value = '';
+  $('modal-usar-sessao').classList.remove('hidden');
+});
+$('btn-cancelar-usar-sessao').addEventListener('click', () => $('modal-usar-sessao').classList.add('hidden'));
+$('modal-usar-sessao').addEventListener('click', (e) => { if(e.target.id === 'modal-usar-sessao') $('modal-usar-sessao').classList.add('hidden'); });
+
+$('btn-confirmar-usar-sessao').addEventListener('click', async () => {
+  if(!pacoteDetalheAtual) return;
+  const btn = $('btn-confirmar-usar-sessao');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  const { error } = await supabase.rpc('registrar_uso_pacote', {
+    p_pacote_id: pacoteDetalheAtual.id,
+    p_agendamento_id: null,
+    p_observacao: $('usar-sessao-observacao').value.trim() || null,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Confirmar';
+
+  if(error){
+    $('usar-sessao-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+
+  $('modal-usar-sessao').classList.add('hidden');
+  await recarregarDetalhePacote(pacoteDetalheAtual.id);
+});
+
+// ---------- Estornar utilização (nunca DELETE) ----------
+function abrirModalEstornarUso(usoId){
+  usoParaEstornarId = usoId;
+  $('estornar-uso-msg').innerHTML = '';
+  $('estornar-uso-motivo').value = '';
+  $('modal-estornar-uso').classList.remove('hidden');
+}
+$('btn-cancelar-estorno').addEventListener('click', () => $('modal-estornar-uso').classList.add('hidden'));
+$('modal-estornar-uso').addEventListener('click', (e) => { if(e.target.id === 'modal-estornar-uso') $('modal-estornar-uso').classList.add('hidden'); });
+
+$('btn-confirmar-estorno').addEventListener('click', async () => {
+  const motivo = $('estornar-uso-motivo').value.trim();
+  if(!motivo){
+    $('estornar-uso-msg').innerHTML = '<div class="msg error">Informe o motivo do estorno.</div>';
+    return;
+  }
+  const btn = $('btn-confirmar-estorno');
+  btn.disabled = true;
+  btn.textContent = 'Estornando...';
+
+  const { error } = await supabase.rpc('estornar_uso_pacote', {
+    p_uso_id: usoParaEstornarId,
+    p_motivo: motivo,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Estornar';
+
+  if(error){
+    $('estornar-uso-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+
+  $('modal-estornar-uso').classList.add('hidden');
+  if(pacoteDetalheAtual) await recarregarDetalhePacote(pacoteDetalheAtual.id);
+});
+
+// ---------- Gerar agendamentos (opcional) a partir do pacote ----------
+let previaGerarAgendamentos = null;
+
+function proximasDatas(dataInicialISO, frequencia, quantidade){
+  const passo = frequencia === 'quinzenal' ? 14 : 7;
+  const datas = [];
+  const base = new Date(dataInicialISO + 'T12:00:00');
+  for(let i = 0; i < quantidade; i++){
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * passo);
+    datas.push(dataLocalISO(d));
+  }
+  return datas;
+}
+
+$('btn-gerar-agendamentos').addEventListener('click', () => {
+  if(!pacoteDetalheAtual) return;
+  const restantes = Math.max(0, (Number(pacoteDetalheAtual.sessoes_totais) || 0) - (Number(pacoteDetalheAtual.sessoes_usadas) || 0));
+  if(restantes <= 0){
+    alert('Este pacote já não tem sessões disponíveis para gerar novos agendamentos.');
+    return;
+  }
+  $('gerar-ag-msg').innerHTML = '';
+  $('form-gerar-agendamentos').reset();
+  $('form-gerar-agendamentos').classList.remove('hidden');
+  $('gerar-ag-preview').classList.add('hidden');
+  $('gerar-ag-data-inicial').value = dataLocalISO(new Date());
+  $('modal-gerar-agendamentos').classList.remove('hidden');
+});
+$('btn-cancelar-gerar-ag').addEventListener('click', () => $('modal-gerar-agendamentos').classList.add('hidden'));
+$('modal-gerar-agendamentos').addEventListener('click', (e) => { if(e.target.id === 'modal-gerar-agendamentos') $('modal-gerar-agendamentos').classList.add('hidden'); });
+$('btn-voltar-gerar-ag').addEventListener('click', () => {
+  $('gerar-ag-preview').classList.add('hidden');
+  $('form-gerar-agendamentos').classList.remove('hidden');
+});
+
+$('form-gerar-agendamentos').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!pacoteDetalheAtual) return;
+  const restantes = Math.max(0, (Number(pacoteDetalheAtual.sessoes_totais) || 0) - (Number(pacoteDetalheAtual.sessoes_usadas) || 0));
+  const servico = $('gerar-ag-servico').value.trim();
+  const frequencia = $('gerar-ag-frequencia').value;
+  const horario = $('gerar-ag-horario').value;
+  const dataInicial = $('gerar-ag-data-inicial').value;
+  if(!servico || !horario || !dataInicial){
+    $('gerar-ag-msg').innerHTML = '<div class="msg error">Preencha todos os campos.</div>';
+    return;
+  }
+
+  const candidatas = proximasDatas(dataInicial, frequencia, restantes);
+
+  // Não duplicar: verifica agendamentos já existentes para este mesmo pet (cobre também os já
+  // vinculados a este pacote, já que todo agendamento de pacote também é do mesmo pet).
+  const { data: existentes, error } = await supabase
+    .from('agendamentos')
+    .select('data, horario')
+    .eq('pet_id', pacoteDetalheAtual.pet_id)
+    .in('data', candidatas);
+  if(error){
+    $('gerar-ag-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível verificar conflitos de agenda.')}</div>`;
+    return;
+  }
+  const ocupados = new Set((existentes || []).map(a => `${a.data}|${(a.horario || '').slice(0,5)}`));
+  const semConflito = candidatas.filter(d => !ocupados.has(`${d}|${horario}`));
+  const comConflito = candidatas.filter(d => ocupados.has(`${d}|${horario}`));
+
+  previaGerarAgendamentos = { servico, frequencia, horario, datas: semConflito };
+
+  let texto = `Serão criados ${semConflito.length} agendamento(s).`;
+  if(comConflito.length){
+    texto += ` ${comConflito.length} data(s) já têm um agendamento neste horário para este pet e serão puladas.`;
+  }
+  $('gerar-ag-preview-texto').textContent = texto;
+  $('gerar-ag-preview-lista').innerHTML =
+    semConflito.map(d => `<div>${formatarDataBR(d)} às ${horario}</div>`).join('') +
+    comConflito.map(d => `<div style="color:var(--danger);">${formatarDataBR(d)} às ${horario} — já existe, será pulado</div>`).join('');
+
+  $('form-gerar-agendamentos').classList.add('hidden');
+  $('gerar-ag-preview').classList.remove('hidden');
+});
+
+$('btn-confirmar-gerar-ag').addEventListener('click', async () => {
+  if(!pacoteDetalheAtual || !previaGerarAgendamentos || previaGerarAgendamentos.datas.length === 0){
+    $('modal-gerar-agendamentos').classList.add('hidden');
+    return;
+  }
+  const btn = $('btn-confirmar-gerar-ag');
+  btn.disabled = true;
+  btn.textContent = 'Gerando...';
+
+  try {
+    const empresaId = await obterEmpresaId();
+    const linhas = previaGerarAgendamentos.datas.map(d => ({
+      empresa_id: empresaId,
+      cliente_id: pacoteDetalheAtual.cliente_id,
+      pet_id: pacoteDetalheAtual.pet_id,
+      pacote_cliente_id: pacoteDetalheAtual.id,
+      servico: previaGerarAgendamentos.servico,
+      data: d,
+      horario: previaGerarAgendamentos.horario,
+      status: 'agendado',
+    }));
+    const { error } = await supabase.from('agendamentos').insert(linhas);
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
+    if(error){
+      $('gerar-ag-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || 'Não foi possível gerar os agendamentos.')}</div>`;
+      $('gerar-ag-preview').classList.add('hidden');
+      $('form-gerar-agendamentos').classList.remove('hidden');
+      return;
+    }
+  } catch(err){
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
+    $('gerar-ag-msg').innerHTML = `<div class="msg error">${escapeHtml(err.message || String(err))}</div>`;
+    return;
+  }
+
+  const qtd = previaGerarAgendamentos.datas.length;
+  $('modal-gerar-agendamentos').classList.add('hidden');
+  pacoteMsg(`${qtd} agendamento(s) gerado(s) com sucesso.`, 'success');
+});
+
+// ---------- Agenda ----------
+let agendaCache = [];
+let agendamentoConcluirAtual = null;
+
+function rotuloStatusAgenda(status){
+  if(status === 'concluido') return { texto: 'Concluído', classe: 'status-ok' };
+  if(status === 'cancelado') return { texto: 'Cancelado', classe: 'status-baixo' };
+  return { texto: 'Agendado', classe: 'status-aviso2' };
+}
+
+async function carregarAgendaView(){
+  agendaMsg('');
+  const { data, error } = await buscarTodos(() => supabase
+    .from('agendamentos')
+    .select('id, data, horario, servico, observacao, status, cliente_id, pet_id, pacote_cliente_id, pets ( nome ), clientes ( nome ), pacotes_clientes ( descricao )')
+    .order('data', { ascending: true })
+    .order('horario', { ascending: true }));
+  if(error){
+    agendaCache = [];
+    renderAgenda(agendaCache);
+    agendaMsg(escapeHtml(error.message || 'Não foi possível carregar a agenda.'));
+    return;
+  }
+  agendaCache = data || [];
+  renderAgenda(agendaCache);
+}
+
+function renderAgenda(lista){
+  const body = $('tabela-agenda-body');
+  body.innerHTML = lista.map(ag => {
+    const st = rotuloStatusAgenda(ag.status);
+    const finalizado = ag.status === 'concluido' || ag.status === 'cancelado';
+    let acoes = `<button class="link-btn btn-editar-ag" data-id="${ag.id}">Editar</button>`;
+    if(!finalizado){
+      acoes += ` <button class="link-btn btn-concluir-ag" data-id="${ag.id}" style="margin-left:12px;">Concluir</button>`;
+      acoes += ` <button class="link-btn btn-cancelar-ag" data-id="${ag.id}" style="margin-left:12px;">Cancelar</button>`;
+    }
+    return `
+    <tr>
+      <td>${formatarDataBR(ag.data)}</td>
+      <td>${(ag.horario || '').slice(0,5)}</td>
+      <td>${escapeHtml((ag.pets && ag.pets.nome) || '—')}</td>
+      <td>${escapeHtml((ag.clientes && ag.clientes.nome) || '—')}</td>
+      <td>${escapeHtml(ag.servico || '—')}</td>
+      <td>${escapeHtml((ag.pacotes_clientes && ag.pacotes_clientes.descricao) || '—')}</td>
+      <td><span class="status-badge ${st.classe}">${st.texto}</span></td>
+      <td style="text-align:right; white-space:nowrap;">${acoes}</td>
+    </tr>`;
+  }).join('');
+  $('agenda-empty').classList.toggle('hidden', lista.length > 0);
+
+  body.querySelectorAll('.btn-editar-ag').forEach(btn => btn.addEventListener('click', () => {
+    const ag = agendaCache.find(a => String(a.id) === btn.dataset.id);
+    if(ag) abrirModalAgendamento(ag);
+  }));
+  body.querySelectorAll('.btn-cancelar-ag').forEach(btn => btn.addEventListener('click', () => cancelarAgendamento(btn.dataset.id)));
+  body.querySelectorAll('.btn-concluir-ag').forEach(btn => btn.addEventListener('click', () => {
+    const ag = agendaCache.find(a => String(a.id) === btn.dataset.id);
+    if(ag) iniciarConclusaoAgendamento(ag);
+  }));
+}
+
+$('busca-agendamento').addEventListener('input', (e) => {
+  const termo = e.target.value.trim().toLowerCase();
+  const filtrado = agendaCache.filter(ag =>
+    ((ag.pets && ag.pets.nome) || '').toLowerCase().includes(termo) ||
+    ((ag.clientes && ag.clientes.nome) || '').toLowerCase().includes(termo) ||
+    (ag.servico || '').toLowerCase().includes(termo));
+  renderAgenda(filtrado);
+});
+
+async function cancelarAgendamento(id){
+  if(!confirm('Cancelar este agendamento? Ele continua no histórico, marcado como cancelado — nada é apagado.')) return;
+  const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id);
+  if(error){
+    agendaMsg(escapeHtml(error.message || 'Não foi possível cancelar.'));
+    return;
+  }
+  carregarAgendaView();
+}
+
+// ---------- Modal: novo/editar agendamento ----------
+async function popularSelectPacotesDoPet(clienteId, petId, pacoteSelecionadoId){
+  const selectPacote = $('agendamento-pacote');
+  selectPacote.innerHTML = '<option value="">Sem pacote</option>';
+  if(!clienteId || !petId) return;
+  const { data, error } = await supabase
+    .from('pacotes_clientes')
+    .select('id, descricao, sessoes_totais, sessoes_usadas, data_validade')
+    .eq('cliente_id', clienteId)
+    .eq('pet_id', petId)
+    .order('criado_em', { ascending: false });
+  if(error || !data) return;
+
+  const hojeISO = dataLocalISO(new Date());
+  // Só oferece, para um NOVO vínculo, pacotes que realmente podem ser usados: com sessões
+  // restantes e não vencidos. Exceção: o pacote JÁ vinculado a este agendamento (edição) precisa
+  // continuar disponível/selecionado mesmo que tenha sido concluído ou vencido depois — para não
+  // quebrar o vínculo/histórico já existente.
+  data.forEach(p => {
+    const restantes = Math.max(0, (Number(p.sessoes_totais) || 0) - (Number(p.sessoes_usadas) || 0));
+    const vencido = !!p.data_validade && p.data_validade < hojeISO;
+    const ehOVinculado = pacoteSelecionadoId && String(p.id) === String(pacoteSelecionadoId);
+    if(restantes <= 0 || vencido){
+      if(!ehOVinculado) return; // não oferece pacote concluído/vencido, exceto o já vinculado
+    }
+    const situacao = restantes <= 0 ? ' — concluído' : (vencido ? ' — vencido' : '');
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.descricao || 'Pacote'} (${p.sessoes_usadas}/${p.sessoes_totais}${situacao})`;
+    selectPacote.appendChild(opt);
+  });
+  if(pacoteSelecionadoId) selectPacote.value = pacoteSelecionadoId;
+}
+
+async function abrirModalAgendamento(agendamento){
+  $('agendamento-form-msg').innerHTML = '';
+  $('form-agendamento').reset();
+  await popularSelectClientes($('agendamento-cliente'), agendamento ? agendamento.cliente_id : null);
+
+  const selectPet = $('agendamento-pet');
+
+  if(agendamento){
+    $('modal-agendamento-titulo').textContent = 'Editar agendamento';
+    $('agendamento-id').value = agendamento.id;
+    $('agendamento-data').value = agendamento.data;
+    $('agendamento-horario').value = (agendamento.horario || '').slice(0,5);
+    $('agendamento-servico').value = agendamento.servico || '';
+    $('agendamento-observacao').value = agendamento.observacao || '';
+
+    // Pets ativos do cliente — garante que o pet atual do agendamento apareça mesmo que tenha
+    // sido inativado depois (o agendamento não pode ficar "órfão" ao ser editado).
+    const pets = await buscarPetsAtivosDoCliente(agendamento.cliente_id);
+    if(!pets.some(p => p.id === agendamento.pet_id) && agendamento.pet_id){
+      const { data: petAtual } = await supabase.from('pets').select('id, nome').eq('id', agendamento.pet_id).single();
+      if(petAtual) pets.push(petAtual);
+    }
+    selectPet.innerHTML = pets.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+    selectPet.disabled = false;
+    selectPet.value = agendamento.pet_id;
+
+    await popularSelectPacotesDoPet(agendamento.cliente_id, agendamento.pet_id, agendamento.pacote_cliente_id);
+  } else {
+    $('modal-agendamento-titulo').textContent = 'Novo agendamento';
+    $('agendamento-id').value = '';
+    $('agendamento-data').value = dataLocalISO(new Date());
+    selectPet.innerHTML = '<option value="">Selecione o cliente primeiro...</option>';
+    selectPet.disabled = true;
+    $('agendamento-pacote').innerHTML = '<option value="">Sem pacote</option>';
+  }
+
+  $('modal-agendamento').classList.remove('hidden');
+}
+function fecharModalAgendamento(){ $('modal-agendamento').classList.add('hidden'); }
+
+$('btn-novo-agendamento').addEventListener('click', () => abrirModalAgendamento(null));
+$('btn-cancelar-agendamento').addEventListener('click', fecharModalAgendamento);
+$('modal-agendamento').addEventListener('click', (e) => { if(e.target.id === 'modal-agendamento') fecharModalAgendamento(); });
+
+$('agendamento-cliente').addEventListener('change', async (e) => {
+  const clienteId = e.target.value;
+  const selectPet = $('agendamento-pet');
+  $('agendamento-pacote').innerHTML = '<option value="">Sem pacote</option>';
+  if(!clienteId){
+    selectPet.innerHTML = '<option value="">Selecione o cliente primeiro...</option>';
+    selectPet.disabled = true;
+    return;
+  }
+  selectPet.innerHTML = '<option value="">Carregando pets...</option>';
+  selectPet.disabled = true;
+  const pets = await buscarPetsAtivosDoCliente(clienteId);
+  if(pets.length === 0){
+    selectPet.innerHTML = '<option value="">Este cliente não tem pets ativos cadastrados</option>';
+    selectPet.disabled = true;
+    return;
+  }
+  selectPet.innerHTML = '<option value="">Selecione o pet...</option>' +
+    pets.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+  selectPet.disabled = false;
+});
+
+$('agendamento-pet').addEventListener('change', async (e) => {
+  const clienteId = $('agendamento-cliente').value;
+  await popularSelectPacotesDoPet(clienteId, e.target.value, null);
+});
+
+$('form-agendamento').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = $('agendamento-id').value;
+  const clienteId = $('agendamento-cliente').value;
+  const petId = $('agendamento-pet').value;
+  if(!clienteId || !petId){
+    $('agendamento-form-msg').innerHTML = '<div class="msg error">Selecione o cliente e o pet.</div>';
+    return;
+  }
+
+  const payload = {
+    cliente_id: clienteId,
+    pet_id: petId,
+    servico: $('agendamento-servico').value.trim(),
+    data: $('agendamento-data').value,
+    horario: $('agendamento-horario').value,
+    observacao: $('agendamento-observacao').value.trim() || null,
+    pacote_cliente_id: $('agendamento-pacote').value || null,
+  };
+
+  const btn = $('btn-salvar-agendamento');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  let error;
+  try {
+    if(id){
+      // status NUNCA é reescrito por aqui — Concluir/Cancelar são as únicas ações que o mudam.
+      ({ error } = await supabase.from('agendamentos').update(payload).eq('id', id));
+    } else {
+      const empresaId = await obterEmpresaId();
+      ({ error } = await supabase.from('agendamentos').insert({ ...payload, empresa_id: empresaId, status: 'agendado' }));
+    }
+  } catch(err){
+    error = err;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Salvar';
+
+  if(error){
+    $('agendamento-form-msg').innerHTML = `<div class="msg error">${escapeHtml(error.message || String(error))}</div>`;
+    return;
+  }
+
+  fecharModalAgendamento();
+  carregarAgendaView();
+  agendaMsg('Agendamento salvo com sucesso.', 'success');
+});
+
+// ---------- Concluir agendamento — aqui Agenda e Pacotes conversam ----------
+function iniciarConclusaoAgendamento(ag){
+  if(!ag.pacote_cliente_id){
+    // sem pacote: concluir é só mudar o status, sem perguntar nada (banho avulso continua simples)
+    concluirAgendamentoDireto(ag.id);
+    return;
+  }
+  agendamentoConcluirAtual = ag;
+  $('concluir-agendamento-msg').innerHTML = '';
+  $('concluir-agendamento-texto').textContent =
+    `Este atendimento está vinculado ao pacote "${(ag.pacotes_clientes && ag.pacotes_clientes.descricao) || 'pacote'}". Deseja registrar uma sessão utilizada?`;
+  $('modal-concluir-agendamento').classList.remove('hidden');
+}
+
+async function concluirAgendamentoDireto(id){
+  const { error } = await supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', id);
+  if(error){
+    agendaMsg(escapeHtml(error.message || 'Não foi possível concluir o agendamento.'));
+    return;
+  }
+  carregarAgendaView();
+}
+
+$('modal-concluir-agendamento').addEventListener('click', (e) => {
+  if(e.target.id === 'modal-concluir-agendamento') $('modal-concluir-agendamento').classList.add('hidden');
+});
+$('btn-concluir-cancelar').addEventListener('click', () => $('modal-concluir-agendamento').classList.add('hidden'));
+
+$('btn-concluir-sem-sessao').addEventListener('click', async () => {
+  if(!agendamentoConcluirAtual) return;
+  $('modal-concluir-agendamento').classList.add('hidden');
+  await concluirAgendamentoDireto(agendamentoConcluirAtual.id);
+});
+
+$('btn-concluir-com-sessao').addEventListener('click', async () => {
+  if(!agendamentoConcluirAtual) return;
+  const btn = $('btn-concluir-com-sessao');
+  const btnSem = $('btn-concluir-sem-sessao');
+  btn.disabled = true; btnSem.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  // A Migration 015 já impede, a nível de banco, que o mesmo agendamento desconte duas sessões
+  // ativas (índice único parcial em pacote_usos.agendamento_id) — ainda assim desabilitamos os
+  // botões aqui para reduzir a chance de duplo clique antes mesmo de chegar ao banco.
+  const { error: erroUso } = await supabase.rpc('registrar_uso_pacote', {
+    p_pacote_id: agendamentoConcluirAtual.pacote_cliente_id,
+    p_agendamento_id: agendamentoConcluirAtual.id,
+    p_observacao: null,
+  });
+
+  if(erroUso){
+    btn.disabled = false; btnSem.disabled = false;
+    btn.textContent = 'Sim, registrar sessão';
+    // Erro ao registrar a sessão: NÃO marca o agendamento como concluído silenciosamente.
+    $('concluir-agendamento-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(erroUso))}</div>`;
+    return;
+  }
+
+  const { error: erroStatus } = await supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', agendamentoConcluirAtual.id);
+
+  btn.disabled = false; btnSem.disabled = false;
+  btn.textContent = 'Sim, registrar sessão';
+
+  if(erroStatus){
+    $('concluir-agendamento-msg').innerHTML = `<div class="msg error">A sessão foi registrada, mas não foi possível marcar o agendamento como concluído: ${escapeHtml(erroStatus.message)}</div>`;
+    return;
+  }
+
+  $('modal-concluir-agendamento').classList.add('hidden');
+  carregarAgendaView();
 });
 
 // ---------- Navegação entre módulos ----------
