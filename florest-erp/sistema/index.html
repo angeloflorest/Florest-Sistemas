@@ -1140,6 +1140,28 @@
     box-shadow: 0 12px 40px rgba(11,23,48,0.28);
   }
   .modal-card-wide{ max-width: 800px; }
+
+  /* ---------- MODAIS SECUNDÁRIOS DO MÓDULO BAR ----------
+     Correção do bug "modal sobre modal": alguns modais do Bar são abertos SEM fechar o modal do
+     Bar que já está aberto embaixo dele (ex.: dentro da Comanda, "+ Pessoas", "Corrigir pessoas" e
+     "Cancelar item" abrem por cima, mantendo a Comanda aberta atrás; dentro do Pagamento,
+     "Estornar" abre por cima, mantendo o Pagamento aberto atrás). Como todos usam a MESMA classe
+     genérica .modal-overlay com o MESMO z-index, o empilhamento real acabava sendo decidido pela
+     ORDEM NO DOM (quem vem depois no HTML fica visualmente por cima) — e a Comanda/Pagamento vêm
+     DEPOIS desses modais secundários no HTML deste arquivo, então ficavam por cima por engano,
+     escondendo o modal secundário que deveria estar em primeiro plano.
+     A correção é só desta camada extra, aplicada apenas nestes 4 modais (via uma segunda classe
+     somada a "modal-overlay", sem remover nem alterar a classe genérica): z-index maior que o do
+     .modal-overlay padrão, então SEMPRE que um desses estiver visível ele fica por cima de
+     qualquer outro modal do ERP, incluindo o modal do Bar que o abriu. Não mexe no z-index nem no
+     comportamento de nenhum outro modal do sistema (ERP, PDV, Pet, ou os demais modais "primários"
+     do Bar como Abrir mesa / Comanda / Pagamento / Pagamento concluído / Produto do cardápio, que
+     continuam usando só .modal-overlay normalmente). */
+  .modal-overlay-secundario{
+    z-index:9600;
+    background-color: rgba(9,14,23,0.6);
+  }
+
   .ne-item-row{
     display:grid;
     grid-template-columns: 1.6fr 90px 100px 100px 1.4fr;
@@ -4028,7 +4050,7 @@
 </div>
 
 <!-- MODAL: adicionar pessoas (garçom, só soma) -->
-<div id="modal-bar-add-pessoas" class="modal-overlay hidden">
+<div id="modal-bar-add-pessoas" class="modal-overlay modal-overlay-secundario hidden">
   <div class="modal-card" style="max-width:400px;">
     <h3 id="bar-add-pessoas-titulo">Adicionar pessoas</h3>
     <div id="bar-add-pessoas-msg"></div>
@@ -4044,7 +4066,7 @@
 </div>
 
 <!-- MODAL: corrigir pessoas (só Caixa — bar_corrigir_pessoas; motivo obrigatório) -->
-<div id="modal-bar-corrigir-pessoas" class="modal-overlay hidden">
+<div id="modal-bar-corrigir-pessoas" class="modal-overlay modal-overlay-secundario hidden">
   <div class="modal-card" style="max-width:420px;">
     <h3 id="bar-corrigir-pessoas-titulo">Corrigir quantidade de pessoas</h3>
     <p class="modal-section-hint" style="margin-top:-6px;">Uso restrito ao Caixa. Fica registrado no histórico da mesa, com o motivo.</p>
@@ -4116,7 +4138,7 @@
 </div>
 
 <!-- MODAL: cancelar item de pedido -->
-<div id="modal-bar-cancelar-item" class="modal-overlay hidden">
+<div id="modal-bar-cancelar-item" class="modal-overlay modal-overlay-secundario hidden">
   <div class="modal-card" style="max-width:420px;">
     <h3>Cancelar item</h3>
     <p class="modal-section-hint" style="margin-top:-6px;">O estoque baixado por este item é devolvido automaticamente. O item continua no histórico, marcado como cancelado.</p>
@@ -4203,7 +4225,7 @@
 </div>
 
 <!-- MODAL: estornar pagamento (Caixa) — corrige forma/valor de um pagamento já registrado -->
-<div id="modal-bar-estornar-pagamento" class="modal-overlay hidden">
+<div id="modal-bar-estornar-pagamento" class="modal-overlay modal-overlay-secundario hidden">
   <div class="modal-card" style="max-width:460px;">
     <h3>Estornar pagamento</h3>
     <p class="modal-section-hint" style="margin-top:-6px;">Reverte só este pagamento (o valor sai do total da conta) — a venda da comanda continua existindo normalmente, com os outros pagamentos intactos, e os itens deste pagamento voltam a ficar em aberto para um novo pagamento correto. Nada é apagado — fica registrado no histórico. Bloqueado se já houver nota fiscal emitida/em processamento para esta conta.</p>
