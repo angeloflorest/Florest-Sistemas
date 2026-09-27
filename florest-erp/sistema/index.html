@@ -1107,25 +1107,37 @@
   .saldo-positivo{ color: var(--teal); }
   .saldo-negativo{ color: var(--danger); }
 
-  /* ---------- MODAL ---------- */
+  /* ---------- MODAL ----------
+     Correção visual (só CSS, sem mudança de regra de negócio): o overlay ganhou isolation:isolate
+     (garante um novo contexto de empilhamento próprio, imune a qualquer transform/opacity que
+     algum ancestral de uma tela específica venha a ter) e z-index acima de TUDO que já existe no
+     arquivo (inclusive o drawer do menu mobile, z-index:200/150, e o overlay de importação de XML,
+     z-index:9000) — antes o modal usava z-index:50, menor que o drawer mobile. O cartão do modal
+     agora fixa background-color e opacity explicitamente (nunca aplicar opacity no PAI do modal:
+     a transparência do fundo escurecido continua só via rgba() no overlay, como já era). */
   .modal-overlay{
     position:fixed;
     inset:0;
-    background: rgba(15,22,17,0.45);
+    background-color: rgba(15,22,17,0.45);
     display:flex;
     align-items:center;
     justify-content:center;
     padding:20px;
-    z-index:50;
+    z-index:9500;
+    overflow-y:auto;
+    isolation:isolate;
   }
   .modal-card{
-    background:#fff;
+    position:relative;
+    background-color:#fff;
+    opacity:1;
     border-radius:12px;
     width:100%;
     max-width: 520px;
     max-height: 88vh;
     overflow-y:auto;
     padding:28px;
+    box-shadow: 0 12px 40px rgba(11,23,48,0.28);
   }
   .modal-card-wide{ max-width: 800px; }
   .ne-item-row{
