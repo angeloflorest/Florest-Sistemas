@@ -418,6 +418,14 @@
         </div>
       </div>
       <div id="modulo-pet-msg"></div>
+      <div class="modulo-toggle-row" id="modulo-bar-row">
+        <input type="checkbox" id="f-modulo-bar">
+        <div>
+          <div class="titulo">BAR</div>
+          <div class="desc">Mesas, comandas, pedidos, caixa, portaria e bar/cozinha. Desativar não apaga nenhum dado do módulo — só retira o acesso.</div>
+        </div>
+      </div>
+      <div id="modulo-bar-msg"></div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
@@ -573,9 +581,10 @@ function renderResumo(lista){
 }
 
 // ---------- Base única de clientes do Florest ERP ----------
-// PetGestor e DistGestor não existem mais como sistemas separados: PET é só um módulo opcional do
-// próprio ERP (empresa_modulos.ativo). Não há mais abas, filtro por sistema, nem os campos antigos
-// da Central (assinatura_id/cliente_id/sistema/modo_sync/sync_status/sync_erro).
+// PetGestor e DistGestor não existem mais como sistemas separados: PET e BAR são só módulos
+// opcionais do próprio ERP (empresa_modulos.ativo, um registro por módulo). Não há mais abas,
+// filtro por sistema, nem os campos antigos da Central (assinatura_id/cliente_id/sistema/
+// modo_sync/sync_status/sync_erro).
 function renderClientes(lista){
   const body = $('tabela-clientes-body');
   const empty = $('clientes-empty');
@@ -605,9 +614,12 @@ function renderClientes(lista){
       acoes = `<button class="link-btn btn-reativar" data-id="${c.empresa_id}">Reativar</button>` + acoes;
     }
 
-    const moduloBadge = c.pet_ativo
-      ? '<span class="modulo-chip ativo">PET ativo</span>'
-      : '<span class="modulo-chip padrao">ERP padrão</span>';
+    // Cada módulo comercial contratado vira um chip próprio; sem nenhum módulo ativo, mostra
+    // o chip padrão "ERP padrão" (mesmo comportamento de antes, só generalizado para N módulos).
+    let moduloBadge = '';
+    if(c.pet_ativo) moduloBadge += '<span class="modulo-chip ativo">PET ativo</span>';
+    if(c.bar_ativo) moduloBadge += '<span class="modulo-chip ativo">BAR ativo</span>';
+    if(!moduloBadge) moduloBadge = '<span class="modulo-chip padrao">ERP padrão</span>';
 
     tr.innerHTML = `
       <td>
@@ -696,6 +708,7 @@ async function reativarEmpresa(c){
 function abrirModalCliente(c){
   $('modal-msg').innerHTML = '';
   $('modulo-pet-msg').innerHTML = '';
+  $('modulo-bar-msg').innerHTML = '';
   $('modal-titulo').textContent = 'Editar — ' + c.nome;
 
   $('f-empresa-id').value = c.empresa_id;
@@ -715,6 +728,10 @@ function abrirModalCliente(c){
   $('f-modulo-pet').checked = !!c.pet_ativo;
   $('f-modulo-pet').disabled = false;
   $('modulo-pet-row').classList.remove('salvando');
+
+  $('f-modulo-bar').checked = !!c.bar_ativo;
+  $('f-modulo-bar').disabled = false;
+  $('modulo-bar-row').classList.remove('salvando');
 
   $('modal-cliente').classList.remove('hidden');
 }
@@ -751,6 +768,38 @@ $('f-modulo-pet').addEventListener('change', async (e) => {
   const c = clientesCache.find(x => x.empresa_id === empresaId);
   if(c) c.pet_ativo = novoValor;
   msg.innerHTML = `<div class="msg success">${novoValor ? 'Módulo PET ativado.' : 'Módulo PET desativado — os dados de pets, agendamentos e pacotes continuam preservados.'}</div>`;
+  renderClientes(clientesCache);
+});
+
+// Módulo BAR: mesmo conceito do módulo PET acima — RPC própria (admin_configurar_modulo),
+// independente do "Salvar" dos dados comerciais, muda assim que o checkbox é alterado.
+// Nunca apaga mesas/comandas/pedidos/pagamentos/configurações/histórico: só altera
+// empresa_modulos.ativo (mesma tabela genérica já usada pelo PET, com modulo = 'bar').
+$('f-modulo-bar').addEventListener('change', async (e) => {
+  const empresaId = $('f-empresa-id').value;
+  const novoValor = e.target.checked;
+  const linha = $('modulo-bar-row');
+  const msg = $('modulo-bar-msg');
+  linha.classList.add('salvando');
+  e.target.disabled = true;
+  msg.innerHTML = '';
+
+  const { error } = await supabase.rpc('admin_configurar_modulo', {
+    p_empresa_id: empresaId, p_modulo: 'bar', p_ativo: novoValor
+  });
+
+  linha.classList.remove('salvando');
+  e.target.disabled = false;
+
+  if(error){
+    e.target.checked = !novoValor;   // desfaz na tela: a gravação não aconteceu
+    msg.innerHTML = `<div class="msg error">Não foi possível alterar o módulo BAR: ${escapeHtml(traduzErro(error.message))}</div>`;
+    return;
+  }
+
+  const c = clientesCache.find(x => x.empresa_id === empresaId);
+  if(c) c.bar_ativo = novoValor;
+  msg.innerHTML = `<div class="msg success">${novoValor ? 'Módulo BAR ativado.' : 'Módulo BAR desativado — mesas, comandas, pedidos, pagamentos, configurações e histórico continuam preservados.'}</div>`;
   renderClientes(clientesCache);
 });
 
