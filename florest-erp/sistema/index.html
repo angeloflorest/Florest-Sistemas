@@ -4754,7 +4754,7 @@ function podeAcessar(modulo){
 // por engano uma tela que não deveria aparecer.
 async function empresaTemModulo(chave){
   try{
-    const { data, error } = await supabase.schema('private').rpc('empresa_tem_modulo', { p_modulo: chave });
+    const { data, error } = await supabase.rpc('empresa_tem_modulo', { p_modulo: chave });
     if(error){
       console.warn(`Não foi possível verificar o módulo comercial "${chave}" (tratando como não contratado):`, error.message || error);
       return false;
