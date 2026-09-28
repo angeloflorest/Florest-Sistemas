@@ -99,7 +99,6 @@
   @media (max-width: 900px){
     #auth-screen{ grid-template-columns: 1fr; grid-template-rows: auto auto; }
     .auth-brand{ padding: 40px 28px; }
-    .auth-hero-photo{ height:170px; }
     .auth-segments-grid{ grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 480px){
@@ -217,31 +216,30 @@
     color: rgba(255,255,255,0.8);
     margin: 10px 0 0;
   }
-  /* Foto do PDV (monitor + leitor de código de barras + impressora em ambiente comercial):
-     assets/login/pdv-florest.webp. Se o arquivo ainda não existir no servidor, o segundo
-     valor de background-image (o gradiente) é o único que carrega — nunca fica um quadrado
-     vazio. O corte diagonal amarelo no canto é decorativo (::after), nunca sobre a logo. */
+  /* Foto do PDV (monitor + leitor de código de barras + impressora, com a marca Florest
+     Sistemas na tela): assets/login/pdv-florest.webp — arquivo real fornecido, já colocado
+     no projeto. background-color é só o retângulo de segurança caso o arquivo não seja
+     encontrado no servidor (nunca fica um quadrado totalmente vazio). Cantos arredondados +
+     sombra leve para um enquadramento elegante, sem sobrepor texto nenhum. */
   .auth-hero-photo{
-    height:190px;
+    aspect-ratio: 16 / 9;
+    width:100%;
     border-radius:14px;
-    background-image: url('assets/login/pdv-florest.webp'), linear-gradient(135deg, #123a63 0%, var(--florest-navy) 65%);
-    background-size: cover, cover;
-    background-position: center, center;
+    background-color: var(--florest-navy);
+    background-image: url('assets/login/pdv-florest.webp');
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 14px 34px rgba(8,20,38,0.35);
     position:relative;
     overflow:hidden;
-  }
-  .auth-hero-photo::before{
-    content:'';
-    position:absolute; inset:0;
-    background: linear-gradient(180deg, rgba(11,42,77,0.05) 0%, rgba(11,42,77,0.55) 100%);
   }
   .auth-hero-photo::after{
     content:'';
     position:absolute;
-    top:-30px; right:-30px;
-    width:90px; height:90px;
+    top:-26px; right:-26px;
+    width:78px; height:78px;
     background: var(--florest-yellow);
-    opacity:0.9;
+    opacity:0.92;
     clip-path: polygon(100% 0, 100% 100%, 0 0);
   }
   .auth-segments-label{
@@ -257,36 +255,26 @@
     grid-template-columns: repeat(3, 1fr);
     gap:10px;
   }
-  /* Card fotográfico de segmento: mesma lógica de fallback em duas camadas do hero do PDV —
-     background-image com a foto real + gradiente por baixo. NUNCA usa a tag "Em breve"; é
-     puramente institucional/comercial e não é clicável (sem href, sem onclick, sem consulta a
+  /* Card fotográfico de segmento — as fotos fornecidas já têm o nome do segmento e o ícone
+     aplicados na própria arte (identidade visual embutida na imagem), então o card NÃO
+     sobrepõe nenhum texto em HTML por cima: só a foto, com cantos arredondados, sombra leve
+     e um zoom bem discreto no hover. background-color é o retângulo de segurança caso o
+     arquivo não seja encontrado — nunca fica vazio. NUNCA usa a tag "Em breve"; é puramente
+     institucional/comercial e não é clicável (sem href, sem onclick, sem consulta a
      empresa_modulos). */
   .auth-segment-foto{
-    position:relative;
     aspect-ratio: 4 / 3;
     border-radius:10px;
     overflow:hidden;
-    background-size: cover, cover;
-    background-position: center, center;
-    display:flex;
-    align-items:flex-end;
+    background-color: var(--florest-navy);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 14px rgba(8,20,38,0.18);
+    transition: transform .18s ease, box-shadow .18s ease;
   }
-  .auth-segment-foto::after{
-    content:'';
-    position:absolute; inset:0;
-    background: linear-gradient(180deg, rgba(11,42,77,0) 45%, rgba(11,42,77,0.92) 100%);
-  }
-  .auth-segment-foto-label{
-    position:relative;
-    z-index:1;
-    display:block;
-    width:100%;
-    padding:8px 8px 7px;
-    font-size:11.5px;
-    font-weight:700;
-    line-height:1.2;
-    color:#fff;
-    text-align:center;
+  .auth-segment-foto:hover{
+    transform: scale(1.035);
+    box-shadow: 0 8px 22px rgba(8,20,38,0.3);
   }
   .auth-brand-footer{
     margin-top:auto;
@@ -2104,41 +2092,25 @@
       <p class="auth-desc">A Florest Sistemas oferece um ERP moderno e fácil de usar, pensado para diferentes segmentos e para o crescimento do seu negócio.</p>
     </div>
 
-    <!-- Foto do PDV (monitor + leitor de código de barras + impressora em ambiente comercial).
-         Arquivo esperado: assets/login/pdv-florest.webp (ver lista de assets no relatório).
-         Sem essa foto, mostra só o gradiente navy abaixo — nunca fica vazio. -->
-    <div class="auth-hero-photo" role="img" aria-label="Computador de PDV com leitor de código de barras e impressora térmica em ambiente comercial"></div>
+    <!-- Foto do PDV (monitor + leitor de código de barras + impressora, com a marca Florest
+         Sistemas na tela) — arquivo real fornecido pelo usuário, já salvo em
+         assets/login/pdv-florest.webp. -->
+    <div class="auth-hero-photo" role="img" aria-label="Computador de PDV com a marca Florest Sistemas na tela, leitor de código de barras e impressora térmica em ambiente comercial" style="background-image:url('assets/login/pdv-florest.webp');"></div>
 
     <div class="auth-segments">
       <p class="auth-segments-label">Segmentos atendidos</p>
+      <!-- As fotos abaixo já têm o nome do segmento e o ícone aplicados na própria arte
+           (fornecidas pelo usuário), por isso NENHUM texto é sobreposto em HTML aqui. -->
       <div class="auth-segments-grid">
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/distribuidora.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Distribuidora</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/bares-restaurantes.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Bares e Restaurantes</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/imobiliaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Imobiliária</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/pet-shop.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Pet Shop</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/barbearia.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Barbearia</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/aluguel-roupas.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Aluguel de Roupas</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/ferragista.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Ferragista</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/pizzaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Pizzaria</span>
-        </div>
-        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/padaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
-          <span class="auth-segment-foto-label">Padaria</span>
-        </div>
+        <div class="auth-segment-foto" role="img" aria-label="Distribuidora" style="background-image:url('assets/segmentos/distribuidora.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Bares e Restaurantes" style="background-image:url('assets/segmentos/bares-restaurantes.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Imobiliária" style="background-image:url('assets/segmentos/imobiliaria.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Pet Shop" style="background-image:url('assets/segmentos/pet-shop.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Barbearia" style="background-image:url('assets/segmentos/barbearia.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Aluguel de Roupas" style="background-image:url('assets/segmentos/aluguel-roupas.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Ferragista" style="background-image:url('assets/segmentos/ferragista.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Pizzaria" style="background-image:url('assets/segmentos/pizzaria.webp');"></div>
+        <div class="auth-segment-foto" role="img" aria-label="Padaria" style="background-image:url('assets/segmentos/padaria.webp');"></div>
       </div>
     </div>
 
