@@ -1750,6 +1750,14 @@
   .bar-mesa-numero{ font-family:var(--font-display); font-size:22px; font-weight:600; }
   .bar-mesa-status{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:4px; }
   .bar-mesa-pessoas{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .bar-mesa-saldo{ font-size:12px; font-weight:700; color:var(--ink-soft); margin-top:4px; }
+  .bar-mesa-card.ocupada .bar-mesa-saldo{ color:#8A6D00; }
+  .bar-mesas-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; justify-content:flex-end; }
+  .bar-saldo-resumo{ display:flex; gap:18px; flex-wrap:wrap; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:#FAFAF8; margin:0 0 16px; }
+  .bar-saldo-resumo-item{ font-size:13px; }
+  .bar-saldo-resumo-item strong{ display:block; font-family:var(--font-display); font-size:18px; font-weight:600; }
+  .bar-avancado-toggle{ font-size:13px; }
+  .bar-avancado-conteudo.hidden{ display:none; }
   .bar-carrinho{ margin:8px 0 16px; }
   .bar-carrinho-item{
     display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px;
@@ -2906,87 +2914,37 @@
     </div>
 
     <!-- ===== VIEW: MÓDULO BAR ===== -->
+    <!-- SIMPLIFICAÇÃO OPERACIONAL (Migration 018): a navegação do operador foi reduzida a
+         MESAS / DESTINO DOS PRODUTOS / PRODUTOS COMPOSTOS. Caixa, Portaria, Bar/Cozinha (KDS) e
+         Relatórios deixaram de ter tela própria aqui — o fluxo virou MESA -> PEDIDO -> PAGAMENTO
+         -> MESA LIBERADA AUTOMATICAMENTE, tudo dentro de um único modal por mesa. Nada disso
+         apaga dado ou RPC nenhuma: bar_movimentos_pessoas, bar_configuracoes e as RPCs de
+         relatório da Migration 017 continuam existindo intactas no banco, prontas para uma
+         futura tela de Portaria ou para o módulo geral de Relatórios do ERP — só a interface
+         dedicada a elas foi removida daqui. -->
     <div id="view-bar" class="hidden">
       <div class="view-header">
         <div>
           <h2>Módulo Bar</h2>
-          <p>Mesas, comandas, pedidos, caixa e portaria</p>
+          <p>Mesas, pedidos e pagamento — a mesa libera sozinha quando a conta é quitada</p>
         </div>
       </div>
       <div class="bar-subnav" id="bar-subnav">
         <button type="button" class="bar-subnav-item active" data-barview="mesas">Mesas</button>
-        <button type="button" class="bar-subnav-item" data-barview="caixa">Caixa</button>
-        <button type="button" class="bar-subnav-item" data-barview="portaria">Portaria</button>
-        <button type="button" class="bar-subnav-item" data-barview="cozinha">Bar / Cozinha</button>
         <button type="button" class="bar-subnav-item" data-barview="destino">Destino dos Produtos</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
-        <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
-        <button type="button" class="bar-subnav-item" data-barview="config">Configurações</button>
       </div>
       <div id="bar-aviso-modulo" class="hidden"><div class="msg error">O módulo comercial Bar não está ativo para esta empresa.</div></div>
 
       <!-- ---- SUBVIEW: MESAS ---- -->
       <div id="bar-sub-mesas" class="bar-subview">
+        <div class="bar-mesas-acoes">
+          <button type="button" class="btn-secondary" id="btn-bar-estornar-busca" style="width:auto;">↩ Estornar pagamento</button>
+          <button type="button" class="btn-secondary" id="btn-bar-config-mesas-abrir" style="width:auto;">⚙ Configurar mesas</button>
+        </div>
         <div id="bar-mesas-msg"></div>
-        <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Vá em Configurações para definir a quantidade de mesas.</div>
+        <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Clique em "⚙ Configurar mesas" para definir a quantidade.</div>
         <div id="bar-mesas-grid" class="bar-mesas-grid"></div>
-      </div>
-
-      <!-- ---- SUBVIEW: CAIXA ---- -->
-      <div id="bar-sub-caixa" class="bar-subview hidden">
-        <div class="search-row">
-          <input type="text" id="bar-caixa-busca" placeholder="Buscar mesa por número...">
-        </div>
-        <div id="bar-caixa-msg"></div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr><th>Mesa</th><th>Pessoas</th><th>Itens em aberto</th><th>Subtotal em aberto</th><th>Ações</th></tr>
-            </thead>
-            <tbody id="bar-caixa-tabela-body"></tbody>
-          </table>
-          <div id="bar-caixa-empty" class="empty-state hidden">Nenhuma mesa com conta em aberto no momento.</div>
-        </div>
-      </div>
-
-      <!-- ---- SUBVIEW: PORTARIA ---- -->
-      <div id="bar-sub-portaria" class="bar-subview hidden">
-        <div id="bar-portaria-msg"></div>
-        <div class="modal-section-label">Em atendimento</div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr><th>Mesa</th><th>Entraram</th><th>Liberadas</th><th>Dentro agora</th><th>Status</th></tr>
-            </thead>
-            <tbody id="bar-portaria-tabela-body"></tbody>
-          </table>
-          <div id="bar-portaria-empty" class="empty-state hidden">Nenhuma mesa ocupada no momento.</div>
-        </div>
-
-        <div class="modal-section-label" style="margin-top:18px;">Liberações recentes</div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr><th>Mesa</th><th>Liberadas</th><th>Restante</th><th>Horário</th><th>Status</th></tr>
-            </thead>
-            <tbody id="bar-portaria-recentes-body"></tbody>
-          </table>
-          <div id="bar-portaria-recentes-empty" class="empty-state hidden">Nenhuma liberação recente.</div>
-        </div>
-      </div>
-
-      <!-- ---- SUBVIEW: BAR / COZINHA (KDS + impressão) ---- -->
-      <div id="bar-sub-cozinha" class="bar-subview hidden">
-        <div class="view-header" style="padding:0 0 12px;">
-          <div class="bar-subnav" style="margin:0;">
-            <button type="button" class="bar-subnav-item active" data-destino="bar">Bar</button>
-            <button type="button" class="bar-subnav-item" data-destino="cozinha">Cozinha</button>
-          </div>
-          <button class="btn-secondary" id="btn-bar-cozinha-atualizar" style="width:auto;">Atualizar</button>
-        </div>
-        <div id="bar-cozinha-msg"></div>
-        <div id="bar-cozinha-lista" class="bar-cozinha-lista"></div>
-        <div id="bar-cozinha-empty" class="empty-state hidden">Nenhum item em aberto para este destino.</div>
       </div>
 
       <!-- ---- SUBVIEW: DESTINO DOS PRODUTOS (Bar/Cozinha em massa) ----
@@ -3040,62 +2998,6 @@
             <tbody id="bar-produtos-tabela-body"></tbody>
           </table>
           <div id="bar-produtos-empty" class="empty-state hidden">Nenhum produto composto cadastrado ainda.</div>
-        </div>
-      </div>
-
-      <!-- ---- SUBVIEW: RELATÓRIOS DO BAR ----
-           Requisito #10: DUAS visões distintas — A) o que foi vendido comercialmente (o produto
-           composto conta como 1 linha, pelo preço configurado); B) o que efetivamente saiu do
-           estoque físico (soma avulsos + o que saiu escondido dentro de compostos). -->
-      <div id="bar-sub-relatorios" class="bar-subview hidden">
-        <div class="field-row">
-          <div class="field"><label>De</label><input type="date" id="bar-relatorio-data-inicio"></div>
-          <div class="field"><label>Até</label><input type="date" id="bar-relatorio-data-fim"></div>
-          <div class="field" style="align-self:flex-end;"><button type="button" class="btn-primary" id="btn-bar-relatorio-filtrar" style="width:auto; padding:10px 20px;">Filtrar</button></div>
-        </div>
-        <div id="bar-relatorio-msg"></div>
-
-        <div class="modal-section-label">A — Produtos/itens comerciais vendidos</div>
-        <p class="modal-section-hint" style="margin-top:-6px;">O que o cliente pagou: um produto composto (ex.: Combo Casal) aparece como 1 linha só, pelo preço configurado — nunca desmembrado nos componentes.</p>
-        <div class="table-card">
-          <table>
-            <thead><tr><th>Produto</th><th>Quantidade vendida</th><th>Valor total</th></tr></thead>
-            <tbody id="bar-relatorio-comercial-body"></tbody>
-          </table>
-          <div id="bar-relatorio-comercial-empty" class="empty-state hidden">Nenhuma venda no período.</div>
-        </div>
-
-        <div class="modal-section-label" style="margin-top:18px;">B — Produtos físicos consumidos (saídas de estoque)</div>
-        <p class="modal-section-hint" style="margin-top:-6px;">O que efetivamente saiu do estoque — soma vendas avulsas + o que foi escolhido dentro de produtos compostos (ex.: Fanta 1L vendida solta + Fanta escolhida dentro de combos).</p>
-        <div class="search-row">
-          <input type="text" id="bar-relatorio-fisico-busca" placeholder="Buscar por nome do produto (ex.: Fanta 1L)...">
-        </div>
-        <div class="table-card">
-          <table>
-            <thead><tr><th>Produto físico</th><th>Quantidade consumida</th></tr></thead>
-            <tbody id="bar-relatorio-fisico-body"></tbody>
-          </table>
-          <div id="bar-relatorio-fisico-empty" class="empty-state hidden">Nenhum consumo no período.</div>
-        </div>
-      </div>
-
-      <!-- ---- SUBVIEW: CONFIGURAÇÕES ---- -->
-      <div id="bar-sub-config" class="bar-subview hidden">
-        <div class="table-card" style="padding:20px;">
-          <div class="field-row">
-            <div class="field">
-              <label>Quantidade de mesas</label>
-              <input type="number" id="bar-config-quantidade" min="0" max="500" step="1">
-            </div>
-            <div class="field">
-              <label>Taxa de serviço padrão (%)</label>
-              <input type="number" id="bar-config-taxa" min="0" max="100" step="0.01">
-            </div>
-          </div>
-          <div id="bar-config-msg"></div>
-          <div class="modal-actions" style="justify-content:flex-start;">
-            <button type="button" class="btn-primary" id="btn-salvar-config-bar" style="width:auto; padding:10px 20px;">Salvar</button>
-          </div>
         </div>
       </div>
     </div>
@@ -4104,114 +4006,104 @@
      MÓDULO BAR — modais
      =================================================================== -->
 
-<!-- MODAL: abrir mesa (pessoas iniciais) -->
-<div id="modal-bar-abrir-mesa" class="modal-overlay hidden">
-  <div class="modal-card" style="max-width:400px;">
-    <h3 id="bar-abrir-mesa-titulo">Abrir mesa</h3>
-    <div id="bar-abrir-mesa-msg"></div>
-    <div class="field">
-      <label>Quantidade de pessoas</label>
-      <input type="number" id="bar-abrir-mesa-pessoas" min="1" step="1" value="1">
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="btn-bar-abrir-mesa-cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-bar-abrir-mesa-confirmar" style="width:auto; padding:10px 20px;">Abrir mesa</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Pessoas (unificado — requisito #11: 1 botão só, "+ Pessoas" e "Corrigir pessoas"
-     antigos viraram uma única tela). Adicionar fica sempre disponível (bar_mesas); a correção do
-     total (para mais ou para menos, com motivo obrigatório) só aparece para quem tem
-     bar_corrigir_pessoas — a permissão/proteção de auditoria não muda, só a apresentação. -->
-<div id="modal-bar-pessoas" class="modal-overlay modal-overlay-secundario hidden">
-  <div class="modal-card" style="max-width:440px;">
-    <h3 id="bar-pessoas-titulo">Pessoas</h3>
-    <p class="modal-section-hint" id="bar-pessoas-atual" style="margin-top:-6px;"></p>
-    <div id="bar-pessoas-msg"></div>
-
-    <div class="modal-section-label">Adicionar pessoas</div>
-    <div class="field-row">
-      <div class="field">
-        <label>Quantas pessoas chegaram agora?</label>
-        <input type="number" id="bar-add-pessoas-qtd" min="1" step="1" value="1">
-      </div>
-      <div class="field" style="align-self:flex-end;">
-        <button type="button" class="btn-primary" id="btn-bar-add-pessoas-confirmar" style="width:auto; padding:10px 20px;">Adicionar</button>
-      </div>
-    </div>
-
-    <div id="bar-corrigir-pessoas-wrap" class="hidden">
-      <div class="modal-section-label">Corrigir total (uso restrito ao Caixa)</div>
-      <p class="modal-section-hint" style="margin-top:-6px;">Corrige o total para mais ou para menos. Fica registrado no histórico da mesa, com o motivo.</p>
-      <div class="field-row">
-        <div class="field">
-          <label>Novo total de pessoas na mesa</label>
-          <input type="number" id="bar-corrigir-pessoas-total" min="0" step="1">
-        </div>
-      </div>
-      <div class="field">
-        <label>Motivo da correção</label>
-        <textarea id="bar-corrigir-pessoas-motivo" placeholder="Ex: garçom contou errado ao abrir a mesa."></textarea>
-      </div>
-      <div class="modal-actions" style="justify-content:flex-start;">
-        <button type="button" class="btn-primary" id="btn-bar-corrigir-pessoas-confirmar" style="width:auto; padding:10px 20px;">Corrigir total</button>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:16px;">
-      <button type="button" class="btn-secondary" id="btn-bar-pessoas-fechar">Fechar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: comanda da mesa (lançar itens + ver itens já lançados + ações da mesa) -->
-<div id="modal-bar-comanda" class="modal-overlay hidden">
+<!-- MODAL ÚNICO DE MESA (Migration 018 — simplificação operacional).
+     Substitui os antigos modal-bar-abrir-mesa, modal-bar-pessoas, modal-bar-comanda e
+     modal-bar-pagamento por UMA tela só. Mesa livre: abre transparentemente no primeiro "Lançar
+     pedido" (bar_pedido_lancar cuida disso no banco — nenhuma pergunta de quantidade de pessoas
+     aqui). Saldo (Total consumido/Já pago/Em aberto) SEMPRE vem recalculado no banco
+     (bar_comanda_resumo_financeiro) — nunca um valor guardado só no navegador. Pagamento parcial
+     por valor aproximado é o caminho simples (o backend continua cobrando por ITENS reais —
+     ver relatório técnico); "Opções avançadas" expõe a seleção exata de itens para quem precisar
+     de precisão total. Ao quitar o saldo, o backend fecha a mesa sozinho — não existe mais botão
+     de "Fechar mesa" nem "Pessoas". -->
+<div id="modal-bar-mesa" class="modal-overlay hidden">
   <div class="modal-card modal-card-wide">
-    <h3 id="bar-comanda-titulo">Mesa</h3>
-    <div id="bar-comanda-msg"></div>
-    <div id="bar-comanda-resumo" class="modal-section-hint" style="margin-top:0;"></div>
-    <div class="modal-actions" style="margin:10px 0 16px; justify-content:flex-start; flex-wrap:wrap;">
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-pessoas" style="width:auto;">Pessoas</button>
-      <button type="button" class="btn-accent" id="btn-bar-comanda-ir-caixa" style="width:auto;">Ir para o Caixa</button>
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-fechar-mesa" style="width:auto;">Fechar mesa</button>
+    <h3 id="bar-mesa-titulo">Mesa</h3>
+    <div id="bar-mesa-msg"></div>
+
+    <div class="bar-saldo-resumo" id="bar-mesa-saldo-resumo">
+      <div class="bar-saldo-resumo-item">Total consumido<strong id="bar-mesa-total-consumido">R$ 0,00</strong></div>
+      <div class="bar-saldo-resumo-item">Já pago<strong id="bar-mesa-total-pago">R$ 0,00</strong></div>
+      <div class="bar-saldo-resumo-item">Em aberto<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
     </div>
 
-    <!-- Requisito #7: um único passo — escolhe o item, responde às escolhas (se composto),
-         informa quantidade/observação e clica em "Lançar pedido". Cada clique já lança e baixa
-         estoque na hora (bar_pedido_enviar); não existe mais carrinho local nem um segundo botão
-         de "enviar" separado. -->
-    <div class="modal-section-label">Lançar pedido</div>
+    <div class="modal-section-label">Lançar novo pedido</div>
     <div class="field-row">
       <div class="field" style="flex:2;">
         <label>Item do cardápio</label>
-        <select id="bar-comanda-item-select"></select>
+        <select id="bar-mesa-item-select"></select>
       </div>
       <div class="field">
         <label>Quantidade</label>
-        <input type="number" id="bar-comanda-item-qtd" min="0.01" step="0.01" value="1">
+        <input type="number" id="bar-mesa-item-qtd" min="0.01" step="0.01" value="1">
       </div>
     </div>
-    <div id="bar-comanda-escolhas"></div>
+    <div id="bar-mesa-escolhas"></div>
     <div class="field">
       <label>Observação (opcional)</label>
-      <input type="text" id="bar-comanda-item-obs" placeholder="Ex: sem gelo, ponto da carne, etc.">
+      <input type="text" id="bar-mesa-item-obs" placeholder="Ex: sem gelo, ponto da carne, etc.">
     </div>
     <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-accent" id="btn-bar-comanda-lancar" style="width:auto;">Lançar pedido</button>
+      <button type="button" class="btn-accent" id="btn-bar-mesa-lancar" style="width:auto;">Lançar pedido</button>
     </div>
 
-    <div class="modal-section-label">Itens já lançados nesta comanda</div>
+    <div class="modal-section-label">Itens desta comanda</div>
     <div class="table-card" style="margin-top:8px;">
       <table>
         <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Status</th><th></th></tr></thead>
-        <tbody id="bar-comanda-itens-body"></tbody>
+        <tbody id="bar-mesa-itens-body"></tbody>
       </table>
-      <div id="bar-comanda-itens-empty" class="empty-state hidden">Nenhum item lançado ainda.</div>
+      <div id="bar-mesa-itens-empty" class="empty-state hidden">Nenhum item lançado ainda.</div>
+    </div>
+
+    <div class="modal-section-label" style="margin-top:18px;">Pagamento</div>
+    <p class="modal-section-hint" id="bar-mesa-pagamento-dica" style="margin-top:-6px;"></p>
+    <div class="field-row">
+      <div class="field">
+        <label>Valor a receber agora (R$)</label>
+        <input type="number" id="bar-mesa-pagamento-valor" min="0.01" step="0.01">
+      </div>
+      <div class="field" style="align-self:flex-end;">
+        <button type="button" class="link-btn" id="btn-bar-mesa-pagar-tudo">Preencher com o saldo em aberto</button>
+      </div>
+    </div>
+    <p class="modal-section-hint" style="margin-top:-6px;">Qualquer valor é aceito — não precisa corresponder ao preço de nenhum item. O banco confere o valor contra o saldo real antes de aceitar.</p>
+
+    <div class="modal-section-label">Formas de pagamento</div>
+    <div id="bar-mesa-pagamento-formas"></div>
+    <div class="modal-actions" style="justify-content:flex-start;">
+      <button type="button" class="btn-secondary" id="btn-bar-mesa-pagamento-add-forma" style="width:auto;">+ Forma de pagamento</button>
+    </div>
+    <div class="modal-section-hint" id="bar-mesa-pagamento-total-linha" style="margin-top:0;"></div>
+
+    <div class="modal-section-label">
+      <button type="button" class="link-btn bar-avancado-toggle" id="btn-bar-mesa-avancado-toggle">Ajustes da conta — desconto, acréscimo, taxa de serviço ▾</button>
+    </div>
+    <div id="bar-mesa-avancado" class="bar-avancado-conteudo hidden">
+      <p class="modal-section-hint" style="margin-top:0;">Valem para a conta inteira (não por pagamento) — informados uma vez, continuam valendo nos próximos pagamentos parciais desta mesma mesa até serem alterados de novo aqui.</p>
+      <div class="field-row" style="margin-top:0;">
+        <div class="field"><label>Desconto (R$)</label><input type="number" id="bar-mesa-desconto" min="0" step="0.01" value="0"></div>
+        <div class="field"><label>Acréscimo (R$)</label><input type="number" id="bar-mesa-acrescimo" min="0" step="0.01" value="0"></div>
+        <div class="field"><label>Taxa de serviço (R$)</label><input type="number" id="bar-mesa-taxa" min="0" step="0.01" value="0"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="justify-content:flex-start;">
+      <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:auto; padding:10px 20px;">Confirmar pagamento</button>
+    </div>
+
+    <div id="bar-mesa-historico-wrap" class="hidden">
+      <div class="modal-section-label" style="margin-top:18px;">Pagamentos já registrados nesta comanda</div>
+      <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
+        <table>
+          <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
+          <tbody id="bar-mesa-historico-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="modal-actions" style="margin-top:20px;">
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-fechar-modal">Fechar</button>
+      <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal">Fechar</button>
     </div>
   </div>
 </div>
@@ -4233,63 +4125,10 @@
   </div>
 </div>
 
-<!-- MODAL: pagamento (Caixa) — total ou parcial, múltiplas formas, desconto/acréscimo/taxa, liberação -->
-<div id="modal-bar-pagamento" class="modal-overlay hidden">
-  <div class="modal-card modal-card-wide">
-    <h3 id="bar-pagamento-titulo">Fechar conta</h3>
-    <div id="bar-pagamento-msg"></div>
-    <div class="modal-section-label">Itens em aberto (marque os que entram neste pagamento)</div>
-    <div class="table-card" style="margin-top:8px; max-height:220px; overflow:auto;">
-      <table>
-        <thead><tr><th></th><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th></tr></thead>
-        <tbody id="bar-pagamento-itens-body"></tbody>
-      </table>
-    </div>
-    <div class="modal-actions" style="justify-content:flex-start; gap:16px;">
-      <button type="button" class="link-btn" id="btn-bar-pagamento-marcar-todos">Marcar todos</button>
-      <button type="button" class="link-btn" id="btn-bar-pagamento-desmarcar-todos">Desmarcar todos</button>
-    </div>
-
-    <div id="bar-pagamento-historico-wrap" class="hidden">
-      <div class="modal-section-label">Pagamentos já registrados nesta comanda</div>
-      <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
-        <table>
-          <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
-          <tbody id="bar-pagamento-historico-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="field-row">
-      <div class="field"><label>Subtotal selecionado</label><input type="text" id="bar-pagamento-subtotal" disabled></div>
-      <div class="field"><label>Desconto (R$)</label><input type="number" id="bar-pagamento-desconto" min="0" step="0.01" value="0"></div>
-      <div class="field"><label>Acréscimo (R$)</label><input type="number" id="bar-pagamento-acrescimo" min="0" step="0.01" value="0"></div>
-      <div class="field"><label>Taxa de serviço (R$)</label><input type="number" id="bar-pagamento-taxa" min="0" step="0.01" value="0"></div>
-    </div>
-    <div class="modal-section-hint" id="bar-pagamento-total-linha" style="margin-top:0;"></div>
-
-    <div class="modal-section-label">Formas de pagamento</div>
-    <div id="bar-pagamento-formas"></div>
-    <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-secondary" id="btn-bar-pagamento-add-forma" style="width:auto;">+ Forma de pagamento</button>
-    </div>
-
-    <div class="field">
-      <label>Pessoas a liberar agora (máx. <span id="bar-pagamento-max-pessoas">0</span>)</label>
-      <input type="number" id="bar-pagamento-pessoas-liberar" min="0" step="1" value="0">
-    </div>
-
-    <div class="modal-actions" style="margin-top:16px;">
-      <button type="button" class="btn-secondary" id="btn-bar-pagamento-cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-bar-pagamento-confirmar" style="width:auto; padding:10px 20px;">Confirmar pagamento</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL: pagamento concluído / emitir nota fiscal — só aparece no FECHAMENTO FINAL da conta
-     (sem saldo pendente, sem itens em aberto, mesa já com zero pessoas). Espelha exatamente o
-     modal do PDV (#modal-venda-concluida): mesmas RPCs (fiscal_emitir_nota + Edge Function
-     fiscal-emitir-documento via chamarEmissaoRealNFCe), nenhuma lógica fiscal nova. -->
+     (saldo em aberto chega a zero e a mesa é liberada automaticamente pelo backend). Espelha
+     exatamente o modal do PDV (#modal-venda-concluida): mesmas RPCs (fiscal_emitir_nota + Edge
+     Function fiscal-emitir-documento via chamarEmissaoRealNFCe), nenhuma lógica fiscal nova. -->
 <div id="modal-bar-pagamento-concluido" class="modal-overlay hidden">
   <div class="modal-card" style="max-width:420px; text-align:center;">
     <h3 id="bar-pagamento-concluido-titulo">Pagamento concluído</h3>
@@ -4299,6 +4138,62 @@
     <div class="modal-actions" style="justify-content:center; flex-direction:column; gap:10px; margin-top:20px;">
       <button type="button" class="btn-accent" id="btn-bar-pagamento-emitir-sim" style="width:100%;">Sim, emitir nota</button>
       <button type="button" class="btn-secondary" id="btn-bar-pagamento-emitir-nao" style="width:100%;">Não emitir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: configurar mesas (Migration 018 — antes era uma aba própria "Configurações"; agora é
+     um botão pequeno dentro de Mesas, permissão bar_configurar, reaproveitando bar_configurar_mesas
+     sem nenhuma alteração). -->
+<div id="modal-bar-config-mesas" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:420px;">
+    <h3>Configurar mesas</h3>
+    <div id="bar-config-mesas-msg"></div>
+    <div class="field">
+      <label>Quantidade de mesas</label>
+      <input type="number" id="bar-config-mesas-quantidade" min="0" max="500" step="1">
+    </div>
+    <div class="field">
+      <label>Taxa de serviço padrão (%)</label>
+      <input type="number" id="bar-config-mesas-taxa" min="0" max="100" step="0.01">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-bar-config-mesas-cancelar">Cancelar</button>
+      <button type="button" class="btn-primary" id="btn-bar-config-mesas-salvar" style="width:auto; padding:10px 20px;">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: buscar mesa para estornar pagamento (Migration 018) — a Portaria/Caixa deixaram de
+     existir como telas; como a mesa libera sozinha, este é o único caminho que sobra para achar
+     o histórico de pagamentos de um atendimento já encerrado e, se preciso, estornar um pagamento
+     lançado errado. Só aparece para quem tem bar_estornar_pagamento. Reaproveita o mesmo
+     modal-bar-estornar-pagamento de sempre para a ação em si. -->
+<div id="modal-bar-estornar-busca" class="modal-overlay hidden">
+  <div class="modal-card modal-card-wide">
+    <h3>Estornar pagamento</h3>
+    <p class="modal-section-hint" style="margin-top:-6px;">Use isto quando a mesa já foi liberada e é preciso corrigir um pagamento lançado errado. Busque pelo número da mesa para ver o histórico de pagamentos do atendimento mais recente dela.</p>
+    <div id="bar-estornar-busca-msg"></div>
+    <div class="field-row">
+      <div class="field">
+        <label>Número da mesa</label>
+        <input type="number" id="bar-estornar-busca-numero" min="1" step="1">
+      </div>
+      <div class="field" style="align-self:flex-end;">
+        <button type="button" class="btn-primary" id="btn-bar-estornar-busca-ir" style="width:auto; padding:10px 20px;">Buscar</button>
+      </div>
+    </div>
+    <div id="bar-estornar-busca-resultado" class="hidden">
+      <div class="modal-section-label">Pagamentos do atendimento mais recente desta mesa</div>
+      <div class="table-card" style="margin-top:8px; max-height:220px; overflow:auto;">
+        <table>
+          <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
+          <tbody id="bar-estornar-busca-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button type="button" class="btn-secondary" id="btn-bar-estornar-busca-fechar">Fechar</button>
     </div>
   </div>
 </div>
@@ -10677,53 +10572,55 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
 });
 
 // =====================================================================
-// MÓDULO BAR — Mesas / Comandas / Pedidos (Bar+Cozinha) / Caixa / Portaria
+// MÓDULO BAR — Mesas / Pedidos / Pagamento (Migration 018: simplificação operacional)
 // Construído sobre as convenções já usadas no restante do arquivo:
 // obterEmpresaId/buscarTodos/escapeHtml/formatarReais/mensagemBancoAcesso, modais/CSS existentes.
 // TODA escrita passa por RPC (bar_*) — nenhuma tabela bar_* aceita INSERT/UPDATE direto do
-// navegador (ver Migration 016). Este módulo nunca lê/escreve em Produtos, PDV, Fiscal,
+// navegador (ver Migrations 016/017/018). Este módulo nunca lê/escreve em Produtos, PDV, Fiscal,
 // Estoque, Financeiro, Fornecedores, Notas de Entrada, nem em nenhuma tabela do Módulo Pet.
-// =====================================================================
+//
+// SIMPLIFICAÇÃO OPERACIONAL (Migration 018): o fluxo do operador virou
+// MESA -> PEDIDO -> PAGAMENTO -> MESA LIBERADA AUTOMATICAMENTE, tudo dentro de um único modal por
+// mesa (modal-bar-mesa). Não existem mais telas próprias de Caixa, Portaria nem Bar/Cozinha (KDS):
+// os dados e as RPCs por trás continuam intactos no banco (bar_movimentos_pessoas,
+// bar_configuracoes, as RPCs de relatório da Migration 017) — só a interface dedicada a eles foi
+// removida daqui. Abrir uma mesa livre nunca mais pergunta quantidade de pessoas: a mesa abre
+// sozinha (pessoas=0) no instante em que o primeiro pedido é lançado, através da nova RPC
+// bar_pedido_lancar (Migration 018). Quando o saldo real da comanda chega a zero, o próprio banco
+// libera a mesa automaticamente (bar_comanda_pagar_valor chama bar_mesa_fechar internamente) — não
+// existe mais botão "Fechar mesa" manual.
 let barSubViewAtual = 'mesas';
 let barCanalRealtime = null;
-let barMesaAtual = null;
+let barMesaAtual = null; // mesa atualmente aberta no modal-bar-mesa (objeto bar_mesas, recarregado após cada ação)
 let barComandaAtualId = null;
 let barCardapioCache = [];
-let barItemSelecionadoEscolhas = null; // grupos/opções do bar_produto selecionado no lançamento (se composto)
 let barDestinoCache = [];
 let barDestinoSelecionados = new Set();
 let barGruposEdicao = []; // [{ nome, quantidade_escolhas, ordem, opcoes:[{produto_id,nome,ordem}] }]
-let barPagamentoComandaId = null;
-let barPagamentoMesaInfo = null;
-let barPagamentoItensCache = [];
-let barPagamentoItensSelecionados = new Set();
-let barCozinhaDestinoAtual = 'bar';
 let barItemParaCancelar = null;
-let barMesaParaAbrir = null;
 let barProdutoBarEditandoId = null;
 let barProdutosCatalogoCache = null;
 let barEstornoPagamentoId = null;
+let barEstornoPagamentoCallback = null; // função chamada após um estorno confirmado, para recarregar a tela certa
 let barFiscalComandaAtual = null;
 let barFiscalVendaIdAtual = null; // REVISÃO 3: 1 comanda = 1 venda — nunca mais uma lista de venda_ids
-
-// Portaria: janela e limite da lista "Liberações recentes" (comandas fechada_em dentro dela).
-// Puramente de exibição — não afeta nenhuma regra financeira/estoque/RLS.
-const BAR_PORTARIA_RECENTES_HORAS = 6;
-const BAR_PORTARIA_RECENTES_LIMITE = 30;
+let barMesaResumoAtual = null; // último resultado de bar_comanda_resumo_financeiro (nunca um valor digitado pelo usuário)
+let barMesaAjustesTocados = false; // true assim que o operador abre/edita "Ajustes da conta" nesta sessão do modal — controla se desconto/acréscimo/taxa são enviados (substituindo o que já está salvo) ou omitidos (nulo = mantém o que já estava) no próximo pagamento
+let barEstornarBuscaComandaId = null; // comanda encontrada pela busca "Estornar pagamento" (histórico de mesa já liberada)
 
 function podeAcessarBar(permissao){
   return acesso.papel === 'proprietario' || acesso.permissoes.includes(permissao);
 }
 
+// Requisito de navegação (Migration 018): só 3 telas. "Mesas" fica visível para qualquer
+// permissão operacional do Bar (mesmo as antigas bar_caixa/bar_portaria, mantidas aqui só para
+// ninguém perder acesso por causa de um perfil já configurado) — o próprio modal da mesa
+// esconde/mostra cada ação (lançar pedido, receber pagamento, estornar) conforme a permissão de
+// quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
-  mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar'],
-  caixa: ['bar_caixa'],
-  portaria: ['bar_portaria'],
-  cozinha: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa'],
+  mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
   destino: ['bar_configurar'],
   produtos: ['bar_configurar'],
-  relatorios: ['bar_caixa','bar_configurar'],
-  config: ['bar_configurar'],
 };
 
 async function carregarBarView(){
@@ -10734,7 +10631,7 @@ async function carregarBarView(){
   configurarRealtimeBar();
   const primeiraDisponivel = Object.keys(BAR_SUBVIEW_PERMISSOES).find(v =>
     BAR_SUBVIEW_PERMISSOES[v].some(p => podeAcessarBar(p)));
-  await abrirSubViewBar(podeAcessarBar('bar_visualizar') || BAR_SUBVIEW_PERMISSOES[barSubViewAtual].some(p => podeAcessarBar(p)) ? barSubViewAtual : (primeiraDisponivel || 'mesas'));
+  await abrirSubViewBar(BAR_SUBVIEW_PERMISSOES[barSubViewAtual].some(p => podeAcessarBar(p)) ? barSubViewAtual : (primeiraDisponivel || 'mesas'));
 }
 
 document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(btn => {
@@ -10744,40 +10641,27 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 async function abrirSubViewBar(sub){
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','caixa','portaria','cozinha','destino','produtos','relatorios','config'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','destino','produtos'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarMesas();
-  else if(sub === 'caixa') await carregarBarCaixa();
-  else if(sub === 'portaria') await carregarBarPortaria();
-  else if(sub === 'cozinha') await carregarBarCozinha();
   else if(sub === 'destino') await carregarBarDestino();
   else if(sub === 'produtos') await carregarBarProdutos();
-  else if(sub === 'relatorios') await carregarBarRelatorios();
-  else if(sub === 'config') await carregarBarConfig();
 }
 
-// Supabase Realtime (Migration 016 adiciona bar_mesas/bar_comandas/bar_pedidos_itens/
-// bar_movimentos_pessoas à publicação supabase_realtime, se ela existir no projeto). Se o
-// projeto não tiver Realtime habilitado, a assinatura simplesmente não recebe eventos — as
-// telas continuam funcionando normalmente, só sem atualização automática entre usuários.
+// Supabase Realtime (Migration 016 adiciona bar_mesas/bar_comandas/bar_pedidos_itens à publicação
+// supabase_realtime, se ela existir no projeto). Se o projeto não tiver Realtime habilitado, a
+// assinatura simplesmente não recebe eventos — a tela continua funcionando normalmente, só sem
+// atualização automática entre usuários.
 function configurarRealtimeBar(){
   if(barCanalRealtime) return;
   try{
     barCanalRealtime = supabase.channel('bar-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_mesas' }, () => {
         if(barSubViewAtual === 'mesas') carregarBarMesas();
-        if(barSubViewAtual === 'portaria') carregarBarPortaria();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_comandas' }, () => {
-        // Fechamento/reabertura de comanda (inclusive por bar_pagamento_estornar) muda o que a
-        // Portaria mostra em "Liberações recentes" mesmo quando bar_mesas não muda no mesmo instante.
-        if(barSubViewAtual === 'portaria') carregarBarPortaria();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_pedidos_itens' }, () => {
-        if(barSubViewAtual === 'cozinha') carregarBarCozinha();
-        if(barSubViewAtual === 'caixa') carregarBarCaixa();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_movimentos_pessoas' }, () => {
-        if(barSubViewAtual === 'portaria') carregarBarPortaria();
+        // Mantém saldo/itens em dia no modal aberto quando outro dispositivo lança/cancela um
+        // item da mesma comanda (ex.: dois garçons atendendo a mesma mesa).
+        if(barComandaAtualId && !$('modal-bar-mesa').classList.contains('hidden')) atualizarSaldoEItensMesa();
       })
       .subscribe();
   }catch(e){
@@ -10788,19 +10672,42 @@ function configurarRealtimeBar(){
 // ---------- Mesas ----------
 async function carregarBarMesas(){
   $('bar-mesas-msg').innerHTML = '';
+  $('btn-bar-config-mesas-abrir').classList.toggle('hidden', !podeAcessarBar('bar_configurar'));
+  $('btn-bar-estornar-busca').classList.toggle('hidden', !podeAcessarBar('bar_estornar_pagamento'));
   const { data: mesas, error } = await supabase.from('bar_mesas').select('*').order('numero');
   if(error){
     $('bar-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  const visiveis = (mesas || []).filter(m => m.status !== 'fechada' || podeAcessarBar('bar_configurar'));
+  const visiveis = (mesas || []).filter(m => m.status !== 'fechada');
   $('bar-mesas-vazio').classList.toggle('hidden', visiveis.length > 0);
-  $('bar-mesas-grid').innerHTML = visiveis.map(m => `
+
+  // O saldo mostrado no grid (LIVRE / EM ABERTO — R$X) é só uma leitura de exibição — mas desde o
+  // pagamento monetário (Migration 018, Revisão 2) um item NUNCA fica marcado como "pago" por
+  // pagamento_id (isso só acontece no estilo antigo, por seleção manual de itens), então somar
+  // "itens com pagamento_id nulo" mostraria sempre o total bruto da conta, ignorando qualquer
+  // pagamento parcial já recebido. Por isso o saldo do grid vem da MESMA fonte única de verdade do
+  // pagamento (bar_comanda_resumo_financeiro -> private.bar_comanda_saldo_calcular), uma chamada
+  // por mesa ocupada — nunca um valor guardado/calculado no navegador.
+  const comandaIds = visiveis.filter(m => m.comanda_atual_id).map(m => m.comanda_atual_id);
+  const saldoPorComanda = new Map();
+  if(comandaIds.length > 0){
+    const resumos = await Promise.all(comandaIds.map(id => supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: id })));
+    resumos.forEach((resp, i) => {
+      const r = resp && !resp.error && resp.data && resp.data[0];
+      saldoPorComanda.set(comandaIds[i], r ? Number(r.subtotal_aberto) : 0);
+    });
+  }
+
+  $('bar-mesas-grid').innerHTML = visiveis.map(m => {
+    const saldo = m.comanda_atual_id ? (saldoPorComanda.get(m.comanda_atual_id) || 0) : 0;
+    const statusTexto = m.status === 'ocupada' ? `EM ABERTO — ${formatarReais(saldo)}` : 'LIVRE';
+    return `
     <div class="bar-mesa-card ${m.status}" data-mesa-id="${m.id}">
-      <div class="bar-mesa-numero">${m.numero}</div>
-      <div class="bar-mesa-status">${m.status === 'livre' ? 'Livre' : m.status === 'ocupada' ? 'Ocupada' : 'Fechada'}</div>
-      ${m.status === 'ocupada' ? `<div class="bar-mesa-pessoas">${m.pessoas_atual} pessoa(s)</div>` : ''}
-    </div>`).join('');
+      <div class="bar-mesa-numero">Mesa ${m.numero}</div>
+      <div class="bar-mesa-saldo">${statusTexto}</div>
+    </div>`;
+  }).join('');
   document.querySelectorAll('#bar-mesas-grid .bar-mesa-card').forEach(card => {
     const mesa = (mesas || []).find(x => x.id === card.dataset.mesaId);
     card.addEventListener('click', () => aoClicarMesaBar(mesa));
@@ -10809,69 +10716,104 @@ async function carregarBarMesas(){
 
 function aoClicarMesaBar(mesa){
   if(!mesa || mesa.status === 'fechada') return;
-  if(mesa.status === 'livre'){
-    if(!podeAcessarBar('bar_mesas')) return;
-    abrirModalAbrirMesa(mesa);
-  } else {
-    abrirModalComanda(mesa);
-  }
+  abrirModalMesa(mesa);
 }
 
-function abrirModalAbrirMesa(mesa){
-  barMesaParaAbrir = mesa;
-  $('bar-abrir-mesa-titulo').textContent = `Abrir mesa ${mesa.numero}`;
-  $('bar-abrir-mesa-msg').innerHTML = '';
-  $('bar-abrir-mesa-pessoas').value = 1;
-  $('modal-bar-abrir-mesa').classList.remove('hidden');
-}
-$('btn-bar-abrir-mesa-cancelar').addEventListener('click', () => $('modal-bar-abrir-mesa').classList.add('hidden'));
-$('btn-bar-abrir-mesa-confirmar').addEventListener('click', async () => {
-  const pessoas = parseInt($('bar-abrir-mesa-pessoas').value, 10);
-  if(!pessoas || pessoas <= 0){
-    $('bar-abrir-mesa-msg').innerHTML = '<div class="msg error">Informe a quantidade de pessoas.</div>';
-    return;
-  }
-  const btn = $('btn-bar-abrir-mesa-confirmar');
-  btn.disabled = true; btn.textContent = 'Abrindo...';
-  const { error } = await supabase.rpc('bar_mesa_abrir', { p_mesa_id: barMesaParaAbrir.id, p_pessoas: pessoas });
-  btn.disabled = false; btn.textContent = 'Abrir mesa';
-  if(error){
-    $('bar-abrir-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-  $('modal-bar-abrir-mesa').classList.add('hidden');
-  await carregarBarMesas();
-  const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaParaAbrir.id).single();
-  if(mesaAtualizada) abrirModalComanda(mesaAtualizada);
-});
-
-// ---------- Comanda (lançar itens / ver itens / ações da mesa) ----------
-function atualizarResumoComanda(){
-  $('bar-comanda-titulo').textContent = `Mesa ${barMesaAtual.numero}`;
-  $('bar-comanda-resumo').innerHTML = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa · aberta em ${barMesaAtual.aberta_em ? new Date(barMesaAtual.aberta_em).toLocaleString('pt-BR') : '—'}`;
-}
-
-async function abrirModalComanda(mesa){
+// ---------- Modal único da mesa (pedido + pagamento) ----------
+// Requisito central da Migration 018: clicar numa mesa LIVRE nunca pergunta quantidade de
+// pessoas — o modal abre normalmente (sem comanda ainda) e a mesa só passa a existir de verdade
+// (bar_mesa_abrir_interna, dentro de bar_pedido_lancar) quando o primeiro pedido é lançado.
+async function abrirModalMesa(mesa){
   barMesaAtual = mesa;
-  barComandaAtualId = mesa.comanda_atual_id;
-  $('bar-comanda-msg').innerHTML = '';
-  $('bar-comanda-item-obs').value = '';
-  $('bar-comanda-item-qtd').value = 1;
-  $('bar-comanda-escolhas').innerHTML = '';
-  atualizarResumoComanda();
-  $('btn-bar-comanda-pessoas').classList.toggle('hidden', !podeAcessarBar('bar_mesas') && !podeAcessarBar('bar_corrigir_pessoas'));
-  $('btn-bar-comanda-ir-caixa').classList.toggle('hidden', !podeAcessarBar('bar_caixa'));
-  $('btn-bar-comanda-lancar').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
-  $('modal-bar-comanda').classList.remove('hidden');
-  await Promise.all([carregarCardapioBarSelect(), recarregarItensComanda()]);
+  barComandaAtualId = mesa.comanda_atual_id || null;
+  barMesaResumoAtual = null;
+  $('bar-mesa-msg').innerHTML = '';
+  $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
+  $('bar-mesa-item-obs').value = '';
+  $('bar-mesa-item-qtd').value = 1;
+  $('bar-mesa-escolhas').innerHTML = '';
+  $('bar-mesa-pagamento-valor').value = '';
+  $('bar-mesa-pagamento-dica').textContent = '';
+  $('bar-mesa-pagamento-total-linha').innerHTML = '';
+  $('bar-mesa-desconto').value = 0;
+  $('bar-mesa-acrescimo').value = 0;
+  $('bar-mesa-taxa').value = 0;
+  barMesaAjustesTocados = false;
+  $('bar-mesa-avancado').classList.add('hidden');
+  $('btn-bar-mesa-avancado-toggle').textContent = 'Ajustes da conta — desconto, acréscimo, taxa de serviço ▾';
+  $('bar-mesa-pagamento-formas').innerHTML = '';
+  adicionarLinhaFormaPagamento();
+
+  $('btn-bar-mesa-lancar').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
+  const podeReceber = podeAcessarBar('bar_caixa');
+  ['bar-mesa-pagamento-valor', 'btn-bar-mesa-pagar-tudo', 'btn-bar-mesa-avancado-toggle', 'btn-bar-mesa-pagamento-add-forma', 'btn-bar-mesa-receber-pagamento']
+    .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
+
+  $('modal-bar-mesa').classList.remove('hidden');
+  await Promise.all([carregarCardapioBarSelect(), atualizarSaldoEItensMesa()]);
 }
 
-// Requisito #7: lançamento único. carregarCardapioBarSelect traz, junto com cada item do
+// Recarrega saldo (bar_comanda_resumo_financeiro — sempre recalculado no banco a partir dos itens
+// reais e dos pagamentos reais, nunca de um valor digitado), itens da comanda e histórico de
+// pagamentos. Chamada depois de toda ação (lançar pedido, cancelar item, receber pagamento,
+// estornar) e pelo Realtime.
+async function atualizarSaldoEItensMesa(){
+  if(!barComandaAtualId){
+    barMesaResumoAtual = { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
+    renderResumoFinanceiroMesa();
+    renderItensComandaMesa([]);
+    $('bar-mesa-historico-wrap').classList.add('hidden');
+    return;
+  }
+  const [resumoResp, itensResp] = await Promise.all([
+    supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: barComandaAtualId }),
+    buscarTodos(() => supabase
+      .from('bar_pedidos_itens')
+      .select('id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional )')
+      .eq('comanda_id', barComandaAtualId)
+      .order('criado_em')),
+  ]);
+  if(resumoResp.error || itensResp.error){
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error))}</div>`;
+    return;
+  }
+  barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
+  renderResumoFinanceiroMesa();
+  renderItensComandaMesa(itensResp.data || []);
+  await carregarHistoricoPagamentosMesa();
+}
+
+// "TOTAL CONSUMIDO / JÁ PAGO / EM ABERTO" — os 3 números do requisito, sempre recalculados no
+// banco (private.bar_comanda_saldo_calcular, via bar_comanda_resumo_financeiro). Também pré-
+// preenche "Valor a receber agora" com o saldo em aberto (o operador só troca se quiser receber
+// menos) e os campos de "Ajustes da conta" com o que já estiver salvo na comanda — mas só até o
+// operador mexer neles (barMesaAjustesTocados), para nunca sobrescrever o que ele está digitando.
+function renderResumoFinanceiroMesa(){
+  const r = barMesaResumoAtual || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
+  $('bar-mesa-total-consumido').textContent = formatarReais(r.total_consumido);
+  $('bar-mesa-total-pago').textContent = formatarReais(r.total_pago);
+  $('bar-mesa-total-aberto').textContent = formatarReais(r.subtotal_aberto);
+
+  const saldo = Number(r.subtotal_aberto) || 0;
+  const inputValor = $('bar-mesa-pagamento-valor');
+  if(document.activeElement !== inputValor){
+    inputValor.value = saldo > 0 ? saldo.toFixed(2) : '';
+  }
+  $('bar-mesa-pagamento-dica').textContent = saldo > 0 ? `Saldo em aberto: ${formatarReais(saldo)}` : 'Esta comanda não tem saldo em aberto.';
+
+  if(!barMesaAjustesTocados){
+    $('bar-mesa-desconto').value = Number(r.desconto) || 0;
+    $('bar-mesa-acrescimo').value = Number(r.acrescimo) || 0;
+    $('bar-mesa-taxa').value = Number(r.taxa_servico) || 0;
+  }
+}
+
+// Requisito #7 (herdado): lançamento único. carregarCardapioBarSelect traz, junto com cada item do
 // cardápio, os grupos de escolha do modelo novo (bar_produto_grupos/bar_produto_grupo_opcoes) já
 // aninhados — dá para montar os campos de escolha (ex.: "Qual espeto?") sem nenhuma chamada extra
 // quando o garçom troca o item selecionado.
 async function carregarCardapioBarSelect(){
-  const sel = $('bar-comanda-item-select');
+  const sel = $('bar-mesa-item-select');
   sel.innerHTML = '';
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
@@ -10881,7 +10823,7 @@ async function carregarCardapioBarSelect(){
     .eq('ativo_cardapio', true)
     .order('id'));
   if(error){
-    $('bar-comanda-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
   barCardapioCache = data || [];
@@ -10894,17 +10836,17 @@ async function carregarCardapioBarSelect(){
       opt.textContent = `${bp.produtos ? bp.produtos.nome : '—'} (${formatarReais(bp.produtos ? bp.produtos.preco_venda : 0)})`;
       sel.appendChild(opt);
     });
-  renderEscolhasComanda();
+  renderEscolhasMesa();
 }
-$('bar-comanda-item-select').addEventListener('change', renderEscolhasComanda);
+$('bar-mesa-item-select').addEventListener('change', renderEscolhasMesa);
 
 // Mostra um seletor por escolha exigida (ex.: "Escolha o espeto") quando o item selecionado é um
 // composto do modelo novo de grupos. Item simples, ou composto do modelo antigo (sem grupos
 // cadastrados — bar_produtos_componentes, Migration 016, continua funcionando por trás sem exigir
 // nenhuma escolha aqui), não mostra nada nesta área — igual a antes.
-function renderEscolhasComanda(){
-  const wrap = $('bar-comanda-escolhas');
-  const bp = barCardapioCache.find(x => x.id === $('bar-comanda-item-select').value);
+function renderEscolhasMesa(){
+  const wrap = $('bar-mesa-escolhas');
+  const bp = barCardapioCache.find(x => x.id === $('bar-mesa-item-select').value);
   const grupos = (bp && bp.bar_produto_grupos ? bp.bar_produto_grupos.slice() : []).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
   if(!bp || bp.tipo !== 'composto' || grupos.length === 0){
     wrap.innerHTML = '';
@@ -10923,61 +10865,67 @@ function renderEscolhasComanda(){
   }).join('');
 }
 
-$('btn-bar-comanda-lancar').addEventListener('click', async () => {
-  const barProdutoId = $('bar-comanda-item-select').value;
-  const qtd = parseFloat($('bar-comanda-item-qtd').value);
-  if(!barProdutoId){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Selecione um item do cardápio.</div>'; return; }
-  if(!qtd || qtd <= 0){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
+$('btn-bar-mesa-lancar').addEventListener('click', async () => {
+  const barProdutoId = $('bar-mesa-item-select').value;
+  const qtd = parseFloat($('bar-mesa-item-qtd').value);
+  if(!barProdutoId){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Selecione um item do cardápio.</div>'; return; }
+  if(!qtd || qtd <= 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
   const bp = barCardapioCache.find(x => x.id === barProdutoId);
   const grupos = (bp && bp.bar_produto_grupos) || [];
   let escolhas = null;
   if(bp && bp.tipo === 'composto' && grupos.length > 0){
     escolhas = [];
-    const selects = $('bar-comanda-escolhas').querySelectorAll('[data-escolha-grupo]');
+    const selects = $('bar-mesa-escolhas').querySelectorAll('[data-escolha-grupo]');
     for(const s of selects){
-      if(!s.value){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Responda todas as escolhas deste item antes de lançar.</div>'; return; }
+      if(!s.value){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Responda todas as escolhas deste item antes de lançar.</div>'; return; }
       escolhas.push({ grupo_id: s.dataset.escolhaGrupo, produto_id: s.value });
     }
   }
-  const observacao = $('bar-comanda-item-obs').value.trim() || null;
-  const btn = $('btn-bar-comanda-lancar');
+  const observacao = $('bar-mesa-item-obs').value.trim() || null;
+  const btn = $('btn-bar-mesa-lancar');
   btn.disabled = true; btn.textContent = 'Lançando...';
   const idempotencia = crypto.randomUUID();
-  const { error } = await supabase.rpc('bar_pedido_enviar', {
-    p_comanda_id: barComandaAtualId,
+  // bar_pedido_lancar (Migration 018) abre a mesa sozinha (sem perguntar pessoas, pessoas=0) se
+  // ela ainda estiver livre, e reaproveita a comanda já aberta caso contrário — nunca duplica
+  // comanda (idempotente pela mesma chave de sempre, herdada de bar_pedido_enviar).
+  const { data, error } = await supabase.rpc('bar_pedido_lancar', {
+    p_mesa_id: barMesaAtual.id,
     p_itens: [{ bar_produto_id: barProdutoId, quantidade: qtd, observacao, escolhas }],
     p_idempotencia: idempotencia,
   });
   btn.disabled = false; btn.textContent = 'Lançar pedido';
   if(error){
-    $('bar-comanda-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  $('bar-comanda-item-obs').value = '';
-  $('bar-comanda-item-qtd').value = 1;
-  $('bar-comanda-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
-  await recarregarItensComanda();
+  const resultado = (data && data[0]) || null;
+  if(resultado){
+    barComandaAtualId = resultado.comanda_id;
+    if(resultado.mesa_aberta_agora){
+      const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
+      if(mesaAtualizada) barMesaAtual = mesaAtualizada;
+    }
+  }
+  $('bar-mesa-item-obs').value = '';
+  $('bar-mesa-item-qtd').value = 1;
+  $('bar-mesa-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
+  await atualizarSaldoEItensMesa();
+  if(barSubViewAtual === 'mesas') await carregarBarMesas();
 });
 
-async function recarregarItensComanda(){
-  const { data, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos_itens')
-    .select('id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional )')
-    .eq('comanda_id', barComandaAtualId)
-    .order('criado_em'));
-  const corpo = $('bar-comanda-itens-body');
-  if(error){ corpo.innerHTML = ''; return; }
-  const itens = data || [];
-  $('bar-comanda-itens-empty').classList.toggle('hidden', itens.length > 0);
+function renderItensComandaMesa(itens){
+  const corpo = $('bar-mesa-itens-body');
+  $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
   corpo.innerHTML = itens.map(it => {
     const subtotal = Number(it.quantidade) * Number(it.preco_unitario);
     let status = 'Em aberto', statusClasse = 'status-neutro';
     if(it.estornado){ status = 'Cancelado'; statusClasse = 'status-baixo'; }
     else if(it.pagamento_id){ status = 'Pago'; statusClasse = 'status-ok'; }
     const podeCancelar = !it.estornado && !it.pagamento_id && podeAcessarBar('bar_cancelar_pedido');
-    // Requisito #6: um composto do modelo novo não tem destino próprio (destino_operacional =
-    // 'sem_destino' na linha comercial) — quem carrega o destino são as escolhas gravadas em
-    // bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s) destino(s) reais.
+    // Requisito #6 (herdado): um composto do modelo novo não tem destino próprio
+    // (destino_operacional='sem_destino' na linha comercial) — quem carrega o destino são as
+    // escolhas gravadas em bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s)
+    // destino(s) reais.
     const escolhas = it.bar_pedidos_itens_escolhas || [];
     const nomeLinha = escolhas.length > 0
       ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div>`
@@ -11018,133 +10966,17 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
     return;
   }
   $('modal-bar-cancelar-item').classList.add('hidden');
-  await recarregarItensComanda();
+  await atualizarSaldoEItensMesa();
+  if(barSubViewAtual === 'mesas') await carregarBarMesas();
 });
 
-// Requisito #11: um único botão "Pessoas" — adicionar fica sempre disponível a quem tem
-// bar_mesas; a correção do total (para mais ou para menos, motivo obrigatório) só aparece a quem
-// tem bar_corrigir_pessoas. A permissão/auditoria de cada ação continua exatamente a mesma de
-// antes (bar_mesa_adicionar_pessoas / bar_mesa_corrigir_pessoas) — só a apresentação mudou.
-$('btn-bar-comanda-pessoas').addEventListener('click', () => {
-  $('bar-pessoas-titulo').textContent = `Pessoas — Mesa ${barMesaAtual.numero}`;
-  $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
-  $('bar-pessoas-msg').innerHTML = '';
-  $('bar-add-pessoas-qtd').value = 1;
-  $('bar-corrigir-pessoas-total').value = barMesaAtual.pessoas_atual;
-  $('bar-corrigir-pessoas-motivo').value = '';
-  $('bar-corrigir-pessoas-wrap').classList.toggle('hidden', !podeAcessarBar('bar_corrigir_pessoas'));
-  $('modal-bar-pessoas').classList.remove('hidden');
-});
-$('btn-bar-pessoas-fechar').addEventListener('click', () => $('modal-bar-pessoas').classList.add('hidden'));
-
-$('btn-bar-add-pessoas-confirmar').addEventListener('click', async () => {
-  const qtd = parseInt($('bar-add-pessoas-qtd').value, 10);
-  if(!qtd || qtd <= 0){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
-  const btn = $('btn-bar-add-pessoas-confirmar');
-  btn.disabled = true; btn.textContent = 'Adicionando...';
-  const { error } = await supabase.rpc('bar_mesa_adicionar_pessoas', { p_mesa_id: barMesaAtual.id, p_quantidade: qtd });
-  btn.disabled = false; btn.textContent = 'Adicionar';
-  if(error){
-    $('bar-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-  const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
-  if(mesaAtualizada){
-    barMesaAtual = mesaAtualizada;
-    atualizarResumoComanda();
-    $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
-    $('bar-corrigir-pessoas-total').value = barMesaAtual.pessoas_atual;
-  }
-  $('bar-add-pessoas-qtd').value = 1;
-  $('bar-pessoas-msg').innerHTML = '<div class="msg success">Pessoas adicionadas.</div>';
-});
-
-$('btn-bar-corrigir-pessoas-confirmar').addEventListener('click', async () => {
-  const total = parseInt($('bar-corrigir-pessoas-total').value, 10);
-  const motivo = $('bar-corrigir-pessoas-motivo').value.trim();
-  if(isNaN(total) || total < 0){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe um total válido.</div>'; return; }
-  if(motivo.length < 3){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe o motivo (mínimo 3 caracteres).</div>'; return; }
-  const btn = $('btn-bar-corrigir-pessoas-confirmar');
-  btn.disabled = true; btn.textContent = 'Corrigindo...';
-  const { error } = await supabase.rpc('bar_mesa_corrigir_pessoas', { p_mesa_id: barMesaAtual.id, p_pessoas_total: total, p_motivo: motivo });
-  btn.disabled = false; btn.textContent = 'Corrigir total';
-  if(error){
-    $('bar-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-  const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
-  if(mesaAtualizada){
-    barMesaAtual = mesaAtualizada;
-    atualizarResumoComanda();
-    $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
-  }
-  $('bar-corrigir-pessoas-motivo').value = '';
-  $('bar-pessoas-msg').innerHTML = '<div class="msg success">Total corrigido.</div>';
-});
-
-$('btn-bar-comanda-fechar-mesa').addEventListener('click', async () => {
-  if(!window.confirm(`Fechar a mesa ${barMesaAtual.numero}? Só é possível sem itens em aberto e com zero pessoas.`)) return;
-  const { error } = await supabase.rpc('bar_mesa_fechar', { p_mesa_id: barMesaAtual.id });
-  if(error){
-    $('bar-comanda-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-  $('modal-bar-comanda').classList.add('hidden');
-  await carregarBarMesas();
-});
-
-$('btn-bar-comanda-ir-caixa').addEventListener('click', () => {
-  $('modal-bar-comanda').classList.add('hidden');
-  abrirModalPagamento(barMesaAtual, barComandaAtualId);
-});
-$('btn-bar-comanda-fechar-modal').addEventListener('click', () => $('modal-bar-comanda').classList.add('hidden'));
-
-// ---------- Caixa ----------
-async function carregarBarCaixa(){
-  $('bar-caixa-msg').innerHTML = '';
-  const termo = termoSeguro($('bar-caixa-busca').value);
-  const { data: itens, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos_itens')
-    .select('id, comanda_id, quantidade, preco_unitario, bar_comandas ( mesa_id, bar_mesas ( numero, pessoas_atual ) )')
-    .is('pagamento_id', null)
-    .eq('estornado', false));
-  if(error){
-    $('bar-caixa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-  const porComanda = new Map();
-  (itens || []).forEach(it => {
-    const comanda = it.bar_comandas;
-    const mesa = comanda ? comanda.bar_mesas : null;
-    if(!mesa) return;
-    if(termo && !String(mesa.numero).includes(termo)) return;
-    const atual = porComanda.get(it.comanda_id) || { comandaId: it.comanda_id, numero: mesa.numero, pessoas: mesa.pessoas_atual, itens: 0, subtotal: 0 };
-    atual.itens += 1;
-    atual.subtotal += Number(it.quantidade) * Number(it.preco_unitario);
-    porComanda.set(it.comanda_id, atual);
-  });
-  const linhas = Array.from(porComanda.values()).sort((a, b) => a.numero - b.numero);
-  $('bar-caixa-empty').classList.toggle('hidden', linhas.length > 0);
-  $('bar-caixa-tabela-body').innerHTML = linhas.map(l => `
-    <tr>
-      <td>Mesa ${l.numero}</td>
-      <td>${l.pessoas}</td>
-      <td>${l.itens}</td>
-      <td>${formatarReais(l.subtotal)}</td>
-      <td><button type="button" class="btn-secondary" style="width:auto;" data-caixa-comanda="${l.comandaId}" data-caixa-numero="${l.numero}" data-caixa-pessoas="${l.pessoas}">Fechar conta</button></td>
-    </tr>`).join('');
-  document.querySelectorAll('[data-caixa-comanda]').forEach(btn => btn.addEventListener('click', () => {
-    abrirModalPagamento({ numero: btn.dataset.caixaNumero, pessoas_atual: parseInt(btn.dataset.caixaPessoas, 10) }, btn.dataset.caixaComanda);
-  }));
-}
-$('bar-caixa-busca').addEventListener('input', debounce(() => carregarBarCaixa()));
-
+// ---------- Pagamento (dentro do mesmo modal da mesa) ----------
 // Precisa ser EXATAMENTE a mesma lista (mesmas strings, mesma grafia) usada pelos botões de forma
 // de pagamento do PDV (ver #pdx-pagto) — senão a mesma forma de pagamento vira dois "baldes"
 // diferentes nos relatórios (ex.: "Cartão de Crédito" do PDV x "Cartão de crédito" do Bar).
 const FORMAS_PAGAMENTO_BAR = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito', 'Outros'];
 function adicionarLinhaFormaPagamento(){
-  const wrap = $('bar-pagamento-formas');
+  const wrap = $('bar-mesa-pagamento-formas');
   const row = document.createElement('div');
   row.className = 'bar-pagamento-forma-row';
   const sel = document.createElement('select');
@@ -11157,35 +10989,110 @@ function adicionarLinhaFormaPagamento(){
   row.appendChild(sel); row.appendChild(input); row.appendChild(btnRemover);
   wrap.appendChild(row);
 }
-$('btn-bar-pagamento-add-forma').addEventListener('click', adicionarLinhaFormaPagamento);
+$('btn-bar-mesa-pagamento-add-forma').addEventListener('click', adicionarLinhaFormaPagamento);
 
-async function abrirModalPagamento(mesaInfo, comandaId){
-  barPagamentoMesaInfo = mesaInfo;
-  barPagamentoComandaId = comandaId;
-  $('bar-pagamento-titulo').textContent = `Fechar conta — Mesa ${mesaInfo.numero}`;
-  $('bar-pagamento-msg').innerHTML = '';
-  $('bar-pagamento-desconto').value = 0;
-  $('bar-pagamento-acrescimo').value = 0;
-  $('bar-pagamento-taxa').value = 0;
-  $('bar-pagamento-pessoas-liberar').value = 0;
-  $('bar-pagamento-max-pessoas').textContent = mesaInfo.pessoas_atual;
-  $('bar-pagamento-formas').innerHTML = '';
-  adicionarLinhaFormaPagamento();
-  $('modal-bar-pagamento').classList.remove('hidden');
-  await recarregarItensPagamento();
-  await carregarHistoricoPagamentos();
+function barMesaAvancadoAberto(){
+  return !$('bar-mesa-avancado').classList.contains('hidden');
 }
 
-// Pagamentos já registrados nesta comanda (qualquer status) — permite ao Caixa ver o que já foi
-// pago e, se autorizado (bar_estornar_pagamento), estornar um pagamento lançado errado. NÃO é
-// uma fonte financeira paralela: é só uma leitura de auditoria de public.bar_pagamentos (a fonte
-// oficial de faturamento continua sendo public.vendas — ver relatório final).
-async function carregarHistoricoPagamentos(){
-  const wrap = $('bar-pagamento-historico-wrap');
+$('btn-bar-mesa-avancado-toggle').addEventListener('click', () => {
+  const abrir = $('bar-mesa-avancado').classList.contains('hidden');
+  $('bar-mesa-avancado').classList.toggle('hidden', !abrir);
+  $('btn-bar-mesa-avancado-toggle').textContent = abrir
+    ? 'Ajustes da conta — desconto, acréscimo, taxa de serviço ▴'
+    : 'Ajustes da conta — desconto, acréscimo, taxa de serviço ▾';
+});
+// Assim que o operador mexe em qualquer um destes 3 campos, eles passam a ser enviados no próximo
+// pagamento (substituindo o que já estava salvo na comanda) — nunca somados a pagamentos futuros.
+// Até aí, ficam de fora da chamada (nulo = "mantenha o que já está salvo"), então um segundo ou
+// terceiro pagamento parcial jamais reaplica o mesmo desconto/taxa sozinho.
+['bar-mesa-desconto', 'bar-mesa-acrescimo', 'bar-mesa-taxa'].forEach(id => $(id).addEventListener('input', () => { barMesaAjustesTocados = true; }));
+
+$('btn-bar-mesa-pagar-tudo').addEventListener('click', () => {
+  const emAberto = barMesaResumoAtual ? Number(barMesaResumoAtual.subtotal_aberto) : 0;
+  $('bar-mesa-pagamento-valor').value = emAberto > 0 ? emAberto.toFixed(2) : '';
+});
+
+$('btn-bar-mesa-receber-pagamento').addEventListener('click', async () => {
+  if(!barComandaAtualId){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Esta mesa ainda não tem nenhum pedido lançado.</div>'; return; }
+  const valor = parseFloat($('bar-mesa-pagamento-valor').value);
+  if(!valor || valor <= 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe um valor a receber maior que zero.</div>'; return; }
+  const formas = Array.from($('bar-mesa-pagamento-formas').querySelectorAll('.bar-pagamento-forma-row')).map(row => ({
+    forma_pagamento: row.querySelector('select').value,
+    valor: parseFloat(row.querySelector('input').value) || 0,
+  })).filter(f => f.valor > 0);
+  if(formas.length === 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe ao menos uma forma de pagamento com valor maior que zero.</div>'; return; }
+  const somaFormas = formas.reduce((s, f) => s + f.valor, 0);
+  if(Math.abs(somaFormas - valor) > 0.01){
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">A soma das formas de pagamento (${formatarReais(somaFormas)}) precisa bater com o valor a receber (${formatarReais(valor)}).</div>`;
+    return;
+  }
+  // Ajustes da conta só são enviados (substituindo o que já está salvo) se o operador de fato abriu
+  // e mexeu neles nesta sessão do modal — senão vão nulos, e o banco mantém o que já estava salvo.
+  const ajustesTocados = barMesaAjustesTocados;
+  const desconto = ajustesTocados ? (parseFloat($('bar-mesa-desconto').value) || 0) : null;
+  const acrescimo = ajustesTocados ? (parseFloat($('bar-mesa-acrescimo').value) || 0) : null;
+  const taxa = ajustesTocados ? (parseFloat($('bar-mesa-taxa').value) || 0) : null;
+
+  const btn = $('btn-bar-mesa-receber-pagamento');
+  btn.disabled = true; btn.textContent = 'Confirmando...';
+  const mesaId = barMesaAtual.id;
+  const comandaDoPagamento = barComandaAtualId;
+  // Requisito central da correção do pagamento parcial: o operador só informa VALOR + FORMAS —
+  // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
+  // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
+  // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
+  const { data, error } = await supabase.rpc('bar_comanda_pagar_valor', {
+    p_comanda_id: comandaDoPagamento,
+    p_valor: valor,
+    p_formas: formas,
+    p_idempotencia: crypto.randomUUID(),
+    p_desconto: desconto,
+    p_acrescimo: acrescimo,
+    p_taxa_servico: taxa,
+  });
+  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
+  if(error){
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  const resultado = (data && data[0]) || null;
+  $('bar-mesa-pagamento-valor').value = '';
+  barMesaAjustesTocados = false;
+  $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
+    ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
+    : '<div class="msg success">Pagamento registrado. Conta quitada.</div>';
+
+  // A mesa libera SOZINHA quando o saldo real chega a zero (bar_comanda_pagar chama
+  // bar_mesa_fechar internamente) — nunca com base no número de pagamentos feitos, e nunca em cima
+  // de um pagamento parcial. Só confiamos no status que voltou do banco, nunca calculamos isso no
+  // navegador.
+  const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', mesaId).single();
+  const mesaFoiLiberada = !!mesaAtualizada && mesaAtualizada.status === 'livre';
+  if(mesaAtualizada) barMesaAtual = mesaAtualizada;
+  if(mesaFoiLiberada) barComandaAtualId = null;
+
+  await atualizarSaldoEItensMesa();
+  if(barSubViewAtual === 'mesas') await carregarBarMesas();
+
+  if(mesaFoiLiberada){
+    await abrirModalBarPagamentoConcluido(comandaDoPagamento, { numero: barMesaAtual.numero });
+  }
+});
+
+$('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa').classList.add('hidden'));
+
+// Pagamentos já registrados nesta comanda (qualquer status) — permite ver o que já foi pago e, se
+// autorizado (bar_estornar_pagamento), estornar um pagamento lançado errado. NÃO é uma fonte
+// financeira paralela: é só uma leitura de auditoria de public.bar_pagamentos (a fonte oficial de
+// faturamento continua sendo public.vendas — ver relatório final).
+async function carregarHistoricoPagamentosMesa(){
+  const wrap = $('bar-mesa-historico-wrap');
+  if(!barComandaAtualId){ wrap.classList.add('hidden'); return; }
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_pagamentos')
     .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
-    .eq('comanda_id', barPagamentoComandaId)
+    .eq('comanda_id', barComandaAtualId)
     .order('criado_em', { ascending: false }));
   if(error || !data || data.length === 0){
     wrap.classList.add('hidden');
@@ -11193,7 +11100,7 @@ async function carregarHistoricoPagamentos(){
   }
   wrap.classList.remove('hidden');
   const podeEstornar = podeAcessarBar('bar_estornar_pagamento');
-  $('bar-pagamento-historico-body').innerHTML = data.map(p => {
+  $('bar-mesa-historico-body').innerHTML = data.map(p => {
     const formas = (p.bar_pagamentos_formas || []).map(f => `${escapeHtml(f.forma_pagamento)} (${formatarReais(f.valor)})`).join(', ');
     const status = p.estornado
       ? `<span class="status-badge status-neutro">Estornado</span>`
@@ -11209,14 +11116,24 @@ async function carregarHistoricoPagamentos(){
       <td style="text-align:right;">${acao}</td>
     </tr>`;
   }).join('');
-  document.querySelectorAll('[data-estornar-pagamento]').forEach(btn => btn.addEventListener('click', () => {
-    barEstornoPagamentoId = btn.dataset.estornarPagamento;
-    $('bar-estornar-pagamento-msg').innerHTML = '';
-    $('bar-estornar-pagamento-motivo').value = '';
-    $('modal-bar-estornar-pagamento').classList.remove('hidden');
+  $('bar-mesa-historico-body').querySelectorAll('[data-estornar-pagamento]').forEach(btn => btn.addEventListener('click', () => {
+    abrirModalEstornarPagamento(btn.dataset.estornarPagamento, async () => {
+      await atualizarSaldoEItensMesa();
+      if(barSubViewAtual === 'mesas') await carregarBarMesas();
+    });
   }));
 }
 
+// Modal de estorno em si (reaproveitado tanto pelo histórico dentro do modal da mesa quanto pela
+// busca "Estornar pagamento" para mesas já liberadas, abaixo) — um callback é passado para saber
+// qual tela recarregar depois de confirmar.
+function abrirModalEstornarPagamento(pagamentoId, callback){
+  barEstornoPagamentoId = pagamentoId;
+  barEstornoPagamentoCallback = callback || null;
+  $('bar-estornar-pagamento-msg').innerHTML = '';
+  $('bar-estornar-pagamento-motivo').value = '';
+  $('modal-bar-estornar-pagamento').classList.remove('hidden');
+}
 $('btn-bar-estornar-pagamento-voltar').addEventListener('click', () => $('modal-bar-estornar-pagamento').classList.add('hidden'));
 $('btn-bar-estornar-pagamento-confirmar').addEventListener('click', async () => {
   const motivo = $('bar-estornar-pagamento-motivo').value.trim();
@@ -11236,132 +11153,85 @@ $('btn-bar-estornar-pagamento-confirmar').addEventListener('click', async () => 
   }
   $('modal-bar-estornar-pagamento').classList.add('hidden');
   barEstornoPagamentoId = null;
-  await recarregarItensPagamento();
-  await carregarHistoricoPagamentos();
-  await carregarBarCaixa();
-  if(barSubViewAtual === 'mesas') await carregarBarMesas();
+  const callback = barEstornoPagamentoCallback;
+  barEstornoPagamentoCallback = null;
+  if(callback) await callback();
 });
 
-async function recarregarItensPagamento(){
-  const { data, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos_itens')
-    .select('id, quantidade, preco_unitario, produtos ( nome )')
-    .eq('comanda_id', barPagamentoComandaId)
-    .eq('estornado', false)
-    .is('pagamento_id', null)
-    .order('criado_em'));
-  if(error){
-    $('bar-pagamento-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+// ---------- Buscar mesa para estornar pagamento (Migration 018) ----------
+// Como a Portaria/Caixa deixaram de existir como telas próprias, este é o caminho que sobra para
+// achar o histórico de pagamentos de um atendimento já encerrado (mesa já liberada) e, se
+// necessário, estornar um pagamento lançado errado. Busca sempre pela COMANDA mais recente da
+// mesa (nunca confunde com um atendimento anterior/posterior na mesma mesa).
+$('btn-bar-estornar-busca').addEventListener('click', () => {
+  $('bar-estornar-busca-msg').innerHTML = '';
+  $('bar-estornar-busca-numero').value = '';
+  $('bar-estornar-busca-resultado').classList.add('hidden');
+  $('bar-estornar-busca-body').innerHTML = '';
+  barEstornarBuscaComandaId = null;
+  $('modal-bar-estornar-busca').classList.remove('hidden');
+});
+$('btn-bar-estornar-busca-fechar').addEventListener('click', () => $('modal-bar-estornar-busca').classList.add('hidden'));
+
+$('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
+  const numero = parseInt($('bar-estornar-busca-numero').value, 10);
+  if(!numero || numero <= 0){ $('bar-estornar-busca-msg').innerHTML = '<div class="msg error">Informe o número da mesa.</div>'; return; }
+  $('bar-estornar-busca-msg').innerHTML = '';
+  $('bar-estornar-busca-resultado').classList.add('hidden');
+  const { data: mesa, error: erroMesa } = await supabase.from('bar_mesas').select('id, numero').eq('numero', numero).maybeSingle();
+  if(erroMesa || !mesa){
+    $('bar-estornar-busca-msg').innerHTML = '<div class="msg error">Mesa não encontrada.</div>';
     return;
   }
-  barPagamentoItensCache = data || [];
-  barPagamentoItensSelecionados = new Set(barPagamentoItensCache.map(i => i.id));
-  renderItensPagamento();
-}
-
-function renderItensPagamento(){
-  $('bar-pagamento-itens-body').innerHTML = barPagamentoItensCache.map(it => {
-    const subtotal = Number(it.quantidade) * Number(it.preco_unitario);
-    const marcado = barPagamentoItensSelecionados.has(it.id);
+  const { data: comanda, error: erroComanda } = await supabase
+    .from('bar_comandas')
+    .select('id')
+    .eq('mesa_id', mesa.id)
+    .order('criado_em', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if(erroComanda || !comanda){
+    $('bar-estornar-busca-msg').innerHTML = '<div class="msg error">Esta mesa ainda não teve nenhum atendimento.</div>';
+    return;
+  }
+  barEstornarBuscaComandaId = comanda.id;
+  const { data: pagamentos, error: erroPagamentos } = await buscarTodos(() => supabase
+    .from('bar_pagamentos')
+    .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
+    .eq('comanda_id', comanda.id)
+    .order('criado_em', { ascending: false }));
+  if(erroPagamentos){
+    $('bar-estornar-busca-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(erroPagamentos))}</div>`;
+    return;
+  }
+  $('bar-estornar-busca-resultado').classList.remove('hidden');
+  if(!pagamentos || pagamentos.length === 0){
+    $('bar-estornar-busca-body').innerHTML = '<tr><td colspan="5">Nenhum pagamento registrado neste atendimento.</td></tr>';
+    return;
+  }
+  $('bar-estornar-busca-body').innerHTML = pagamentos.map(p => {
+    const formas = (p.bar_pagamentos_formas || []).map(f => `${escapeHtml(f.forma_pagamento)} (${formatarReais(f.valor)})`).join(', ');
+    const status = p.estornado
+      ? `<span class="status-badge status-neutro">Estornado</span>`
+      : `<span class="status-badge status-ok">Confirmado</span>`;
+    const acao = !p.estornado
+      ? `<button type="button" class="link-btn" data-estornar-pagamento-busca="${p.id}">Estornar</button>`
+      : '';
     return `<tr>
-      <td><input type="checkbox" data-pagamento-item="${it.id}" ${marcado ? 'checked' : ''}></td>
-      <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
-      <td>${it.quantidade}</td>
-      <td>${formatarReais(it.preco_unitario)}</td>
-      <td>${formatarReais(subtotal)}</td>
+      <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${formatarReais(p.total)}</td>
+      <td>${formas || '—'}</td>
+      <td>${status}</td>
+      <td style="text-align:right;">${acao}</td>
     </tr>`;
   }).join('');
-  document.querySelectorAll('[data-pagamento-item]').forEach(chk => chk.addEventListener('change', () => {
-    if(chk.checked) barPagamentoItensSelecionados.add(chk.dataset.pagamentoItem);
-    else barPagamentoItensSelecionados.delete(chk.dataset.pagamentoItem);
-    atualizarTotalPagamento();
+  $('bar-estornar-busca-body').querySelectorAll('[data-estornar-pagamento-busca]').forEach(btn => btn.addEventListener('click', () => {
+    abrirModalEstornarPagamento(btn.dataset.estornarPagamentoBusca, async () => {
+      $('modal-bar-estornar-busca').classList.add('hidden');
+      if(barSubViewAtual === 'mesas') await carregarBarMesas();
+    });
   }));
-  atualizarTotalPagamento();
-}
-
-$('btn-bar-pagamento-marcar-todos').addEventListener('click', () => {
-  barPagamentoItensSelecionados = new Set(barPagamentoItensCache.map(i => i.id));
-  renderItensPagamento();
 });
-$('btn-bar-pagamento-desmarcar-todos').addEventListener('click', () => {
-  barPagamentoItensSelecionados = new Set();
-  renderItensPagamento();
-});
-
-function atualizarTotalPagamento(){
-  const subtotal = barPagamentoItensCache
-    .filter(it => barPagamentoItensSelecionados.has(it.id))
-    .reduce((soma, it) => soma + Number(it.quantidade) * Number(it.preco_unitario), 0);
-  const desconto = parseFloat($('bar-pagamento-desconto').value) || 0;
-  const acrescimo = parseFloat($('bar-pagamento-acrescimo').value) || 0;
-  const taxa = parseFloat($('bar-pagamento-taxa').value) || 0;
-  const total = Math.max(0, subtotal - desconto + acrescimo + taxa);
-  $('bar-pagamento-subtotal').value = formatarReais(subtotal);
-  $('bar-pagamento-total-linha').innerHTML = `<strong>Total a pagar: ${formatarReais(total)}</strong>`;
-  return total;
-}
-['bar-pagamento-desconto', 'bar-pagamento-acrescimo', 'bar-pagamento-taxa'].forEach(id => $(id).addEventListener('input', atualizarTotalPagamento));
-
-$('btn-bar-pagamento-cancelar').addEventListener('click', () => $('modal-bar-pagamento').classList.add('hidden'));
-$('btn-bar-pagamento-confirmar').addEventListener('click', async () => {
-  const itemIds = Array.from(barPagamentoItensSelecionados);
-  if(itemIds.length === 0){ $('bar-pagamento-msg').innerHTML = '<div class="msg error">Selecione ao menos um item.</div>'; return; }
-  const formas = Array.from($('bar-pagamento-formas').querySelectorAll('.bar-pagamento-forma-row')).map(row => ({
-    forma_pagamento: row.querySelector('select').value,
-    valor: parseFloat(row.querySelector('input').value) || 0,
-  })).filter(f => f.valor > 0);
-  if(formas.length === 0){ $('bar-pagamento-msg').innerHTML = '<div class="msg error">Informe ao menos uma forma de pagamento com valor maior que zero.</div>'; return; }
-  const pessoasLiberar = parseInt($('bar-pagamento-pessoas-liberar').value, 10) || 0;
-
-  const btn = $('btn-bar-pagamento-confirmar');
-  btn.disabled = true; btn.textContent = 'Confirmando...';
-  // Transação crítica única (pagamento + venda/itens_venda + formas + liberação de pessoas +
-  // bar_eventos) — tudo dentro de bar_comanda_pagar, no banco. O fiscal (abaixo) NUNCA entra
-  // nesta transação: ele só começa depois que este RPC já terminou com sucesso.
-  const { error } = await supabase.rpc('bar_comanda_pagar', {
-    p_comanda_id: barPagamentoComandaId,
-    p_item_ids: itemIds,
-    p_formas: formas,
-    p_desconto: parseFloat($('bar-pagamento-desconto').value) || 0,
-    p_acrescimo: parseFloat($('bar-pagamento-acrescimo').value) || 0,
-    p_taxa_servico: parseFloat($('bar-pagamento-taxa').value) || 0,
-    p_pessoas_liberadas: pessoasLiberar,
-  });
-  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
-  if(error){
-    $('bar-pagamento-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-
-  const mesaDoPagamento = barPagamentoMesaInfo;
-  const comandaDoPagamento = barPagamentoComandaId;
-
-  $('modal-bar-pagamento').classList.add('hidden');
-  await carregarBarCaixa();
-  if(barSubViewAtual === 'mesas') await carregarBarMesas();
-  if(barSubViewAtual === 'portaria') await carregarBarPortaria();
-
-  // Só pergunta sobre nota fiscal no FECHAMENTO FINAL da conta (sem saldo pendente, sem itens em
-  // aberto, mesa já com zero pessoas) — nunca em um pagamento parcial. São exatamente as mesmas
-  // duas condições exigidas por bar_mesa_fechar; a liberação de pessoas e a atualização da
-  // Portaria já aconteceram (dentro de bar_comanda_pagar, acima) ANTES desta pergunta.
-  if(mesaDoPagamento && comandaDoPagamento && await barContaTotalmenteQuitada(comandaDoPagamento, mesaDoPagamento.id)){
-    await abrirModalBarPagamentoConcluido(comandaDoPagamento, mesaDoPagamento);
-  }
-});
-
-// Fechamento final = sem itens em aberto desta comanda E mesa já com zero pessoas (mesmas duas
-// condições que public.bar_mesa_fechar exige) — nunca com base no número de pagamentos feitos.
-async function barContaTotalmenteQuitada(comandaId, mesaId){
-  const { count: itensAbertos } = await supabase
-    .from('bar_pedidos_itens')
-    .select('id', { count: 'exact', head: true })
-    .eq('comanda_id', comandaId)
-    .eq('estornado', false)
-    .is('pagamento_id', null);
-  const { data: mesaAtual } = await supabase.from('bar_mesas').select('pessoas_atual').eq('id', mesaId).maybeSingle();
-  return (itensAbertos || 0) === 0 && !!mesaAtual && mesaAtual.pessoas_atual === 0;
-}
 
 // ---------- Modal "Pagamento concluído" (Bar) — pergunta sobre nota fiscal no fechamento final ----------
 // Reaproveita 100% o fluxo fiscal central já existente (fiscal_emitir_nota + Edge Function
@@ -11370,9 +11240,11 @@ async function barContaTotalmenteQuitada(comandaId, mesaId){
 //
 // REVISÃO 3 (arquitetura definitiva: 1 comanda = 1 venda = N pagamentos = no máximo 1 NFC-e):
 // diferente de uma revisão provisória anterior, esta comanda tem SEMPRE uma única venda
-// (bar_comandas.venda_id — bar_comanda_pagar cria essa venda no primeiro pagamento e reaproveita
-// nos seguintes; ver comentário da própria função no SQL), não importa quantos pagamentos parciais
-// tenha havido. Por isso "Emitir nota" chama o fluxo fiscal UMA ÚNICA VEZ, para essa venda_id — a
+// (bar_comandas.venda_id — criada em private.bar_comanda_finalizar_venda no instante em que o
+// saldo chega a zero, Migration 018 Revisão 2; ver comentário da própria função no SQL), não
+// importa quantos pagamentos parciais monetários (ou por itens, estilo antigo) tenha havido — o
+// próprio banco reaproveita a mesma venda e faz vendas.total = total final da conta. Por isso
+// "Emitir nota" chama o fluxo fiscal UMA ÚNICA VEZ, para essa venda_id — a
 // lógica provisória que coletava vários venda_id (um por pagamento), avisava "serão emitidas N
 // notas" e percorria várias vendas em loop não existe mais.
 async function abrirModalBarPagamentoConcluido(comandaId, mesaInfo){
@@ -11436,212 +11308,6 @@ $('btn-bar-pagamento-emitir-sim').addEventListener('click', async () => {
     barFiscalVendaIdAtual = null;
   }, 1800);
 });
-
-// ---------- Portaria (leitura mínima e ao vivo) ----------
-// A Portaria NUNCA identifica um atendimento só pelo número da mesa (a mesma mesa serve vários
-// atendimentos por dia) — sempre pela COMANDA (bar_comandas.id), tanto para "Em atendimento"
-// (mesa ocupada, usa mesa.comanda_atual_id) quanto para "Liberações recentes" (comanda já
-// fechada, pode inclusive já ter sido reaproveitada por outro atendimento na mesma mesa).
-// Nenhum dado financeiro (valor da conta, produtos, forma de pagamento) é lido ou exibido aqui.
-//
-// "Entraram"/"Liberadas" são derivados do log bruto de bar_movimentos_pessoas, robustos a
-// estornos: bar_pagamento_estornar registra uma correção (tipo='correcao') COM pagamento_id
-// preenchido para desfazer uma liberação — por isso ela é subtraída de "liberadas", nunca somada
-// a "entraram". Uma correção manual de contagem (bar_mesa_corrigir_pessoas) nunca preenche
-// pagamento_id — essa sim ajusta a própria base de "entraram" (pode ser positiva ou negativa).
-function barAgregarMovimentosPessoas(movimentos){
-  const porComanda = new Map();
-  (movimentos || []).forEach(mv => {
-    if(!mv.comanda_id) return;
-    const agg = porComanda.get(mv.comanda_id) || { entraram: 0, liberadas: 0 };
-    if(mv.tipo === 'entrada'){
-      agg.entraram += mv.quantidade;
-    } else if(mv.tipo === 'saida_liberacao'){
-      agg.liberadas += -mv.quantidade;
-    } else if(mv.tipo === 'correcao'){
-      if(mv.pagamento_id) agg.liberadas += -mv.quantidade;
-      else agg.entraram += mv.quantidade;
-    }
-    porComanda.set(mv.comanda_id, agg);
-  });
-  return porComanda;
-}
-
-async function carregarBarPortaria(){
-  $('bar-portaria-msg').innerHTML = '';
-
-  // ---- Em atendimento ----
-  const { data: mesas, error } = await supabase
-    .from('bar_mesas')
-    .select('id, numero, pessoas_atual, comanda_atual_id')
-    .eq('status', 'ocupada')
-    .order('numero');
-  if(error){
-    $('bar-portaria-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
-  }
-
-  const comandaIdsAtivas = (mesas || []).map(m => m.comanda_atual_id).filter(Boolean);
-  let aggAtivas = new Map();
-  if(comandaIdsAtivas.length > 0){
-    const { data: movimentos } = await buscarTodos(() => supabase
-      .from('bar_movimentos_pessoas')
-      .select('comanda_id, tipo, quantidade, pagamento_id')
-      .in('comanda_id', comandaIdsAtivas));
-    aggAtivas = barAgregarMovimentosPessoas(movimentos);
-  }
-
-  $('bar-portaria-empty').classList.toggle('hidden', (mesas || []).length > 0);
-  $('bar-portaria-tabela-body').innerHTML = (mesas || []).map(m => {
-    const agg = aggAtivas.get(m.comanda_atual_id) || { entraram: 0, liberadas: 0 };
-    const dentro = m.pessoas_atual; // fonte da verdade: bar_mesas.pessoas_atual (ao vivo)
-    const status = dentro === 0
-      ? '<span class="status-badge status-ok">LIBERADO</span>'
-      : `<span class="status-badge status-aviso2">${dentro} PESSOA${dentro === 1 ? '' : 'S'} AINDA DENTRO</span>`;
-    return `<tr>
-      <td>Mesa ${m.numero}</td>
-      <td>${agg.entraram}</td>
-      <td>${agg.liberadas}</td>
-      <td>${dentro}</td>
-      <td>${status}</td>
-    </tr>`;
-  }).join('');
-
-  // ---- Liberações recentes ----
-  // Comandas fechadas nas últimas BAR_PORTARIA_RECENTES_HORAS horas — a Portaria continua vendo o
-  // atendimento encerrado por um tempo mesmo que a mesa já tenha voltado a "livre" (ou já esteja
-  // servindo um atendimento B novo, com sua própria comanda — nunca misturados aqui).
-  const desde = new Date(Date.now() - BAR_PORTARIA_RECENTES_HORAS * 60 * 60 * 1000).toISOString();
-  const { data: comandasFechadas } = await buscarTodos(() => supabase
-    .from('bar_comandas')
-    .select('id, fechada_em, bar_mesas(numero)')
-    .eq('status', 'fechada')
-    .gte('fechada_em', desde)
-    .order('fechada_em', { ascending: false })
-    .limit(BAR_PORTARIA_RECENTES_LIMITE));
-
-  const comandaIdsFechadas = (comandasFechadas || []).map(c => c.id);
-  let aggFechadas = new Map();
-  if(comandaIdsFechadas.length > 0){
-    const { data: movimentos } = await buscarTodos(() => supabase
-      .from('bar_movimentos_pessoas')
-      .select('comanda_id, tipo, quantidade, pagamento_id')
-      .in('comanda_id', comandaIdsFechadas));
-    aggFechadas = barAgregarMovimentosPessoas(movimentos);
-  }
-
-  $('bar-portaria-recentes-empty').classList.toggle('hidden', (comandasFechadas || []).length > 0);
-  $('bar-portaria-recentes-body').innerHTML = (comandasFechadas || []).map(c => {
-    const agg = aggFechadas.get(c.id) || { entraram: 0, liberadas: 0 };
-    const restante = Math.max(0, agg.entraram - agg.liberadas);
-    const numero = c.bar_mesas ? c.bar_mesas.numero : '—';
-    const status = restante === 0
-      ? '<span class="status-badge status-ok">LIBERADO</span>'
-      : `<span class="status-badge status-aviso2">${restante} PESSOA${restante === 1 ? '' : 'S'} NÃO LIBERADA${restante === 1 ? '' : 'S'}</span>`;
-    return `<tr>
-      <td>Mesa ${escapeHtml(String(numero))}</td>
-      <td>${agg.liberadas}</td>
-      <td>${restante}</td>
-      <td>${new Date(c.fechada_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
-      <td>${status}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ---------- Bar / Cozinha (KDS simples + impressão de ticket operacional) ----------
-document.querySelectorAll('#bar-sub-cozinha .bar-subnav-item[data-destino]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#bar-sub-cozinha .bar-subnav-item[data-destino]').forEach(b => b.classList.toggle('active', b === btn));
-    barCozinhaDestinoAtual = btn.dataset.destino;
-    carregarBarCozinha();
-  });
-});
-$('btn-bar-cozinha-atualizar').addEventListener('click', () => carregarBarCozinha());
-
-// Requisito #6: o Bar/Cozinha (KDS) precisa enxergar os componentes físicos de um combo
-// separadamente, cada um no destino certo — nunca o composto inteiro num destino só. Por isso este
-// KDS junta DUAS fontes: (1) bar_pedidos_itens diretamente (item simples, e composto do modelo
-// ANTIGO que ainda tem destino próprio — nada muda para eles); (2) bar_pedidos_itens_escolhas
-// (composto do modelo NOVO — cada escolha já carimbada com o destino do produto físico
-// efetivamente escolhido). Um composto do modelo novo nunca aparece pela linha (1) porque sua
-// própria linha comercial é gravada com destino_operacional='sem_destino' (ver bar_pedido_enviar).
-async function carregarBarCozinha(){
-  $('bar-cozinha-msg').innerHTML = '';
-  const [diretos, viaEscolhas] = await Promise.all([
-    buscarTodos(() => supabase
-      .from('bar_pedidos_itens')
-      .select('id, quantidade, observacao, criado_em, produtos ( nome ), bar_comandas ( mesa_id, bar_mesas ( numero ) )')
-      .eq('destino_operacional', barCozinhaDestinoAtual)
-      .eq('estornado', false)
-      .is('pagamento_id', null)
-      .order('criado_em')),
-    buscarTodos(() => supabase
-      .from('bar_pedidos_itens_escolhas')
-      .select(`quantidade, produto_nome, criado_em,
-                bar_pedidos_itens!inner ( id, observacao, estornado, pagamento_id,
-                  bar_comandas ( mesa_id, bar_mesas ( numero ) ) )`)
-      .eq('destino_operacional', barCozinhaDestinoAtual)
-      .eq('bar_pedidos_itens.estornado', false)
-      .is('bar_pedidos_itens.pagamento_id', null)
-      .order('criado_em')),
-  ]);
-  if(diretos.error || viaEscolhas.error){
-    $('bar-cozinha-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(diretos.error || viaEscolhas.error))}</div>`;
-    return;
-  }
-  const itens = [
-    ...(diretos.data || []).map(it => ({
-      id: it.id, quantidade: it.quantidade, observacao: it.observacao, criado_em: it.criado_em,
-      nome: it.produtos ? it.produtos.nome : '—', bar_comandas: it.bar_comandas,
-    })),
-    ...(viaEscolhas.data || []).map(e => ({
-      id: e.bar_pedidos_itens.id + ':' + e.produto_nome, quantidade: e.quantidade,
-      observacao: e.bar_pedidos_itens.observacao, criado_em: e.criado_em,
-      nome: e.produto_nome, bar_comandas: e.bar_pedidos_itens.bar_comandas,
-    })),
-  ];
-  const porMesa = new Map();
-  itens.forEach(it => {
-    const comanda = it.bar_comandas;
-    const mesa = comanda ? comanda.bar_mesas : null;
-    if(!mesa) return;
-    const atual = porMesa.get(comanda.mesa_id) || { numero: mesa.numero, itens: [] };
-    atual.itens.push(it);
-    porMesa.set(comanda.mesa_id, atual);
-  });
-  const grupos = Array.from(porMesa.values()).sort((a, b) => a.numero - b.numero);
-  grupos.forEach(g => g.itens.sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em)));
-  $('bar-cozinha-empty').classList.toggle('hidden', grupos.length > 0);
-  $('bar-cozinha-lista').innerHTML = grupos.map(g => `
-    <div class="bar-cozinha-card">
-      <div class="bar-cozinha-card-header">
-        <span class="bar-cozinha-card-mesa">Mesa ${g.numero}</span>
-        <button type="button" class="btn-secondary" style="width:auto;" data-imprimir-mesa="${g.numero}">Imprimir</button>
-      </div>
-      ${g.itens.map(it => `<div class="bar-cozinha-item-linha"><span>${it.quantidade}x ${escapeHtml(it.nome)}${it.observacao ? ' — ' + escapeHtml(it.observacao) : ''}</span><span>${new Date(it.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}
-    </div>`).join('');
-  document.querySelectorAll('[data-imprimir-mesa]').forEach(btn => {
-    const grupo = grupos.find(g => String(g.numero) === btn.dataset.imprimirMesa);
-    btn.addEventListener('click', () => imprimirTicketBar(grupo, barCozinhaDestinoAtual));
-  });
-}
-
-// Impressão operacional (NÃO fiscal, não é NFC-e): ticket simples via window.print() do próprio
-// navegador. Sem integração com impressora térmica/ESC-POS real — ver relatório final.
-function imprimirTicketBar(grupo, destino){
-  const ticket = $('bar-ticket-impressao');
-  ticket.innerHTML = `
-    <div class="bar-ticket-titulo">${destino === 'bar' ? 'BAR' : 'COZINHA'} — MESA ${escapeHtml(String(grupo.numero))}</div>
-    <div class="bar-ticket-hr"></div>
-    ${grupo.itens.map(it => `<div class="bar-ticket-linha"><span>${it.quantidade}x ${escapeHtml(it.nome)}</span></div>${it.observacao ? `<div>${escapeHtml(it.observacao)}</div>` : ''}`).join('')}
-    <div class="bar-ticket-hr"></div>
-    <div>${new Date().toLocaleString('pt-BR')}</div>`;
-  document.body.classList.add('bar-imprimindo');
-  const limpar = () => { document.body.classList.remove('bar-imprimindo'); window.removeEventListener('afterprint', limpar); };
-  window.addEventListener('afterprint', limpar);
-  window.print();
-  setTimeout(limpar, 1500);
-}
 
 // ---------- Destino dos Produtos (Bar/Cozinha em massa — requisito #2) ----------
 // Carrega TODOS os produtos do catálogo central automaticamente (bar_produtos é 1:1 com
@@ -11917,54 +11583,35 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
   await carregarBarProdutos();
 });
 
-// ---------- Relatórios do Bar (requisito #10) ----------
-async function carregarBarRelatorios(){
-  $('bar-relatorio-msg').innerHTML = '';
-  const dataInicio = $('bar-relatorio-data-inicio').value || null;
-  const dataFim = $('bar-relatorio-data-fim').value || null;
-  const termoFisico = termoSeguro($('bar-relatorio-fisico-busca').value).toLowerCase();
-
-  const [comercial, fisico] = await Promise.all([
-    supabase.rpc('bar_relatorio_itens_comerciais', { p_data_inicio: dataInicio, p_data_fim: dataFim }),
-    supabase.rpc('bar_relatorio_produtos_fisicos_consumidos', { p_data_inicio: dataInicio, p_data_fim: dataFim, p_produto_id: null }),
-  ]);
-  if(comercial.error || fisico.error){
-    $('bar-relatorio-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(comercial.error || fisico.error))}</div>`;
-    return;
-  }
-  const linhasComercial = comercial.data || [];
-  $('bar-relatorio-comercial-empty').classList.toggle('hidden', linhasComercial.length > 0);
-  $('bar-relatorio-comercial-body').innerHTML = linhasComercial.map(l => `
-    <tr><td>${escapeHtml(l.produto_nome)}</td><td>${l.quantidade}</td><td>${formatarReais(l.valor_total)}</td></tr>`).join('');
-
-  let linhasFisico = fisico.data || [];
-  if(termoFisico) linhasFisico = linhasFisico.filter(l => (l.produto_nome || '').toLowerCase().includes(termoFisico));
-  $('bar-relatorio-fisico-empty').classList.toggle('hidden', linhasFisico.length > 0);
-  $('bar-relatorio-fisico-body').innerHTML = linhasFisico.map(l => `
-    <tr><td>${escapeHtml(l.produto_nome)}</td><td>${l.quantidade}</td></tr>`).join('');
-}
-$('btn-bar-relatorio-filtrar').addEventListener('click', () => carregarBarRelatorios());
-$('bar-relatorio-fisico-busca').addEventListener('input', debounce(() => carregarBarRelatorios()));
-
-// ---------- Configurações do Bar ----------
-async function carregarBarConfig(){
-  $('bar-config-msg').innerHTML = '';
+// ---------- Configurar mesas (Migration 018) ----------
+// Antes era uma aba própria "Configurações"; agora é um botão pequeno dentro de Mesas
+// (⚙ Configurar mesas), gated por bar_configurar — o próprio botão já fica escondido em
+// carregarBarMesas para quem não tem essa permissão. Reaproveita bar_configurar_mesas sem nenhuma
+// alteração: mesma validação de sempre (bloqueia redução abaixo da quantidade de mesas ocupadas),
+// nunca uma quantidade fixa/hardcoded no frontend.
+//
+// As RPCs de relatório da Migration 017 (bar_relatorio_itens_comerciais,
+// bar_relatorio_produtos_fisicos_consumidos) continuam intactas no banco — só a tela dedicada a
+// elas foi removida daqui, para reaparecerem futuramente num módulo geral de Relatórios do ERP.
+$('btn-bar-config-mesas-abrir').addEventListener('click', async () => {
+  $('bar-config-mesas-msg').innerHTML = '';
   const { data, error } = await supabase.from('bar_configuracoes').select('*').maybeSingle();
   if(error){
-    $('bar-config-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
+    $('bar-config-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
   }
-  $('bar-config-quantidade').value = data ? data.quantidade_mesas : 0;
-  $('bar-config-taxa').value = data ? data.taxa_servico_padrao_percentual : 0;
-}
-$('btn-salvar-config-bar').addEventListener('click', async () => {
-  const quantidade = parseInt($('bar-config-quantidade').value, 10);
-  const taxa = parseFloat($('bar-config-taxa').value);
+  $('bar-config-mesas-quantidade').value = data ? data.quantidade_mesas : 0;
+  $('bar-config-mesas-taxa').value = data ? data.taxa_servico_padrao_percentual : 0;
+  $('modal-bar-config-mesas').classList.remove('hidden');
+});
+$('btn-bar-config-mesas-cancelar').addEventListener('click', () => $('modal-bar-config-mesas').classList.add('hidden'));
+$('btn-bar-config-mesas-salvar').addEventListener('click', async () => {
+  const quantidade = parseInt($('bar-config-mesas-quantidade').value, 10);
+  const taxa = parseFloat($('bar-config-mesas-taxa').value);
   if(isNaN(quantidade) || quantidade < 0){
-    $('bar-config-msg').innerHTML = '<div class="msg error">Informe uma quantidade de mesas válida.</div>';
+    $('bar-config-mesas-msg').innerHTML = '<div class="msg error">Informe uma quantidade de mesas válida.</div>';
     return;
   }
-  const btn = $('btn-salvar-config-bar');
+  const btn = $('btn-bar-config-mesas-salvar');
   btn.disabled = true; btn.textContent = 'Salvando...';
   const { error } = await supabase.rpc('bar_configurar_mesas', {
     p_quantidade: quantidade,
@@ -11972,13 +11619,12 @@ $('btn-salvar-config-bar').addEventListener('click', async () => {
   });
   btn.disabled = false; btn.textContent = 'Salvar';
   if(error){
-    $('bar-config-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    $('bar-config-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  $('bar-config-msg').innerHTML = '<div class="msg success">Configuração salva.</div>';
+  $('modal-bar-config-mesas').classList.add('hidden');
   await carregarBarMesas();
 });
-
 // ---------- Verifica sessão ao carregar ----------
 (async () => {
   if(!SUPABASE_CONFIGURADO){
