@@ -2918,7 +2918,9 @@
         <button type="button" class="bar-subnav-item" data-barview="caixa">Caixa</button>
         <button type="button" class="bar-subnav-item" data-barview="portaria">Portaria</button>
         <button type="button" class="bar-subnav-item" data-barview="cozinha">Bar / Cozinha</button>
-        <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos do Bar</button>
+        <button type="button" class="bar-subnav-item" data-barview="destino">Destino dos Produtos</button>
+        <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
+        <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
         <button type="button" class="bar-subnav-item" data-barview="config">Configurações</button>
       </div>
       <div id="bar-aviso-modulo" class="hidden"><div class="msg error">O módulo comercial Bar não está ativo para esta empresa.</div></div>
@@ -2987,11 +2989,44 @@
         <div id="bar-cozinha-empty" class="empty-state hidden">Nenhum item em aberto para este destino.</div>
       </div>
 
-      <!-- ---- SUBVIEW: PRODUTOS DO BAR (cardápio) ---- -->
+      <!-- ---- SUBVIEW: DESTINO DOS PRODUTOS (Bar/Cozinha em massa) ----
+           Requisito #2: carrega automaticamente TODOS os produtos do catálogo central da empresa
+           (nenhuma cópia — bar_produtos é só uma "camada" 1:1 sobre public.produtos, auto-criada
+           pelo gatilho da Migration 017 para todo produto existente/novo). Nunca precisa abrir
+           cadastro produto a produto: marca vários e define o destino em lote. -->
+      <div id="bar-sub-destino" class="bar-subview hidden">
+        <p class="modal-section-hint" style="margin-top:0;">Todo produto cadastrado em Produtos aparece aqui automaticamente. Marque vários e defina o destino de uma vez — não precisa abrir um por um.</p>
+        <div class="search-row">
+          <input type="text" id="bar-destino-busca" placeholder="Buscar por nome do produto...">
+        </div>
+        <div id="bar-destino-msg"></div>
+        <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
+          <label class="chk"><input type="checkbox" id="bar-destino-marcar-todos"><span>Selecionar todos os visíveis</span></label>
+          <button type="button" class="btn-accent" id="btn-bar-destino-definir-bar" style="width:auto;">Definir como Bar</button>
+          <button type="button" class="btn-accent" id="btn-bar-destino-definir-cozinha" style="width:auto;">Definir como Cozinha</button>
+          <button type="button" class="btn-secondary" id="btn-bar-destino-remover" style="width:auto;">Remover destino</button>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr><th></th><th>Produto</th><th>Tipo</th><th>Destino atual</th></tr>
+            </thead>
+            <tbody id="bar-destino-tabela-body"></tbody>
+          </table>
+          <div id="bar-destino-empty" class="empty-state hidden">Nenhum produto cadastrado ainda. Cadastre produtos em Produtos primeiro.</div>
+        </div>
+      </div>
+
+      <!-- ---- SUBVIEW: PRODUTOS COMPOSTOS (ex-"Produtos do Bar") ----
+           Requisito #3/#4/#5: não é um segundo cadastro de estoque — cria itens comerciais
+           (Jantinha, Combo Casal) a partir de produtos físicos já existentes, com grupos de
+           escolha (ex.: "Escolha o espeto", "Escolha o refrigerante"). O destino de um composto
+           nunca é definido aqui — é sempre o destino dos produtos físicos escolhidos no momento do
+           pedido (ver aba "Destino dos Produtos" e o lançamento na Comanda). -->
       <div id="bar-sub-produtos" class="bar-subview hidden">
         <div class="view-header" style="padding:0 0 12px;">
           <div></div>
-          <button class="btn-accent" id="btn-novo-produto-bar">+ Item do cardápio</button>
+          <button class="btn-accent" id="btn-novo-produto-bar">+ Criar produto composto</button>
         </div>
         <div class="search-row">
           <input type="text" id="bar-produtos-busca" placeholder="Buscar por nome do produto...">
@@ -3000,11 +3035,47 @@
         <div class="table-card">
           <table>
             <thead>
-              <tr><th>Produto</th><th>Tipo</th><th>Destino</th><th>Status</th><th>Ações</th></tr>
+              <tr><th>Produto composto</th><th>Preço</th><th>Grupos de escolha</th><th>Ações</th></tr>
             </thead>
             <tbody id="bar-produtos-tabela-body"></tbody>
           </table>
-          <div id="bar-produtos-empty" class="empty-state hidden">Nenhum item cadastrado no cardápio do bar ainda.</div>
+          <div id="bar-produtos-empty" class="empty-state hidden">Nenhum produto composto cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- ---- SUBVIEW: RELATÓRIOS DO BAR ----
+           Requisito #10: DUAS visões distintas — A) o que foi vendido comercialmente (o produto
+           composto conta como 1 linha, pelo preço configurado); B) o que efetivamente saiu do
+           estoque físico (soma avulsos + o que saiu escondido dentro de compostos). -->
+      <div id="bar-sub-relatorios" class="bar-subview hidden">
+        <div class="field-row">
+          <div class="field"><label>De</label><input type="date" id="bar-relatorio-data-inicio"></div>
+          <div class="field"><label>Até</label><input type="date" id="bar-relatorio-data-fim"></div>
+          <div class="field" style="align-self:flex-end;"><button type="button" class="btn-primary" id="btn-bar-relatorio-filtrar" style="width:auto; padding:10px 20px;">Filtrar</button></div>
+        </div>
+        <div id="bar-relatorio-msg"></div>
+
+        <div class="modal-section-label">A — Produtos/itens comerciais vendidos</div>
+        <p class="modal-section-hint" style="margin-top:-6px;">O que o cliente pagou: um produto composto (ex.: Combo Casal) aparece como 1 linha só, pelo preço configurado — nunca desmembrado nos componentes.</p>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>Produto</th><th>Quantidade vendida</th><th>Valor total</th></tr></thead>
+            <tbody id="bar-relatorio-comercial-body"></tbody>
+          </table>
+          <div id="bar-relatorio-comercial-empty" class="empty-state hidden">Nenhuma venda no período.</div>
+        </div>
+
+        <div class="modal-section-label" style="margin-top:18px;">B — Produtos físicos consumidos (saídas de estoque)</div>
+        <p class="modal-section-hint" style="margin-top:-6px;">O que efetivamente saiu do estoque — soma vendas avulsas + o que foi escolhido dentro de produtos compostos (ex.: Fanta 1L vendida solta + Fanta escolhida dentro de combos).</p>
+        <div class="search-row">
+          <input type="text" id="bar-relatorio-fisico-busca" placeholder="Buscar por nome do produto (ex.: Fanta 1L)...">
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>Produto físico</th><th>Quantidade consumida</th></tr></thead>
+            <tbody id="bar-relatorio-fisico-body"></tbody>
+          </table>
+          <div id="bar-relatorio-fisico-empty" class="empty-state hidden">Nenhum consumo no período.</div>
         </div>
       </div>
 
@@ -4049,39 +4120,47 @@
   </div>
 </div>
 
-<!-- MODAL: adicionar pessoas (garçom, só soma) -->
-<div id="modal-bar-add-pessoas" class="modal-overlay modal-overlay-secundario hidden">
-  <div class="modal-card" style="max-width:400px;">
-    <h3 id="bar-add-pessoas-titulo">Adicionar pessoas</h3>
-    <div id="bar-add-pessoas-msg"></div>
-    <div class="field">
-      <label>Quantas pessoas chegaram agora?</label>
-      <input type="number" id="bar-add-pessoas-qtd" min="1" step="1" value="1">
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="btn-bar-add-pessoas-cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-bar-add-pessoas-confirmar" style="width:auto; padding:10px 20px;">Adicionar</button>
-    </div>
-  </div>
-</div>
+<!-- MODAL: Pessoas (unificado — requisito #11: 1 botão só, "+ Pessoas" e "Corrigir pessoas"
+     antigos viraram uma única tela). Adicionar fica sempre disponível (bar_mesas); a correção do
+     total (para mais ou para menos, com motivo obrigatório) só aparece para quem tem
+     bar_corrigir_pessoas — a permissão/proteção de auditoria não muda, só a apresentação. -->
+<div id="modal-bar-pessoas" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card" style="max-width:440px;">
+    <h3 id="bar-pessoas-titulo">Pessoas</h3>
+    <p class="modal-section-hint" id="bar-pessoas-atual" style="margin-top:-6px;"></p>
+    <div id="bar-pessoas-msg"></div>
 
-<!-- MODAL: corrigir pessoas (só Caixa — bar_corrigir_pessoas; motivo obrigatório) -->
-<div id="modal-bar-corrigir-pessoas" class="modal-overlay modal-overlay-secundario hidden">
-  <div class="modal-card" style="max-width:420px;">
-    <h3 id="bar-corrigir-pessoas-titulo">Corrigir quantidade de pessoas</h3>
-    <p class="modal-section-hint" style="margin-top:-6px;">Uso restrito ao Caixa. Fica registrado no histórico da mesa, com o motivo.</p>
-    <div id="bar-corrigir-pessoas-msg"></div>
-    <div class="field">
-      <label>Novo total de pessoas na mesa</label>
-      <input type="number" id="bar-corrigir-pessoas-total" min="0" step="1">
+    <div class="modal-section-label">Adicionar pessoas</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Quantas pessoas chegaram agora?</label>
+        <input type="number" id="bar-add-pessoas-qtd" min="1" step="1" value="1">
+      </div>
+      <div class="field" style="align-self:flex-end;">
+        <button type="button" class="btn-primary" id="btn-bar-add-pessoas-confirmar" style="width:auto; padding:10px 20px;">Adicionar</button>
+      </div>
     </div>
-    <div class="field">
-      <label>Motivo da correção</label>
-      <textarea id="bar-corrigir-pessoas-motivo" placeholder="Ex: garçom contou errado ao abrir a mesa."></textarea>
+
+    <div id="bar-corrigir-pessoas-wrap" class="hidden">
+      <div class="modal-section-label">Corrigir total (uso restrito ao Caixa)</div>
+      <p class="modal-section-hint" style="margin-top:-6px;">Corrige o total para mais ou para menos. Fica registrado no histórico da mesa, com o motivo.</p>
+      <div class="field-row">
+        <div class="field">
+          <label>Novo total de pessoas na mesa</label>
+          <input type="number" id="bar-corrigir-pessoas-total" min="0" step="1">
+        </div>
+      </div>
+      <div class="field">
+        <label>Motivo da correção</label>
+        <textarea id="bar-corrigir-pessoas-motivo" placeholder="Ex: garçom contou errado ao abrir a mesa."></textarea>
+      </div>
+      <div class="modal-actions" style="justify-content:flex-start;">
+        <button type="button" class="btn-primary" id="btn-bar-corrigir-pessoas-confirmar" style="width:auto; padding:10px 20px;">Corrigir total</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="btn-bar-corrigir-pessoas-cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-bar-corrigir-pessoas-confirmar" style="width:auto; padding:10px 20px;">Corrigir</button>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button type="button" class="btn-secondary" id="btn-bar-pessoas-fechar">Fechar</button>
     </div>
   </div>
 </div>
@@ -4093,13 +4172,16 @@
     <div id="bar-comanda-msg"></div>
     <div id="bar-comanda-resumo" class="modal-section-hint" style="margin-top:0;"></div>
     <div class="modal-actions" style="margin:10px 0 16px; justify-content:flex-start; flex-wrap:wrap;">
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-add-pessoas" style="width:auto;">+ Pessoas</button>
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-corrigir-pessoas" style="width:auto;">Corrigir pessoas</button>
+      <button type="button" class="btn-secondary" id="btn-bar-comanda-pessoas" style="width:auto;">Pessoas</button>
       <button type="button" class="btn-accent" id="btn-bar-comanda-ir-caixa" style="width:auto;">Ir para o Caixa</button>
       <button type="button" class="btn-secondary" id="btn-bar-comanda-fechar-mesa" style="width:auto;">Fechar mesa</button>
     </div>
 
-    <div class="modal-section-label">Lançar itens</div>
+    <!-- Requisito #7: um único passo — escolhe o item, responde às escolhas (se composto),
+         informa quantidade/observação e clica em "Lançar pedido". Cada clique já lança e baixa
+         estoque na hora (bar_pedido_enviar); não existe mais carrinho local nem um segundo botão
+         de "enviar" separado. -->
+    <div class="modal-section-label">Lançar pedido</div>
     <div class="field-row">
       <div class="field" style="flex:2;">
         <label>Item do cardápio</label>
@@ -4110,16 +4192,13 @@
         <input type="number" id="bar-comanda-item-qtd" min="0.01" step="0.01" value="1">
       </div>
     </div>
+    <div id="bar-comanda-escolhas"></div>
     <div class="field">
       <label>Observação (opcional)</label>
       <input type="text" id="bar-comanda-item-obs" placeholder="Ex: sem gelo, ponto da carne, etc.">
     </div>
     <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-secondary" id="btn-bar-comanda-add-carrinho" style="width:auto;">+ Adicionar à comanda (não envia ainda)</button>
-    </div>
-    <div id="bar-comanda-carrinho" class="bar-carrinho"></div>
-    <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-accent" id="btn-bar-comanda-enviar" style="width:auto;">Enviar pedido para Bar/Cozinha</button>
+      <button type="button" class="btn-accent" id="btn-bar-comanda-lancar" style="width:auto;">Lançar pedido</button>
     </div>
 
     <div class="modal-section-label">Itens já lançados nesta comanda</div>
@@ -4241,47 +4320,27 @@
   </div>
 </div>
 
-<!-- MODAL: item do cardápio do bar (simples/composto) -->
+<!-- MODAL: produto composto (requisito #3/#4/#5) — o produto físico (nome, preço final de venda,
+     dados fiscais) já deve existir normalmente em Produtos; aqui só se escolhe QUAL produto vira
+     um composto e se montam os grupos de escolha. O destino NUNCA é definido aqui — é sempre o dos
+     produtos físicos escolhidos no lançamento do pedido (ver Destino dos Produtos + Comanda). -->
 <div id="modal-bar-produto" class="modal-overlay hidden">
   <div class="modal-card modal-card-wide">
-    <h3 id="bar-produto-titulo">Item do cardápio</h3>
+    <h3 id="bar-produto-titulo">Produto composto</h3>
+    <p class="modal-section-hint" style="margin-top:-6px;">Escolha um produto já cadastrado em Produtos — o nome e o preço de venda dele são o nome e o preço final deste composto (edite-os em Produtos, se precisar). Aqui você só monta os grupos de escolha.</p>
     <div id="bar-produto-msg"></div>
     <form id="form-bar-produto">
       <div class="field">
         <label>Produto do catálogo</label>
         <select id="bar-produto-produto" required></select>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Tipo</label>
-          <select id="bar-produto-tipo" required>
-            <option value="simples">Simples (baixa o próprio produto)</option>
-            <option value="composto">Composto (baixa componentes)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Destino operacional</label>
-          <select id="bar-produto-destino" required>
-            <option value="bar">Bar</option>
-            <option value="cozinha">Cozinha</option>
-            <option value="sem_destino">Sem destino</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Status</label>
-          <select id="bar-produto-ativo">
-            <option value="true">Ativo no cardápio</option>
-            <option value="false">Inativo (oculto)</option>
-          </select>
-        </div>
-      </div>
+      <p class="modal-section-hint" id="bar-produto-preco-atual" style="margin-top:-8px;"></p>
 
-      <div id="bar-produto-componentes-wrap" class="hidden">
-        <div class="modal-section-label">Componentes (consumidos por 1 unidade vendida deste item)</div>
-        <div id="bar-produto-componentes-lista"></div>
-        <div class="modal-actions" style="justify-content:flex-start;">
-          <button type="button" class="btn-secondary" id="btn-bar-produto-add-componente" style="width:auto;">+ Componente</button>
-        </div>
+      <div class="modal-section-label">Grupos de escolha</div>
+      <p class="modal-section-hint" style="margin-top:-6px;">Ex.: "Escolha o espeto" com Frango/Carne/Linguiça, "Escolha o refrigerante" com Coca-Cola/Fanta/Guaraná. Um composto pode ter vários grupos.</p>
+      <div id="bar-produto-grupos-lista"></div>
+      <div class="modal-actions" style="justify-content:flex-start;">
+        <button type="button" class="btn-secondary" id="btn-bar-produto-add-grupo" style="width:auto;">+ Grupo de escolha</button>
       </div>
 
       <div class="modal-actions">
@@ -10629,8 +10688,11 @@ let barSubViewAtual = 'mesas';
 let barCanalRealtime = null;
 let barMesaAtual = null;
 let barComandaAtualId = null;
-let barCarrinho = [];
 let barCardapioCache = [];
+let barItemSelecionadoEscolhas = null; // grupos/opções do bar_produto selecionado no lançamento (se composto)
+let barDestinoCache = [];
+let barDestinoSelecionados = new Set();
+let barGruposEdicao = []; // [{ nome, quantidade_escolhas, ordem, opcoes:[{produto_id,nome,ordem}] }]
 let barPagamentoComandaId = null;
 let barPagamentoMesaInfo = null;
 let barPagamentoItensCache = [];
@@ -10639,7 +10701,6 @@ let barCozinhaDestinoAtual = 'bar';
 let barItemParaCancelar = null;
 let barMesaParaAbrir = null;
 let barProdutoBarEditandoId = null;
-let barComponentesEdicao = [];
 let barProdutosCatalogoCache = null;
 let barEstornoPagamentoId = null;
 let barFiscalComandaAtual = null;
@@ -10659,7 +10720,9 @@ const BAR_SUBVIEW_PERMISSOES = {
   caixa: ['bar_caixa'],
   portaria: ['bar_portaria'],
   cozinha: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa'],
+  destino: ['bar_configurar'],
   produtos: ['bar_configurar'],
+  relatorios: ['bar_caixa','bar_configurar'],
   config: ['bar_configurar'],
 };
 
@@ -10681,12 +10744,14 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 async function abrirSubViewBar(sub){
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','caixa','portaria','cozinha','produtos','config'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','caixa','portaria','cozinha','destino','produtos','relatorios','config'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarMesas();
   else if(sub === 'caixa') await carregarBarCaixa();
   else if(sub === 'portaria') await carregarBarPortaria();
   else if(sub === 'cozinha') await carregarBarCozinha();
+  else if(sub === 'destino') await carregarBarDestino();
   else if(sub === 'produtos') await carregarBarProdutos();
+  else if(sub === 'relatorios') await carregarBarRelatorios();
   else if(sub === 'config') await carregarBarConfig();
 }
 
@@ -10789,28 +10854,30 @@ function atualizarResumoComanda(){
 async function abrirModalComanda(mesa){
   barMesaAtual = mesa;
   barComandaAtualId = mesa.comanda_atual_id;
-  barCarrinho = [];
   $('bar-comanda-msg').innerHTML = '';
   $('bar-comanda-item-obs').value = '';
   $('bar-comanda-item-qtd').value = 1;
+  $('bar-comanda-escolhas').innerHTML = '';
   atualizarResumoComanda();
-  $('btn-bar-comanda-add-pessoas').classList.toggle('hidden', !podeAcessarBar('bar_mesas'));
-  $('btn-bar-comanda-corrigir-pessoas').classList.toggle('hidden', !podeAcessarBar('bar_corrigir_pessoas'));
+  $('btn-bar-comanda-pessoas').classList.toggle('hidden', !podeAcessarBar('bar_mesas') && !podeAcessarBar('bar_corrigir_pessoas'));
   $('btn-bar-comanda-ir-caixa').classList.toggle('hidden', !podeAcessarBar('bar_caixa'));
-  const podeEnviar = podeAcessarBar('bar_pedidos');
-  $('btn-bar-comanda-add-carrinho').classList.toggle('hidden', !podeEnviar);
-  $('btn-bar-comanda-enviar').classList.toggle('hidden', !podeEnviar);
-  renderBarCarrinho();
+  $('btn-bar-comanda-lancar').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
   $('modal-bar-comanda').classList.remove('hidden');
   await Promise.all([carregarCardapioBarSelect(), recarregarItensComanda()]);
 }
 
+// Requisito #7: lançamento único. carregarCardapioBarSelect traz, junto com cada item do
+// cardápio, os grupos de escolha do modelo novo (bar_produto_grupos/bar_produto_grupo_opcoes) já
+// aninhados — dá para montar os campos de escolha (ex.: "Qual espeto?") sem nenhuma chamada extra
+// quando o garçom troca o item selecionado.
 async function carregarCardapioBarSelect(){
   const sel = $('bar-comanda-item-select');
   sel.innerHTML = '';
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
-    .select('id, tipo, destino_operacional, produtos ( nome, preco_venda )')
+    .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda ),
+             bar_produto_grupos ( id, nome, quantidade_escolhas, ordem,
+               bar_produto_grupo_opcoes ( produto_id, ordem, produtos ( nome ) ) )`)
     .eq('ativo_cardapio', true)
     .order('id'));
   if(error){
@@ -10827,66 +10894,75 @@ async function carregarCardapioBarSelect(){
       opt.textContent = `${bp.produtos ? bp.produtos.nome : '—'} (${formatarReais(bp.produtos ? bp.produtos.preco_venda : 0)})`;
       sel.appendChild(opt);
     });
+  renderEscolhasComanda();
+}
+$('bar-comanda-item-select').addEventListener('change', renderEscolhasComanda);
+
+// Mostra um seletor por escolha exigida (ex.: "Escolha o espeto") quando o item selecionado é um
+// composto do modelo novo de grupos. Item simples, ou composto do modelo antigo (sem grupos
+// cadastrados — bar_produtos_componentes, Migration 016, continua funcionando por trás sem exigir
+// nenhuma escolha aqui), não mostra nada nesta área — igual a antes.
+function renderEscolhasComanda(){
+  const wrap = $('bar-comanda-escolhas');
+  const bp = barCardapioCache.find(x => x.id === $('bar-comanda-item-select').value);
+  const grupos = (bp && bp.bar_produto_grupos ? bp.bar_produto_grupos.slice() : []).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  if(!bp || bp.tipo !== 'composto' || grupos.length === 0){
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = grupos.map(g => {
+    const opcoes = (g.bar_produto_grupo_opcoes || []).slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    const campos = Array.from({ length: g.quantidade_escolhas || 1 }).map((_, i) => `
+      <div class="field">
+        <label>${escapeHtml(g.nome)}${(g.quantidade_escolhas || 1) > 1 ? ` (escolha ${i + 1} de ${g.quantidade_escolhas})` : ''}</label>
+        <select data-escolha-grupo="${g.id}">
+          ${opcoes.map(o => `<option value="${o.produto_id}">${escapeHtml(o.produtos ? o.produtos.nome : '—')}</option>`).join('')}
+        </select>
+      </div>`).join('');
+    return `<div class="field-row">${campos}</div>`;
+  }).join('');
 }
 
-function renderBarCarrinho(){
-  const wrap = $('bar-comanda-carrinho');
-  if(barCarrinho.length === 0){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = barCarrinho.map((it, idx) => `
-    <div class="bar-carrinho-item">
-      <span>${escapeHtml(it.nome)} — ${it.quantidade}x ${formatarReais(it.preco_venda)}${it.observacao ? ' · ' + escapeHtml(it.observacao) : ''}</span>
-      <button type="button" class="link-btn" data-remover-carrinho="${idx}">Remover</button>
-    </div>`).join('');
-  wrap.querySelectorAll('[data-remover-carrinho]').forEach(btn => btn.addEventListener('click', () => {
-    barCarrinho.splice(parseInt(btn.dataset.removerCarrinho, 10), 1);
-    renderBarCarrinho();
-  }));
-}
-
-$('btn-bar-comanda-add-carrinho').addEventListener('click', () => {
+$('btn-bar-comanda-lancar').addEventListener('click', async () => {
   const barProdutoId = $('bar-comanda-item-select').value;
   const qtd = parseFloat($('bar-comanda-item-qtd').value);
   if(!barProdutoId){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Selecione um item do cardápio.</div>'; return; }
   if(!qtd || qtd <= 0){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
   const bp = barCardapioCache.find(x => x.id === barProdutoId);
-  if(!bp) return;
-  barCarrinho.push({
-    bar_produto_id: barProdutoId,
-    nome: bp.produtos ? bp.produtos.nome : '—',
-    quantidade: qtd,
-    preco_venda: bp.produtos ? bp.produtos.preco_venda : 0,
-    observacao: $('bar-comanda-item-obs').value.trim() || null,
-  });
-  $('bar-comanda-item-obs').value = '';
-  $('bar-comanda-item-qtd').value = 1;
-  $('bar-comanda-msg').innerHTML = '';
-  renderBarCarrinho();
-});
-
-$('btn-bar-comanda-enviar').addEventListener('click', async () => {
-  if(barCarrinho.length === 0){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Adicione ao menos um item antes de enviar.</div>'; return; }
-  const btn = $('btn-bar-comanda-enviar');
-  btn.disabled = true; btn.textContent = 'Enviando...';
+  const grupos = (bp && bp.bar_produto_grupos) || [];
+  let escolhas = null;
+  if(bp && bp.tipo === 'composto' && grupos.length > 0){
+    escolhas = [];
+    const selects = $('bar-comanda-escolhas').querySelectorAll('[data-escolha-grupo]');
+    for(const s of selects){
+      if(!s.value){ $('bar-comanda-msg').innerHTML = '<div class="msg error">Responda todas as escolhas deste item antes de lançar.</div>'; return; }
+      escolhas.push({ grupo_id: s.dataset.escolhaGrupo, produto_id: s.value });
+    }
+  }
+  const observacao = $('bar-comanda-item-obs').value.trim() || null;
+  const btn = $('btn-bar-comanda-lancar');
+  btn.disabled = true; btn.textContent = 'Lançando...';
   const idempotencia = crypto.randomUUID();
-  const itens = barCarrinho.map(it => ({ bar_produto_id: it.bar_produto_id, quantidade: it.quantidade, observacao: it.observacao }));
   const { error } = await supabase.rpc('bar_pedido_enviar', {
-    p_comanda_id: barComandaAtualId, p_itens: itens, p_idempotencia: idempotencia,
+    p_comanda_id: barComandaAtualId,
+    p_itens: [{ bar_produto_id: barProdutoId, quantidade: qtd, observacao, escolhas }],
+    p_idempotencia: idempotencia,
   });
-  btn.disabled = false; btn.textContent = 'Enviar pedido para Bar/Cozinha';
+  btn.disabled = false; btn.textContent = 'Lançar pedido';
   if(error){
     $('bar-comanda-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  barCarrinho = [];
-  renderBarCarrinho();
-  $('bar-comanda-msg').innerHTML = '<div class="msg success">Pedido enviado.</div>';
+  $('bar-comanda-item-obs').value = '';
+  $('bar-comanda-item-qtd').value = 1;
+  $('bar-comanda-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
   await recarregarItensComanda();
 });
 
 async function recarregarItensComanda(){
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_pedidos_itens')
-    .select('id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, produtos ( nome )')
+    .select('id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional )')
     .eq('comanda_id', barComandaAtualId)
     .order('criado_em'));
   const corpo = $('bar-comanda-itens-body');
@@ -10899,12 +10975,23 @@ async function recarregarItensComanda(){
     if(it.estornado){ status = 'Cancelado'; statusClasse = 'status-baixo'; }
     else if(it.pagamento_id){ status = 'Pago'; statusClasse = 'status-ok'; }
     const podeCancelar = !it.estornado && !it.pagamento_id && podeAcessarBar('bar_cancelar_pedido');
+    // Requisito #6: um composto do modelo novo não tem destino próprio (destino_operacional =
+    // 'sem_destino' na linha comercial) — quem carrega o destino são as escolhas gravadas em
+    // bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s) destino(s) reais.
+    const escolhas = it.bar_pedidos_itens_escolhas || [];
+    const nomeLinha = escolhas.length > 0
+      ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div>`
+      : escapeHtml(it.produtos ? it.produtos.nome : '—');
+    const nomeDestino = d => d === 'bar' ? 'Bar' : d === 'cozinha' ? 'Cozinha' : 'Sem destino';
+    const destinoTexto = escolhas.length > 0
+      ? Array.from(new Set(escolhas.map(e => e.destino_operacional))).map(nomeDestino).join(' + ')
+      : nomeDestino(it.destino_operacional);
     return `<tr>
-      <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
+      <td>${nomeLinha}</td>
       <td>${it.quantidade}</td>
       <td>${formatarReais(it.preco_unitario)}</td>
       <td>${formatarReais(subtotal)}</td>
-      <td>${it.destino_operacional}</td>
+      <td>${destinoTexto}</td>
       <td><span class="status-badge ${statusClasse}">${status}</span></td>
       <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar</button>` : ''}</td>
     </tr>`;
@@ -10934,53 +11021,65 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
   await recarregarItensComanda();
 });
 
-$('btn-bar-comanda-add-pessoas').addEventListener('click', () => {
-  $('bar-add-pessoas-titulo').textContent = `Adicionar pessoas — Mesa ${barMesaAtual.numero}`;
-  $('bar-add-pessoas-msg').innerHTML = '';
+// Requisito #11: um único botão "Pessoas" — adicionar fica sempre disponível a quem tem
+// bar_mesas; a correção do total (para mais ou para menos, motivo obrigatório) só aparece a quem
+// tem bar_corrigir_pessoas. A permissão/auditoria de cada ação continua exatamente a mesma de
+// antes (bar_mesa_adicionar_pessoas / bar_mesa_corrigir_pessoas) — só a apresentação mudou.
+$('btn-bar-comanda-pessoas').addEventListener('click', () => {
+  $('bar-pessoas-titulo').textContent = `Pessoas — Mesa ${barMesaAtual.numero}`;
+  $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
+  $('bar-pessoas-msg').innerHTML = '';
   $('bar-add-pessoas-qtd').value = 1;
-  $('modal-bar-add-pessoas').classList.remove('hidden');
+  $('bar-corrigir-pessoas-total').value = barMesaAtual.pessoas_atual;
+  $('bar-corrigir-pessoas-motivo').value = '';
+  $('bar-corrigir-pessoas-wrap').classList.toggle('hidden', !podeAcessarBar('bar_corrigir_pessoas'));
+  $('modal-bar-pessoas').classList.remove('hidden');
 });
-$('btn-bar-add-pessoas-cancelar').addEventListener('click', () => $('modal-bar-add-pessoas').classList.add('hidden'));
+$('btn-bar-pessoas-fechar').addEventListener('click', () => $('modal-bar-pessoas').classList.add('hidden'));
+
 $('btn-bar-add-pessoas-confirmar').addEventListener('click', async () => {
   const qtd = parseInt($('bar-add-pessoas-qtd').value, 10);
-  if(!qtd || qtd <= 0){ $('bar-add-pessoas-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
+  if(!qtd || qtd <= 0){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
   const btn = $('btn-bar-add-pessoas-confirmar');
   btn.disabled = true; btn.textContent = 'Adicionando...';
   const { error } = await supabase.rpc('bar_mesa_adicionar_pessoas', { p_mesa_id: barMesaAtual.id, p_quantidade: qtd });
   btn.disabled = false; btn.textContent = 'Adicionar';
   if(error){
-    $('bar-add-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    $('bar-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  $('modal-bar-add-pessoas').classList.add('hidden');
   const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
-  if(mesaAtualizada){ barMesaAtual = mesaAtualizada; atualizarResumoComanda(); }
+  if(mesaAtualizada){
+    barMesaAtual = mesaAtualizada;
+    atualizarResumoComanda();
+    $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
+    $('bar-corrigir-pessoas-total').value = barMesaAtual.pessoas_atual;
+  }
+  $('bar-add-pessoas-qtd').value = 1;
+  $('bar-pessoas-msg').innerHTML = '<div class="msg success">Pessoas adicionadas.</div>';
 });
 
-$('btn-bar-comanda-corrigir-pessoas').addEventListener('click', () => {
-  $('bar-corrigir-pessoas-titulo').textContent = `Corrigir pessoas — Mesa ${barMesaAtual.numero}`;
-  $('bar-corrigir-pessoas-msg').innerHTML = '';
-  $('bar-corrigir-pessoas-total').value = barMesaAtual.pessoas_atual;
-  $('bar-corrigir-pessoas-motivo').value = '';
-  $('modal-bar-corrigir-pessoas').classList.remove('hidden');
-});
-$('btn-bar-corrigir-pessoas-cancelar').addEventListener('click', () => $('modal-bar-corrigir-pessoas').classList.add('hidden'));
 $('btn-bar-corrigir-pessoas-confirmar').addEventListener('click', async () => {
   const total = parseInt($('bar-corrigir-pessoas-total').value, 10);
   const motivo = $('bar-corrigir-pessoas-motivo').value.trim();
-  if(isNaN(total) || total < 0){ $('bar-corrigir-pessoas-msg').innerHTML = '<div class="msg error">Informe um total válido.</div>'; return; }
-  if(motivo.length < 3){ $('bar-corrigir-pessoas-msg').innerHTML = '<div class="msg error">Informe o motivo (mínimo 3 caracteres).</div>'; return; }
+  if(isNaN(total) || total < 0){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe um total válido.</div>'; return; }
+  if(motivo.length < 3){ $('bar-pessoas-msg').innerHTML = '<div class="msg error">Informe o motivo (mínimo 3 caracteres).</div>'; return; }
   const btn = $('btn-bar-corrigir-pessoas-confirmar');
   btn.disabled = true; btn.textContent = 'Corrigindo...';
   const { error } = await supabase.rpc('bar_mesa_corrigir_pessoas', { p_mesa_id: barMesaAtual.id, p_pessoas_total: total, p_motivo: motivo });
-  btn.disabled = false; btn.textContent = 'Corrigir';
+  btn.disabled = false; btn.textContent = 'Corrigir total';
   if(error){
-    $('bar-corrigir-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    $('bar-pessoas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  $('modal-bar-corrigir-pessoas').classList.add('hidden');
   const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
-  if(mesaAtualizada){ barMesaAtual = mesaAtualizada; atualizarResumoComanda(); }
+  if(mesaAtualizada){
+    barMesaAtual = mesaAtualizada;
+    atualizarResumoComanda();
+    $('bar-pessoas-atual').textContent = `${barMesaAtual.pessoas_atual} pessoa(s) na mesa agora.`;
+  }
+  $('bar-corrigir-pessoas-motivo').value = '';
+  $('bar-pessoas-msg').innerHTML = '<div class="msg success">Total corrigido.</div>';
 });
 
 $('btn-bar-comanda-fechar-mesa').addEventListener('click', async () => {
@@ -11459,21 +11558,50 @@ document.querySelectorAll('#bar-sub-cozinha .bar-subnav-item[data-destino]').for
 });
 $('btn-bar-cozinha-atualizar').addEventListener('click', () => carregarBarCozinha());
 
+// Requisito #6: o Bar/Cozinha (KDS) precisa enxergar os componentes físicos de um combo
+// separadamente, cada um no destino certo — nunca o composto inteiro num destino só. Por isso este
+// KDS junta DUAS fontes: (1) bar_pedidos_itens diretamente (item simples, e composto do modelo
+// ANTIGO que ainda tem destino próprio — nada muda para eles); (2) bar_pedidos_itens_escolhas
+// (composto do modelo NOVO — cada escolha já carimbada com o destino do produto físico
+// efetivamente escolhido). Um composto do modelo novo nunca aparece pela linha (1) porque sua
+// própria linha comercial é gravada com destino_operacional='sem_destino' (ver bar_pedido_enviar).
 async function carregarBarCozinha(){
   $('bar-cozinha-msg').innerHTML = '';
-  const { data: itens, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos_itens')
-    .select('id, quantidade, observacao, criado_em, produtos ( nome ), bar_comandas ( mesa_id, bar_mesas ( numero ) )')
-    .eq('destino_operacional', barCozinhaDestinoAtual)
-    .eq('estornado', false)
-    .is('pagamento_id', null)
-    .order('criado_em'));
-  if(error){
-    $('bar-cozinha-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+  const [diretos, viaEscolhas] = await Promise.all([
+    buscarTodos(() => supabase
+      .from('bar_pedidos_itens')
+      .select('id, quantidade, observacao, criado_em, produtos ( nome ), bar_comandas ( mesa_id, bar_mesas ( numero ) )')
+      .eq('destino_operacional', barCozinhaDestinoAtual)
+      .eq('estornado', false)
+      .is('pagamento_id', null)
+      .order('criado_em')),
+    buscarTodos(() => supabase
+      .from('bar_pedidos_itens_escolhas')
+      .select(`quantidade, produto_nome, criado_em,
+                bar_pedidos_itens!inner ( id, observacao, estornado, pagamento_id,
+                  bar_comandas ( mesa_id, bar_mesas ( numero ) ) )`)
+      .eq('destino_operacional', barCozinhaDestinoAtual)
+      .eq('bar_pedidos_itens.estornado', false)
+      .is('bar_pedidos_itens.pagamento_id', null)
+      .order('criado_em')),
+  ]);
+  if(diretos.error || viaEscolhas.error){
+    $('bar-cozinha-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(diretos.error || viaEscolhas.error))}</div>`;
     return;
   }
+  const itens = [
+    ...(diretos.data || []).map(it => ({
+      id: it.id, quantidade: it.quantidade, observacao: it.observacao, criado_em: it.criado_em,
+      nome: it.produtos ? it.produtos.nome : '—', bar_comandas: it.bar_comandas,
+    })),
+    ...(viaEscolhas.data || []).map(e => ({
+      id: e.bar_pedidos_itens.id + ':' + e.produto_nome, quantidade: e.quantidade,
+      observacao: e.bar_pedidos_itens.observacao, criado_em: e.criado_em,
+      nome: e.produto_nome, bar_comandas: e.bar_pedidos_itens.bar_comandas,
+    })),
+  ];
   const porMesa = new Map();
-  (itens || []).forEach(it => {
+  itens.forEach(it => {
     const comanda = it.bar_comandas;
     const mesa = comanda ? comanda.bar_mesas : null;
     if(!mesa) return;
@@ -11482,6 +11610,7 @@ async function carregarBarCozinha(){
     porMesa.set(comanda.mesa_id, atual);
   });
   const grupos = Array.from(porMesa.values()).sort((a, b) => a.numero - b.numero);
+  grupos.forEach(g => g.itens.sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em)));
   $('bar-cozinha-empty').classList.toggle('hidden', grupos.length > 0);
   $('bar-cozinha-lista').innerHTML = grupos.map(g => `
     <div class="bar-cozinha-card">
@@ -11489,7 +11618,7 @@ async function carregarBarCozinha(){
         <span class="bar-cozinha-card-mesa">Mesa ${g.numero}</span>
         <button type="button" class="btn-secondary" style="width:auto;" data-imprimir-mesa="${g.numero}">Imprimir</button>
       </div>
-      ${g.itens.map(it => `<div class="bar-cozinha-item-linha"><span>${it.quantidade}x ${escapeHtml(it.produtos ? it.produtos.nome : '—')}${it.observacao ? ' — ' + escapeHtml(it.observacao) : ''}</span><span>${new Date(it.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}
+      ${g.itens.map(it => `<div class="bar-cozinha-item-linha"><span>${it.quantidade}x ${escapeHtml(it.nome)}${it.observacao ? ' — ' + escapeHtml(it.observacao) : ''}</span><span>${new Date(it.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}
     </div>`).join('');
   document.querySelectorAll('[data-imprimir-mesa]').forEach(btn => {
     const grupo = grupos.find(g => String(g.numero) === btn.dataset.imprimirMesa);
@@ -11504,7 +11633,7 @@ function imprimirTicketBar(grupo, destino){
   ticket.innerHTML = `
     <div class="bar-ticket-titulo">${destino === 'bar' ? 'BAR' : 'COZINHA'} — MESA ${escapeHtml(String(grupo.numero))}</div>
     <div class="bar-ticket-hr"></div>
-    ${grupo.itens.map(it => `<div class="bar-ticket-linha"><span>${it.quantidade}x ${escapeHtml(it.produtos ? it.produtos.nome : '—')}</span></div>${it.observacao ? `<div>${escapeHtml(it.observacao)}</div>` : ''}`).join('')}
+    ${grupo.itens.map(it => `<div class="bar-ticket-linha"><span>${it.quantidade}x ${escapeHtml(it.nome)}</span></div>${it.observacao ? `<div>${escapeHtml(it.observacao)}</div>` : ''}`).join('')}
     <div class="bar-ticket-hr"></div>
     <div>${new Date().toLocaleString('pt-BR')}</div>`;
   document.body.classList.add('bar-imprimindo');
@@ -11514,13 +11643,77 @@ function imprimirTicketBar(grupo, destino){
   setTimeout(limpar, 1500);
 }
 
-// ---------- Produtos do Bar (cardápio) ----------
+// ---------- Destino dos Produtos (Bar/Cozinha em massa — requisito #2) ----------
+// Carrega TODOS os produtos do catálogo central automaticamente (bar_produtos é 1:1 com
+// public.produtos, auto-provisionado pelo gatilho da Migration 017 para todo produto existente ou
+// novo) — nunca precisa abrir cadastro produto a produto.
+async function carregarBarDestino(){
+  $('bar-destino-msg').innerHTML = '';
+  const termo = termoSeguro($('bar-destino-busca').value).toLowerCase();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_produtos')
+    .select('id, produto_id, tipo, destino_operacional, produtos ( nome )')
+    .order('id'));
+  if(error){
+    $('bar-destino-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  let itens = (data || []).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
+  if(termo) itens = itens.filter(it => (it.produtos ? it.produtos.nome : '').toLowerCase().includes(termo));
+  barDestinoCache = itens;
+  $('bar-destino-empty').classList.toggle('hidden', itens.length > 0);
+  $('bar-destino-marcar-todos').checked = false;
+  const nomeDestino = d => d === 'bar' ? 'Bar' : d === 'cozinha' ? 'Cozinha' : 'Não definido';
+  $('bar-destino-tabela-body').innerHTML = itens.map(it => `
+    <tr>
+      <td><input type="checkbox" data-destino-marcar="${it.produto_id}" ${barDestinoSelecionados.has(it.produto_id) ? 'checked' : ''} ${it.tipo === 'composto' ? 'disabled title="Destino de um produto composto é sempre definido pelas escolhas no pedido — não é configurado aqui."' : ''}></td>
+      <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
+      <td>${it.tipo === 'composto' ? 'Composto' : 'Simples'}</td>
+      <td>${it.tipo === 'composto' ? '<span class="modal-section-hint">definido pelas escolhas</span>' : nomeDestino(it.destino_operacional)}</td>
+    </tr>`).join('');
+  document.querySelectorAll('[data-destino-marcar]').forEach(chk => chk.addEventListener('change', () => {
+    if(chk.checked) barDestinoSelecionados.add(chk.dataset.destinoMarcar);
+    else barDestinoSelecionados.delete(chk.dataset.destinoMarcar);
+  }));
+}
+$('bar-destino-busca').addEventListener('input', debounce(() => carregarBarDestino()));
+$('bar-destino-marcar-todos').addEventListener('change', (e) => {
+  document.querySelectorAll('[data-destino-marcar]:not(:disabled)').forEach(chk => {
+    chk.checked = e.target.checked;
+    if(e.target.checked) barDestinoSelecionados.add(chk.dataset.destinoMarcar);
+    else barDestinoSelecionados.delete(chk.dataset.destinoMarcar);
+  });
+});
+
+async function aplicarDestinoEmLote(destino){
+  if(barDestinoSelecionados.size === 0){
+    $('bar-destino-msg').innerHTML = '<div class="msg error">Marque ao menos um produto.</div>';
+    return;
+  }
+  $('bar-destino-msg').innerHTML = '';
+  const { data: qtd, error } = await supabase.rpc('bar_produtos_definir_destino_em_lote', {
+    p_produto_ids: Array.from(barDestinoSelecionados), p_destino_operacional: destino,
+  });
+  if(error){
+    $('bar-destino-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  barDestinoSelecionados.clear();
+  $('bar-destino-msg').innerHTML = `<div class="msg success">${qtd} produto(s) atualizado(s).</div>`;
+  await carregarBarDestino();
+}
+$('btn-bar-destino-definir-bar').addEventListener('click', () => aplicarDestinoEmLote('bar'));
+$('btn-bar-destino-definir-cozinha').addEventListener('click', () => aplicarDestinoEmLote('cozinha'));
+$('btn-bar-destino-remover').addEventListener('click', () => aplicarDestinoEmLote('sem_destino'));
+
+// ---------- Produtos Compostos (ex-"Produtos do Bar" — requisito #3/#4/#5) ----------
 async function carregarBarProdutos(){
   $('bar-produtos-msg').innerHTML = '';
   const termo = termoSeguro($('bar-produtos-busca').value).toLowerCase();
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
-    .select('id, tipo, destino_operacional, ativo_cardapio, produtos ( nome )')
+    .select('id, produtos ( nome, preco_venda ), bar_produto_grupos ( id, nome )')
+    .eq('tipo', 'composto')
     .order('id'));
   if(error){
     $('bar-produtos-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
@@ -11528,121 +11721,192 @@ async function carregarBarProdutos(){
   }
   let itens = data || [];
   if(termo) itens = itens.filter(it => (it.produtos ? it.produtos.nome : '').toLowerCase().includes(termo));
+  itens.sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
   $('bar-produtos-empty').classList.toggle('hidden', itens.length > 0);
-  $('bar-produtos-tabela-body').innerHTML = itens.map(it => `
-    <tr>
+  $('bar-produtos-tabela-body').innerHTML = itens.map(it => {
+    const grupos = it.bar_produto_grupos || [];
+    return `<tr>
       <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
-      <td>${it.tipo === 'composto' ? 'Composto' : 'Simples'}</td>
-      <td>${it.destino_operacional}</td>
-      <td><span class="status-badge ${it.ativo_cardapio ? 'status-ok' : 'status-neutro'}">${it.ativo_cardapio ? 'Ativo' : 'Inativo'}</span></td>
+      <td>${formatarReais(it.produtos ? it.produtos.preco_venda : 0)}</td>
+      <td>${grupos.length > 0 ? escapeHtml(grupos.map(g => g.nome).join(', ')) : '<span class="modal-section-hint">modelo antigo (componentes fixos)</span>'}</td>
       <td><button type="button" class="link-btn" data-editar-produto-bar="${it.id}">Editar</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   document.querySelectorAll('[data-editar-produto-bar]').forEach(btn => btn.addEventListener('click', () => abrirModalProdutoBar(btn.dataset.editarProdutoBar)));
 }
 $('bar-produtos-busca').addEventListener('input', debounce(() => carregarBarProdutos()));
 $('btn-novo-produto-bar').addEventListener('click', () => abrirModalProdutoBar(null));
 
-function atualizarVisibilidadeComponentes(){
-  $('bar-produto-componentes-wrap').classList.toggle('hidden', $('bar-produto-tipo').value !== 'composto');
-}
-$('bar-produto-tipo').addEventListener('change', atualizarVisibilidadeComponentes);
-
-async function renderComponentesEdicao(){
+// Cache compartilhado do catálogo (id/nome/preço) para o select "Produto do catálogo" e para as
+// opções de cada grupo de escolha — carregado uma vez por sessão da tela.
+// CORREÇÃO (revisão de segurança pré-produção): o catálogo agora também traz o tipo já configurado
+// de cada produto no cardápio do bar (bar_produtos.tipo), para que a lista de opções de um grupo de
+// escolha nunca ofereça um item JÁ composto (a ser tratado como componente físico) — evita aninhar
+// um composto dentro de outro. O backend (bar_produto_salvar) também bloqueia isso de forma
+// definitiva; este filtro é só para não nem oferecer a opção inválida na interface.
+async function garantirCatalogoProdutosBar(){
   if(!barProdutosCatalogoCache){
-    const { data } = await buscarTodos(() => supabase.from('produtos').select('id, nome').order('nome'));
-    barProdutosCatalogoCache = data || [];
+    const [{ data: produtosData }, { data: barData }] = await Promise.all([
+      buscarTodos(() => supabase.from('produtos').select('id, nome, preco_venda').order('nome')),
+      buscarTodos(() => supabase.from('bar_produtos').select('produto_id, tipo')),
+    ]);
+    const tipoPorProduto = new Map((barData || []).map(bp => [bp.produto_id, bp.tipo]));
+    barProdutosCatalogoCache = (produtosData || []).map(p => ({
+      id: p.id, nome: p.nome, preco_venda: p.preco_venda,
+      tipoBar: tipoPorProduto.get(p.id) || 'simples',
+    }));
   }
-  const wrap = $('bar-produto-componentes-lista');
+  return barProdutosCatalogoCache;
+}
+
+function renderGruposEdicao(){
+  const wrap = $('bar-produto-grupos-lista');
   wrap.innerHTML = '';
-  barComponentesEdicao.forEach((comp, idx) => {
-    const row = document.createElement('div');
-    row.className = 'bar-componente-row';
-    const sel = document.createElement('select');
-    barProdutosCatalogoCache.forEach(p => {
-      const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome;
-      if(p.id === comp.componente_produto_id) o.selected = true;
-      sel.appendChild(o);
+  barGruposEdicao.forEach((grupo, idxGrupo) => {
+    const card = document.createElement('div');
+    card.className = 'table-card';
+    card.style.padding = '12px';
+    card.style.marginBottom = '10px';
+
+    const linhaTopo = document.createElement('div');
+    linhaTopo.className = 'field-row';
+    const campoNome = document.createElement('div'); campoNome.className = 'field';
+    campoNome.innerHTML = '<label>Nome do grupo (ex.: "Escolha o espeto")</label>';
+    const inputNome = document.createElement('input');
+    inputNome.type = 'text'; inputNome.value = grupo.nome || '';
+    inputNome.addEventListener('input', () => { grupo.nome = inputNome.value; });
+    campoNome.appendChild(inputNome);
+
+    const campoQtd = document.createElement('div'); campoQtd.className = 'field';
+    campoQtd.innerHTML = '<label>Quantidade de escolhas obrigatórias</label>';
+    const inputQtd = document.createElement('input');
+    inputQtd.type = 'number'; inputQtd.min = '1'; inputQtd.step = '1'; inputQtd.value = grupo.quantidade_escolhas || 1;
+    inputQtd.addEventListener('input', () => { grupo.quantidade_escolhas = parseInt(inputQtd.value, 10) || 1; });
+    campoQtd.appendChild(inputQtd);
+
+    const btnRemoverGrupo = document.createElement('button');
+    btnRemoverGrupo.type = 'button'; btnRemoverGrupo.className = 'link-btn'; btnRemoverGrupo.textContent = 'Remover grupo';
+    btnRemoverGrupo.style.alignSelf = 'flex-end';
+    btnRemoverGrupo.addEventListener('click', () => { barGruposEdicao.splice(idxGrupo, 1); renderGruposEdicao(); });
+
+    linhaTopo.appendChild(campoNome); linhaTopo.appendChild(campoQtd); linhaTopo.appendChild(btnRemoverGrupo);
+    card.appendChild(linhaTopo);
+
+    const rotuloOpcoes = document.createElement('div');
+    rotuloOpcoes.className = 'modal-section-hint';
+    rotuloOpcoes.style.marginTop = '0';
+    rotuloOpcoes.textContent = 'Opções disponíveis neste grupo (marque as que o cliente pode escolher):';
+    card.appendChild(rotuloOpcoes);
+
+    const listaOpcoes = document.createElement('div');
+    listaOpcoes.className = 'bar-componente-row';
+    listaOpcoes.style.flexWrap = 'wrap';
+    (barProdutosCatalogoCache || []).forEach(p => {
+      const jaSelecionado = grupo.opcoes.some(o => o.produto_id === p.id);
+      // Um produto já composto nunca pode virar opção de escolha de outro composto (evita aninhar
+      // combos) — não oferece a opção, exceto se por algum motivo já estiver marcada (deixa visível
+      // para o dono poder desmarcar; o backend rejeita de qualquer forma se tentar salvar assim).
+      if(p.tipoBar === 'composto' && !jaSelecionado) return;
+      const lbl = document.createElement('label'); lbl.className = 'chk';
+      const chk = document.createElement('input'); chk.type = 'checkbox';
+      chk.checked = jaSelecionado;
+      chk.addEventListener('change', () => {
+        if(chk.checked){
+          if(!grupo.opcoes.some(o => o.produto_id === p.id)) grupo.opcoes.push({ produto_id: p.id, ordem: grupo.opcoes.length });
+        } else {
+          grupo.opcoes = grupo.opcoes.filter(o => o.produto_id !== p.id);
+        }
+      });
+      lbl.appendChild(chk); lbl.appendChild(document.createTextNode(p.nome));
+      listaOpcoes.appendChild(lbl);
     });
-    if(!comp.componente_produto_id && barProdutosCatalogoCache[0]) comp.componente_produto_id = barProdutosCatalogoCache[0].id;
-    sel.addEventListener('change', () => { comp.componente_produto_id = sel.value; });
-    const qtd = document.createElement('input');
-    qtd.type = 'number'; qtd.min = '0.0001'; qtd.step = '0.0001'; qtd.value = comp.quantidade;
-    qtd.addEventListener('input', () => { comp.quantidade = parseFloat(qtd.value) || 0; });
-    const lbl = document.createElement('label'); lbl.className = 'chk';
-    const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = comp.baixar_estoque !== false;
-    chk.addEventListener('change', () => { comp.baixar_estoque = chk.checked; });
-    lbl.appendChild(chk); lbl.appendChild(document.createTextNode('Baixa estoque'));
-    const btnRemover = document.createElement('button');
-    btnRemover.type = 'button'; btnRemover.className = 'link-btn'; btnRemover.textContent = 'Remover';
-    btnRemover.addEventListener('click', () => { barComponentesEdicao.splice(idx, 1); renderComponentesEdicao(); });
-    row.appendChild(sel); row.appendChild(qtd); row.appendChild(lbl); row.appendChild(btnRemover);
-    wrap.appendChild(row);
+    card.appendChild(listaOpcoes);
+    wrap.appendChild(card);
   });
 }
-$('btn-bar-produto-add-componente').addEventListener('click', () => {
-  barComponentesEdicao.push({ componente_produto_id: '', quantidade: 1, baixar_estoque: true, ordem: barComponentesEdicao.length });
-  renderComponentesEdicao();
+$('btn-bar-produto-add-grupo').addEventListener('click', () => {
+  barGruposEdicao.push({ nome: '', quantidade_escolhas: 1, ordem: barGruposEdicao.length, opcoes: [] });
+  renderGruposEdicao();
 });
 $('btn-cancelar-produto-bar').addEventListener('click', () => $('modal-bar-produto').classList.add('hidden'));
 
 async function abrirModalProdutoBar(id){
   barProdutoBarEditandoId = id;
-  barComponentesEdicao = [];
+  barGruposEdicao = [];
   $('bar-produto-msg').innerHTML = '';
   $('form-bar-produto').reset();
-  $('bar-produto-titulo').textContent = id ? 'Editar item do cardápio' : 'Novo item do cardápio';
+  $('bar-produto-titulo').textContent = id ? 'Editar produto composto' : 'Criar produto composto';
 
+  const catalogo = await garantirCatalogoProdutosBar();
   const sel = $('bar-produto-produto');
-  sel.innerHTML = '<option value="">Carregando produtos...</option>';
-  const { data: produtos, error } = await buscarTodos(() => supabase.from('produtos').select('id, nome').order('nome'));
   sel.innerHTML = '';
-  (produtos || []).forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
-  if(error) $('bar-produto-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+  catalogo.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
+  const atualizarPrecoHint = () => {
+    const p = catalogo.find(x => x.id === sel.value);
+    $('bar-produto-preco-atual').textContent = p ? `Preço final de venda: ${formatarReais(p.preco_venda)} (para alterar nome ou preço, edite em Produtos).` : '';
+  };
+  sel.onchange = atualizarPrecoHint;
 
   if(id){
     const { data: bp, error: errBp } = await supabase
       .from('bar_produtos')
-      .select('id, produto_id, tipo, destino_operacional, ativo_cardapio, bar_produtos_componentes ( componente_produto_id, quantidade, baixar_estoque, ordem )')
+      .select('id, produto_id, bar_produto_grupos ( id, nome, quantidade_escolhas, ordem, bar_produto_grupo_opcoes ( produto_id, ordem ) )')
       .eq('id', id).single();
     if(errBp || !bp){
-      $('bar-produto-msg').innerHTML = '<div class="msg error">Item não encontrado.</div>';
+      $('bar-produto-msg').innerHTML = '<div class="msg error">Produto composto não encontrado.</div>';
     } else {
       sel.value = bp.produto_id;
-      $('bar-produto-tipo').value = bp.tipo;
-      $('bar-produto-destino').value = bp.destino_operacional;
-      $('bar-produto-ativo').value = String(bp.ativo_cardapio);
-      barComponentesEdicao = (bp.bar_produtos_componentes || []).map(c => ({
-        componente_produto_id: c.componente_produto_id, quantidade: c.quantidade, baixar_estoque: c.baixar_estoque, ordem: c.ordem,
-      }));
+      barGruposEdicao = (bp.bar_produto_grupos || [])
+        .slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+        .map(g => ({
+          nome: g.nome, quantidade_escolhas: g.quantidade_escolhas, ordem: g.ordem,
+          opcoes: (g.bar_produto_grupo_opcoes || []).slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).map(o => ({ produto_id: o.produto_id, ordem: o.ordem })),
+        }));
+      if(barGruposEdicao.length === 0){
+        $('bar-produto-msg').innerHTML = '<div class="msg error">Este item usa o modelo antigo de componentes fixos (Migration 016). Salvar aqui agora o converte para grupos de escolha — monte ao menos um grupo abaixo antes de salvar.</div>';
+      }
     }
   }
-  atualizarVisibilidadeComponentes();
-  await renderComponentesEdicao();
+  atualizarPrecoHint();
+  renderGruposEdicao();
   $('modal-bar-produto').classList.remove('hidden');
 }
 
 $('form-bar-produto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const produtoId = $('bar-produto-produto').value;
-  const tipo = $('bar-produto-tipo').value;
-  const destino = $('bar-produto-destino').value;
-  const ativo = $('bar-produto-ativo').value === 'true';
   if(!produtoId){ $('bar-produto-msg').innerHTML = '<div class="msg error">Selecione um produto do catálogo.</div>'; return; }
-  if(tipo === 'composto' && barComponentesEdicao.length === 0){
-    $('bar-produto-msg').innerHTML = '<div class="msg error">Adicione ao menos um componente.</div>';
+  if(barGruposEdicao.length === 0){
+    $('bar-produto-msg').innerHTML = '<div class="msg error">Adicione ao menos um grupo de escolha (ex.: "Escolha o espeto").</div>';
     return;
+  }
+  for(const g of barGruposEdicao){
+    if(!g.nome || !g.nome.trim()){
+      $('bar-produto-msg').innerHTML = '<div class="msg error">Todo grupo precisa de um nome.</div>';
+      return;
+    }
+    if(g.opcoes.length === 0){
+      $('bar-produto-msg').innerHTML = `<div class="msg error">O grupo "${escapeHtml(g.nome)}" precisa de ao menos uma opção.</div>`;
+      return;
+    }
+    if((g.quantidade_escolhas || 1) > g.opcoes.length){
+      $('bar-produto-msg').innerHTML = `<div class="msg error">O grupo "${escapeHtml(g.nome)}" pede mais escolhas do que opções cadastradas.</div>`;
+      return;
+    }
   }
   const btn = $('btn-salvar-produto-bar');
   btn.disabled = true; btn.textContent = 'Salvando...';
   const { error } = await supabase.rpc('bar_produto_salvar', {
     p_id: barProdutoBarEditandoId,
     p_produto_id: produtoId,
-    p_tipo: tipo,
-    p_destino_operacional: destino,
-    p_ativo_cardapio: ativo,
-    p_componentes: tipo === 'composto'
-      ? barComponentesEdicao.map(c => ({ componente_produto_id: c.componente_produto_id, quantidade: c.quantidade, baixar_estoque: c.baixar_estoque, ordem: c.ordem }))
-      : null,
+    p_tipo: 'composto',
+    p_destino_operacional: 'sem_destino',
+    p_ativo_cardapio: true,
+    p_componentes: null,
+    p_grupos: barGruposEdicao.map((g, idx) => ({
+      nome: g.nome.trim(), quantidade_escolhas: g.quantidade_escolhas || 1, ordem: idx,
+      opcoes: g.opcoes.map((o, i) => ({ produto_id: o.produto_id, ordem: i })),
+    })),
   });
   btn.disabled = false; btn.textContent = 'Salvar';
   if(error){
@@ -11652,6 +11916,35 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
   $('modal-bar-produto').classList.add('hidden');
   await carregarBarProdutos();
 });
+
+// ---------- Relatórios do Bar (requisito #10) ----------
+async function carregarBarRelatorios(){
+  $('bar-relatorio-msg').innerHTML = '';
+  const dataInicio = $('bar-relatorio-data-inicio').value || null;
+  const dataFim = $('bar-relatorio-data-fim').value || null;
+  const termoFisico = termoSeguro($('bar-relatorio-fisico-busca').value).toLowerCase();
+
+  const [comercial, fisico] = await Promise.all([
+    supabase.rpc('bar_relatorio_itens_comerciais', { p_data_inicio: dataInicio, p_data_fim: dataFim }),
+    supabase.rpc('bar_relatorio_produtos_fisicos_consumidos', { p_data_inicio: dataInicio, p_data_fim: dataFim, p_produto_id: null }),
+  ]);
+  if(comercial.error || fisico.error){
+    $('bar-relatorio-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(comercial.error || fisico.error))}</div>`;
+    return;
+  }
+  const linhasComercial = comercial.data || [];
+  $('bar-relatorio-comercial-empty').classList.toggle('hidden', linhasComercial.length > 0);
+  $('bar-relatorio-comercial-body').innerHTML = linhasComercial.map(l => `
+    <tr><td>${escapeHtml(l.produto_nome)}</td><td>${l.quantidade}</td><td>${formatarReais(l.valor_total)}</td></tr>`).join('');
+
+  let linhasFisico = fisico.data || [];
+  if(termoFisico) linhasFisico = linhasFisico.filter(l => (l.produto_nome || '').toLowerCase().includes(termoFisico));
+  $('bar-relatorio-fisico-empty').classList.toggle('hidden', linhasFisico.length > 0);
+  $('bar-relatorio-fisico-body').innerHTML = linhasFisico.map(l => `
+    <tr><td>${escapeHtml(l.produto_nome)}</td><td>${l.quantidade}</td></tr>`).join('');
+}
+$('btn-bar-relatorio-filtrar').addEventListener('click', () => carregarBarRelatorios());
+$('bar-relatorio-fisico-busca').addEventListener('input', debounce(() => carregarBarRelatorios()));
 
 // ---------- Configurações do Bar ----------
 async function carregarBarConfig(){
