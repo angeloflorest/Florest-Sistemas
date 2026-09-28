@@ -86,38 +86,106 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* ---------- AUTH SCREEN ---------- */
+  /* ---------- AUTH SCREEN (revisão visual #2) ---------- */
   #auth-screen{
     --auth-yellow: var(--florest-yellow);
     --auth-navy: var(--florest-navy);
     --auth-bg: var(--florest-bg);
     min-height:100vh;
     display:grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1fr 1.15fr;
     position:relative;
   }
-  @media (max-width: 860px){
+  @media (max-width: 900px){
     #auth-screen{ grid-template-columns: 1fr; grid-template-rows: auto auto; }
-    .auth-brand{ padding: 34px 24px; }
-    .auth-brand .auth-desc{ display:none; }
-    .auth-segments-grid{ grid-template-columns: repeat(5, 1fr); }
+    .auth-brand{ padding: 40px 28px; }
+    .auth-hero-photo{ height:170px; }
+    .auth-segments-grid{ grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 480px){
-    .auth-segments-grid{ grid-template-columns: repeat(4, 1fr); }
+    .auth-left-benefits{ grid-template-columns: repeat(2, 1fr); }
+    .auth-segments-grid{ grid-template-columns: repeat(2, 1fr); }
   }
+  /* ---- Lado esquerdo (login) — hero headline + formulário + benefícios ---- */
+  .auth-eyebrow{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    color: rgba(255,255,255,0.6);
+    margin:0 0 10px;
+  }
+  .auth-hero-title{
+    font-family: var(--font-display);
+    font-weight:600;
+    font-size: clamp(24px, 2.4vw, 32px);
+    line-height:1.22;
+    color: var(--florest-navy);
+    margin: 0 0 10px;
+    text-align:center;
+  }
+  .auth-hero-title .destaque{ color: var(--florest-yellow-hover); }
+  .auth-hero-sub{
+    font-size:13.5px;
+    line-height:1.55;
+    color: var(--ink-soft);
+    text-align:center;
+    max-width:360px;
+    margin:0 auto 26px;
+  }
+  .auth-left-benefits{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:10px;
+    width:100%;
+    max-width:380px;
+    margin:24px auto 0;
+  }
+  .auth-left-benefit{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:6px;
+  }
+  .auth-left-benefit .auth-left-benefit-icon{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background: var(--florest-blue-light);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .auth-left-benefit svg{
+    width:16px; height:16px;
+    stroke: var(--florest-navy);
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .auth-left-benefit span{
+    font-size:10.5px;
+    font-weight:600;
+    line-height:1.25;
+    color: var(--ink-soft);
+  }
+
   /* ---- Painel institucional (lado direito no desktop / abaixo no celular) ----
-     REBRANDING: era um painel amarelo cheio com o nome do produto antigo; agora é o painel
-     de apresentação comercial da Florest Sistemas, em azul-marinho (a cor "grande área" da
-     marca, evitando excesso de amarelo), com o headline pedido, os segmentos atendidos e os
-     benefícios institucionais. Detalhes decorativos (::before/::after) são só gradientes
-     discretos, nunca a logo em si. */
+     Painel de apresentação comercial da Florest Sistemas, em azul-marinho sofisticado, com
+     headline, foto do PDV integrada via overlay/gradiente e a vitrine fotográfica dos
+     segmentos atendidos. Nenhum card institucional usa o texto "Em breve": são só uma vitrine
+     comercial dos segmentos atendidos/planejados, não o menu operacional da empresa (esse
+     continua controlado por empresa_modulos, intocado). */
   .auth-brand{
     background: var(--auth-navy);
     color:#fff;
-    padding: 44px 52px;
+    padding: 44px 52px 40px;
     display:flex;
     flex-direction:column;
-    gap:24px;
+    gap:22px;
     position:relative;
     overflow:hidden;
   }
@@ -131,34 +199,52 @@
     pointer-events:none;
   }
   .auth-brand > *{ position:relative; z-index:1; }
-  .brand-mark{ display:flex; align-items:center; gap:10px; }
-  .brand-mark svg{ width:26px; height:26px; stroke: var(--florest-yellow); }
-  .brand-mark span{
-    font-family: var(--font-display);
-    font-weight:700;
-    font-size:16px;
-    color:#fff;
-    letter-spacing:0.02em;
-    text-transform:uppercase;
-  }
   .auth-headline{
     font-family: var(--font-display);
     font-weight:600;
-    font-size: clamp(26px, 2.6vw, 36px);
+    font-size: clamp(24px, 2.4vw, 33px);
     line-height:1.2;
     margin: 4px 0 0;
     color:#fff;
   }
   .auth-headline em{ font-style:normal; color: var(--florest-yellow); }
+  .auth-headline{ text-transform:uppercase; letter-spacing:0.01em; }
   .auth-brand .auth-desc{
     max-width: 480px;
     line-height:1.6;
-    font-size:14px;
+    font-size:13.5px;
     font-weight:400;
-    color: rgba(255,255,255,0.82);
-    margin: 12px 0 0;
+    color: rgba(255,255,255,0.8);
+    margin: 10px 0 0;
   }
-  .auth-segments-label, .auth-benefits-label{
+  /* Foto do PDV (monitor + leitor de código de barras + impressora em ambiente comercial):
+     assets/login/pdv-florest.webp. Se o arquivo ainda não existir no servidor, o segundo
+     valor de background-image (o gradiente) é o único que carrega — nunca fica um quadrado
+     vazio. O corte diagonal amarelo no canto é decorativo (::after), nunca sobre a logo. */
+  .auth-hero-photo{
+    height:190px;
+    border-radius:14px;
+    background-image: url('assets/login/pdv-florest.webp'), linear-gradient(135deg, #123a63 0%, var(--florest-navy) 65%);
+    background-size: cover, cover;
+    background-position: center, center;
+    position:relative;
+    overflow:hidden;
+  }
+  .auth-hero-photo::before{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(11,42,77,0.05) 0%, rgba(11,42,77,0.55) 100%);
+  }
+  .auth-hero-photo::after{
+    content:'';
+    position:absolute;
+    top:-30px; right:-30px;
+    width:90px; height:90px;
+    background: var(--florest-yellow);
+    opacity:0.9;
+    clip-path: polygon(100% 0, 100% 100%, 0 0);
+  }
+  .auth-segments-label{
     font-size:11px;
     font-weight:700;
     text-transform:uppercase;
@@ -168,75 +254,39 @@
   }
   .auth-segments-grid{
     display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap:8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
   }
-  .auth-segment{
-    background: rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.14);
-    border-radius:10px;
-    padding:10px 4px 9px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:6px;
-    text-align:center;
+  /* Card fotográfico de segmento: mesma lógica de fallback em duas camadas do hero do PDV —
+     background-image com a foto real + gradiente por baixo. NUNCA usa a tag "Em breve"; é
+     puramente institucional/comercial e não é clicável (sem href, sem onclick, sem consulta a
+     empresa_modulos). */
+  .auth-segment-foto{
     position:relative;
+    aspect-ratio: 4 / 3;
+    border-radius:10px;
+    overflow:hidden;
+    background-size: cover, cover;
+    background-position: center, center;
+    display:flex;
+    align-items:flex-end;
   }
-  .auth-segment.disponivel{
-    background: rgba(248,200,32,0.14);
-    border-color: rgba(248,200,32,0.45);
+  .auth-segment-foto::after{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(11,42,77,0) 45%, rgba(11,42,77,0.92) 100%);
   }
-  .auth-segment svg{
-    width:19px; height:19px;
-    stroke: var(--florest-yellow);
-    fill:none;
-    stroke-width:1.8;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-  }
-  .auth-segment span{
-    font-size:10.5px;
-    font-weight:600;
+  .auth-segment-foto-label{
+    position:relative;
+    z-index:1;
+    display:block;
+    width:100%;
+    padding:8px 8px 7px;
+    font-size:11.5px;
+    font-weight:700;
     line-height:1.2;
     color:#fff;
-  }
-  .auth-segment-tag{
-    position:absolute;
-    top:-7px;
-    right:-5px;
-    font-size:8px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:0.02em;
-    background: rgba(255,255,255,0.9);
-    color: var(--florest-navy);
-    padding:1px 5px;
-    border-radius:20px;
-    white-space:nowrap;
-  }
-  .auth-benefits{
-    display:flex;
-    flex-direction:column;
-    gap:9px;
-  }
-  .auth-benefit-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:13px;
-    font-weight:600;
-    color: rgba(255,255,255,0.92);
-  }
-  .auth-benefit-item svg{
-    width:16px;
-    height:16px;
-    stroke: var(--florest-yellow);
-    fill:none;
-    stroke-width:2;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-    flex-shrink:0;
+    text-align:center;
   }
   .auth-brand-footer{
     margin-top:auto;
@@ -299,10 +349,10 @@
     margin-bottom:12px;
   }
   .auth-card-intro .brand-badge svg{ width:23px; height:23px; }
-  .auth-card-intro h1{
+  .auth-card-intro h2{
     font-family: var(--font-display);
     font-weight:700;
-    font-size:21px;
+    font-size:19px;
     color: var(--auth-navy);
     margin:0 0 4px;
   }
@@ -357,7 +407,7 @@
   }
   .field input, .field select, .field textarea{
     width:100%;
-    padding:11px 12px;
+    padding:12px 13px;
     border:1px solid var(--border);
     border-radius:8px;
     font-size:14px;
@@ -368,9 +418,9 @@
   .field select{ cursor:pointer; }
   .field textarea{ resize:vertical; min-height:70px; }
   .field input:focus, .field select:focus, .field textarea:focus{
-    outline:2px solid var(--accent);
+    outline:2px solid var(--florest-blue);
     outline-offset:1px;
-    border-color: var(--accent);
+    border-color: var(--florest-blue);
   }
   .btn-primary{
     width:100%;
@@ -532,97 +582,120 @@
     flex-direction:column;
     overflow:hidden;
   }
+  /* ---- Sidebar v2 (revisão visual #2): a v1 ainda deixava CADA ícone dentro de um
+     quadradinho amarelo sólido (.nav-icon-badge com background:var(--accent)) e a marca no
+     topo era uma faixa amarela inteira (.sidebar-brand-top) — exatamente o "ainda parece o
+     sistema antigo" citado no pedido. Agora: topo funde com o navy da sidebar (sem faixa
+     amarela), ícones ficam "soltos" (sem badge colorido) em tom claro quando o item não está
+     selecionado, e o amarelo vira exclusividade do item ATIVO — que agora recebe a FAIXA
+     INTEIRA em amarelo (fundo, não só um contorno fraco), com ícone e texto em navy. */
   .sidebar-brand-top{
-    background: var(--accent);
-    padding:18px 16px;
+    background: transparent;
+    padding:20px 18px 18px;
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:11px;
     flex-shrink:0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
   }
   .sidebar-logo-img{
-    width:34px;
-    height:34px;
-    border-radius:8px;
+    width:36px;
+    height:36px;
+    border-radius:9px;
     object-fit:cover;
     flex-shrink:0;
+    background:#fff;
+    padding:2px;
   }
   .sidebar-brand-text{ line-height:1.2; }
   .sidebar-brand-text .brand-florest{
     display:block;
     font-family: var(--font-display);
-    font-weight:700;
-    font-size:16px;
-    color: var(--ink);
+    font-weight:600;
+    font-size:16.5px;
+    color:#fff;
   }
   .sidebar-brand-text .brand-sistemas-label{
     display:block;
-    font-size:11px;
+    font-size:10.5px;
     font-weight:600;
-    color: var(--ink);
-    opacity:0.75;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sidebar-text-dim);
   }
   .sidebar-nav{
     flex:1;
     overflow-y:auto;
-    padding:20px 12px;
+    padding:18px 12px;
   }
   .nav-group-label{
-    font-size:11px;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
     color: var(--sidebar-text-dim);
-    padding: 0 10px;
-    margin-bottom:8px;
-    letter-spacing:0.02em;
+    padding: 14px 10px 8px;
+    margin-bottom:2px;
   }
   .nav-item{
     display:flex;
     align-items:center;
-    gap:10px;
-    padding:8px 10px;
-    border-radius:8px;
+    gap:12px;
+    padding:10px 12px;
+    border-radius:9px;
     font-size:14px;
     font-weight:500;
     color: var(--sidebar-text);
-    margin-bottom:3px;
+    margin-bottom:2px;
     cursor:default;
+    transition: background-color .12s ease;
   }
   .nav-icon-badge{
-    width:26px;
-    height:26px;
-    border-radius:7px;
-    background: var(--accent);
+    width:20px;
+    height:20px;
+    border-radius:0;
+    background: transparent;
     display:flex;
     align-items:center;
     justify-content:center;
     flex-shrink:0;
   }
   .nav-icon-badge svg{
-    width:15px;
-    height:15px;
-    stroke: var(--sidebar);
+    width:19px;
+    height:19px;
+    stroke: var(--sidebar-text);
     fill:none;
-    stroke-width:2;
+    stroke-width:1.8;
     stroke-linecap:round;
     stroke-linejoin:round;
   }
   .nav-item.active{
-    background: rgba(248,200,32,0.16);
-    border:1px solid rgba(248,200,32,0.45);
-    color:#fff;
-    margin-left:-1px;
+    background: var(--florest-yellow);
+    color: var(--florest-navy);
+    font-weight:700;
+  }
+  .nav-item.active .nav-icon-badge svg{
+    stroke: var(--florest-navy);
   }
   .nav-item.disabled{
     color: var(--sidebar-text-dim);
   }
+  .nav-item.disabled .nav-icon-badge svg{
+    stroke: var(--sidebar-text-dim);
+  }
   .nav-item.enabled{
     cursor:pointer;
   }
-  .nav-item.enabled:hover{
-    background: rgba(255,255,255,0.06);
+  .nav-item.enabled:hover:not(.active){
+    background: rgba(255,255,255,0.08);
+    color:#fff;
+  }
+  .nav-item.enabled:hover:not(.active) .nav-icon-badge svg{
+    stroke:#fff;
   }
   .soon-tag{
     font-size:10px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.08);
     padding:2px 7px;
     border-radius:20px;
     color: var(--sidebar-text-dim);
@@ -640,8 +713,18 @@
     color: var(--sidebar-text);
     border-bottom:2px solid var(--accent);
     padding-bottom:4px;
-    margin-bottom:16px;
+    margin-bottom:10px;
   }
+  .sidebar-brand-footer-mark{
+    display:block;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--sidebar-text-dim);
+    margin:0 0 14px;
+  }
+  .sidebar-brand-footer-mark strong{ color: var(--sidebar-text); }
   .sidebar-user-row{
     display:flex;
     align-items:center;
@@ -755,22 +838,23 @@
   table{ width:100%; border-collapse:collapse; }
   thead th{
     text-align:left;
-    font-size:12px;
-    text-transform:none;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
     color: var(--ink-soft);
-    font-weight:600;
-    padding:12px 16px;
+    font-weight:700;
+    padding:13px 16px;
     border-bottom:1px solid var(--border);
-    background:#FAFBF9;
+    background: var(--florest-bg);
   }
   tbody td{
-    padding:13px 16px;
+    padding:14px 16px;
     font-size:14px;
     border-bottom:1px solid var(--border);
     vertical-align:middle;
   }
   tbody tr:last-child td{ border-bottom:none; }
-  tbody tr:hover{ background:#FAFBF9; }
+  tbody tr:hover{ background: var(--florest-bg); }
   .cliente-nome{ font-weight:600; }
   .cliente-sub{ font-size:12px; color: var(--ink-soft); }
   .link-btn{
@@ -1450,23 +1534,47 @@
   .metric-card{
     background: var(--card);
     border:1px solid var(--border);
-    border-left: 3px solid var(--ink);
-    border-radius:10px;
+    border-radius:12px;
     padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
   }
-  .metric-card.c-teal{ border-left-color: var(--teal); }
-  .metric-card.c-accent{ border-left-color: var(--accent); }
-  .metric-card.c-danger{ border-left-color: var(--danger); }
+  .metric-card-icon{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background: var(--florest-blue-light);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:10px;
+  }
+  .metric-card-icon svg{
+    width:17px; height:17px;
+    stroke: var(--florest-blue);
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .metric-card.c-teal .metric-card-icon{ background: var(--florest-success-soft); }
+  .metric-card.c-teal .metric-card-icon svg{ stroke: var(--florest-success); }
+  .metric-card.c-accent .metric-card-icon{ background: var(--accent-soft); }
+  .metric-card.c-accent .metric-card-icon svg{ stroke: var(--florest-yellow-hover); }
+  .metric-card.c-danger .metric-card-icon{ background: var(--florest-danger-soft); }
+  .metric-card.c-danger .metric-card-icon svg{ stroke: var(--florest-danger); }
   .metric-card .num{
     font-family: var(--font-display);
-    font-size: 32px;
+    font-size: 30px;
     font-weight:500;
+    color: var(--florest-navy);
     display:block;
   }
   .metric-card .label{
     font-size:13px;
     color: var(--ink-soft);
-    margin-top:4px;
+    margin-top:2px;
     display:block;
   }
 
@@ -1886,13 +1994,14 @@
 <div id="auth-screen" class="hidden">
   <div class="auth-form-wrap">
     <div class="auth-form-logo">
-      <img src="assets/logo-florest.png" alt="Florest ERP PDV" style="height:56px;">
-      <span>Soluções completas para o seu negócio</span>
+      <img src="assets/logo-florest.png" alt="Florest ERP PDV" style="height:52px;">
     </div>
+    <h1 class="auth-hero-title">Soluções completas<br>para <span class="destaque">o seu negócio</span></h1>
+    <p class="auth-hero-sub">Um ERP moderno, completo e flexível para simplificar a gestão da sua empresa.</p>
     <div class="auth-card">
       <div class="auth-card-body">
         <div class="auth-card-intro">
-          <h1 id="auth-card-titulo">Bem-vindo ao Florest ERP</h1>
+          <h2 id="auth-card-titulo">Bem-vindo ao Florest ERP</h2>
           <p id="auth-card-subtitulo">Acesse sua conta para continuar</p>
         </div>
 
@@ -1964,94 +2073,72 @@
         Um sistema Florest Sistemas
       </div>
     </div>
+
+    <div class="auth-left-benefits">
+      <div class="auth-left-benefit">
+        <span class="auth-left-benefit-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span>Segurança dos seus dados</span>
+      </div>
+      <div class="auth-left-benefit">
+        <span class="auth-left-benefit-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
+        <span>Sistema em constante evolução</span>
+      </div>
+      <div class="auth-left-benefit">
+        <span class="auth-left-benefit-icon"><svg viewBox="0 0 24 24"><path d="M12 3.5c-3.5 0-6.5 1.1-8.5 2.8" /><path d="M4.5 8.5c1.5 5 3.8 8.5 7.5 12 3.7-3.5 6-7 7.5-12" /><path d="M8 6.5c1.2-.7 2.6-1 4-1s2.8.3 4 1"/></svg></span>
+        <span>Suporte especializado</span>
+      </div>
+      <div class="auth-left-benefit">
+        <span class="auth-left-benefit-icon"><svg viewBox="0 0 24 24"><path d="M4 19V9.5l8-5 8 5V19"/><path d="M9 19v-6h6v6"/></svg></span>
+        <span>Mais controle e produtividade</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Painel institucional (REBRANDING): apresentação comercial da Florest Sistemas.
+  <!-- Painel institucional (REBRANDING v2): apresentação comercial da Florest Sistemas.
        No mobile, este bloco aparece ABAIXO do login (ver #auth-screen no <style>). -->
   <div class="auth-brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
-      <span>Florest Sistemas</span>
-    </div>
+    <span class="auth-eyebrow">Florest ERP</span>
 
     <div>
       <h2 class="auth-headline">Gestão simples, completa <em>e do seu jeito.</em></h2>
-      <p class="auth-desc">A Florest Sistemas oferece um ERP PDV moderno, completo e fácil de usar, com módulos para diferentes segmentos e tudo o que você precisa para gerenciar o seu negócio em um só lugar.</p>
+      <p class="auth-desc">A Florest Sistemas oferece um ERP moderno e fácil de usar, pensado para diferentes segmentos e para o crescimento do seu negócio.</p>
     </div>
+
+    <!-- Foto do PDV (monitor + leitor de código de barras + impressora em ambiente comercial).
+         Arquivo esperado: assets/login/pdv-florest.webp (ver lista de assets no relatório).
+         Sem essa foto, mostra só o gradiente navy abaixo — nunca fica vazio. -->
+    <div class="auth-hero-photo" role="img" aria-label="Computador de PDV com leitor de código de barras e impressora térmica em ambiente comercial"></div>
 
     <div class="auth-segments">
       <p class="auth-segments-label">Segmentos atendidos</p>
       <div class="auth-segments-grid">
-        <div class="auth-segment disponivel">
-          <svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
-          <span>Distribuidora</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/distribuidora.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Distribuidora</span>
         </div>
-        <div class="auth-segment disponivel">
-          <svg viewBox="0 0 24 24"><path d="M5 4h14l-2 8a5 5 0 0 1-10 0L5 4Z"/><path d="M12 12v7M8.5 19h7"/><path d="M6.5 8h11"/></svg>
-          <span>Bares e Restaurantes</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/bares-restaurantes.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Bares e Restaurantes</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-          <span>Imobiliária</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/imobiliaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Imobiliária</span>
         </div>
-        <div class="auth-segment disponivel">
-          <svg viewBox="0 0 24 24"><circle cx="7" cy="7.5" r="1.8"/><circle cx="12" cy="5.5" r="1.8"/><circle cx="17" cy="7.5" r="1.8"/><circle cx="19" cy="12.5" r="1.8"/><path d="M12 12.2c-3.3 0-6 2.3-6 5.4 0 1.6 1.3 2.4 3 2 1.1-.3 1.9-.9 3-.9s1.9.6 3 .9c1.7.4 3-.4 3-2 0-3.1-2.7-5.4-6-5.4Z"/></svg>
-          <span>Pet Shop</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/pet-shop.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Pet Shop</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="6" cy="18" r="2.3"/><path d="M8.3 7.7 20 19M20 5 8.3 16.3"/></svg>
-          <span>Barbearia</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/barbearia.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Barbearia</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2c0 .8-.5 1.4-1.2 1.8l-.8.4-.8-.4C10.5 6.4 10 5.8 10 5a2 2 0 0 1 2-2Z"/><path d="M12 7.2 3 13.4c-.8.6-.4 1.9.6 1.9h16.8c1 0 1.4-1.3.6-1.9L12 7.2Z"/></svg>
-          <span>Aluguel de Roupas</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/aluguel-roupas.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Aluguel de Roupas</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><path d="m9 15-4.5 4.5M9 15 6 9l3-3 6 3-3 6-3-3 3 3Z"/><path d="m14 10 4-4"/></svg>
-          <span>Ferragista</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/ferragista.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Ferragista</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><path d="M12 2 2 20h20L12 2Z"/><circle cx="12" cy="14" r="1"/><circle cx="9" cy="17.5" r="1"/><circle cx="15" cy="17.5" r="1"/></svg>
-          <span>Pizzaria</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/pizzaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Pizzaria</span>
         </div>
-        <div class="auth-segment">
-          <span class="auth-segment-tag">Em breve</span>
-          <svg viewBox="0 0 24 24"><path d="M4 12.5c0-4.1 3.6-7.5 8-7.5s8 3.4 8 7.5-3.6 6-8 6-8-1.9-8-6Z"/><path d="M8 9.7c.5-1 1.5-1.5 2-1M14 9.3c.5-1 1.5-1.5 2-1"/></svg>
-          <span>Padaria</span>
+        <div class="auth-segment-foto" style="background-image:url('assets/segmentos/padaria.webp'), linear-gradient(150deg,#123a63,var(--florest-navy));">
+          <span class="auth-segment-foto-label">Padaria</span>
         </div>
-        <div class="auth-segment">
-          <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
-          <span>Mais módulos</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="auth-benefits">
-      <p class="auth-benefits-label">Por que a Florest</p>
-      <div class="auth-benefit-item">
-        <svg viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15 15 10"/><circle cx="12" cy="15" r="1"/></svg>
-        <span>Controle completo do seu negócio</span>
-      </div>
-      <div class="auth-benefit-item">
-        <svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg>
-        <span>Relatórios em tempo real</span>
-      </div>
-      <div class="auth-benefit-item">
-        <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-        <span>Seguro e confiável</span>
-      </div>
-      <div class="auth-benefit-item">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.8 5.5 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.5-3.8-8.5S9.5 5.9 12 3.5Z"/></svg>
-        <span>Acesse de qualquer lugar</span>
-      </div>
-      <div class="auth-benefit-item">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 13c.5 1.5 1.9 2.5 3.5 2.5s3-1 3.5-2.5"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>
-        <span>Sistema simples de usar</span>
       </div>
     </div>
 
@@ -2099,6 +2186,7 @@
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-script-tagline">Juntos pelo crescimento do seu negócio.</div>
+      <span class="sidebar-brand-footer-mark"><strong>Florest</strong> Sistemas</span>
       <div class="sidebar-user-row">
         <div class="sidebar-user-avatar" id="sidebar-avatar-inicial">D</div>
         <div class="sidebar-user-text">
@@ -2120,12 +2208,10 @@
       <div style="display:flex; align-items:center;">
         <button class="btn-hamburger" id="btn-menu-mobile" aria-label="Abrir menu">☰</button>
         <div class="topbar-product-mark">
-          <span class="nav-icon-badge" style="background:var(--accent);">
-            <svg style="stroke:var(--ink);" viewBox="0 0 24 24" fill="none"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
-          </span>
+          <img src="assets/logo-florest-icone.png" alt="" style="width:28px; height:28px; border-radius:7px; object-fit:cover; flex-shrink:0;">
           <div>
             <div class="topbar-product-nome">Florest ERP</div>
-            <div class="topbar-product-sub">Gestão simples para sua distribuidora</div>
+            <div class="topbar-product-sub">Gestão simples para o seu negócio.</div>
           </div>
         </div>
       </div>
@@ -2161,18 +2247,22 @@
 
       <div class="metric-grid">
         <div class="metric-card c-teal">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
           <span class="num" id="metric-clientes">0</span>
           <span class="label">Clientes cadastrados</span>
         </div>
         <div class="metric-card c-accent">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
           <span class="num" id="metric-produtos">0</span>
           <span class="label">Produtos cadastrados</span>
         </div>
         <div class="metric-card">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
           <span class="num" id="metric-vendas-hoje">R$ 0</span>
           <span class="label">Vendas hoje</span>
         </div>
         <div class="metric-card c-danger">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
           <span class="num" id="metric-estoque-baixo">0</span>
           <span class="label">Produtos com estoque baixo</span>
         </div>
@@ -2540,14 +2630,17 @@
 
       <div class="metric-grid" style="grid-template-columns: repeat(3, 1fr);">
         <div class="metric-card c-teal">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
           <span class="num" id="fin-entradas">R$ 0</span>
           <span class="label">Entradas</span>
         </div>
         <div class="metric-card c-danger">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
           <span class="num" id="fin-despesas">R$ 0</span>
           <span class="label">Despesas</span>
         </div>
         <div class="metric-card">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
           <span class="num" id="fin-saldo">R$ 0</span>
           <span class="label">Saldo</span>
         </div>
@@ -2602,14 +2695,17 @@
         </div>
         <div class="metric-grid" style="grid-template-columns: repeat(3, 1fr);">
           <div class="metric-card c-teal">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
             <span class="num" id="rel-vendas-total">R$ 0</span>
             <span class="label">Total vendido</span>
           </div>
           <div class="metric-card">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
             <span class="num" id="rel-vendas-qtd">0</span>
             <span class="label">Vendas realizadas</span>
           </div>
           <div class="metric-card c-accent">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
             <span class="num" id="rel-ticket-medio">R$ 0</span>
             <span class="label">Ticket médio</span>
           </div>
@@ -2735,18 +2831,22 @@
         </div>
         <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
           <div class="metric-card">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
             <span class="num" id="rel-estoque-produtos">0</span>
             <span class="label">Produtos cadastrados</span>
           </div>
           <div class="metric-card c-teal">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
             <span class="num" id="rel-estoque-custo">R$ 0</span>
             <span class="label">Estoque a preço de custo</span>
           </div>
           <div class="metric-card c-accent">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
             <span class="num" id="rel-estoque-venda">R$ 0</span>
             <span class="label">Estoque a preço de venda</span>
           </div>
           <div class="metric-card c-danger">
+            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
             <span class="num" id="rel-estoque-baixo">0</span>
             <span class="label">Com estoque baixo</span>
           </div>
@@ -2787,18 +2887,22 @@
 
       <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
         <div class="metric-card">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
           <span class="num" id="fiscal-resumo-emitidos">0</span>
           <span class="label">Documentos emitidos</span>
         </div>
         <div class="metric-card c-teal">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
           <span class="num" id="fiscal-resumo-autorizados">0</span>
           <span class="label">Autorizados</span>
         </div>
         <div class="metric-card c-danger">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
           <span class="num" id="fiscal-resumo-rejeitados">0</span>
           <span class="label">Rejeitados</span>
         </div>
         <div class="metric-card">
+          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
           <span class="num" id="fiscal-resumo-cancelados">0</span>
           <span class="label">Cancelados</span>
         </div>
