@@ -3,26 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DistGestor — Florest Sistemas</title>
+<title>Florest ERP | Florest Sistemas</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="assets/favicon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #F5F6F8;
-    --ink: #16233F;
-    --ink-soft: #4A5670;
-    --sidebar: #10203E;
-    --sidebar-text: #C9D3EC;
-    --sidebar-text-dim: #6E7A9C;
-    --accent: #F3C623;
-    --accent-soft: #FDF3CF;
-    --teal: #2C6E60;
-    --teal-soft: #DDEEE9;
-    --danger: #B84B3C;
-    --graphite: #0B1730;
-    --danger-soft: #F6DFDA;
-    --border: #DDE1EA;
-    --card: #FFFFFF;
+    /* ===== REBRANDING FLOREST ERP — design tokens da marca =====
+       Extraídos/aproximados diretamente da logo oficial fornecida (ave em azul-marinho
+       + amarelo/dourado). Único lugar do arquivo onde as cores da marca são definidas —
+       todo o resto do CSS (e do HTML/JS que usa style inline) já referenciava as variáveis
+       abaixo por NOME (--bg, --ink, --sidebar, --accent, --border, --card, --teal, --danger,
+       --graphite...); portanto elas foram mantidas com os MESMOS NOMES, apenas passando a
+       apontar para os tokens --florest-*, para não quebrar nenhuma regra CSS nem nenhum
+       style="" inline já existente no arquivo. */
+    --florest-navy: #0B2A4D;
+    --florest-blue: #1677D2;
+    --florest-blue-light: #EAF3FC;
+    --florest-yellow: #F8C820;
+    --florest-yellow-hover: #E6B812;
+    --florest-bg: #F5F8FC;
+    --florest-surface: #FFFFFF;
+    --florest-border: #E2E8F0;
+    --florest-text: #12233D;
+    --florest-muted: #64748B;
+    --florest-success: #1E9450;
+    --florest-success-soft: #E4F5EA;
+    --florest-danger: #D64545;
+    --florest-danger-soft: #FBE7E5;
+    --florest-warning: #F0A825;
+    --florest-warning-soft: #FDF0DC;
+
+    /* ---- variáveis originais do sistema: mantidas por nome, revalendo para os tokens Florest ---- */
+    --bg: var(--florest-bg);
+    --ink: var(--florest-text);
+    --ink-soft: var(--florest-muted);
+    --sidebar: var(--florest-navy);
+    --sidebar-text: #CBD8EC;
+    --sidebar-text-dim: #8CA0C4;
+    --accent: var(--florest-yellow);
+    --accent-soft: #FCEFC4;
+    --teal: var(--florest-success);
+    --teal-soft: var(--florest-success-soft);
+    --danger: var(--florest-danger);
+    --graphite: var(--florest-navy);
+    --danger-soft: var(--florest-danger-soft);
+    --border: var(--florest-border);
+    --card: var(--florest-surface);
     --font-display: 'Fraunces', serif;
     --font-body: 'Inter', sans-serif;
   }
@@ -59,122 +88,168 @@
 
   /* ---------- AUTH SCREEN ---------- */
   #auth-screen{
-    --auth-yellow: #FFD51E;
-    --auth-navy: #082B59;
-    --auth-bg: #F7F8FA;
+    --auth-yellow: var(--florest-yellow);
+    --auth-navy: var(--florest-navy);
+    --auth-bg: var(--florest-bg);
     min-height:100vh;
     display:grid;
-    grid-template-columns: 1.15fr 1fr;
+    grid-template-columns: 1fr 1.2fr;
     position:relative;
   }
   @media (max-width: 860px){
-    #auth-screen{ grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    .auth-brand{ padding: 28px 22px; }
-    .auth-script-tagline{ position:static !important; transform:none !important; margin: 4px 0 0 !important; text-align:left !important; white-space:normal !important; }
+    #auth-screen{ grid-template-columns: 1fr; grid-template-rows: auto auto; }
+    .auth-brand{ padding: 34px 24px; }
     .auth-brand .auth-desc{ display:none; }
+    .auth-segments-grid{ grid-template-columns: repeat(5, 1fr); }
   }
+  @media (max-width: 480px){
+    .auth-segments-grid{ grid-template-columns: repeat(4, 1fr); }
+  }
+  /* ---- Painel institucional (lado direito no desktop / abaixo no celular) ----
+     REBRANDING: era um painel amarelo cheio com o nome do produto antigo; agora é o painel
+     de apresentação comercial da Florest Sistemas, em azul-marinho (a cor "grande área" da
+     marca, evitando excesso de amarelo), com o headline pedido, os segmentos atendidos e os
+     benefícios institucionais. Detalhes decorativos (::before/::after) são só gradientes
+     discretos, nunca a logo em si. */
   .auth-brand{
-    background: var(--auth-yellow);
-    color: var(--auth-navy);
-    padding: 48px;
+    background: var(--auth-navy);
+    color:#fff;
+    padding: 44px 52px;
     display:flex;
     flex-direction:column;
-    gap:22px;
+    gap:24px;
+    position:relative;
+    overflow:hidden;
   }
+  .auth-brand::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(circle at 105% -10%, rgba(248,200,32,0.14), transparent 42%),
+      radial-gradient(circle at -10% 115%, rgba(22,119,210,0.22), transparent 40%);
+    pointer-events:none;
+  }
+  .auth-brand > *{ position:relative; z-index:1; }
   .brand-mark{ display:flex; align-items:center; gap:10px; }
-  .brand-mark svg{ width:30px; height:30px; }
+  .brand-mark svg{ width:26px; height:26px; stroke: var(--florest-yellow); }
   .brand-mark span{
     font-family: var(--font-display);
     font-weight:700;
-    font-size:20px;
-    color: var(--auth-navy);
-    letter-spacing:0.01em;
+    font-size:16px;
+    color:#fff;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
   }
-  .brand-tagline{
-    font-size:13px;
-    font-weight:700;
-    color: var(--auth-navy);
-    opacity:0.75;
-    margin: 2px 0 0 40px;
-  }
-  .auth-brand .auth-product{
-    font-family: var(--font-body);
-    font-weight:800;
-    font-size:44px;
-    line-height:1.05;
-    color: var(--auth-navy);
-    margin: 10px 0 4px;
-  }
-  .auth-brand .auth-product-sub{
-    font-size:18px;
+  .auth-headline{
+    font-family: var(--font-display);
     font-weight:600;
-    color: var(--auth-navy);
-    opacity:0.9;
-    margin: 0 0 14px;
+    font-size: clamp(26px, 2.6vw, 36px);
+    line-height:1.2;
+    margin: 4px 0 0;
+    color:#fff;
   }
+  .auth-headline em{ font-style:normal; color: var(--florest-yellow); }
   .auth-brand .auth-desc{
-    max-width: 360px;
-    line-height:1.55;
+    max-width: 480px;
+    line-height:1.6;
     font-size:14px;
-    font-weight:500;
-    color: var(--auth-navy);
-    opacity:0.85;
+    font-weight:400;
+    color: rgba(255,255,255,0.82);
+    margin: 12px 0 0;
   }
-  .auth-features{
+  .auth-segments-label, .auth-benefits-label{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 10px;
+  }
+  .auth-segments-grid{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:8px;
+  }
+  .auth-segment{
+    background: rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:10px;
+    padding:10px 4px 9px;
     display:flex;
     flex-direction:column;
-    gap:15px;
+    align-items:center;
+    gap:6px;
+    text-align:center;
     position:relative;
-    z-index:7;
   }
-  .auth-feature-item{
+  .auth-segment.disponivel{
+    background: rgba(248,200,32,0.14);
+    border-color: rgba(248,200,32,0.45);
+  }
+  .auth-segment svg{
+    width:19px; height:19px;
+    stroke: var(--florest-yellow);
+    fill:none;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .auth-segment span{
+    font-size:10.5px;
+    font-weight:600;
+    line-height:1.2;
+    color:#fff;
+  }
+  .auth-segment-tag{
+    position:absolute;
+    top:-7px;
+    right:-5px;
+    font-size:8px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    background: rgba(255,255,255,0.9);
+    color: var(--florest-navy);
+    padding:1px 5px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .auth-benefits{
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  .auth-benefit-item{
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:10px;
+    font-size:13px;
+    font-weight:600;
+    color: rgba(255,255,255,0.92);
   }
-  .auth-feature-item svg{
-    width:22px;
-    height:22px;
-    stroke: var(--auth-navy);
+  .auth-benefit-item svg{
+    width:16px;
+    height:16px;
+    stroke: var(--florest-yellow);
     fill:none;
     stroke-width:2;
     stroke-linecap:round;
     stroke-linejoin:round;
     flex-shrink:0;
   }
-  .auth-feature-item span{
-    font-size:14.5px;
-    font-weight:700;
-    color: var(--auth-navy);
-  }
-  .auth-script-tagline{
-    position:absolute;
-    top:26px;
-    left:50%;
-    transform:translateX(-50%);
-    font-family: var(--font-display);
-    font-style:italic;
-    font-weight:600;
-    font-size:17px;
-    line-height:1.3;
-    color: var(--auth-navy);
-    white-space:nowrap;
-    z-index:6;
-    text-align:center;
-  }
   .auth-brand-footer{
     margin-top:auto;
-    font-size:13px;
-    color: var(--auth-navy);
-    opacity:0.8;
+    font-size:12.5px;
+    color: rgba(255,255,255,0.65);
   }
-  .auth-brand-footer strong{ opacity:1; }
+  .auth-brand-footer strong{ color:#fff; opacity:1; }
   .auth-footer-rule{
     display:block;
     width:34px;
     height:3px;
-    background: var(--auth-navy);
-    opacity:0.4;
+    background:#fff;
+    opacity:0.3;
     border-radius:2px;
     margin-bottom:10px;
   }
@@ -187,6 +262,16 @@
     padding: 32px;
     background: var(--auth-bg);
   }
+  .auth-form-logo{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    margin-bottom:24px;
+    text-align:center;
+  }
+  .auth-form-logo img{ height:50px; width:auto; }
+  .auth-form-logo span{ font-size:13px; font-weight:600; color: var(--ink-soft); }
   .auth-card{
     width:100%;
     max-width: 380px;
@@ -290,17 +375,17 @@
   .btn-primary{
     width:100%;
     padding:12px 0;
-    background: var(--ink);
-    color:#fff;
+    background: var(--florest-yellow);
+    color: var(--florest-navy);
     border:none;
     border-radius:8px;
     font-size:14px;
-    font-weight:600;
+    font-weight:700;
     font-family:var(--font-body);
     cursor:pointer;
     margin-top:6px;
   }
-  .btn-primary:hover{ background:#0d150f; }
+  .btn-primary:hover{ background: var(--florest-yellow-hover); }
   .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; }
   .btn-auth{
     width:100%;
@@ -315,7 +400,7 @@
     cursor:pointer;
     margin-top:6px;
   }
-  .btn-auth:hover{ background:#F0C400; }
+  .btn-auth:hover{ background:var(--florest-yellow-hover); }
   .btn-auth:disabled{ opacity:0.6; cursor:not-allowed; }
   .auth-divider{
     display:flex;
@@ -521,8 +606,8 @@
     stroke-linejoin:round;
   }
   .nav-item.active{
-    background: rgba(243,198,35,0.16);
-    border:1px solid rgba(243,198,35,0.45);
+    background: rgba(248,200,32,0.16);
+    border:1px solid rgba(248,200,32,0.45);
     color:#fff;
     margin-left:-1px;
   }
@@ -658,7 +743,7 @@
     cursor:pointer;
     white-space:nowrap;
   }
-  .btn-accent:hover{ background:#E3B913; }
+  .btn-accent:hover{ background: var(--florest-yellow-hover); }
 
   /* ---------- TABELA ---------- */
   .table-card{
@@ -691,7 +776,7 @@
   .link-btn{
     background:none;
     border:none;
-    color: var(--teal);
+    color: var(--florest-blue);
     font-weight:600;
     font-size:13px;
     cursor:pointer;
@@ -715,7 +800,10 @@
   .status-baixo{ background: var(--danger-soft); color: var(--danger); }
   .status-ok{ background: var(--teal-soft); color: var(--teal); }
   .status-neutro{ background: var(--border); color: var(--ink-soft); }
-  .status-aviso2{ background: var(--accent-soft); color:#8A6D00; }
+  .status-aviso2{ background: var(--accent-soft); color:var(--florest-navy); }
+  /* Badges do "Destino dos Produtos" do Módulo Bar (BAR / COZINHA / NÃO DEFINIDO) */
+  .status-destino-bar{ background: var(--florest-blue-light); color: var(--florest-blue); }
+  .status-destino-cozinha{ background: var(--florest-warning-soft); color: var(--florest-warning); }
 
   /* ---------- PDV ---------- */
   .pdv-grid{
@@ -802,12 +890,12 @@
     display:flex;
     align-items:flex-start;
     gap:8px;
-    background:#EAF2FA;
-    border:1px solid #CFE0F0;
+    background:var(--florest-blue-light);
+    border:1px solid var(--florest-blue-light);
     border-radius:8px;
     padding:10px 12px;
     font-size:12px;
-    color:#2C4A66;
+    color:var(--florest-navy);
     margin:14px 0;
   }
   .pdv-trust-text{
@@ -1423,23 +1511,23 @@
     display:flex; flex-direction:column;
     background:#E6E8EC;
     font-family: var(--font-body);
-    color:#14171C;
+    color:var(--florest-navy);
     overflow:hidden;
   }
   #view-pdv kbd{
     font-family:inherit; font-size:11px; font-weight:700;
-    background:#14171C; color:#F3C623; border-radius:4px; padding:1px 6px;
+    background:var(--florest-navy); color:var(--florest-yellow); border-radius:4px; padding:1px 6px;
   }
   .pdx-header{
     flex:0 0 auto;
     display:flex; align-items:center; gap:22px;
-    background:#14171C; color:#fff;
+    background:var(--florest-navy); color:#fff;
     padding:0 18px; height:56px;
-    border-bottom:3px solid #F3C623;
+    border-bottom:3px solid var(--florest-yellow);
   }
   .pdx-brand{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .pdx-brand-mark{ width:34px; height:34px; border-radius:8px; background:#F3C623; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .pdx-brand-mark svg{ width:20px; height:20px; stroke:#14171C; fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+  .pdx-brand-mark{ width:34px; height:34px; border-radius:8px; background:var(--florest-yellow); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pdx-brand-mark svg{ width:20px; height:20px; stroke:var(--florest-navy); fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
   .pdx-brand-txt{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
   .pdx-brand-txt strong{ font-family: var(--font-display); font-size:18px; letter-spacing:.2px; }
   .pdx-brand-txt span{ font-size:12px; color:#B9BEC8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
@@ -1451,7 +1539,7 @@
     background:transparent; color:#fff; border:1px solid #4A505C; border-radius:8px;
     padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
   }
-  .pdx-btn-sair:hover{ border-color:#F3C623; color:#F3C623; }
+  .pdx-btn-sair:hover{ border-color:var(--florest-yellow); color:var(--florest-yellow); }
 
   /* linha compacta de atalhos */
   .pdx-atalhos{
@@ -1467,10 +1555,10 @@
     display:flex; align-items:center; gap:8px;
     height:40px; padding:0 14px 0 5px;
     background:#F3F4F6; border:1px solid #CBCFD6; border-radius:9px;
-    font-family:inherit; font-size:13px; font-weight:600; color:#14171C; cursor:pointer;
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--florest-navy); cursor:pointer;
   }
-  .pdx-atalho:hover{ border-color:#F3C623; background:#FDF3CF; }
-  .pdx-atalho:focus-visible{ outline:2px solid #F3C623; outline-offset:1px; }
+  .pdx-atalho:hover{ border-color:var(--florest-yellow); background:#FDF3CF; }
+  .pdx-atalho:focus-visible{ outline:2px solid var(--florest-yellow); outline-offset:1px; }
   .pdx-atalho-img{
     width:30px; height:30px; border-radius:7px; background:#E1E4E9; overflow:hidden;
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
@@ -1482,7 +1570,7 @@
     flex:0 0 auto; height:36px; padding:0 12px; border-radius:8px;
     background:#fff; border:1px dashed #9AA0AC; color:#4A505C; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;
   }
-  .pdx-atalhos-cfg:hover{ border-color:#14171C; color:#14171C; }
+  .pdx-atalhos-cfg:hover{ border-color:var(--florest-navy); color:var(--florest-navy); }
 
   /* corpo: 3 colunas */
   .pdx-main{
@@ -1497,13 +1585,13 @@
   .pdx-rotulo{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#4A505C; margin-bottom:5px; }
   .pdx-busca-wrap{ position:relative; margin-bottom:12px; }
   .pdx-input, .pdx-input-barras{
-    width:100%; box-sizing:border-box; font-family:inherit; color:#14171C;
+    width:100%; box-sizing:border-box; font-family:inherit; color:var(--florest-navy);
     border:2px solid #CBCFD6; border-radius:9px; background:#fff; outline:none;
   }
   .pdx-input{ padding:10px 12px; font-size:16px; }
-  .pdx-input-barras{ padding:14px 14px; font-size:20px; font-weight:600; border-color:#14171C; background:#FFFBEA; }
+  .pdx-input-barras{ padding:14px 14px; font-size:20px; font-weight:600; border-color:var(--florest-navy); background:#FFFBEA; }
   .pdx-input-barras::placeholder{ font-size:16px; font-weight:500; color:#8A909C; }
-  .pdx-input:focus, .pdx-input-barras:focus{ border-color:#F3C623; box-shadow:0 0 0 3px rgba(243,198,35,.35); }
+  .pdx-input:focus, .pdx-input-barras:focus{ border-color:var(--florest-yellow); box-shadow:0 0 0 3px rgba(248,200,32,.35); }
   .pdx-input-grande{ font-size:26px; font-weight:700; text-align:center; padding:12px; }
   #view-pdv .search-results{
     position:absolute; left:0; right:0; top:100%; z-index:5; margin-top:4px;
@@ -1523,11 +1611,11 @@
     font-family:inherit; font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
     border:none; border-radius:10px; padding:14px 16px; cursor:pointer;
   }
-  .pdx-btn-amarelo{ background:#F3C623; color:#14171C; }
-  .pdx-btn-amarelo:hover{ background:#E3B913; }
-  .pdx-btn-cinza{ background:#E1E4E9; color:#14171C; }
+  .pdx-btn-amarelo{ background:var(--florest-yellow); color:var(--florest-navy); }
+  .pdx-btn-amarelo:hover{ background:var(--florest-yellow-hover); }
+  .pdx-btn-cinza{ background:#E1E4E9; color:var(--florest-navy); }
   .pdx-btn-cinza:hover{ background:#D2D6DD; }
-  .pdx-btn:focus-visible{ outline:3px solid #14171C; outline-offset:2px; }
+  .pdx-btn:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:2px; }
   .pdx-dica{ font-size:11.5px; color:#6B717D; margin:auto 0 0; padding-top:10px; line-height:1.4; }
 
   /* cupom */
@@ -1538,7 +1626,7 @@
   .pdx-msg .msg{ margin:0 0 8px; padding:8px 12px; font-size:13px; }
   #view-pdv .cart-header-row{
     grid-template-columns: minmax(0,1fr) 130px 100px 110px 34px;
-    padding:9px 12px; background:#14171C; color:#F3C623; border-radius:8px; margin:0 0 2px;
+    padding:9px 12px; background:var(--florest-navy); color:var(--florest-yellow); border-radius:8px; margin:0 0 2px;
   }
   .pdx-cupom-lista{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   #view-pdv .cart-row{
@@ -1550,16 +1638,16 @@
   #view-pdv .cart-row:nth-child(even){ background:#F7F8FA; }
   #view-pdv .cart-row.flash{ background:#FDF3CF; }
   #view-pdv .cart-remove{ font-size:20px; }
-  .pdx-totais{ flex:0 0 auto; border-top:2px solid #14171C; padding-top:8px; margin-top:6px; }
+  .pdx-totais{ flex:0 0 auto; border-top:2px solid var(--florest-navy); padding-top:8px; margin-top:6px; }
   .pdx-tot-linha{ display:flex; align-items:center; justify-content:space-between; font-size:14px; padding:3px 2px; color:#4A505C; }
-  .pdx-tot-linha b{ color:#14171C; font-size:16px; }
+  .pdx-tot-linha b{ color:var(--florest-navy); font-size:16px; }
   .pdx-tot-linha input{ width:120px; text-align:right; font-size:15px; font-weight:700; padding:5px 8px; border:2px solid #CBCFD6; border-radius:7px; font-family:inherit; }
-  .pdx-tot-linha input:focus{ outline:none; border-color:#F3C623; }
+  .pdx-tot-linha input:focus{ outline:none; border-color:var(--florest-yellow); }
   .pdx-tot-total{
     display:flex; align-items:baseline; justify-content:space-between;
-    background:#14171C; color:#fff; border-radius:10px; padding:10px 16px; margin-top:6px;
+    background:var(--florest-navy); color:#fff; border-radius:10px; padding:10px 16px; margin-top:6px;
   }
-  .pdx-tot-total span{ font-size:14px; font-weight:800; letter-spacing:.1em; color:#F3C623; }
+  .pdx-tot-total span{ font-size:14px; font-weight:800; letter-spacing:.1em; color:var(--florest-yellow); }
   .pdx-tot-total b{ font-size:34px; font-weight:800; line-height:1; }
 
   /* pagamento */
@@ -1567,44 +1655,44 @@
   .pdx-pg{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
     min-height:64px; border:2px solid #CBCFD6; background:#F3F4F6; border-radius:10px;
-    font-family:inherit; font-size:14px; font-weight:700; color:#14171C; cursor:pointer;
+    font-family:inherit; font-size:14px; font-weight:700; color:var(--florest-navy); cursor:pointer;
   }
   .pdx-pg i{ font-style:normal; font-size:18px; color:#6B717D; line-height:1; }
-  .pdx-pg:hover{ border-color:#14171C; }
-  .pdx-pg.ativo{ background:#F3C623; border-color:#14171C; }
-  .pdx-pg.ativo i{ color:#14171C; }
+  .pdx-pg:hover{ border-color:var(--florest-navy); }
+  .pdx-pg.ativo{ background:var(--florest-yellow); border-color:var(--florest-navy); }
+  .pdx-pg.ativo i{ color:var(--florest-navy); }
   .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"]{ grid-column:1 / -1; }
   .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"], .pdx-pg[data-forma="Outros"]{ min-height:52px; }
   .pdx-pg[data-forma="Outros"]{ grid-column:1 / -1; min-height:52px; }
   .pdx-finalizar-wrap{ margin-top:auto; padding-top:12px; }
   .pdx-fin-total{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:#4A505C; margin-bottom:8px; }
-  .pdx-fin-total b{ font-size:22px; color:#14171C; }
+  .pdx-fin-total b{ font-size:22px; color:var(--florest-navy); }
   .pdx-btn-finalizar{
     width:100%; min-height:84px; border:none; border-radius:12px; cursor:pointer;
-    background:#F3C623; color:#14171C; font-family:inherit; font-size:20px; font-weight:800; letter-spacing:.03em;
+    background:var(--florest-yellow); color:var(--florest-navy); font-family:inherit; font-size:20px; font-weight:800; letter-spacing:.03em;
     box-shadow:0 4px 0 #B8930F;
   }
-  .pdx-btn-finalizar:hover:not(:disabled){ background:#FFD43B; }
+  .pdx-btn-finalizar:hover:not(:disabled){ background:var(--florest-yellow-hover); }
   .pdx-btn-finalizar:active:not(:disabled){ transform:translateY(3px); box-shadow:0 1px 0 #B8930F; }
   .pdx-btn-finalizar:disabled{ background:#E1E4E9; color:#8A909C; box-shadow:none; cursor:not-allowed; }
-  .pdx-btn-finalizar:focus-visible{ outline:3px solid #14171C; outline-offset:2px; }
+  .pdx-btn-finalizar:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:2px; }
 
   /* rodapé */
   .pdx-rodape{
     flex:0 0 auto; display:flex; align-items:center; gap:18px;
-    background:#14171C; color:#fff; padding:9px 18px; min-height:46px;
+    background:var(--florest-navy); color:#fff; padding:9px 18px; min-height:46px;
   }
   .pdx-cliente{ display:flex; align-items:center; gap:10px; font-size:14px; min-width:0; }
   .pdx-cliente span{ color:#B9BEC8; }
-  .pdx-cliente b{ color:#F3C623; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:360px; }
+  .pdx-cliente b{ color:var(--florest-yellow); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:360px; }
   .pdx-teclas{ margin-left:auto; font-size:12px; color:#B9BEC8; }
   .pdx-btn-mini{
     font-family:inherit; font-size:12px; font-weight:700; padding:7px 12px; border-radius:8px; cursor:pointer;
-    background:#fff; color:#14171C; border:1px solid #CBCFD6; white-space:nowrap;
+    background:#fff; color:var(--florest-navy); border:1px solid #CBCFD6; white-space:nowrap;
   }
-  .pdx-btn-mini:hover{ border-color:#F3C623; background:#FDF3CF; }
+  .pdx-btn-mini:hover{ border-color:var(--florest-yellow); background:#FDF3CF; }
   .pdx-rodape .pdx-btn-mini{ background:transparent; color:#fff; border-color:#4A505C; }
-  .pdx-rodape .pdx-btn-mini:hover{ border-color:#F3C623; color:#F3C623; background:transparent; }
+  .pdx-rodape .pdx-btn-mini:hover{ border-color:var(--florest-yellow); color:var(--florest-yellow); background:transparent; }
   .pdx-btn-mini-perigo:hover{ border-color:#FF8A80 !important; color:#FF8A80 !important; }
 
   /* modais internos do PDV (acima da tela do PDV, abaixo do modal fiscal pós-venda) */
@@ -1616,7 +1704,7 @@
   .pdx-modal-alto{ z-index:6; }
   .pdx-card{
     background:#fff; border-radius:14px; padding:18px 20px; max-height:calc(100vh - 36px); overflow:auto;
-    width:100%; box-sizing:border-box; border-top:5px solid #F3C623;
+    width:100%; box-sizing:border-box; border-top:5px solid var(--florest-yellow);
   }
   .pdx-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .pdx-card-head h3{ margin:0; font-family: var(--font-display); font-size:22px; }
@@ -1625,10 +1713,10 @@
   .pdx-prod{
     display:flex; flex-direction:column; align-items:stretch; gap:6px; text-align:left;
     background:#F7F8FA; border:2px solid #CBCFD6; border-radius:12px; padding:8px 8px 10px;
-    font-family:inherit; color:#14171C; cursor:pointer; min-width:0;
+    font-family:inherit; color:var(--florest-navy); cursor:pointer; min-width:0;
   }
-  .pdx-prod:hover:not(:disabled){ border-color:#F3C623; background:#FFFBEA; }
-  .pdx-prod:focus-visible{ outline:3px solid #14171C; outline-offset:1px; }
+  .pdx-prod:hover:not(:disabled){ border-color:var(--florest-yellow); background:#FFFBEA; }
+  .pdx-prod:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:1px; }
   .pdx-prod:disabled{ opacity:.55; cursor:not-allowed; }
   .pdx-img-slot{
     width:100%; aspect-ratio: 4 / 3; background:#E1E4E9; border-radius:8px; overflow:hidden;
@@ -1644,7 +1732,7 @@
   .pdx-card-add .pdx-card-head{ justify-content:center; }
   .pdx-add-img{ width:150px; margin:0 auto 10px; }
   .pdx-add-nome{ font-size:20px; font-weight:800; line-height:1.25; word-break:break-word; }
-  .pdx-add-preco{ font-size:24px; font-weight:800; color:#14171C; margin:4px 0; }
+  .pdx-add-preco{ font-size:24px; font-weight:800; color:var(--florest-navy); margin:4px 0; }
   .pdx-add-estoque{ font-size:12px; color:#6B717D; margin-bottom:12px; }
   .pdx-card-add .pdx-rotulo{ text-align:left; }
   .pdx-add-erro{ color:#B3261E; font-size:13px; font-weight:600; min-height:18px; margin-top:6px; }
@@ -1654,7 +1742,7 @@
   .pdx-cliente-lista{ margin-top:10px; max-height:52vh; overflow-y:auto; border:1px solid #CBCFD6; border-radius:9px; }
   .pdx-cliente-item{
     display:block; width:100%; text-align:left; background:#fff; border:none; border-bottom:1px solid #E1E4E9;
-    padding:11px 14px; font-family:inherit; font-size:15px; cursor:pointer; color:#14171C;
+    padding:11px 14px; font-family:inherit; font-size:15px; cursor:pointer; color:var(--florest-navy);
   }
   .pdx-cliente-item:last-child{ border-bottom:none; }
   .pdx-cliente-item:hover, .pdx-cliente-item:focus{ background:#FDF3CF; outline:none; }
@@ -1666,9 +1754,9 @@
   .pdx-cfg-esq{ display:flex; flex-direction:column; gap:10px; }
   .pdx-cfg-item{
     display:block; width:100%; text-align:left; padding:9px 12px; margin-bottom:6px;
-    background:#F3F4F6; border:2px solid #CBCFD6; border-radius:9px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; color:#14171C;
+    background:#F3F4F6; border:2px solid #CBCFD6; border-radius:9px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; color:var(--florest-navy);
   }
-  .pdx-cfg-item.sel{ border-color:#14171C; background:#FDF3CF; }
+  .pdx-cfg-item.sel{ border-color:var(--florest-navy); background:#FDF3CF; }
   .pdx-cfg-item small{ color:#6B717D; font-weight:500; }
   .pdx-cfg-novo{ display:flex; gap:8px; }
   .pdx-cfg-novo .pdx-input{ font-size:14px; padding:9px 10px; }
@@ -1682,7 +1770,7 @@
   .pdx-cfg-prod .n{ flex:1; min-width:0; font-weight:600; word-break:break-word; }
   .pdx-cfg-prod .p{ color:#4A505C; white-space:nowrap; }
   .pdx-cfg-prod button{ border:1px solid #CBCFD6; background:#fff; border-radius:6px; width:28px; height:28px; cursor:pointer; font-size:14px; }
-  .pdx-cfg-prod button:hover{ border-color:#14171C; }
+  .pdx-cfg-prod button:hover{ border-color:var(--florest-navy); }
   .pdx-cfg-lista-prods{ max-height:200px; overflow-y:auto; border:1px solid #CBCFD6; border-radius:8px; }
   .pdx-cfg-res{ margin-top:6px; max-height:170px; overflow-y:auto; border:1px solid #CBCFD6; border-radius:8px; }
   .pdx-cfg-res:empty{ display:none; }
@@ -1714,7 +1802,7 @@
 
   /* ---------- Acesso por módulo / Usuários e Acessos / Configurações ---------- */
   .cfg-check{ display:flex; gap:12px; align-items:flex-start; cursor:pointer; padding:4px 0; }
-  .cfg-check input{ width:20px; height:20px; margin-top:2px; accent-color:#14171C; flex-shrink:0; }
+  .cfg-check input{ width:20px; height:20px; margin-top:2px; accent-color:var(--florest-navy); flex-shrink:0; }
   .cfg-check span{ display:flex; flex-direction:column; gap:3px; font-size:14px; }
   .cfg-check em{ font-style:normal; font-size:13px; color: var(--ink-soft); line-height:1.45; }
   .usr-perms-topo{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 8px; font-size:13px; }
@@ -1724,8 +1812,8 @@
     display:flex; align-items:center; gap:8px; padding:9px 11px; border:1px solid var(--border);
     border-radius:8px; font-size:14px; cursor:pointer; background:#fff;
   }
-  .usr-perm input{ width:17px; height:17px; accent-color:#14171C; }
-  .usr-perm.marcado{ border-color:#14171C; background: var(--accent-soft); font-weight:600; }
+  .usr-perm input{ width:17px; height:17px; accent-color:var(--florest-navy); }
+  .usr-perm.marcado{ border-color:var(--florest-navy); background: var(--accent-soft); font-weight:600; }
   .usr-perm.travado{ opacity:.55; cursor:not-allowed; }
   .usr-chips{ display:flex; flex-wrap:wrap; gap:4px; }
   .usr-chip{ font-size:11px; font-weight:600; background:#EEF0F4; color:var(--ink-soft); border-radius:12px; padding:2px 8px; }
@@ -1745,13 +1833,13 @@
   }
   .bar-mesa-card:hover{ transform:translateY(-2px); }
   .bar-mesa-card.livre{ background:var(--teal-soft); border-color:var(--teal); }
-  .bar-mesa-card.ocupada{ background:var(--accent-soft); border-color:#8A6D00; }
+  .bar-mesa-card.ocupada{ background:var(--accent-soft); border-color:var(--florest-navy); }
   .bar-mesa-card.fechada{ background:var(--border); opacity:.6; cursor:not-allowed; }
   .bar-mesa-numero{ font-family:var(--font-display); font-size:22px; font-weight:600; }
   .bar-mesa-status{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:4px; }
   .bar-mesa-pessoas{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
   .bar-mesa-saldo{ font-size:12px; font-weight:700; color:var(--ink-soft); margin-top:4px; }
-  .bar-mesa-card.ocupada .bar-mesa-saldo{ color:#8A6D00; }
+  .bar-mesa-card.ocupada .bar-mesa-saldo{ color:var(--florest-navy); }
   .bar-mesas-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; justify-content:flex-end; }
   .bar-saldo-resumo{ display:flex; gap:18px; flex-wrap:wrap; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:#FAFAF8; margin:0 0 16px; }
   .bar-saldo-resumo-item{ font-size:13px; }
@@ -1796,57 +1884,15 @@
 
 <!-- ===================== TELA DE LOGIN / CADASTRO ===================== -->
 <div id="auth-screen" class="hidden">
-  <div class="auth-brand">
-    <div>
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#082B59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
-        <span>Florest Sistemas</span>
-      </div>
-
-      <div class="auth-product">DistGestor</div>
-      <div class="auth-product-sub">Gestão simples para sua distribuidora.</div>
-      <p class="auth-desc">Clientes, produtos, estoque, vendas com leitor de código de barras, notas de entrada e financeiro em um só lugar.</p>
-    </div>
-
-    <div class="auth-features">
-      <div class="auth-feature-item">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.4c2 .8 3.5 2.7 3.5 5.6"/></svg>
-        <span>Clientes e fornecedores</span>
-      </div>
-      <div class="auth-feature-item">
-        <svg viewBox="0 0 24 24"><path d="M12 3 2.5 8l9.5 5 9.5-5L12 3Z"/><path d="M2.5 12.3 12 17.3l9.5-5"/><path d="M2.5 16.3 12 21.3l9.5-5"/></svg>
-        <span>Produtos e controle de estoque</span>
-      </div>
-      <div class="auth-feature-item">
-        <svg viewBox="0 0 24 24"><path d="M4 5v14M8 5v14M11 5v14M14 5v10M17 5v14M20 5v14"/></svg>
-        <span>PDV com leitor de código de barras</span>
-      </div>
-      <div class="auth-feature-item">
-        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
-        <span>Notas de entrada por XML</span>
-      </div>
-      <div class="auth-feature-item">
-        <svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg>
-        <span>Financeiro, fiscal e relatórios</span>
-      </div>
-    </div>
-
-    <div class="auth-script-tagline">Tecnologia que impulsiona o seu negócio.</div>
-
-    <div class="auth-brand-footer">
-      <span class="auth-footer-rule"></span>
-      Uma empresa <strong>Florest Sistemas</strong>
-    </div>
-  </div>
-
   <div class="auth-form-wrap">
+    <div class="auth-form-logo">
+      <img src="assets/logo-florest.png" alt="Florest ERP PDV" style="height:56px;">
+      <span>Soluções completas para o seu negócio</span>
+    </div>
     <div class="auth-card">
       <div class="auth-card-body">
         <div class="auth-card-intro">
-          <span class="brand-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#082B59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
-          </span>
-          <h1 id="auth-card-titulo">Bem-vindo ao DistGestor</h1>
+          <h1 id="auth-card-titulo">Bem-vindo ao Florest ERP</h1>
           <p id="auth-card-subtitulo">Acesse sua conta para continuar</p>
         </div>
 
@@ -1867,7 +1913,7 @@
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
-          <button class="btn-auth" type="submit" id="btn-login">Entrar →</button>
+          <button class="btn-auth" type="submit" id="btn-login">ENTRAR NO SISTEMA</button>
 
           <div class="auth-divider"><span>ou</span></div>
           <button type="button" class="btn-auth-secondary" id="tab-cadastro">
@@ -1879,8 +1925,8 @@
         <!-- CADASTRO -->
         <form id="form-cadastro" class="hidden">
           <div class="field">
-            <label>Nome da distribuidora</label>
-            <input type="text" id="cad-empresa" required placeholder="Ex: Distribuidora Bom Preço">
+            <label>Nome da empresa</label>
+            <input type="text" id="cad-empresa" required placeholder="Ex: Minha Empresa Ltda">
           </div>
           <div class="field">
             <label>Seu nome</label>
@@ -1914,9 +1960,104 @@
       </div>
 
       <div class="auth-page-foot">
-        <strong>DistGestor</strong>
+        <strong>Florest ERP PDV</strong>
         Um sistema Florest Sistemas
       </div>
+    </div>
+  </div>
+
+  <!-- Painel institucional (REBRANDING): apresentação comercial da Florest Sistemas.
+       No mobile, este bloco aparece ABAIXO do login (ver #auth-screen no <style>). -->
+  <div class="auth-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
+      <span>Florest Sistemas</span>
+    </div>
+
+    <div>
+      <h2 class="auth-headline">Gestão simples, completa <em>e do seu jeito.</em></h2>
+      <p class="auth-desc">A Florest Sistemas oferece um ERP PDV moderno, completo e fácil de usar, com módulos para diferentes segmentos e tudo o que você precisa para gerenciar o seu negócio em um só lugar.</p>
+    </div>
+
+    <div class="auth-segments">
+      <p class="auth-segments-label">Segmentos atendidos</p>
+      <div class="auth-segments-grid">
+        <div class="auth-segment disponivel">
+          <svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
+          <span>Distribuidora</span>
+        </div>
+        <div class="auth-segment disponivel">
+          <svg viewBox="0 0 24 24"><path d="M5 4h14l-2 8a5 5 0 0 1-10 0L5 4Z"/><path d="M12 12v7M8.5 19h7"/><path d="M6.5 8h11"/></svg>
+          <span>Bares e Restaurantes</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+          <span>Imobiliária</span>
+        </div>
+        <div class="auth-segment disponivel">
+          <svg viewBox="0 0 24 24"><circle cx="7" cy="7.5" r="1.8"/><circle cx="12" cy="5.5" r="1.8"/><circle cx="17" cy="7.5" r="1.8"/><circle cx="19" cy="12.5" r="1.8"/><path d="M12 12.2c-3.3 0-6 2.3-6 5.4 0 1.6 1.3 2.4 3 2 1.1-.3 1.9-.9 3-.9s1.9.6 3 .9c1.7.4 3-.4 3-2 0-3.1-2.7-5.4-6-5.4Z"/></svg>
+          <span>Pet Shop</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="6" cy="18" r="2.3"/><path d="M8.3 7.7 20 19M20 5 8.3 16.3"/></svg>
+          <span>Barbearia</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2c0 .8-.5 1.4-1.2 1.8l-.8.4-.8-.4C10.5 6.4 10 5.8 10 5a2 2 0 0 1 2-2Z"/><path d="M12 7.2 3 13.4c-.8.6-.4 1.9.6 1.9h16.8c1 0 1.4-1.3.6-1.9L12 7.2Z"/></svg>
+          <span>Aluguel de Roupas</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><path d="m9 15-4.5 4.5M9 15 6 9l3-3 6 3-3 6-3-3 3 3Z"/><path d="m14 10 4-4"/></svg>
+          <span>Ferragista</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><path d="M12 2 2 20h20L12 2Z"/><circle cx="12" cy="14" r="1"/><circle cx="9" cy="17.5" r="1"/><circle cx="15" cy="17.5" r="1"/></svg>
+          <span>Pizzaria</span>
+        </div>
+        <div class="auth-segment">
+          <span class="auth-segment-tag">Em breve</span>
+          <svg viewBox="0 0 24 24"><path d="M4 12.5c0-4.1 3.6-7.5 8-7.5s8 3.4 8 7.5-3.6 6-8 6-8-1.9-8-6Z"/><path d="M8 9.7c.5-1 1.5-1.5 2-1M14 9.3c.5-1 1.5-1.5 2-1"/></svg>
+          <span>Padaria</span>
+        </div>
+        <div class="auth-segment">
+          <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
+          <span>Mais módulos</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-benefits">
+      <p class="auth-benefits-label">Por que a Florest</p>
+      <div class="auth-benefit-item">
+        <svg viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15 15 10"/><circle cx="12" cy="15" r="1"/></svg>
+        <span>Controle completo do seu negócio</span>
+      </div>
+      <div class="auth-benefit-item">
+        <svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg>
+        <span>Relatórios em tempo real</span>
+      </div>
+      <div class="auth-benefit-item">
+        <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>Seguro e confiável</span>
+      </div>
+      <div class="auth-benefit-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.8 5.5 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.5-3.8-8.5S9.5 5.9 12 3.5Z"/></svg>
+        <span>Acesse de qualquer lugar</span>
+      </div>
+      <div class="auth-benefit-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 13c.5 1.5 1.9 2.5 3.5 2.5s3-1 3.5-2.5"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>
+        <span>Sistema simples de usar</span>
+      </div>
+    </div>
+
+    <div class="auth-brand-footer">
+      <span class="auth-footer-rule"></span>
+      Uma empresa <strong>Florest Sistemas</strong>
     </div>
   </div>
 </div>
@@ -1925,7 +2066,7 @@
 <div id="app-screen" class="hidden">
   <div class="sidebar">
     <div class="sidebar-brand-top">
-      <img src="data:image/jpeg;base64,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" alt="Florest Sistemas" class="sidebar-logo-img">
+      <img src="assets/logo-florest-icone.png" alt="Florest Sistemas" class="sidebar-logo-img">
       <div class="sidebar-brand-text">
         <span class="brand-florest">Florest</span>
         <span class="brand-sistemas-label">Sistemas</span>
@@ -1983,7 +2124,7 @@
             <svg style="stroke:var(--ink);" viewBox="0 0 24 24" fill="none"  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg>
           </span>
           <div>
-            <div class="topbar-product-nome">DistGestor</div>
+            <div class="topbar-product-nome">Florest ERP</div>
             <div class="topbar-product-sub">Gestão simples para sua distribuidora</div>
           </div>
         </div>
@@ -2014,7 +2155,8 @@
     <div id="view-dashboard">
       <div class="greeting">
         <h2 id="greeting-nome">Olá!</h2>
-        <p id="greeting-data"></p>
+        <p id="greeting-data" style="margin-bottom:4px;"></p>
+        <p style="margin:0 0 32px; color:var(--ink-soft); font-size:13px;">Bem-vindo ao Florest ERP — seu sistema completo para gerenciar o seu negócio.</p>
       </div>
 
       <div class="metric-grid">
@@ -2192,7 +2334,7 @@
         <div class="pdx-brand">
           <span class="pdx-brand-mark"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span>
           <div class="pdx-brand-txt">
-            <strong>DistGestor PDV</strong>
+            <strong>Florest ERP PDV</strong>
             <span id="pdx-empresa">—</span>
           </div>
         </div>
@@ -3114,7 +3256,7 @@
             <button type="button" class="btn-secondary" id="btn-atualizar-numeracao-nfce">Atualizar numeração</button>
           </div>
           <p class="modal-section-hint" style="margin-top:8px;">
-            Preencha isso apenas se essa empresa já emitia NFC-e em outro sistema, para a próxima emissão pelo DistGestor continuar a numeração corretamente (ex: informe 3857 para a próxima sair como 3858). Depois de emitido pelo DistGestor, esse número nunca pode ser diminuído.
+            Preencha isso apenas se essa empresa já emitia NFC-e em outro sistema, para a próxima emissão pelo Florest ERP continuar a numeração corretamente (ex: informe 3857 para a próxima sair como 3858). Depois de emitido pelo Florest ERP, esse número nunca pode ser diminuído.
           </p>
         </div>
 
@@ -3133,7 +3275,7 @@
 
       <div class="pdv-panel" style="margin-top:20px;">
         <h3>Certificado digital A1</h3>
-        <p class="modal-section-hint" style="margin-top:-4px;">O arquivo e a senha vão direto para a integração segura — nunca ficam guardados no DistGestor.</p>
+        <p class="modal-section-hint" style="margin-top:-4px;">O arquivo e a senha vão direto para a integração segura — nunca ficam guardados no Florest ERP.</p>
         <div id="cert-upload-msg"></div>
         <div class="field-row">
           <div class="field"><label>Arquivo do certificado (.pfx/.p12)</label><input type="file" id="cf-cert-arquivo" accept=".pfx,.p12"></div>
@@ -4089,7 +4231,7 @@
     </div>
 
     <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:auto; padding:10px 20px;">Confirmar pagamento</button>
+      <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:100%; padding:16px 20px; font-size:16px;">Receber pagamento</button>
     </div>
 
     <div id="bar-mesa-historico-wrap" class="hidden">
@@ -4569,29 +4711,29 @@ function injetarEstilos(){
   st.id = 'imp-estilos';
   st.textContent = `
   .imp-overlay{ position:fixed; inset:0; z-index:9000; background:rgba(11,23,48,0.55); display:flex; align-items:center; justify-content:center; padding:18px; font-family: var(--font-body, system-ui, sans-serif); }
-  .imp-card{ background: var(--card,#fff); color: var(--ink,#16233F); width:100%; max-width:1040px; max-height:calc(100vh - 36px); border-radius:14px; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden; }
+  .imp-card{ background: var(--card,#fff); color: var(--ink,#12233D); width:100%; max-width:1040px; max-height:calc(100vh - 36px); border-radius:14px; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden; }
   .imp-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 22px; border-bottom:1px solid var(--border,#DDE1EA); }
   .imp-head h3{ margin:0; font-size:18px; }
   .imp-x{ background:none; border:none; font-size:24px; line-height:1; cursor:pointer; color: var(--ink-soft,#4A5670); padding:4px 8px; }
   .imp-steps{ display:flex; gap:6px; padding:12px 22px 0; flex-wrap:wrap; }
   .imp-step{ font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:#EEF0F5; color: var(--ink-soft,#4A5670); }
-  .imp-step.on{ background: var(--accent,#F3C623); color: var(--ink,#16233F); }
+  .imp-step.on{ background: var(--accent,#F8C820); color: var(--ink,#12233D); }
   .imp-step.ok{ background: var(--teal-soft,#DDEEE9); color: var(--teal,#2C6E60); }
   .imp-body{ padding:18px 22px; overflow:auto; flex:1; min-height:200px; }
   .imp-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:14px 22px; border-top:1px solid var(--border,#DDE1EA); background:#FAFBFC; }
   .imp-foot .imp-acoes{ display:flex; gap:10px; flex-wrap:wrap; margin-left:auto; }
-  .imp-btn{ border:1px solid var(--border,#DDE1EA); background:#fff; color: var(--ink,#16233F); border-radius:8px; padding:9px 16px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
-  .imp-btn.pri{ background: var(--accent,#F3C623); border-color: var(--accent,#F3C623); }
+  .imp-btn{ border:1px solid var(--border,#DDE1EA); background:#fff; color: var(--ink,#12233D); border-radius:8px; padding:9px 16px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .imp-btn.pri{ background: var(--accent,#F8C820); border-color: var(--accent,#F8C820); }
   .imp-btn.perigo{ background: var(--danger,#B84B3C); border-color: var(--danger,#B84B3C); color:#fff; }
   .imp-btn:disabled{ opacity:0.5; cursor:not-allowed; }
   .imp-drop{ border:2px dashed var(--border,#DDE1EA); border-radius:12px; padding:38px 20px; text-align:center; cursor:pointer; background:#FAFBFC; }
-  .imp-drop.sobre{ border-color: var(--accent,#F3C623); background: var(--accent-soft,#FDF3CF); }
+  .imp-drop.sobre{ border-color: var(--accent,#F8C820); background: var(--accent-soft,#FCEFC4); }
   .imp-drop strong{ display:block; font-size:16px; margin-bottom:6px; }
   .imp-mut{ color: var(--ink-soft,#4A5670); font-size:13px; }
   .imp-msg{ padding:10px 14px; border-radius:8px; font-size:13px; margin:0 0 12px; }
   .imp-msg.erro{ background: var(--danger-soft,#F6DFDA); color: var(--danger,#B84B3C); }
-  .imp-msg.info{ background:#EAF1FB; color:#2C4A66; }
-  .imp-msg.aviso{ background: var(--accent-soft,#FDF3CF); }
+  .imp-msg.info{ background:var(--florest-blue-light); color:var(--florest-navy); }
+  .imp-msg.aviso{ background: var(--accent-soft,#FCEFC4); }
   .imp-msg.ok{ background: var(--teal-soft,#DDEEE9); color: var(--teal,#2C6E60); }
   .imp-tabela{ width:100%; border-collapse:collapse; font-size:13px; }
   .imp-tabela th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color: var(--ink-soft,#4A5670); padding:8px 10px; border-bottom:1px solid var(--border,#DDE1EA); background:#FAFBFC; position:sticky; top:0; }
@@ -4600,7 +4742,7 @@ function injetarEstilos(){
   .imp-grupo td{ background:#F3F5F9; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.03em; color: var(--ink-soft,#4A5670); }
   .imp-req{ color: var(--danger,#B84B3C); font-weight:700; }
   .imp-tag{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:#EEF0F5; color: var(--ink-soft,#4A5670); }
-  .imp-tag.sug{ background:#EAF1FB; color:#2C4A66; }
+  .imp-tag.sug{ background:var(--florest-blue-light); color:var(--florest-navy); }
   .imp-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
   .imp-cartao{ border:1px solid var(--border,#DDE1EA); border-radius:10px; padding:10px 12px; background:#fff; }
   .imp-cartao .n{ font-size:22px; font-weight:800; display:block; }
@@ -4610,11 +4752,11 @@ function injetarEstilos(){
   .imp-cartao.dup .n{ color:#9A6B00; }
   .imp-filtros{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
   .imp-chip{ border:1px solid var(--border,#DDE1EA); background:#fff; border-radius:999px; padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
-  .imp-chip.on{ background: var(--ink,#16233F); color:#fff; border-color: var(--ink,#16233F); }
+  .imp-chip.on{ background: var(--ink,#12233D); color:#fff; border-color: var(--ink,#12233D); }
   .imp-scroll{ max-height:320px; overflow:auto; border:1px solid var(--border,#DDE1EA); border-radius:10px; }
   .imp-st{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
   .imp-st.novo{ background: var(--teal-soft,#DDEEE9); color: var(--teal,#2C6E60); }
-  .imp-st.aviso{ background: var(--accent-soft,#FDF3CF); color:#7A5A00; }
+  .imp-st.aviso{ background: var(--accent-soft,#FCEFC4); color:#7A5A00; }
   .imp-st.erro{ background: var(--danger-soft,#F6DFDA); color: var(--danger,#B84B3C); }
   .imp-st.existente, .imp-st.repetido{ background:#EEF0F5; color: var(--ink-soft,#4A5670); }
   .imp-barra{ height:12px; background:#EEF0F5; border-radius:999px; overflow:hidden; margin:14px 0 6px; }
@@ -4623,7 +4765,7 @@ function injetarEstilos(){
   .imp-linha-cab label{ font-size:12px; font-weight:700; display:block; margin-bottom:4px; }
   .imp-linha-cab select{ padding:7px 8px; border:1px solid var(--border,#DDE1EA); border-radius:7px; font-size:13px; }
   .imp-linha-cab input{ width:80px; }
-  .imp-link{ background:none; border:none; padding:0; color:#2C4A9A; text-decoration:underline; cursor:pointer; font-size:13px; font-family:inherit; }
+  .imp-link{ background:none; border:none; padding:0; color:var(--florest-blue); text-decoration:underline; cursor:pointer; font-size:13px; font-family:inherit; }
   @media (max-width:700px){ .imp-overlay{ padding:0; } .imp-card{ max-height:100vh; border-radius:0; } }
   `;
   document.head.appendChild(st);
@@ -5348,7 +5490,7 @@ function renderPaginacao(elId, { pagina, total, porPagina, aoMudar }){
   el.querySelector('[data-a="prox"]').addEventListener('click', () => aoMudar(pagina + 1));
 }
 
-const MSG_NAO_CONFIGURADO = 'O DistGestor ainda não está conectado a um banco de dados. Preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script do index.html com os dados do projeto Supabase do DistGestor.';
+const MSG_NAO_CONFIGURADO = 'O Florest ERP ainda não está conectado a um banco de dados. Preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script do index.html com os dados do projeto Supabase do Florest ERP.';
 
 function showMsg(text, type){
   const box = $('auth-msg');
@@ -5376,7 +5518,7 @@ $('tab-login').addEventListener('click', () => {
   $('tab-cadastro').classList.remove('active');
   $('form-login').classList.remove('hidden');
   $('form-cadastro').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Bem-vindo ao DistGestor';
+  $('auth-card-titulo').textContent = 'Bem-vindo ao Florest ERP';
   $('auth-card-subtitulo').textContent = 'Acesse sua conta para continuar';
   clearMsg();
 });
@@ -5385,7 +5527,7 @@ $('tab-cadastro').addEventListener('click', () => {
   $('tab-login').classList.remove('active');
   $('form-cadastro').classList.remove('hidden');
   $('form-login').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Criar conta da distribuidora';
+  $('auth-card-titulo').textContent = 'Criar conta no Florest ERP';
   $('auth-card-subtitulo').textContent = 'Leva menos de um minuto.';
   clearMsg();
 });
@@ -5478,7 +5620,7 @@ $('form-cadastro').addEventListener('submit', async (e) => {
   $('tab-cadastro').classList.remove('active');
   $('form-login').classList.remove('hidden');
   $('form-cadastro').classList.add('hidden');
-  $('auth-card-titulo').textContent = 'Bem-vindo ao DistGestor';
+  $('auth-card-titulo').textContent = 'Bem-vindo ao Florest ERP';
   $('auth-card-subtitulo').textContent = 'Acesse sua conta para continuar';
   showMsg('Cadastro recebido! Sua conta está em análise — assim que for aprovada, você poderá entrar normalmente com o e-mail e senha que acabou de criar.', 'success');
 });
@@ -11035,7 +11177,7 @@ $('btn-bar-mesa-receber-pagamento').addEventListener('click', async () => {
   const taxa = ajustesTocados ? (parseFloat($('bar-mesa-taxa').value) || 0) : null;
 
   const btn = $('btn-bar-mesa-receber-pagamento');
-  btn.disabled = true; btn.textContent = 'Confirmando...';
+  btn.disabled = true; btn.textContent = 'Recebendo...';
   const mesaId = barMesaAtual.id;
   const comandaDoPagamento = barComandaAtualId;
   // Requisito central da correção do pagamento parcial: o operador só informa VALOR + FORMAS —
@@ -11051,7 +11193,7 @@ $('btn-bar-mesa-receber-pagamento').addEventListener('click', async () => {
     p_acrescimo: acrescimo,
     p_taxa_servico: taxa,
   });
-  btn.disabled = false; btn.textContent = 'Confirmar pagamento';
+  btn.disabled = false; btn.textContent = 'Receber pagamento';
   if(error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
@@ -11329,13 +11471,17 @@ async function carregarBarDestino(){
   barDestinoCache = itens;
   $('bar-destino-empty').classList.toggle('hidden', itens.length > 0);
   $('bar-destino-marcar-todos').checked = false;
-  const nomeDestino = d => d === 'bar' ? 'Bar' : d === 'cozinha' ? 'Cozinha' : 'Não definido';
+  const badgeDestino = d => d === 'bar'
+    ? '<span class="status-badge status-destino-bar">BAR</span>'
+    : d === 'cozinha'
+      ? '<span class="status-badge status-destino-cozinha">COZINHA</span>'
+      : '<span class="status-badge status-neutro">NÃO DEFINIDO</span>';
   $('bar-destino-tabela-body').innerHTML = itens.map(it => `
     <tr>
       <td><input type="checkbox" data-destino-marcar="${it.produto_id}" ${barDestinoSelecionados.has(it.produto_id) ? 'checked' : ''} ${it.tipo === 'composto' ? 'disabled title="Destino de um produto composto é sempre definido pelas escolhas no pedido — não é configurado aqui."' : ''}></td>
       <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
       <td>${it.tipo === 'composto' ? 'Composto' : 'Simples'}</td>
-      <td>${it.tipo === 'composto' ? '<span class="modal-section-hint">definido pelas escolhas</span>' : nomeDestino(it.destino_operacional)}</td>
+      <td>${it.tipo === 'composto' ? '<span class="modal-section-hint">definido pelas escolhas</span>' : badgeDestino(it.destino_operacional)}</td>
     </tr>`).join('');
   document.querySelectorAll('[data-destino-marcar]').forEach(chk => chk.addEventListener('change', () => {
     if(chk.checked) barDestinoSelecionados.add(chk.dataset.destinoMarcar);
