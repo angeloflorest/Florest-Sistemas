@@ -9673,9 +9673,11 @@ function fiscalTipoLabel(tipo){
 }
 
 async function carregarFiscal(){
+  const empresaId = await obterEmpresaId();
   const { data, error } = await supabase
     .from('documentos_fiscais')
     .select('*, vendas(numero_venda, clientes(nome))')
+    .eq('empresa_id', empresaId)
     .order('created_at', { ascending: false });
 
   if(error){ console.error(error); return; }
@@ -9738,9 +9740,11 @@ async function buscarVendaFiscal(){
     return;
   }
 
+  const empresaId = await obterEmpresaId();
   const { data: venda, error } = await supabase
     .from('vendas')
     .select('id, numero_venda, total, forma_pagamento, criado_em, cliente_id, cancelada_em, motivo_cancelamento, clientes(nome)')
+    .eq('empresa_id', empresaId)
     .eq('numero_venda', numero)
     .maybeSingle();
 
@@ -9753,9 +9757,11 @@ async function buscarVendaFiscal(){
 }
 
 async function abrirVendaFiscalPorId(vendaId){
+  const empresaId = await obterEmpresaId();
   const { data: venda, error } = await supabase
     .from('vendas')
     .select('id, numero_venda, total, forma_pagamento, criado_em, cliente_id, cancelada_em, motivo_cancelamento, clientes(nome)')
+    .eq('empresa_id', empresaId)
     .eq('id', vendaId)
     .maybeSingle();
 
@@ -9765,6 +9771,7 @@ async function abrirVendaFiscalPorId(vendaId){
 }
 
 async function renderVendaFiscal(venda){
+  const empresaId = await obterEmpresaId();
   $('fiscal-venda-titulo').textContent = `Venda #${venda.numero_venda}`;
   $('fiscal-venda-sub').textContent =
     `${venda.clientes ? venda.clientes.nome : 'Cliente não identificado'} · ${new Date(venda.criado_em).toLocaleDateString('pt-BR')} · ${venda.forma_pagamento} · ${formatarReais(venda.total)}`;
@@ -9783,6 +9790,7 @@ async function renderVendaFiscal(venda){
   const { data: itens } = await supabase
     .from('itens_venda')
     .select('quantidade, preco_unitario, subtotal, produtos(nome)')
+    .eq('empresa_id', empresaId)
     .eq('venda_id', venda.id);
 
   const containerItens = $('fiscal-venda-itens');
@@ -9803,6 +9811,7 @@ async function renderVendaFiscal(venda){
   const { data: documentos } = await supabase
     .from('documentos_fiscais')
     .select('*')
+    .eq('empresa_id', empresaId)
     .eq('venda_id', venda.id)
     .order('created_at', { ascending: true });
 
