@@ -10288,9 +10288,12 @@ async function carregarNotasEntrada(){
 }
 
 async function abrirDetalheNotaEntrada(notaId){
-  const { data: nota } = await supabase.from('notas_entrada').select('*, fornecedores(razao_social, cnpj)').eq('id', notaId).single();
-  const { data: itens } = await supabase.from('notas_entrada_itens').select('*').eq('nota_entrada_id', notaId);
-  const { data: parcelas } = await supabase.from('despesas').select('*').eq('nota_entrada_id', notaId).order('vencimento');
+  // Correção da auditoria de isolamento multiempresa (item D.2): filtro explícito por empresa_id,
+  // reforçando a RLS já existente, pelo mesmo padrão já aplicado na tela Fiscal.
+  const empresaId = await obterEmpresaId();
+  const { data: nota } = await supabase.from('notas_entrada').select('*, fornecedores(razao_social, cnpj)').eq('empresa_id', empresaId).eq('id', notaId).single();
+  const { data: itens } = await supabase.from('notas_entrada_itens').select('*').eq('empresa_id', empresaId).eq('nota_entrada_id', notaId);
+  const { data: parcelas } = await supabase.from('despesas').select('*').eq('empresa_id', empresaId).eq('nota_entrada_id', notaId).order('vencimento');
 
   if(!nota) return;
 
@@ -11405,7 +11408,11 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
   if(!numero || numero <= 0){ $('bar-estornar-busca-msg').innerHTML = '<div class="msg error">Informe o número da mesa.</div>'; return; }
   $('bar-estornar-busca-msg').innerHTML = '';
   $('bar-estornar-busca-resultado').classList.add('hidden');
-  const { data: mesa, error: erroMesa } = await supabase.from('bar_mesas').select('id, numero').eq('numero', numero).maybeSingle();
+  // Correção da auditoria de isolamento multiempresa (item D.1): a mesa é localizada por número,
+  // que se repete entre empresas diferentes — por isso o filtro por empresa_id é explícito aqui,
+  // além da RLS já existente, para que a busca nunca alcance a mesa de outra empresa.
+  const empresaId = await obterEmpresaId();
+  const { data: mesa, error: erroMesa } = await supabase.from('bar_mesas').select('id, numero').eq('empresa_id', empresaId).eq('numero', numero).maybeSingle();
   if(erroMesa || !mesa){
     $('bar-estornar-busca-msg').innerHTML = '<div class="msg error">Mesa não encontrada.</div>';
     return;
@@ -11413,6 +11420,7 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
   const { data: comanda, error: erroComanda } = await supabase
     .from('bar_comandas')
     .select('id')
+    .eq('empresa_id', empresaId)
     .eq('mesa_id', mesa.id)
     .order('criado_em', { ascending: false })
     .limit(1)
@@ -11425,6 +11433,7 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
   const { data: pagamentos, error: erroPagamentos } = await buscarTodos(() => supabase
     .from('bar_pagamentos')
     .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
+    .eq('empresa_id', empresaId)
     .eq('comanda_id', comanda.id)
     .order('criado_em', { ascending: false }));
   if(erroPagamentos){
