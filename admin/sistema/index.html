@@ -704,11 +704,19 @@ async function reativarEmpresa(c){
   });
 }
 
-// ---------- Modal: editar dados comerciais + módulo PET ----------
+// ---------- Modal: editar dados comerciais + módulos (PET/BAR) ----------
+// IMPORTANTE (correção do bug de módulos): os checkboxes PET/BAR abaixo são, a partir de agora,
+// só estado local do formulário enquanto o modal está aberto. Marcar/desmarcar NÃO chama nenhuma
+// RPC e NÃO grava nada no banco — isso só acontece no clique em "Salvar" (form-cliente submit,
+// mais abaixo), que compara o estado atual dos checkboxes com o estado ORIGINAL capturado aqui
+// (vindo direto de admin_listar_empresas(), nunca de um estado antigo deixado por uma edição
+// anterior) e só chama admin_configurar_modulo para o(s) módulo(s) que realmente mudaram.
+// Fechar o modal ou clicar em "Cancelar" nunca grava nada, porque nenhuma chamada de rede
+// acontece antes do Salvar — não há mais nada para "desfazer".
+let moduloOriginal = { pet: false, bar: false };
+
 function abrirModalCliente(c){
   $('modal-msg').innerHTML = '';
-  $('modulo-pet-msg').innerHTML = '';
-  $('modulo-bar-msg').innerHTML = '';
   $('modal-titulo').textContent = 'Editar — ' + c.nome;
 
   $('f-empresa-id').value = c.empresa_id;
@@ -725,13 +733,12 @@ function abrirModalCliente(c){
   $('f-valor-mensal').value = c.valor_mensal ?? '';
   $('f-observacoes').value = c.observacoes || '';
 
-  $('f-modulo-pet').checked = !!c.pet_ativo;
+  // Fonte da verdade: exatamente o que admin_listar_empresas() retornou agora para esta empresa.
+  moduloOriginal = { pet: !!c.pet_ativo, bar: !!c.bar_ativo };
+  $('f-modulo-pet').checked = moduloOriginal.pet;
   $('f-modulo-pet').disabled = false;
-  $('modulo-pet-row').classList.remove('salvando');
-
-  $('f-modulo-bar').checked = !!c.bar_ativo;
+  $('f-modulo-bar').checked = moduloOriginal.bar;
   $('f-modulo-bar').disabled = false;
-  $('modulo-bar-row').classList.remove('salvando');
 
   $('modal-cliente').classList.remove('hidden');
 }
@@ -740,20 +747,7 @@ function fecharModal(){ $('modal-cliente').classList.add('hidden'); }
 $('btn-cancelar-modal').addEventListener('click', fecharModal);
 $('modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'modal-cliente') fecharModal(); });
 
-// Módulos PET/BAR: alterar o checkbox muda apenas o estado visual do formulário.
- // A gravação real acontece somente ao clicar em "Salvar".
- // Cancelar/fechar o modal não altera empresa_modulos.
- $('f-modulo-pet').addEventListener('change', () => {
-   $('modulo-pet-msg').innerHTML = '';
-   $('modal-msg').innerHTML = '';
- });
-
- $('f-modulo-bar').addEventListener('change', () => {
-   $('modulo-bar-msg').innerHTML = '';
-   $('modal-msg').innerHTML = '';
- });
-
- $('form-cliente').addEventListener('submit', async (e) => {
+$('form-cliente').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const empresaId = $('f-empresa-id').value;
@@ -763,11 +757,10 @@ $('modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'modal-
   const btn = $('btn-salvar-modal');
   btn.disabled = true;
   btn.textContent = 'Salvando...';
+  $('modal-msg').innerHTML = '';
 
-  const petAtivo = $('f-modulo-pet').checked;
-  const barAtivo = $('f-modulo-bar').checked;
-
-  const { error: errorEmpresa } = await supabase.rpc('admin_atualizar_empresa', {
+  // 1) Dados comerciais (admin_atualizar_empresa) — inalterado em relação à versão anterior.
+  const { error: erroComercial } = await supabase.rpc('admin_atualizar_empresa', {
     p_empresa_id: empresaId,
     p_responsavel: $('f-responsavel').value.trim() || null,
     p_email: $('f-email').value.trim() || null,
@@ -777,42 +770,51 @@ $('modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'modal-
     p_observacoes: $('f-observacoes').value.trim() || null
   });
 
-  if(errorEmpresa){
+  if(erroComercial){
     btn.disabled = false;
     btn.textContent = 'Salvar';
-    $('modal-msg').innerHTML = `<div class="msg error">Erro ao salvar os dados comerciais: ${escapeHtml(traduzErro(errorEmpresa.message))}</div>`;
+    $('modal-msg').innerHTML = `<div class="msg error">Erro ao salvar dados comerciais: ${escapeHtml(traduzErro(erroComercial.message))}</div>`;
     return;
   }
 
-  const { error: errorPet } = await supabase.rpc('admin_configurar_modulo', {
-    p_empresa_id: empresaId,
-    p_modulo: 'pet',
-    p_ativo: petAtivo
-  });
+  // 2) Módulos: só chama admin_configurar_modulo para o(s) módulo(s) que mudaram desde que o
+  //    modal foi aberto (comparação contra moduloOriginal, nunca os dois incondicionalmente).
+  const novoPet = $('f-modulo-pet').checked;
+  const novoBar = $('f-modulo-bar').checked;
+  const mudancasModulo = [];
+  if(novoPet !== moduloOriginal.pet) mudancasModulo.push({ modulo: 'pet', ativo: novoPet, label: 'PET' });
+  if(novoBar !== moduloOriginal.bar) mudancasModulo.push({ modulo: 'bar', ativo: novoBar, label: 'BAR' });
 
-  if(errorPet){
-    btn.disabled = false;
-    btn.textContent = 'Salvar';
-    $('modal-msg').innerHTML = `<div class="msg error">Dados comerciais salvos, mas não foi possível salvar o módulo PET: ${escapeHtml(traduzErro(errorPet.message))}</div>`;
-    return;
+  const errosModulo = [];
+  for(const m of mudancasModulo){
+    const { error } = await supabase.rpc('admin_configurar_modulo', {
+      p_empresa_id: empresaId, p_modulo: m.modulo, p_ativo: m.ativo
+    });
+    if(error) errosModulo.push(`${m.label}: ${traduzErro(error.message)}`);
   }
-
-  const { error: errorBar } = await supabase.rpc('admin_configurar_modulo', {
-    p_empresa_id: empresaId,
-    p_modulo: 'bar',
-    p_ativo: barAtivo
-  });
 
   btn.disabled = false;
   btn.textContent = 'Salvar';
 
-  if(errorBar){
-    $('modal-msg').innerHTML = `<div class="msg error">Dados comerciais e PET salvos, mas não foi possível salvar o módulo BAR: ${escapeHtml(traduzErro(errorBar.message))}</div>`;
+  // 3) Nunca confia no estado antigo do navegador como fonte da verdade: sempre recarrega de
+  //    admin_listar_empresas() para que a listagem (e o cache local) reflitam exatamente o banco,
+  //    tenha ou não havido erro ao salvar algum módulo.
+  await tentarMostrarApp();
+
+  if(errosModulo.length > 0){
+    // Dados comerciais já foram salvos; um ou mais módulos falharam. Reabre o modal já com o
+    // estado real recarregado do banco (não o que estava na tela antes) para o usuário conferir
+    // e, se quiser, tentar salvar de novo.
+    const clienteAtualizado = clientesCache.find(x => x.empresa_id === empresaId);
+    if(clienteAtualizado) abrirModalCliente(clienteAtualizado);
+    $('modal-msg').innerHTML = `<div class="msg error">Dados comerciais salvos, mas houve erro ao salvar módulo(s): ${escapeHtml(errosModulo.join(' | '))}</div>`;
     return;
   }
 
-  await tentarMostrarApp();
-  $('admin-msg').innerHTML = `<div class="msg success">${escapeHtml(c.nome)}: dados comerciais e módulos salvos.</div>`;
+  const resumoModulos = mudancasModulo.length > 0
+    ? ' e módulo(s) ' + mudancasModulo.map(m => `${m.label} ${m.ativo ? 'ativado' : 'desativado'}`).join(', ')
+    : '';
+  $('admin-msg').innerHTML = `<div class="msg success">${escapeHtml(c.nome)}: dados comerciais salvos${resumoModulos}.</div>`;
   fecharModal();
 });
 
