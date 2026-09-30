@@ -1960,19 +1960,16 @@
     body.bar-imprimindo .bar-ticket-hr{ border-top:1px dashed #000; margin:6px 0; }
   }
 
-  /* ===== Central de Relatórios (Fase 1) ===== */
+  /* ===== Central de Relatórios (Fase 1 — Correção 3: listagem + documento único tela/impressão) ===== */
   .rel-passo-titulo{ font-family:var(--font-display); font-weight:500; font-size:20px; margin:4px 0 2px; }
   .rel-passo-descricao{ color:var(--ink-soft); font-size:13px; margin:0 0 16px; }
   .rel-voltar{ display:inline-block; margin-bottom:14px; }
-  .rel-grade-categorias{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
-  .rel-categoria-card{
-    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;
-    cursor:pointer; text-align:left; font-family:var(--font-body);
+  .rel-secao-titulo{
+    font-family:var(--font-display); text-transform:uppercase; font-size:12px; font-weight:700;
+    letter-spacing:.06em; color:var(--ink-soft); margin:22px 0 8px;
   }
-  .rel-categoria-card:hover{ border-color:var(--florest-blue); }
-  .rel-categoria-card h4{ font-family:var(--font-display); font-weight:600; font-size:16px; margin:0 0 6px; color:var(--ink); }
-  .rel-categoria-card p{ color:var(--ink-soft); font-size:12.5px; margin:0; }
-  .rel-lista-relatorios{ display:flex; flex-direction:column; gap:10px; }
+  .rel-secao-titulo:first-child{ margin-top:0; }
+  .rel-lista-relatorios{ display:flex; flex-direction:column; gap:10px; margin-bottom:6px; }
   .rel-relatorio-item{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
     background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px;
@@ -1982,33 +1979,43 @@
   .rel-relatorio-item .rel-relatorio-nome{ font-weight:600; font-size:14.5px; color:var(--ink); }
   .rel-relatorio-item .rel-relatorio-desc{ color:var(--ink-soft); font-size:12.5px; margin-top:2px; }
   .rel-relatorio-item .rel-relatorio-seta{ color:var(--ink-soft); font-size:20px; }
-  .rel-resultado-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
-  .rel-resultado-header h3{ font-family:var(--font-display); font-weight:600; font-size:19px; margin:0 0 4px; }
-  .rel-resultado-header p{ color:var(--ink-soft); font-size:13px; margin:0; }
-  #rel-resultado-metricas{ margin-bottom:20px; }
-  #rel-resultado-metricas:empty{ display:none; margin:0; }
-  tfoot td{ font-weight:700; border-top:2px solid var(--border); background:var(--florest-bg); }
+
+  /* Documento do relatório: o MESMO bloco é mostrado na tela (.rel-doc-folha) e copiado, sem
+     nenhuma alteração, para a área de impressão (.rel-impressao-area) — por isso as regras de
+     estilo do conteúdo interno (marca, título, tabela...) valem para as duas classes juntas. */
+  .rel-doc-toolbar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; max-width:900px; margin-left:auto; margin-right:auto; }
+  .rel-doc-toolbar .rel-voltar{ margin-bottom:0; }
+  .rel-doc-folha, .rel-impressao-area{
+    background:#fff; color:#111; font-family: Arial, Helvetica, sans-serif;
+  }
+  .rel-doc-folha{
+    border:1px solid var(--border); border-radius:6px; padding:28px 34px; max-width:900px; margin:0 auto;
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .rel-doc-marca{ font-size:19px; font-weight:700; margin:0; letter-spacing:.02em; }
+  .rel-doc-subtitulo-sistema{ font-size:12px; color:#555; margin:2px 0 12px; }
+  .rel-doc-empresa{ font-size:13.5px; font-weight:600; margin:0 0 16px; }
+  .rel-doc-titulo-relatorio{ font-size:15.5px; font-weight:700; text-transform:uppercase; margin:0 0 8px; }
+  .rel-doc-meta{ font-size:12.5px; color:#333; margin:0 0 3px; }
+  .rel-doc-hr{ border:none; border-top:2px solid #111; margin:14px 0 18px; }
+  .rel-doc-resumo{ margin:0 0 16px; }
+  .rel-doc-resumo-linha{ font-size:13px; margin:0 0 5px; }
+  .rel-doc-vazio{ padding:10px 0 4px; color:#555; font-size:13px; }
+  .rel-doc-tabela{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:2px; }
+  .rel-doc-tabela th, .rel-doc-tabela td{ border-bottom:1px solid #ccc; padding:6px 8px; text-align:left; }
+  .rel-doc-tabela thead th{ border-bottom:2px solid #111; font-weight:700; }
+  .rel-doc-tabela tfoot td{ border-top:2px solid #111; font-weight:700; }
+  .rel-doc-rodape{ margin-top:14px; padding-top:10px; border-top:1px solid #ccc; }
+  .rel-doc-rodape-linha{ margin:0 0 4px; font-size:13px; font-weight:700; }
 
   .rel-impressao-area{ display:none; }
   @media print{
     body.rel-imprimindo > *{ visibility:hidden; }
     body.rel-imprimindo .rel-impressao-area{
       display:block !important; visibility:visible; position:absolute; top:0; left:0; width:100%;
-      padding:20px; font-family: Arial, sans-serif; color:#000;
+      padding:20px;
     }
     body.rel-imprimindo .rel-impressao-area *{ visibility:visible; }
-    .rel-impressao-area .rel-impressao-titulo{ font-size:18px; font-weight:700; margin:0 0 2px; }
-    .rel-impressao-area .rel-impressao-empresa{ font-size:13px; margin:0 0 10px; }
-    .rel-impressao-area .rel-impressao-meta{ font-size:12px; color:#333; margin:0 0 14px; }
-    .rel-impressao-area .rel-impressao-hr{ border:none; border-top:1px solid #000; margin:0 0 16px; }
-    .rel-impressao-area .metric-grid{ display:flex; gap:24px; flex-wrap:wrap; margin-bottom:14px; }
-    .rel-impressao-area .metric-card{ border:1px solid #000; border-radius:0; padding:8px 14px; background:none; box-shadow:none; }
-    .rel-impressao-area .metric-card-icon{ display:none; }
-    .rel-impressao-area .num{ font-size:16px; font-weight:700; display:block; color:#000; }
-    .rel-impressao-area .label{ font-size:11px; color:#333; }
-    .rel-impressao-area table{ width:100%; border-collapse:collapse; font-size:12px; }
-    .rel-impressao-area th, .rel-impressao-area td{ border-bottom:1px solid #999; padding:5px 6px; text-align:left; }
-    .rel-impressao-area tfoot td{ font-weight:700; border-top:2px solid #000; background:none; }
   }
 </style>
 </head>
@@ -2606,25 +2613,18 @@
       <div class="view-header">
         <div>
           <h2>Central de Relatórios</h2>
-          <p>Escolha uma categoria, depois o relatório e os filtros. O relatório é gerado na tela e pode ser impresso ou salvo em PDF.</p>
+          <p>Selecione um relatório da lista, informe o período/filtros e clique em Gerar relatório.</p>
         </div>
       </div>
 
-      <!-- PASSO 1: categorias -->
-      <div id="rel-passo-categorias">
-        <div class="rel-grade-categorias" id="rel-grade-categorias"></div>
+      <!-- PASSO 1: lista de relatórios, organizada por seção (sem cards/categorias) -->
+      <div id="rel-passo-lista">
+        <div id="rel-lista-secoes"></div>
       </div>
 
-      <!-- PASSO 2: relatórios da categoria -->
-      <div id="rel-passo-relatorios" class="hidden">
-        <div class="link-btn rel-voltar" id="btn-rel-voltar-categorias">&larr; Categorias</div>
-        <h3 class="rel-passo-titulo" id="rel-categoria-titulo"></h3>
-        <div class="rel-lista-relatorios" id="rel-lista-relatorios"></div>
-      </div>
-
-      <!-- PASSO 3: filtros do relatório escolhido -->
+      <!-- PASSO 2: filtros do relatório escolhido -->
       <div id="rel-passo-filtros" class="hidden">
-        <div class="link-btn rel-voltar" id="btn-rel-voltar-relatorios">&larr; Relatórios</div>
+        <div class="link-btn rel-voltar" id="btn-rel-voltar-lista">&larr; Relatórios</div>
         <h3 class="rel-passo-titulo" id="rel-filtro-titulo"></h3>
         <p class="rel-passo-descricao" id="rel-filtro-descricao"></p>
         <div class="search-row" style="align-items:flex-end;" id="rel-filtro-campos"></div>
@@ -2632,25 +2632,13 @@
         <button class="btn-accent" id="btn-rel-gerar">Gerar relatório</button>
       </div>
 
-      <!-- PASSO 4: resultado gerado -->
-      <div id="rel-passo-resultado" class="hidden">
-        <div class="link-btn rel-voltar" id="btn-rel-voltar-filtros">&larr; Filtros</div>
-        <div class="rel-resultado-header">
-          <div>
-            <h3 id="rel-resultado-titulo"></h3>
-            <p id="rel-resultado-filtros"></p>
-          </div>
-          <button class="btn-accent" id="btn-rel-imprimir">Imprimir / Salvar PDF</button>
+      <!-- PASSO 3: documento gerado — o mesmo conteúdo mostrado aqui é o que será impresso -->
+      <div id="rel-passo-documento" class="hidden">
+        <div class="rel-doc-toolbar">
+          <div class="link-btn rel-voltar" id="btn-rel-doc-voltar">&larr; Voltar</div>
+          <button class="btn-accent" id="btn-rel-doc-imprimir">Imprimir / Salvar PDF</button>
         </div>
-        <div class="metric-grid" id="rel-resultado-metricas"></div>
-        <div class="table-card" id="rel-resultado-tabela-card">
-          <table>
-            <thead><tr id="rel-resultado-thead"></tr></thead>
-            <tbody id="rel-resultado-tbody"></tbody>
-            <tfoot id="rel-resultado-tfoot"></tfoot>
-          </table>
-          <div id="rel-resultado-empty" class="empty-state hidden">Nenhum dado encontrado para os filtros escolhidos.</div>
-        </div>
+        <div class="rel-doc-folha" id="rel-doc-folha"></div>
       </div>
     </div>
 
@@ -2957,6 +2945,7 @@
         <button type="button" class="bar-subnav-item active" data-barview="mesas">Mesas</button>
         <button type="button" class="bar-subnav-item" data-barview="destino">Destino dos Produtos</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
+        <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
       </div>
       <div id="bar-aviso-modulo" class="hidden"><div class="msg error">O módulo comercial Bar não está ativo para esta empresa.</div></div>
 
@@ -3022,6 +3011,33 @@
             <tbody id="bar-produtos-tabela-body"></tbody>
           </table>
           <div id="bar-produtos-empty" class="empty-state hidden">Nenhum produto composto cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- ---- SUBVIEW: RELATÓRIOS (Bar) ----
+           Mesma filosofia da Central de Relatórios geral (lista simples, sem cards) e o mesmo
+           componente de documento (tela = impressão). Só relatórios do próprio Módulo Bar — nada
+           daqui aparece na Central geral, e nada da Central geral aparece aqui. -->
+      <div id="bar-sub-relatorios" class="bar-subview hidden">
+        <div id="bar-rel-passo-lista">
+          <div class="rel-lista-relatorios" id="bar-rel-lista-relatorios"></div>
+        </div>
+
+        <div id="bar-rel-passo-filtros" class="hidden">
+          <div class="link-btn rel-voltar" id="btn-bar-rel-voltar-lista">&larr; Relatórios</div>
+          <h3 class="rel-passo-titulo" id="bar-rel-filtro-titulo"></h3>
+          <p class="rel-passo-descricao" id="bar-rel-filtro-descricao"></p>
+          <div class="search-row" style="align-items:flex-end;" id="bar-rel-filtro-campos"></div>
+          <div id="bar-rel-filtro-msg"></div>
+          <button class="btn-accent" id="btn-bar-rel-gerar">Gerar relatório</button>
+        </div>
+
+        <div id="bar-rel-passo-documento" class="hidden">
+          <div class="rel-doc-toolbar">
+            <div class="link-btn rel-voltar" id="btn-bar-rel-doc-voltar">&larr; Voltar</div>
+            <button class="btn-accent" id="btn-bar-rel-doc-imprimir">Imprimir / Salvar PDF</button>
+          </div>
+          <div class="rel-doc-folha" id="bar-rel-doc-folha"></div>
         </div>
       </div>
     </div>
@@ -8966,118 +8982,110 @@ $('form-despesa').addEventListener('submit', async (e) => {
 });
 
 // ---------- Relatórios ----------
-// A Central de Relatórios é orientada por um catálogo (categoria → lista de relatórios).
-// Cada relatório é uma função `gerar(filtros)` pequena que devolve um resultado padronizado
-// ({ titulo, metricas?, colunas?, linhas?, totalizadores? }) — a mesma tela de resultado e a
-// mesma função de impressão servem para todos, sem duplicar HTML por relatório. Todas as
-// consultas abaixo reaproveitam exatamente as mesmas tabelas/colunas que a tela de Relatórios
-// já usava (ver relatório de auditoria da Fase 1) — nenhuma tabela, coluna ou RPC nova.
-let relCategoriaAtual = null;
+// Central de Relatórios (Correção 3): um catálogo PLANO por seção (sem categorias em cards) —
+// cada seção é só um título visual seguido da lista dos relatórios dela. Cada relatório é uma
+// função `gerar(filtros)` pequena que devolve um resultado padronizado
+// ({ titulo, metricas?, colunas?, linhas?, totalizadores?, rodape? }); uma única função monta o
+// "documento" (cabeçalho Florest ERP + corpo) e ESSE MESMO HTML é usado tanto para mostrar na
+// tela quanto para a impressão — não existe mais uma versão "de tela" diferente da "de impressão".
+// Todas as consultas abaixo reaproveitam exatamente as mesmas tabelas/colunas que a tela de
+// Relatórios já usava (ver relatório de auditoria da Fase 1) — nenhuma tabela, coluna ou RPC nova.
+// O Bar NÃO tem catálogo aqui: é um módulo comercial opcional, então os relatórios dele vivem só
+// dentro do próprio Módulo Bar (aba "Relatórios") — ver mais abaixo, junto do restante do Bar.
 let relRelatorioAtual = null;
-let relUltimoResultado = null;
 
-const CATALOGO_CATEGORIAS = [
-  { chave: 'vendas', titulo: 'Vendas', descricao: 'Faturamento, formas de pagamento, origem e produtos vendidos.' },
-  { chave: 'financeiro', titulo: 'Financeiro', descricao: 'Receitas, despesas e saldo do período.' },
-  { chave: 'fiscal', titulo: 'Fiscal', descricao: 'Documentos fiscais emitidos, por situação e por tipo.' },
-  { chave: 'estoque', titulo: 'Estoque', descricao: 'Posição atual do estoque e produtos com estoque baixo.' },
-  { chave: 'produtos', titulo: 'Produtos', descricao: 'Cadastro de produtos e mais vendidos.' },
-  { chave: 'clientes', titulo: 'Clientes', descricao: 'Cadastro de clientes e quem mais comprou.' },
-  { chave: 'fornecedores', titulo: 'Fornecedores/Compras', descricao: 'Cadastro de fornecedores e compras por fornecedor.' },
-  { chave: 'notas_entrada', titulo: 'Notas de Entrada', descricao: 'Notas de entrada por período, por fornecedor e seus itens.' },
-  { chave: 'bar', titulo: 'Bar', descricao: 'Produtos mais vendidos, faturamento e pedidos lançados no Módulo Bar.' },
+const SECOES_RELATORIOS = [
+  {
+    titulo: 'Vendas',
+    relatorios: [
+      { id: 'vendas_periodo', titulo: 'Vendas por período', descricao: 'Lista das vendas do período, com cliente, forma de pagamento e valor.', filtros: ['periodo'], gerar: relatorioVendasPeriodo },
+      { id: 'vendas_forma_pagamento', titulo: 'Vendas por forma de pagamento', descricao: 'Distribuição do valor vendido por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
+      { id: 'vendas_origem', titulo: 'Vendas por origem', descricao: 'De onde veio cada venda (PDV, Módulo Bar, Pacotes do Módulo Pet).', filtros: ['periodo'], gerar: relatorioVendasOrigem },
+      { id: 'vendas_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
+      { id: 'vendas_clientes_mais_compram', titulo: 'Clientes que mais compram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
+    ],
+  },
+  {
+    titulo: 'Financeiro',
+    relatorios: [
+      { id: 'fin_receitas', titulo: 'Receitas por período', descricao: 'Total recebido em vendas no período.', filtros: ['periodo'], gerar: relatorioReceitasPeriodo },
+      { id: 'fin_despesas', titulo: 'Despesas por período', descricao: 'Lançamentos de despesas, com data e categoria.', filtros: ['periodo'], gerar: relatorioDespesasPeriodo },
+      { id: 'fin_movimento', titulo: 'Movimento financeiro', descricao: 'Receitas menos despesas do período (saldo).', filtros: ['periodo'], gerar: relatorioMovimentoFinanceiro },
+      { id: 'fin_formas_pagamento', titulo: 'Formas de pagamento', descricao: 'Distribuição das vendas recebidas por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
+    ],
+  },
+  {
+    titulo: 'Fiscal',
+    relatorios: [
+      { id: 'fiscal_periodo', titulo: 'Documentos fiscais por período', descricao: 'Lista de documentos fiscais emitidos, com venda, cliente e valor.', filtros: ['periodo'], gerar: relatorioFiscalEmitidos },
+      { id: 'fiscal_situacao', titulo: 'Documentos por situação', descricao: 'Quantidade e valor por status (autorizada, rejeitada, cancelada...).', filtros: ['periodo'], gerar: relatorioFiscalPorSituacao },
+      { id: 'fiscal_tipo', titulo: 'Documentos por tipo', descricao: 'Quantidade e valor por tipo (NFC-e, NF-e, NFS-e).', filtros: ['periodo'], gerar: relatorioFiscalPorTipo },
+    ],
+  },
+  {
+    titulo: 'Estoque / Produtos',
+    relatorios: [
+      { id: 'estoque_posicao', titulo: 'Posição de estoque', descricao: 'Situação atual de todos os produtos cadastrados.', filtros: [], gerar: relatorioEstoquePosicao },
+      { id: 'estoque_baixo', titulo: 'Estoque baixo', descricao: 'Até 30 produtos abaixo do estoque mínimo, dos mais críticos.', filtros: [], gerar: relatorioEstoqueBaixo },
+      { id: 'estoque_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
+      { id: 'estoque_produtos_cadastrados', titulo: 'Listagem de produtos', descricao: 'Lista de produtos com preço de custo, preço de venda e estoque.', filtros: ['busca'], gerar: relatorioProdutosCadastrados },
+    ],
+  },
+  {
+    titulo: 'Clientes',
+    relatorios: [
+      { id: 'clientes_cadastrados', titulo: 'Listagem de clientes', descricao: 'Lista de clientes com telefone, e-mail e cidade.', filtros: ['busca'], gerar: relatorioClientesCadastrados },
+      { id: 'clientes_compras_por_cliente', titulo: 'Compras por cliente', descricao: 'Vendas de um cliente específico (ou de todos), no período.', filtros: ['periodo', 'cliente'], gerar: relatorioComprasPorCliente },
+      { id: 'clientes_mais_compram', titulo: 'Clientes que mais compram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
+    ],
+  },
+  {
+    titulo: 'Fornecedores / Notas de Entrada',
+    relatorios: [
+      { id: 'fornecedores_compras', titulo: 'Compras por fornecedor', descricao: 'Notas de entrada do período, agrupadas por fornecedor.', filtros: ['periodo'], gerar: relatorioComprasPorFornecedor },
+      { id: 'notas_entrada_periodo', titulo: 'Notas de entrada por período', descricao: 'Notas de entrada lançadas, pela data de emissão.', filtros: ['periodo'], gerar: relatorioNotasEntradaPeriodo },
+      { id: 'notas_por_fornecedor', titulo: 'Notas por fornecedor', descricao: 'Notas de entrada de um fornecedor específico (ou de todos), no período.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasPorFornecedor },
+      { id: 'notas_entrada_itens', titulo: 'Itens das notas de entrada', descricao: 'Todos os itens lançados nas notas de entrada do período, com totais.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasEntradaItens },
+      { id: 'fornecedores_cadastrados', titulo: 'Fornecedores cadastrados', descricao: 'Lista de fornecedores com CNPJ, cidade e telefone.', filtros: ['busca'], gerar: relatorioFornecedoresCadastrados },
+    ],
+  },
 ];
 
-const CATALOGO_RELATORIOS = {
-  vendas: [
-    { id: 'vendas_periodo', titulo: 'Vendas do período', descricao: 'Total vendido, quantidade de vendas e ticket médio.', filtros: ['periodo'], gerar: relatorioVendasPeriodo },
-    { id: 'vendas_forma_pagamento', titulo: 'Vendas por forma de pagamento', descricao: 'Distribuição do valor vendido por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
-    { id: 'vendas_origem', titulo: 'Vendas por origem', descricao: 'De onde veio cada venda (PDV, Módulo Bar, Pacotes do Módulo Pet).', filtros: ['periodo'], gerar: relatorioVendasOrigem },
-    { id: 'vendas_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
-    { id: 'vendas_clientes_mais_compraram', titulo: 'Clientes que mais compraram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
-  ],
-  financeiro: [
-    { id: 'fin_despesas', titulo: 'Despesas do período', descricao: 'Lançamentos de despesas, com data e categoria.', filtros: ['periodo'], gerar: relatorioDespesasPeriodo },
-    { id: 'fin_receitas', titulo: 'Receitas do período', descricao: 'Total recebido em vendas no período.', filtros: ['periodo'], gerar: relatorioReceitasPeriodo },
-    { id: 'fin_movimento', titulo: 'Movimento financeiro', descricao: 'Receitas menos despesas do período (saldo).', filtros: ['periodo'], gerar: relatorioMovimentoFinanceiro },
-    { id: 'fin_formas_pagamento', titulo: 'Formas de pagamento (receita)', descricao: 'Distribuição das vendas recebidas por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
-  ],
-  fiscal: [
-    { id: 'fiscal_emitidos', titulo: 'Documentos emitidos no período', descricao: 'Lista de documentos fiscais emitidos, com venda, cliente e valor.', filtros: ['periodo'], gerar: relatorioFiscalEmitidos },
-    { id: 'fiscal_situacao', titulo: 'Documentos por situação', descricao: 'Quantidade e valor por status (autorizada, rejeitada, cancelada...).', filtros: ['periodo'], gerar: relatorioFiscalPorSituacao },
-    { id: 'fiscal_tipo', titulo: 'Documentos por tipo', descricao: 'Quantidade e valor por tipo (NFC-e, NF-e, NFS-e).', filtros: ['periodo'], gerar: relatorioFiscalPorTipo },
-    { id: 'fiscal_valores', titulo: 'Valores fiscais do período', descricao: 'Total emitido, quantidade de documentos e total autorizado.', filtros: ['periodo'], gerar: relatorioFiscalValores },
-  ],
-  estoque: [
-    { id: 'estoque_posicao', titulo: 'Posição do estoque', descricao: 'Situação atual de todos os produtos cadastrados.', filtros: [], gerar: relatorioEstoquePosicao },
-    { id: 'estoque_baixo', titulo: 'Produtos com estoque baixo', descricao: 'Até 30 produtos abaixo do estoque mínimo, dos mais críticos.', filtros: [], gerar: relatorioEstoqueBaixo },
-  ],
-  produtos: [
-    { id: 'produtos_cadastrados', titulo: 'Produtos cadastrados', descricao: 'Lista de produtos com preço de custo, preço de venda e estoque.', filtros: ['busca'], gerar: relatorioProdutosCadastrados },
-    { id: 'produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
-  ],
-  clientes: [
-    { id: 'clientes_cadastrados', titulo: 'Clientes cadastrados', descricao: 'Lista de clientes com telefone, e-mail e cidade.', filtros: ['busca'], gerar: relatorioClientesCadastrados },
-    { id: 'clientes_mais_compraram', titulo: 'Clientes que mais compraram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
-  ],
-  fornecedores: [
-    { id: 'fornecedores_cadastrados', titulo: 'Fornecedores cadastrados', descricao: 'Lista de fornecedores com CNPJ, cidade e telefone.', filtros: ['busca'], gerar: relatorioFornecedoresCadastrados },
-    { id: 'fornecedores_compras', titulo: 'Compras por fornecedor', descricao: 'Notas de entrada do período, agrupadas por fornecedor.', filtros: ['periodo'], gerar: relatorioComprasPorFornecedor },
-  ],
-  notas_entrada: [
-    { id: 'notas_entrada_periodo', titulo: 'Notas de entrada do período', descricao: 'Notas de entrada lançadas, pela data de emissão.', filtros: ['periodo'], gerar: relatorioNotasEntradaPeriodo },
-    { id: 'notas_por_fornecedor', titulo: 'Notas por fornecedor', descricao: 'Notas de entrada de um fornecedor específico (ou de todos), no período.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasPorFornecedor },
-    { id: 'notas_entrada_itens', titulo: 'Itens das notas de entrada', descricao: 'Todos os itens lançados nas notas de entrada do período, com totais.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasEntradaItens },
-  ],
-  bar: [
-    { id: 'bar_produtos_mais_vendidos', titulo: 'Produtos mais vendidos no Bar', descricao: 'Top produtos por quantidade lançada em pedidos do Bar, no período.', filtros: ['periodo'], gerar: relatorioBarProdutosMaisVendidos },
-    { id: 'bar_faturamento_periodo', titulo: 'Faturamento do Bar por período', descricao: 'Valor dos itens lançados em pedidos do Bar (não estornados), no período.', filtros: ['periodo'], gerar: relatorioBarFaturamentoPeriodo },
-    { id: 'bar_pedidos_por_usuario', titulo: 'Pedidos lançados por usuário', descricao: 'Quantidade de pedidos do Bar lançados por cada usuário, no período.', filtros: ['periodo'], gerar: relatorioBarPedidosPorUsuario },
-  ],
-};
-
 function prepararCentralRelatorios(){
-  renderGradeCategoriasRelatorio();
-  mostrarPassoRelatorio('categorias');
+  renderListaRelatorios();
+  mostrarPassoRelatorio('lista');
 }
 
 function mostrarPassoRelatorio(passo){
-  ['categorias', 'relatorios', 'filtros', 'resultado'].forEach(p => {
+  ['lista', 'filtros', 'documento'].forEach(p => {
     $('rel-passo-' + p).classList.toggle('hidden', p !== passo);
   });
 }
 
-function renderGradeCategoriasRelatorio(){
-  const cont = $('rel-grade-categorias');
+function renderListaRelatorios(){
+  const cont = $('rel-lista-secoes');
   cont.innerHTML = '';
-  CATALOGO_CATEGORIAS.forEach(cat => {
-    const div = document.createElement('div');
-    div.className = 'rel-categoria-card';
-    div.innerHTML = `<h4>${escapeHtml(cat.titulo)}</h4><p>${escapeHtml(cat.descricao)}</p>`;
-    div.addEventListener('click', () => abrirCategoriaRelatorio(cat.chave));
-    cont.appendChild(div);
+  SECOES_RELATORIOS.forEach(secao => {
+    const tituloSecao = document.createElement('h3');
+    tituloSecao.className = 'rel-secao-titulo';
+    tituloSecao.textContent = secao.titulo;
+    cont.appendChild(tituloSecao);
+
+    const lista = document.createElement('div');
+    lista.className = 'rel-lista-relatorios';
+    secao.relatorios.forEach(rel => {
+      const item = document.createElement('div');
+      item.className = 'rel-relatorio-item';
+      item.innerHTML = `<div><div class="rel-relatorio-nome">${escapeHtml(rel.titulo)}</div><div class="rel-relatorio-desc">${escapeHtml(rel.descricao)}</div></div><span class="rel-relatorio-seta">&rsaquo;</span>`;
+      item.addEventListener('click', () => abrirFiltrosRelatorio(rel));
+      lista.appendChild(item);
+    });
+    cont.appendChild(lista);
   });
 }
 
-function abrirCategoriaRelatorio(chave){
-  relCategoriaAtual = chave;
-  const cat = CATALOGO_CATEGORIAS.find(c => c.chave === chave);
-  $('rel-categoria-titulo').textContent = cat ? cat.titulo : '';
-  const cont = $('rel-lista-relatorios');
-  cont.innerHTML = '';
-  (CATALOGO_RELATORIOS[chave] || []).forEach(rel => {
-    const item = document.createElement('div');
-    item.className = 'rel-relatorio-item';
-    item.innerHTML = `<div><div class="rel-relatorio-nome">${escapeHtml(rel.titulo)}</div><div class="rel-relatorio-desc">${escapeHtml(rel.descricao)}</div></div><span class="rel-relatorio-seta">&rsaquo;</span>`;
-    item.addEventListener('click', () => abrirFiltrosRelatorio(rel));
-    cont.appendChild(item);
-  });
-  mostrarPassoRelatorio('relatorios');
-}
-
-$('btn-rel-voltar-categorias').addEventListener('click', () => mostrarPassoRelatorio('categorias'));
-$('btn-rel-voltar-relatorios').addEventListener('click', () => mostrarPassoRelatorio('relatorios'));
-$('btn-rel-voltar-filtros').addEventListener('click', () => mostrarPassoRelatorio('filtros'));
+$('btn-rel-voltar-lista').addEventListener('click', () => mostrarPassoRelatorio('lista'));
+$('btn-rel-doc-voltar').addEventListener('click', () => mostrarPassoRelatorio('filtros'));
 
 function abrirFiltrosRelatorio(rel){
   relRelatorioAtual = rel;
@@ -9118,6 +9126,15 @@ function abrirFiltrosRelatorio(rel){
     `;
     popularSelectFornecedoresRelatorio();
   }
+  if(rel.filtros.includes('cliente')){
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:1; min-width:220px;">
+        <label>Cliente</label>
+        <select id="rel-filtro-cliente"><option value="">Todos os clientes</option></select>
+      </div>
+    `;
+    popularSelectClientesRelatorio();
+  }
   if(rel.filtros.length === 0){
     campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
   }
@@ -9141,6 +9158,24 @@ async function popularSelectFornecedoresRelatorio(){
     const opt = document.createElement('option');
     opt.value = f.id;
     opt.textContent = f.razao_social;
+    select.appendChild(opt);
+  });
+}
+
+// Mesma ideia acima, para o novo filtro "Cliente" (relatório "Compras por cliente").
+async function popularSelectClientesRelatorio(){
+  const select = $('rel-filtro-cliente');
+  if(!select) return;
+  const { data, error } = await buscarTodos(() => supabase
+    .from('clientes')
+    .select('id, nome')
+    .order('nome', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error) return;
+  (data || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.nome;
     select.appendChild(opt);
   });
 }
@@ -9174,15 +9209,22 @@ async function gerarRelatorioAtual(){
     filtros.fornecedorId = selectFornecedor.value || null;
     filtros.fornecedorNome = filtros.fornecedorId ? selectFornecedor.options[selectFornecedor.selectedIndex].textContent : null;
   }
+  if(rel.filtros.includes('cliente')){
+    const selectCliente = $('rel-filtro-cliente');
+    filtros.clienteId = selectCliente.value || null;
+    filtros.clienteNome = filtros.clienteId ? selectCliente.options[selectCliente.selectedIndex].textContent : null;
+  }
 
   const btn = $('btn-rel-gerar');
   btn.disabled = true;
   $('rel-filtro-msg').innerHTML = '';
   try {
     const resultado = await rel.gerar(filtros);
-    relUltimoResultado = { rel, filtros, resultado };
-    renderizarResultadoRelatorio(rel, filtros, resultado);
-    mostrarPassoRelatorio('resultado');
+    const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
+    const tituloDocumento = 'RELATÓRIO DE ' + (resultado.titulo || rel.titulo).toUpperCase();
+    const descricaoFiltros = descreverFiltrosRelatorio(rel, filtros);
+    $('rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado);
+    mostrarPassoRelatorio('documento');
   } catch(err){
     console.error(err);
     $('rel-filtro-msg').innerHTML = `<div class="msg error">Não foi possível gerar o relatório: ${escapeHtml(err.message || err)}</div>`;
@@ -9202,58 +9244,57 @@ function descreverFiltrosRelatorio(rel, filtros){
   if(rel.filtros.includes('fornecedor')){
     partes.push(`Fornecedor: ${filtros.fornecedorNome || 'Todos'}`);
   }
+  if(rel.filtros.includes('cliente')){
+    partes.push(`Cliente: ${filtros.clienteNome || 'Todos'}`);
+  }
   return partes.length ? partes.join(' · ') : 'Sem filtros';
 }
 
-function renderizarResultadoRelatorio(rel, filtros, resultado){
-  $('rel-resultado-titulo').textContent = resultado.titulo || rel.titulo;
-  $('rel-resultado-filtros').textContent = descreverFiltrosRelatorio(rel, filtros);
+// ---------- Documento do relatório (usado pela Central geral E pelos Relatórios do Módulo Bar) ----------
+// Monta o HTML do "documento" — cabeçalho com marca/empresa/título/filtros/data de geração, corpo
+// (resumo e/ou tabela) e rodapé de totais quando houver. É uma função pura (não mexe no DOM):
+// quem chama decide se o resultado vai para a tela (rel-doc-folha) ou direto para a impressão.
+function montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado){
+  const agora = new Date().toLocaleString('pt-BR');
+  let html = `
+    <div class="rel-doc-marca">FLOREST ERP</div>
+    <div class="rel-doc-subtitulo-sistema">Florest Sistemas</div>
+    <div class="rel-doc-empresa">Empresa: ${escapeHtml(nomeEmpresa)}</div>
+    <div class="rel-doc-titulo-relatorio">${escapeHtml(tituloDocumento)}</div>
+    <div class="rel-doc-meta">${escapeHtml(descricaoFiltros)}</div>
+    <div class="rel-doc-meta">Data de geração: ${escapeHtml(agora)}</div>
+    <hr class="rel-doc-hr">
+  `;
 
-  const metricasCont = $('rel-resultado-metricas');
-  metricasCont.innerHTML = '';
   if(resultado.metricas && resultado.metricas.length){
-    metricasCont.style.display = 'grid';
-    metricasCont.style.gridTemplateColumns = `repeat(${resultado.metricas.length}, 1fr)`;
-    resultado.metricas.forEach(m => {
-      const div = document.createElement('div');
-      div.className = 'metric-card';
-      div.innerHTML = `<span class="num">${escapeHtml(m.valor)}</span><span class="label">${escapeHtml(m.label)}</span>`;
-      metricasCont.appendChild(div);
-    });
-  } else {
-    metricasCont.style.display = 'none';
+    html += '<div class="rel-doc-resumo">' + resultado.metricas.map(m =>
+      `<p class="rel-doc-resumo-linha"><strong>${escapeHtml(m.label)}:</strong> ${escapeHtml(m.valor)}</p>`
+    ).join('') + '</div>';
   }
-
-  const tabelaCard = $('rel-resultado-tabela-card');
-  const thead = $('rel-resultado-thead');
-  const tbody = $('rel-resultado-tbody');
-  const tfoot = $('rel-resultado-tfoot');
-  const empty = $('rel-resultado-empty');
-  thead.innerHTML = '';
-  tbody.innerHTML = '';
-  tfoot.innerHTML = '';
 
   if(resultado.colunas && resultado.colunas.length){
-    tabelaCard.classList.remove('hidden');
-    thead.innerHTML = resultado.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('');
     const linhas = resultado.linhas || [];
-    empty.classList.toggle('hidden', linhas.length > 0);
-    linhas.forEach(linha => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = linha.map(c => `<td>${c}</td>`).join('');
-      tbody.appendChild(tr);
-    });
-    if(resultado.totalizadores){
-      const tr = document.createElement('tr');
-      tr.innerHTML = resultado.totalizadores.map(c => `<td>${c}</td>`).join('');
-      tfoot.appendChild(tr);
+    if(linhas.length === 0){
+      html += '<p class="rel-doc-vazio">Nenhum dado encontrado para os filtros escolhidos.</p>';
+    } else {
+      html += '<table class="rel-doc-tabela"><thead><tr>' + resultado.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+      html += linhas.map(linha => '<tr>' + linha.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+      html += '</tbody>';
+      if(resultado.totalizadores){
+        html += '<tfoot><tr>' + resultado.totalizadores.map(c => `<td>${c}</td>`).join('') + '</tr></tfoot>';
+      }
+      html += '</table>';
     }
-  } else {
-    tabelaCard.classList.add('hidden');
   }
+
+  if(resultado.rodape && resultado.rodape.length){
+    html += '<div class="rel-doc-rodape">' + resultado.rodape.map(l => `<p class="rel-doc-rodape-linha">${escapeHtml(l)}</p>`).join('') + '</div>';
+  }
+
+  return html;
 }
 
-// ---------- Impressão / Salvar PDF (Central de Relatórios) ----------
+// ---------- Nome da empresa para o cabeçalho do documento (Central geral e Módulo Bar) ----------
 async function obterNomeEmpresaImpressaoRelatorio(){
   try {
     const empresaId = await obterEmpresaId();
@@ -9264,41 +9305,19 @@ async function obterNomeEmpresaImpressaoRelatorio(){
       .maybeSingle();
     if(data && (data.nome_fantasia || data.razao_social)) return data.nome_fantasia || data.razao_social;
   } catch(err){
-    console.warn('Não foi possível obter o nome da empresa para o cabeçalho de impressão.', err);
+    console.warn('Não foi possível obter o nome da empresa para o cabeçalho do documento.', err);
   }
   return 'Florest ERP';
 }
 
-$('btn-rel-imprimir').addEventListener('click', imprimirRelatorioAtual);
+// ---------- Impressão / Salvar PDF ----------
+// O botão só copia, sem alterar em nada, o HTML que já está visível em #rel-doc-folha para a área
+// de impressão — ou seja, a tela mostra exatamente o que vai para o papel/PDF. window.print() só
+// roda quando o usuário clica aqui; gerar o relatório NUNCA imprime sozinho.
+$('btn-rel-doc-imprimir').addEventListener('click', imprimirDocumentoRelatorio);
 
-async function imprimirRelatorioAtual(){
-  if(!relUltimoResultado) return;
-  const { rel, filtros, resultado } = relUltimoResultado;
-  const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
-  const agora = new Date().toLocaleString('pt-BR');
-
-  let html = `
-    <div class="rel-impressao-titulo">${escapeHtml(resultado.titulo || rel.titulo)}</div>
-    <div class="rel-impressao-empresa">${escapeHtml(nomeEmpresa)}</div>
-    <div class="rel-impressao-meta">${escapeHtml(descreverFiltrosRelatorio(rel, filtros))} · Gerado em ${escapeHtml(agora)}</div>
-    <hr class="rel-impressao-hr">
-  `;
-  if(resultado.metricas && resultado.metricas.length){
-    html += '<div class="metric-grid">' + resultado.metricas.map(m =>
-      `<div class="metric-card"><span class="num">${escapeHtml(m.valor)}</span><span class="label">${escapeHtml(m.label)}</span></div>`
-    ).join('') + '</div>';
-  }
-  if(resultado.colunas && resultado.colunas.length){
-    html += '<table><thead><tr>' + resultado.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
-    html += (resultado.linhas || []).map(linha => '<tr>' + linha.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
-    html += '</tbody>';
-    if(resultado.totalizadores){
-      html += '<tfoot><tr>' + resultado.totalizadores.map(c => `<td>${c}</td>`).join('') + '</tr></tfoot>';
-    }
-    html += '</table>';
-  }
-
-  $('rel-impressao-area').innerHTML = html;
+function imprimirDocumentoRelatorio(){
+  $('rel-impressao-area').innerHTML = $('rel-doc-folha').innerHTML;
   document.body.classList.add('rel-imprimindo');
   window.print();
 }
@@ -9306,17 +9325,23 @@ window.addEventListener('afterprint', () => document.body.classList.remove('rel-
 
 // ---------- Geradores de relatório (um por item do catálogo acima) ----------
 
+// Aceita um filtros.clienteId opcional (usado por "Compras por cliente") — sem ele, busca todas as
+// vendas do período normalmente, exatamente como antes.
 async function buscarVendasPeriodoRelatorio(filtros){
   const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
   const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
-  const { data, error } = await buscarTodos(() => supabase
-    .from('vendas')
-    .select('id, total, forma_pagamento, tipo, cliente_id, criado_em, clientes(nome)')
-    .gte('criado_em', inicioISO)
-    .lte('criado_em', fimISO)
-    .is('cancelada_em', null)
-    .order('criado_em', { ascending: true })
-    .order('id', { ascending: true }));
+  const { data, error } = await buscarTodos(() => {
+    let q = supabase
+      .from('vendas')
+      .select('id, numero_venda, total, forma_pagamento, tipo, cliente_id, criado_em, clientes(nome)')
+      .gte('criado_em', inicioISO)
+      .lte('criado_em', fimISO)
+      .is('cancelada_em', null);
+    if(filtros.clienteId) q = q.eq('cliente_id', filtros.clienteId);
+    return q
+      .order('criado_em', { ascending: true })
+      .order('id', { ascending: true });
+  });
   if(error) throw error;
   return data || [];
 }
@@ -9325,11 +9350,37 @@ async function relatorioVendasPeriodo(filtros){
   const vendas = await buscarVendasPeriodoRelatorio(filtros);
   const total = vendas.reduce((s, v) => s + Number(v.total), 0);
   return {
-    titulo: 'Vendas do período',
-    metricas: [
-      { label: 'Total vendido', valor: formatarReais(total) },
-      { label: 'Vendas realizadas', valor: vendas.length.toLocaleString('pt-BR') },
-      { label: 'Ticket médio', valor: formatarReais(vendas.length ? total / vendas.length : 0) },
+    titulo: 'Vendas por período',
+    colunas: ['Data', 'Venda', 'Cliente', 'Forma de pagamento', 'Valor'],
+    linhas: vendas.map(v => [
+      new Date(v.criado_em).toLocaleDateString('pt-BR'),
+      v.numero_venda ? ('#' + v.numero_venda) : '—',
+      escapeHtml(v.clientes ? v.clientes.nome : '—'),
+      escapeHtml(v.forma_pagamento || '—'),
+      formatarReais(v.total),
+    ]),
+    rodape: [
+      `Quantidade de vendas: ${vendas.length.toLocaleString('pt-BR')}`,
+      `Total: ${formatarReais(total)}`,
+    ],
+  };
+}
+
+async function relatorioComprasPorCliente(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
+  const total = vendas.reduce((s, v) => s + Number(v.total), 0);
+  return {
+    titulo: filtros.clienteNome ? `Compras de ${filtros.clienteNome}` : 'Compras por cliente',
+    colunas: ['Data', 'Venda', 'Forma de pagamento', 'Valor'],
+    linhas: vendas.map(v => [
+      new Date(v.criado_em).toLocaleDateString('pt-BR'),
+      v.numero_venda ? ('#' + v.numero_venda) : '—',
+      escapeHtml(v.forma_pagamento || '—'),
+      formatarReais(v.total),
+    ]),
+    rodape: [
+      `Quantidade de compras: ${vendas.length.toLocaleString('pt-BR')}`,
+      `Total: ${formatarReais(total)}`,
     ],
   };
 }
@@ -9431,7 +9482,7 @@ async function relatorioClientesMaisCompraram(filtros){
   });
   const top = Object.values(porCliente).sort((a, b) => b.total - a.total).slice(0, 10);
   return {
-    titulo: 'Clientes que mais compraram',
+    titulo: 'Clientes que mais compram',
     colunas: ['Cliente', 'Nº de compras', 'Total gasto'],
     linhas: top.map(c => [escapeHtml(c.nome), c.qtd, formatarReais(c.total)]),
   };
@@ -9450,7 +9501,7 @@ async function relatorioDespesasPeriodo(filtros){
   const despesas = data || [];
   const total = despesas.reduce((s, d) => s + Number(d.valor), 0);
   return {
-    titulo: 'Despesas do período',
+    titulo: 'Despesas por período',
     colunas: ['Data', 'Descrição', 'Categoria', 'Valor'],
     linhas: despesas.map(d => [formatarDataBR(d.data), escapeHtml(d.descricao), escapeHtml(d.categoria || '—'), formatarReais(d.valor)]),
     totalizadores: ['', '', 'Total', formatarReais(total)],
@@ -9461,7 +9512,7 @@ async function relatorioReceitasPeriodo(filtros){
   const vendas = await buscarVendasPeriodoRelatorio(filtros);
   const total = vendas.reduce((s, v) => s + Number(v.total), 0);
   return {
-    titulo: 'Receitas do período',
+    titulo: 'Receitas por período',
     metricas: [
       { label: 'Total recebido', valor: formatarReais(total) },
       { label: 'Vendas realizadas', valor: vendas.length.toLocaleString('pt-BR') },
@@ -9508,7 +9559,7 @@ async function relatorioFiscalEmitidos(filtros){
   const lista = await buscarDocumentosFiscaisPeriodo(filtros, '*, vendas(numero_venda, clientes(nome))');
   const total = lista.reduce((s, d) => s + Number(d.valor || 0), 0);
   return {
-    titulo: 'Documentos fiscais emitidos no período',
+    titulo: 'Documentos fiscais por período',
     colunas: ['Venda', 'Tipo', 'Número', 'Cliente', 'Valor', 'Data', 'Situação'],
     linhas: lista.map(d => [
       d.vendas ? '#' + d.vendas.numero_venda : '—',
@@ -9555,22 +9606,6 @@ async function relatorioFiscalPorTipo(filtros){
   };
 }
 
-async function relatorioFiscalValores(filtros){
-  const docs = await buscarDocumentosFiscaisPeriodo(filtros, 'status, valor');
-  const total = docs.reduce((s, d) => s + Number(d.valor || 0), 0);
-  const autorizados = docs.filter(d => d.status === 'autorizada');
-  const totalAutorizado = autorizados.reduce((s, d) => s + Number(d.valor || 0), 0);
-  return {
-    titulo: 'Valores fiscais do período',
-    metricas: [
-      { label: 'Documentos no período', valor: docs.length.toLocaleString('pt-BR') },
-      { label: 'Valor total emitido', valor: formatarReais(total) },
-      { label: 'Autorizados', valor: autorizados.length.toLocaleString('pt-BR') },
-      { label: 'Valor autorizado', valor: formatarReais(totalAutorizado) },
-    ],
-  };
-}
-
 async function buscarProdutosParaRelatorioEstoque(){
   const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
   const { data, error } = await buscarTodos(() => supabase.from('produtos').select(colunas).order('id', { ascending: true }));
@@ -9588,7 +9623,7 @@ async function relatorioEstoquePosicao(){
   });
   const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok');
   return {
-    titulo: 'Posição do estoque',
+    titulo: 'Posição de estoque',
     metricas: [
       { label: 'Produtos cadastrados', valor: produtos.length.toLocaleString('pt-BR') },
       { label: 'Estoque a preço de custo', valor: formatarReais(custo) },
@@ -9603,7 +9638,7 @@ async function relatorioEstoqueBaixo(){
   const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok')
     .sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
   return {
-    titulo: 'Produtos com estoque baixo',
+    titulo: 'Estoque baixo',
     colunas: ['Produto', 'Estoque', 'Mínimo'],
     linhas: baixos.slice(0, 30).map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade_estoque), recursos.estoqueMinimo && p.estoque_minimo ? formatarQuantidade(p.estoque_minimo) : '—']),
   };
@@ -9619,7 +9654,7 @@ async function relatorioProdutosCadastrados(filtros){
   if(error) throw error;
   const produtos = data || [];
   return {
-    titulo: 'Produtos cadastrados',
+    titulo: 'Listagem de produtos',
     colunas: ['Produto', 'Código', 'Preço de custo', 'Preço de venda', 'Estoque'],
     linhas: produtos.map(p => [escapeHtml(p.nome), escapeHtml(p.codigo || '—'), formatarReais(p.preco_custo || 0), formatarReais(p.preco_venda || 0), formatarQuantidade(p.quantidade_estoque)]),
   };
@@ -9635,7 +9670,7 @@ async function relatorioClientesCadastrados(filtros){
   if(error) throw error;
   const clientes = data || [];
   return {
-    titulo: 'Clientes cadastrados',
+    titulo: 'Listagem de clientes',
     colunas: ['Cliente', 'CPF', 'Telefone', 'E-mail', 'Cidade'],
     linhas: clientes.map(c => [escapeHtml(c.nome), escapeHtml(c.cpf || '—'), escapeHtml(c.telefone || '—'), escapeHtml(c.email || '—'), escapeHtml(c.cidade || '—')]),
   };
@@ -9703,7 +9738,7 @@ async function relatorioNotasEntradaPeriodo(filtros){
   const notas = data || [];
   const total = notas.reduce((s, n) => s + Number(n.valor_total), 0);
   return {
-    titulo: 'Notas de entrada do período',
+    titulo: 'Notas de entrada por período',
     colunas: ['Número', 'Fornecedor', 'Data de emissão', 'Valor total'],
     linhas: notas.map(n => [escapeHtml(n.numero || '—'), escapeHtml(n.fornecedores ? n.fornecedores.razao_social : '—'), formatarDataBR(n.data_emissao), formatarReais(n.valor_total)]),
     totalizadores: ['', '', 'Total', formatarReais(total)],
@@ -9779,96 +9814,8 @@ async function relatorioNotasEntradaItens(filtros){
   };
 }
 
-// ---------- Geradores de relatório — categoria Bar (leitura, sem alterar nada do módulo) ----------
-// Reaproveita só tabelas/colunas confirmadas na Migration 016 (bar_pedidos, bar_pedidos_itens).
-// Não inclui relatório de formas de pagamento do Bar: as colunas de bar_pagamentos_formas para
-// esse cruzamento específico não foram confirmadas nesta etapa.
-
-async function buscarItensBarPeriodo(filtros, colunas){
-  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
-  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
-  const { data, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos_itens')
-    .select(colunas)
-    .eq('estornado', false)
-    .gte('criado_em', inicioISO)
-    .lte('criado_em', fimISO));
-  if(error) throw error;
-  return data || [];
-}
-
-async function relatorioBarProdutosMaisVendidos(filtros){
-  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario, produto_id, produtos(nome)');
-  const porProduto = {};
-  itens.forEach(item => {
-    const chave = item.produto_id;
-    porProduto[chave] = porProduto[chave] || { nome: item.produtos ? item.produtos.nome : 'Produto removido', quantidade: 0, total: 0 };
-    porProduto[chave].quantidade += Number(item.quantidade);
-    porProduto[chave].total += Number(item.quantidade) * Number(item.preco_unitario);
-  });
-  const top = Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10);
-  return {
-    titulo: 'Produtos mais vendidos no Bar',
-    colunas: ['Produto', 'Quantidade', 'Total'],
-    linhas: top.map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]),
-  };
-}
-
-async function relatorioBarFaturamentoPeriodo(filtros){
-  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario');
-  const total = itens.reduce((s, it) => s + Number(it.quantidade) * Number(it.preco_unitario), 0);
-  return {
-    titulo: 'Faturamento do Bar no período',
-    metricas: [
-      { label: 'Itens lançados (não estornados)', valor: itens.length.toLocaleString('pt-BR') },
-      { label: 'Faturamento do Bar', valor: formatarReais(total) },
-    ],
-  };
-}
-
-async function relatorioBarPedidosPorUsuario(filtros){
-  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
-  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
-  const { data, error } = await buscarTodos(() => supabase
-    .from('bar_pedidos')
-    .select('id, criado_por')
-    .gte('criado_em', inicioISO)
-    .lte('criado_em', fimISO));
-  if(error) throw error;
-  const pedidos = data || [];
-
-  const porUsuario = {};
-  pedidos.forEach(p => {
-    const chave = p.criado_por || 'sem-usuario';
-    porUsuario[chave] = (porUsuario[chave] || 0) + 1;
-  });
-
-  // Nome de exibição: reaproveita a mesma RPC que a tela de Usuários e Acessos já usa
-  // (usuarios_listar, sem alterá-la) só para transformar o id em nome. Se o usuário atual não tiver
-  // permissão para listá-la, ou a chamada falhar por qualquer motivo, o relatório continua
-  // funcionando — só mostra um identificador curto no lugar do nome, nunca quebra a tela.
-  const nomesPorId = {};
-  try {
-    const { data: usuarios, error: erroUsuarios } = await supabase.rpc('usuarios_listar');
-    if(!erroUsuarios && usuarios){
-      usuarios.forEach(u => { nomesPorId[u.id] = u.nome; });
-    }
-  } catch(err){
-    console.warn('Não foi possível resolver os nomes de usuário para este relatório.', err);
-  }
-
-  const linhas = Object.entries(porUsuario).sort((a, b) => b[1] - a[1]);
-  return {
-    titulo: 'Pedidos lançados por usuário (Bar)',
-    colunas: ['Usuário', 'Pedidos lançados'],
-    linhas: linhas.map(([id, qtd]) => [
-      escapeHtml(id === 'sem-usuario' ? 'Não identificado' : (nomesPorId[id] || ('Usuário ' + id.slice(0, 8)))),
-      qtd,
-    ]),
-  };
-}
-
-
+// Os relatórios do Módulo Bar NÃO ficam aqui — são um módulo comercial opcional, então vivem só
+// dentro do próprio Módulo Bar (aba "Relatórios"), mais abaixo, junto do restante do código do Bar.
 
 // ---------- Fornecedores ----------
 // Usa a MESMA tabela `fornecedores` das Notas de Entrada (a nota localiza o fornecedor pelo CNPJ).
@@ -11230,6 +11177,9 @@ const BAR_SUBVIEW_PERMISSOES = {
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
   destino: ['bar_configurar'],
   produtos: ['bar_configurar'],
+  // Relatórios do Bar: mesma regra de "Mesas" — qualquer permissão operacional do Bar já basta
+  // (é a mesma checagem de acesso ao módulo, em duas camadas, que o restante do Bar já usa).
+  relatorios: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
 };
 
 async function carregarBarView(){
@@ -11250,10 +11200,11 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 async function abrirSubViewBar(sub){
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','destino','produtos'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','destino','produtos','relatorios'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarMesas();
   else if(sub === 'destino') await carregarBarDestino();
   else if(sub === 'produtos') await carregarBarProdutos();
+  else if(sub === 'relatorios') carregarBarRelatorios();
 }
 
 // Supabase Realtime (Migration 016 adiciona bar_mesas/bar_comandas/bar_pedidos_itens à publicação
@@ -11277,6 +11228,318 @@ function configurarRealtimeBar(){
     console.warn('Realtime do Módulo Bar indisponível; as telas atualizam ao navegar/recarregar.', e);
   }
 }
+
+// ---------- Relatórios (Módulo Bar) ----------
+// Mesma filosofia e o MESMO componente de documento da Central de Relatórios geral (ver
+// montarHtmlDocumentoRelatorio/obterNomeEmpresaImpressaoRelatorio, definidos junto da Central) —
+// só que com um catálogo próprio, só de relatórios do Bar. Nada daqui aparece na Central geral, e
+// nada da Central geral aparece aqui (Correção 3, itens 5/6/7). Reaproveita só tabelas/colunas já
+// confirmadas nas Migrations 016/018 (bar_pedidos, bar_pedidos_itens, bar_mesas) — nenhuma
+// migration, RPC, RLS ou permissão nova.
+let barRelRelatorioAtual = null;
+
+const SECOES_RELATORIOS_BAR = [
+  { id: 'bar_faturamento_periodo', titulo: 'Faturamento do Bar por período', descricao: 'Itens lançados (não estornados) e faturamento total do período.', filtros: ['periodo'], gerar: relatorioBarFaturamentoPeriodo },
+  { id: 'bar_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade lançada em pedidos do Bar, no período.', filtros: ['periodo'], gerar: relatorioBarProdutosMaisVendidos },
+  { id: 'bar_pedidos_periodo', titulo: 'Pedidos por período', descricao: 'Pedidos lançados no Bar, com mesa, usuário e valor.', filtros: ['periodo'], gerar: relatorioBarPedidosPeriodo },
+  { id: 'bar_pedidos_por_usuario', titulo: 'Pedidos lançados por usuário', descricao: 'Quantidade de pedidos do Bar lançados por cada usuário, no período.', filtros: ['periodo'], gerar: relatorioBarPedidosPorUsuario },
+  { id: 'bar_vendas_por_mesa', titulo: 'Vendas por mesa', descricao: 'Pedidos, itens e valor lançados no período, agrupados por mesa.', filtros: ['periodo'], gerar: relatorioBarVendasPorMesa },
+];
+
+function carregarBarRelatorios(){
+  renderizarListaRelatoriosBar();
+  mostrarPassoRelatorioBar('lista');
+}
+
+function renderizarListaRelatoriosBar(){
+  const cont = $('bar-rel-lista-relatorios');
+  cont.innerHTML = '';
+  SECOES_RELATORIOS_BAR.forEach(rel => {
+    const item = document.createElement('div');
+    item.className = 'rel-relatorio-item';
+    item.innerHTML = `<div><div class="rel-relatorio-nome">${escapeHtml(rel.titulo)}</div><div class="rel-relatorio-desc">${escapeHtml(rel.descricao)}</div></div><span class="rel-relatorio-seta">&rsaquo;</span>`;
+    item.addEventListener('click', () => abrirFiltrosRelatorioBar(rel));
+    cont.appendChild(item);
+  });
+}
+
+function mostrarPassoRelatorioBar(passo){
+  ['lista', 'filtros', 'documento'].forEach(p => {
+    $('bar-rel-passo-' + p).classList.toggle('hidden', p !== passo);
+  });
+}
+
+$('btn-bar-rel-voltar-lista').addEventListener('click', () => mostrarPassoRelatorioBar('lista'));
+$('btn-bar-rel-doc-voltar').addEventListener('click', () => mostrarPassoRelatorioBar('filtros'));
+
+function abrirFiltrosRelatorioBar(rel){
+  barRelRelatorioAtual = rel;
+  $('bar-rel-filtro-titulo').textContent = rel.titulo;
+  $('bar-rel-filtro-descricao').textContent = rel.descricao;
+  $('bar-rel-filtro-msg').innerHTML = '';
+
+  const campos = $('bar-rel-filtro-campos');
+  campos.innerHTML = '';
+  if(rel.filtros.includes('periodo')){
+    const hoje = new Date();
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    campos.innerHTML = `
+      <div class="field" style="margin-bottom:0; flex:none;">
+        <label>De</label>
+        <input type="date" id="bar-rel-filtro-data-inicio" value="${dataLocalISO(inicioMes)}">
+      </div>
+      <div class="field" style="margin-bottom:0; flex:none;">
+        <label>Até</label>
+        <input type="date" id="bar-rel-filtro-data-fim" value="${dataLocalISO(hoje)}">
+      </div>
+    `;
+  } else {
+    campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
+  }
+  mostrarPassoRelatorioBar('filtros');
+}
+
+$('btn-bar-rel-gerar').addEventListener('click', gerarRelatorioBarAtual);
+
+async function gerarRelatorioBarAtual(){
+  const rel = barRelRelatorioAtual;
+  if(!rel) return;
+
+  const filtros = {};
+  if(rel.filtros.includes('periodo')){
+    const dataInicio = $('bar-rel-filtro-data-inicio').value;
+    const dataFim = $('bar-rel-filtro-data-fim').value;
+    if(!dataInicio || !dataFim){
+      $('bar-rel-filtro-msg').innerHTML = '<div class="msg error">Informe as duas datas do período.</div>';
+      return;
+    }
+    if(dataInicio > dataFim){
+      $('bar-rel-filtro-msg').innerHTML = '<div class="msg error">A data inicial não pode ser depois da data final.</div>';
+      return;
+    }
+    filtros.dataInicio = dataInicio;
+    filtros.dataFim = dataFim;
+  }
+
+  const btn = $('btn-bar-rel-gerar');
+  btn.disabled = true;
+  $('bar-rel-filtro-msg').innerHTML = '';
+  try {
+    const resultado = await rel.gerar(filtros);
+    const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
+    const tituloDocumento = (resultado.titulo || rel.titulo).toUpperCase() + ' — MÓDULO BAR';
+    const descricaoFiltros = rel.filtros.includes('periodo')
+      ? `Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`
+      : 'Sem filtros';
+    $('bar-rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado);
+    mostrarPassoRelatorioBar('documento');
+  } catch(err){
+    console.error(err);
+    $('bar-rel-filtro-msg').innerHTML = `<div class="msg error">Não foi possível gerar o relatório: ${escapeHtml(err.message || err)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$('btn-bar-rel-doc-imprimir').addEventListener('click', () => {
+  // Mesma área/lógica de impressão da Central de Relatórios geral (#rel-impressao-area,
+  // body.rel-imprimindo) — reaproveitada aqui também, sem duplicar CSS/mecânica de impressão.
+  $('rel-impressao-area').innerHTML = $('bar-rel-doc-folha').innerHTML;
+  document.body.classList.add('rel-imprimindo');
+  window.print();
+});
+
+// ---------- Geradores de relatório — Módulo Bar (leitura, sem alterar nada do módulo) ----------
+// Reaproveita só tabelas/colunas confirmadas nas Migrations 016/018 (bar_pedidos, bar_pedidos_itens,
+// bar_mesas — FK composta bar_pedidos(empresa_id, mesa_id) -> bar_mesas(empresa_id, id), mesmo tipo
+// de relacionamento já usado em outros relatórios, ex. notas_entrada -> fornecedores). Não inclui
+// relatório de formas de pagamento do Bar: as colunas de bar_pagamentos_formas para esse
+// cruzamento específico não foram confirmadas.
+
+async function buscarItensBarPeriodo(filtros, colunas){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos_itens')
+    .select(colunas)
+    .eq('estornado', false)
+    .gte('criado_em', inicioISO)
+    .lte('criado_em', fimISO));
+  if(error) throw error;
+  return data || [];
+}
+
+async function buscarPedidosBarPeriodo(filtros){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos')
+    .select('id, criado_em, criado_por, mesa_id, bar_mesas(numero)')
+    .gte('criado_em', inicioISO)
+    .lte('criado_em', fimISO)
+    .order('criado_em', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error) throw error;
+  return data || [];
+}
+
+async function buscarItensPorPedidoBar(pedidoIds){
+  if(!pedidoIds.length) return [];
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos_itens')
+    .select('pedido_id, quantidade, preco_unitario')
+    .eq('estornado', false)
+    .in('pedido_id', pedidoIds));
+  if(error) throw error;
+  return data || [];
+}
+
+// Nome de exibição por usuário: reaproveita a mesma RPC que a tela de Usuários e Acessos já usa
+// (usuarios_listar, sem alterá-la). Se o usuário atual não tiver permissão para listá-la, ou a
+// chamada falhar por qualquer motivo, os relatórios continuam funcionando — só mostram um
+// identificador curto no lugar do nome, nunca quebram a tela.
+async function resolverNomesUsuarios(){
+  const nomesPorId = {};
+  try {
+    const { data: usuarios, error } = await supabase.rpc('usuarios_listar');
+    if(!error && usuarios){
+      usuarios.forEach(u => { nomesPorId[u.id] = u.nome; });
+    }
+  } catch(err){
+    console.warn('Não foi possível resolver os nomes de usuário para os relatórios do Bar.', err);
+  }
+  return nomesPorId;
+}
+
+function nomeUsuarioBar(id, nomesPorId){
+  if(!id) return 'Não identificado';
+  return nomesPorId[id] || ('Usuário ' + id.slice(0, 8));
+}
+
+async function relatorioBarProdutosMaisVendidos(filtros){
+  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario, produto_id, produtos(nome)');
+  const porProduto = {};
+  itens.forEach(item => {
+    const chave = item.produto_id;
+    porProduto[chave] = porProduto[chave] || { nome: item.produtos ? item.produtos.nome : 'Produto removido', quantidade: 0, total: 0 };
+    porProduto[chave].quantidade += Number(item.quantidade);
+    porProduto[chave].total += Number(item.quantidade) * Number(item.preco_unitario);
+  });
+  const top = Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10);
+  return {
+    titulo: 'Produtos mais vendidos',
+    colunas: ['Produto', 'Quantidade', 'Valor'],
+    linhas: top.map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]),
+  };
+}
+
+async function relatorioBarFaturamentoPeriodo(filtros){
+  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario');
+  const total = itens.reduce((s, it) => s + Number(it.quantidade) * Number(it.preco_unitario), 0);
+  return {
+    titulo: 'Faturamento do Bar por período',
+    metricas: [
+      { label: 'Itens lançados (não estornados)', valor: itens.length.toLocaleString('pt-BR') },
+      { label: 'Faturamento do Bar', valor: formatarReais(total) },
+    ],
+  };
+}
+
+async function relatorioBarPedidosPeriodo(filtros){
+  const pedidos = await buscarPedidosBarPeriodo(filtros);
+  const [itens, nomesPorId] = await Promise.all([
+    buscarItensPorPedidoBar(pedidos.map(p => p.id)),
+    resolverNomesUsuarios(),
+  ]);
+
+  const porPedido = {};
+  itens.forEach(it => {
+    porPedido[it.pedido_id] = porPedido[it.pedido_id] || { qtd: 0, valor: 0 };
+    porPedido[it.pedido_id].qtd += Number(it.quantidade);
+    porPedido[it.pedido_id].valor += Number(it.quantidade) * Number(it.preco_unitario);
+  });
+
+  let totalQtd = 0, totalValor = 0;
+  const linhas = pedidos.map(p => {
+    const agr = porPedido[p.id] || { qtd: 0, valor: 0 };
+    totalQtd += agr.qtd; totalValor += agr.valor;
+    return [
+      new Date(p.criado_em).toLocaleString('pt-BR'),
+      p.bar_mesas ? ('Mesa ' + p.bar_mesas.numero) : '—',
+      escapeHtml(nomeUsuarioBar(p.criado_por, nomesPorId)),
+      formatarQuantidade(agr.qtd),
+      formatarReais(agr.valor),
+    ];
+  });
+
+  return {
+    titulo: 'Pedidos por período',
+    colunas: ['Data/Hora', 'Mesa', 'Usuário', 'Itens', 'Valor'],
+    linhas,
+    totalizadores: ['', '', 'Total', formatarQuantidade(totalQtd), formatarReais(totalValor)],
+  };
+}
+
+async function relatorioBarPedidosPorUsuario(filtros){
+  const pedidos = await buscarPedidosBarPeriodo(filtros);
+  const nomesPorId = await resolverNomesUsuarios();
+
+  const porUsuario = {};
+  pedidos.forEach(p => {
+    const chave = p.criado_por || 'sem-usuario';
+    porUsuario[chave] = (porUsuario[chave] || 0) + 1;
+  });
+
+  const linhas = Object.entries(porUsuario).sort((a, b) => b[1] - a[1]);
+  return {
+    titulo: 'Pedidos lançados por usuário',
+    colunas: ['Usuário', 'Pedidos lançados'],
+    linhas: linhas.map(([id, qtd]) => [
+      escapeHtml(id === 'sem-usuario' ? 'Não identificado' : nomeUsuarioBar(id, nomesPorId)),
+      qtd,
+    ]),
+  };
+}
+
+async function relatorioBarVendasPorMesa(filtros){
+  const pedidos = await buscarPedidosBarPeriodo(filtros);
+  const itens = await buscarItensPorPedidoBar(pedidos.map(p => p.id));
+
+  const porPedido = {};
+  itens.forEach(it => {
+    porPedido[it.pedido_id] = porPedido[it.pedido_id] || { qtd: 0, valor: 0 };
+    porPedido[it.pedido_id].qtd += Number(it.quantidade);
+    porPedido[it.pedido_id].valor += Number(it.quantidade) * Number(it.preco_unitario);
+  });
+
+  const porMesa = {};
+  pedidos.forEach(p => {
+    const numero = p.bar_mesas ? p.bar_mesas.numero : null;
+    const chave = numero != null ? numero : 'sem-mesa';
+    porMesa[chave] = porMesa[chave] || { numero, pedidos: 0, qtd: 0, valor: 0 };
+    const agr = porPedido[p.id] || { qtd: 0, valor: 0 };
+    porMesa[chave].pedidos += 1;
+    porMesa[chave].qtd += agr.qtd;
+    porMesa[chave].valor += agr.valor;
+  });
+
+  const linhas = Object.values(porMesa).sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0));
+  const totalPedidos = linhas.reduce((s, m) => s + m.pedidos, 0);
+  const totalQtd = linhas.reduce((s, m) => s + m.qtd, 0);
+  const totalValor = linhas.reduce((s, m) => s + m.valor, 0);
+  return {
+    titulo: 'Vendas por mesa',
+    colunas: ['Mesa', 'Pedidos', 'Itens', 'Valor'],
+    linhas: linhas.map(m => [
+      m.numero != null ? ('Mesa ' + m.numero) : 'Não identificada',
+      m.pedidos,
+      formatarQuantidade(m.qtd),
+      formatarReais(m.valor),
+    ]),
+    totalizadores: ['Total', totalPedidos, formatarQuantidade(totalQtd), formatarReais(totalValor)],
+  };
+}
+
 
 // ---------- Mesas ----------
 async function carregarBarMesas(){
