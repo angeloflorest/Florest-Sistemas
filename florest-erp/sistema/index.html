@@ -1300,6 +1300,7 @@
     box-shadow: 0 12px 40px rgba(11,23,48,0.28);
   }
   .modal-card-wide{ max-width: 800px; }
+  .modal-card-mesa{ max-width: 1180px; }
 
   /* ---------- MODAIS SECUNDÁRIOS DO MÓDULO BAR ----------
      Correção do bug "modal sobre modal": alguns modais do Bar são abertos SEM fechar o modal do
@@ -1936,6 +1937,22 @@
     display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px;
     border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px;
   }
+
+  /* ---------- Mesa/Comanda como "mini PDV" (Fase 2) ---------- */
+  .bar-mesa-cabecalho{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
+  .bar-mesa-status-badge{
+    display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    padding:3px 10px; border-radius:12px; background:var(--accent-soft); color:var(--florest-navy);
+  }
+  .bar-mesa-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:26px; align-items:start; margin-top:14px; }
+  .bar-mesa-col-esquerda, .bar-mesa-col-direita{ min-width:0; }
+  @media (max-width: 920px){ .bar-mesa-grid{ grid-template-columns:1fr; } }
+  .bar-mesa-busca-wrap{ position:relative; }
+  .bar-mesa-item-selecionado{ border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:10px; background:#FAFBF9; }
+  .bar-mesa-item-selecionado-nome{ font-weight:600; font-size:14.5px; margin-bottom:10px; }
+  .bar-saldo-resumo-vertical{ flex-direction:column; gap:10px; }
+  .bar-saldo-resumo-destaque{ background:var(--accent-soft); border-radius:8px; padding:8px 10px; margin:-2px -6px 4px; }
+  .bar-saldo-resumo-destaque strong{ font-size:23px; color:var(--florest-navy); }
   .bar-pagamento-forma-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
   .bar-pagamento-forma-row select{ flex:1; } .bar-pagamento-forma-row input{ width:140px; }
   .bar-cozinha-lista{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
@@ -4046,104 +4063,126 @@
      MÓDULO BAR — modais
      =================================================================== -->
 
-<!-- MODAL ÚNICO DE MESA (Migration 018 — simplificação operacional).
+<!-- MODAL ÚNICO DE MESA — "mini PDV" da mesa/comanda (Fase 2 da correção de UX; Migration 018
+     continua sendo a base de dados/RPCs, SEM NENHUMA ALTERAÇÃO de backend).
      Substitui os antigos modal-bar-abrir-mesa, modal-bar-pessoas, modal-bar-comanda e
-     modal-bar-pagamento por UMA tela só. Mesa livre: abre transparentemente no primeiro "Lançar
-     pedido" (bar_pedido_lancar cuida disso no banco — nenhuma pergunta de quantidade de pessoas
-     aqui). Saldo (Total consumido/Já pago/Em aberto) SEMPRE vem recalculado no banco
+     modal-bar-pagamento por UMA tela só, agora em duas colunas: ESQUERDA = consumo da mesa +
+     busca/adicionar produtos (igual a um PDV); DIREITA = resumo financeiro sempre visível +
+     recebimento de pagamento. Mesa livre: abre transparentemente no primeiro "Lançar pedido"
+     (bar_pedido_lancar cuida disso no banco — nenhuma pergunta de quantidade de pessoas aqui).
+     Saldo (Total consumido/Já pago/Falta pagar) SEMPRE vem recalculado no banco
      (bar_comanda_resumo_financeiro) — nunca um valor guardado só no navegador. Pagamento parcial
      por valor aproximado é o caminho simples (o backend continua cobrando por ITENS reais —
-     ver relatório técnico); "Opções avançadas" expõe a seleção exata de itens para quem precisar
-     de precisão total. Ao quitar o saldo, o backend fecha a mesa sozinho — não existe mais botão
-     de "Fechar mesa" nem "Pessoas". -->
+     ver relatório técnico); "Opções avançadas" expõe desconto/acréscimo/taxa para quem precisar.
+     Ao quitar o saldo, o backend fecha a mesa sozinho — não existe botão de "Fechar mesa". -->
 <div id="modal-bar-mesa" class="modal-overlay hidden">
-  <div class="modal-card modal-card-wide">
-    <h3 id="bar-mesa-titulo">Mesa</h3>
+  <div class="modal-card modal-card-mesa">
+    <div class="bar-mesa-cabecalho">
+      <div>
+        <h3 id="bar-mesa-titulo" style="margin-bottom:6px;">Mesa</h3>
+        <span class="bar-mesa-status-badge" id="bar-mesa-status-badge">Em aberto</span>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
+    </div>
     <div id="bar-mesa-msg"></div>
 
-    <div class="bar-saldo-resumo" id="bar-mesa-saldo-resumo">
-      <div class="bar-saldo-resumo-item">Total consumido<strong id="bar-mesa-total-consumido">R$ 0,00</strong></div>
-      <div class="bar-saldo-resumo-item">Já pago<strong id="bar-mesa-total-pago">R$ 0,00</strong></div>
-      <div class="bar-saldo-resumo-item">Em aberto<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
-    </div>
+    <div class="bar-mesa-grid">
+      <!-- ===== COLUNA ESQUERDA: consumo + busca/adicionar produtos ===== -->
+      <div class="bar-mesa-col-esquerda">
+        <div id="bar-mesa-adicionar-secao">
+          <div class="modal-section-label" style="margin-top:0;">Adicionar produto</div>
+          <div class="bar-mesa-busca-wrap">
+            <input type="text" id="bar-mesa-busca-produto" placeholder="Buscar produto pelo nome..." autocomplete="off">
+            <div class="search-results hidden" id="bar-mesa-busca-resultados"></div>
+          </div>
 
-    <div class="modal-section-label">Lançar novo pedido</div>
-    <div class="field-row">
-      <div class="field" style="flex:2;">
-        <label>Item do cardápio</label>
-        <select id="bar-mesa-item-select"></select>
-      </div>
-      <div class="field">
-        <label>Quantidade</label>
-        <input type="number" id="bar-mesa-item-qtd" min="0.01" step="0.01" value="1">
-      </div>
-    </div>
-    <div id="bar-mesa-escolhas"></div>
-    <div class="field">
-      <label>Observação (opcional)</label>
-      <input type="text" id="bar-mesa-item-obs" placeholder="Ex: sem gelo, ponto da carne, etc.">
-    </div>
-    <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-accent" id="btn-bar-mesa-lancar" style="width:auto;">Lançar pedido</button>
-    </div>
+          <div id="bar-mesa-item-selecionado" class="bar-mesa-item-selecionado hidden">
+            <div class="bar-mesa-item-selecionado-nome" id="bar-mesa-item-selecionado-nome"></div>
+            <div id="bar-mesa-escolhas"></div>
+            <div class="field-row" style="align-items:flex-end; margin-bottom:0;">
+              <div class="field" style="max-width:110px; margin-bottom:0;">
+                <label>Quantidade</label>
+                <input type="number" id="bar-mesa-item-qtd" min="0.01" step="0.01" value="1">
+              </div>
+              <div class="field" style="flex:1; margin-bottom:0;">
+                <label>Observação (opcional)</label>
+                <input type="text" id="bar-mesa-item-obs" placeholder="Ex: sem gelo, ponto da carne, etc.">
+              </div>
+              <div class="field" style="flex:none; margin-bottom:0;">
+                <button type="button" class="btn-secondary" id="btn-bar-mesa-add-carrinho" style="width:auto;">+ Adicionar ao pedido</button>
+              </div>
+            </div>
+          </div>
 
-    <div class="modal-section-label">Itens desta comanda</div>
-    <div class="table-card" style="margin-top:8px;">
-      <table>
-        <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Status</th><th></th></tr></thead>
-        <tbody id="bar-mesa-itens-body"></tbody>
-      </table>
-      <div id="bar-mesa-itens-empty" class="empty-state hidden">Nenhum item lançado ainda.</div>
-    </div>
+          <div id="bar-mesa-carrinho-wrap" class="hidden">
+            <div class="modal-section-label">Novo pedido — ainda não enviado</div>
+            <div class="bar-carrinho" id="bar-mesa-carrinho"></div>
+            <div class="modal-actions" style="justify-content:flex-start;">
+              <button type="button" class="btn-accent" id="btn-bar-mesa-lancar" style="width:auto;">Lançar pedido</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="modal-section-label" style="margin-top:18px;">Pagamento</div>
-    <p class="modal-section-hint" id="bar-mesa-pagamento-dica" style="margin-top:-6px;"></p>
-    <div class="field-row">
-      <div class="field">
-        <label>Valor a receber agora (R$)</label>
-        <input type="number" id="bar-mesa-pagamento-valor" min="0.01" step="0.01">
+        <div class="modal-section-label" style="margin-top:20px;">Consumo da mesa</div>
+        <div class="table-card" style="margin-top:8px;">
+          <table>
+            <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Status</th><th></th></tr></thead>
+            <tbody id="bar-mesa-itens-body"></tbody>
+          </table>
+          <div id="bar-mesa-itens-empty" class="empty-state hidden">Nenhum item lançado ainda.</div>
+        </div>
       </div>
-      <div class="field" style="align-self:flex-end;">
+
+      <!-- ===== COLUNA DIREITA: resumo financeiro sempre visível + pagamento ===== -->
+      <div class="bar-mesa-col-direita">
+        <div class="bar-saldo-resumo bar-saldo-resumo-vertical" id="bar-mesa-saldo-resumo">
+          <div class="bar-saldo-resumo-item">Total consumido<strong id="bar-mesa-total-consumido">R$ 0,00</strong></div>
+          <div class="bar-saldo-resumo-item">Já pago<strong id="bar-mesa-total-pago">R$ 0,00</strong></div>
+          <div class="bar-saldo-resumo-item bar-saldo-resumo-destaque">Falta pagar<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
+        </div>
+
+        <div class="modal-section-label" style="margin-top:0;">Receber pagamento</div>
+        <p class="modal-section-hint" id="bar-mesa-pagamento-dica" style="margin-top:-6px;"></p>
+        <div class="field">
+          <label>Valor a receber agora (R$)</label>
+          <input type="number" id="bar-mesa-pagamento-valor" min="0.01" step="0.01">
+        </div>
         <button type="button" class="link-btn" id="btn-bar-mesa-pagar-tudo">Preencher com o saldo em aberto</button>
+        <p class="modal-section-hint">Qualquer valor é aceito — não precisa corresponder ao preço de nenhum item. O banco confere o valor contra o saldo real antes de aceitar.</p>
+
+        <div class="modal-section-label">Formas de pagamento</div>
+        <div id="bar-mesa-pagamento-formas"></div>
+        <div class="modal-actions" style="justify-content:flex-start;">
+          <button type="button" class="btn-secondary" id="btn-bar-mesa-pagamento-add-forma" style="width:auto;">+ Forma de pagamento</button>
+        </div>
+        <div class="modal-section-hint" id="bar-mesa-pagamento-total-linha" style="margin-top:0;"></div>
+
+        <div class="modal-section-label">
+          <button type="button" class="link-btn bar-avancado-toggle" id="btn-bar-mesa-avancado-toggle">Ajustes da conta — desconto, acréscimo, taxa de serviço ▾</button>
+        </div>
+        <div id="bar-mesa-avancado" class="bar-avancado-conteudo hidden">
+          <p class="modal-section-hint" style="margin-top:0;">Valem para a conta inteira (não por pagamento) — informados uma vez, continuam valendo nos próximos pagamentos parciais desta mesma mesa até serem alterados de novo aqui.</p>
+          <div class="field-row" style="margin-top:0;">
+            <div class="field"><label>Desconto (R$)</label><input type="number" id="bar-mesa-desconto" min="0" step="0.01" value="0"></div>
+            <div class="field"><label>Acréscimo (R$)</label><input type="number" id="bar-mesa-acrescimo" min="0" step="0.01" value="0"></div>
+            <div class="field"><label>Taxa de serviço (R$)</label><input type="number" id="bar-mesa-taxa" min="0" step="0.01" value="0"></div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-start;">
+          <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:100%; padding:16px 20px; font-size:16px;">Receber pagamento</button>
+        </div>
+
+        <div id="bar-mesa-historico-wrap" class="hidden">
+          <div class="modal-section-label" style="margin-top:18px;">Pagamentos realizados</div>
+          <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
+            <table>
+              <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
+              <tbody id="bar-mesa-historico-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-    <p class="modal-section-hint" style="margin-top:-6px;">Qualquer valor é aceito — não precisa corresponder ao preço de nenhum item. O banco confere o valor contra o saldo real antes de aceitar.</p>
-
-    <div class="modal-section-label">Formas de pagamento</div>
-    <div id="bar-mesa-pagamento-formas"></div>
-    <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-secondary" id="btn-bar-mesa-pagamento-add-forma" style="width:auto;">+ Forma de pagamento</button>
-    </div>
-    <div class="modal-section-hint" id="bar-mesa-pagamento-total-linha" style="margin-top:0;"></div>
-
-    <div class="modal-section-label">
-      <button type="button" class="link-btn bar-avancado-toggle" id="btn-bar-mesa-avancado-toggle">Ajustes da conta — desconto, acréscimo, taxa de serviço ▾</button>
-    </div>
-    <div id="bar-mesa-avancado" class="bar-avancado-conteudo hidden">
-      <p class="modal-section-hint" style="margin-top:0;">Valem para a conta inteira (não por pagamento) — informados uma vez, continuam valendo nos próximos pagamentos parciais desta mesma mesa até serem alterados de novo aqui.</p>
-      <div class="field-row" style="margin-top:0;">
-        <div class="field"><label>Desconto (R$)</label><input type="number" id="bar-mesa-desconto" min="0" step="0.01" value="0"></div>
-        <div class="field"><label>Acréscimo (R$)</label><input type="number" id="bar-mesa-acrescimo" min="0" step="0.01" value="0"></div>
-        <div class="field"><label>Taxa de serviço (R$)</label><input type="number" id="bar-mesa-taxa" min="0" step="0.01" value="0"></div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="justify-content:flex-start;">
-      <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:100%; padding:16px 20px; font-size:16px;">Receber pagamento</button>
-    </div>
-
-    <div id="bar-mesa-historico-wrap" class="hidden">
-      <div class="modal-section-label" style="margin-top:18px;">Pagamentos já registrados nesta comanda</div>
-      <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
-        <table>
-          <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
-          <tbody id="bar-mesa-historico-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:20px;">
-      <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal">Fechar</button>
     </div>
   </div>
 </div>
@@ -11161,6 +11200,8 @@ let barEstornoPagamentoCallback = null; // função chamada após um estorno con
 let barFiscalComandaAtual = null;
 let barFiscalVendaIdAtual = null; // REVISÃO 3: 1 comanda = 1 venda — nunca mais uma lista de venda_ids
 let barMesaResumoAtual = null; // último resultado de bar_comanda_resumo_financeiro (nunca um valor digitado pelo usuário)
+let barMesaItemSelecionado = null; // item do cardápio (bar_produtos) escolhido na busca, antes de "+ Adicionar ao pedido"
+let barMesaCarrinho = []; // itens já adicionados ao "novo pedido" nesta sessão do modal, ainda não enviados por bar_pedido_lancar — [{ barProdutoId, nome, quantidade, precoUnitario, observacao, escolhas }]
 let barMesaAjustesTocados = false; // true assim que o operador abre/edita "Ajustes da conta" nesta sessão do modal — controla se desconto/acréscimo/taxa são enviados (substituindo o que já está salvo) ou omitidos (nulo = mantém o que já estava) no próximo pagamento
 let barEstornarBuscaComandaId = null; // comanda encontrada pela busca "Estornar pagamento" (histórico de mesa já liberada)
 
@@ -11599,11 +11640,18 @@ async function abrirModalMesa(mesa){
   barMesaAtual = mesa;
   barComandaAtualId = mesa.comanda_atual_id || null;
   barMesaResumoAtual = null;
+  barMesaItemSelecionado = null;
+  barMesaCarrinho = [];
   $('bar-mesa-msg').innerHTML = '';
   $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
+  $('bar-mesa-busca-produto').value = '';
+  $('bar-mesa-busca-resultados').innerHTML = '';
+  $('bar-mesa-busca-resultados').classList.add('hidden');
+  $('bar-mesa-item-selecionado').classList.add('hidden');
   $('bar-mesa-item-obs').value = '';
   $('bar-mesa-item-qtd').value = 1;
   $('bar-mesa-escolhas').innerHTML = '';
+  renderCarrinhoMesa();
   $('bar-mesa-pagamento-valor').value = '';
   $('bar-mesa-pagamento-dica').textContent = '';
   $('bar-mesa-pagamento-total-linha').innerHTML = '';
@@ -11616,13 +11664,13 @@ async function abrirModalMesa(mesa){
   $('bar-mesa-pagamento-formas').innerHTML = '';
   adicionarLinhaFormaPagamento();
 
-  $('btn-bar-mesa-lancar').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
+  $('bar-mesa-adicionar-secao').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
   const podeReceber = podeAcessarBar('bar_caixa');
   ['bar-mesa-pagamento-valor', 'btn-bar-mesa-pagar-tudo', 'btn-bar-mesa-avancado-toggle', 'btn-bar-mesa-pagamento-add-forma', 'btn-bar-mesa-receber-pagamento']
     .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
 
   $('modal-bar-mesa').classList.remove('hidden');
-  await Promise.all([carregarCardapioBarSelect(), atualizarSaldoEItensMesa()]);
+  await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
 }
 
 // Recarrega saldo (bar_comanda_resumo_financeiro — sempre recalculado no banco a partir dos itens
@@ -11655,11 +11703,12 @@ async function atualizarSaldoEItensMesa(){
   await carregarHistoricoPagamentosMesa();
 }
 
-// "TOTAL CONSUMIDO / JÁ PAGO / EM ABERTO" — os 3 números do requisito, sempre recalculados no
+// "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
 // banco (private.bar_comanda_saldo_calcular, via bar_comanda_resumo_financeiro). Também pré-
 // preenche "Valor a receber agora" com o saldo em aberto (o operador só troca se quiser receber
-// menos) e os campos de "Ajustes da conta" com o que já estiver salvo na comanda — mas só até o
-// operador mexer neles (barMesaAjustesTocados), para nunca sobrescrever o que ele está digitando.
+// menos), os campos de "Ajustes da conta" com o que já estiver salvo na comanda — mas só até o
+// operador mexer neles (barMesaAjustesTocados), para nunca sobrescrever o que ele está digitando —
+// e o selo de status no cabeçalho (Fase 2: "mini PDV" da mesa).
 function renderResumoFinanceiroMesa(){
   const r = barMesaResumoAtual || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
   $('bar-mesa-total-consumido').textContent = formatarReais(r.total_consumido);
@@ -11673,6 +11722,9 @@ function renderResumoFinanceiroMesa(){
   }
   $('bar-mesa-pagamento-dica').textContent = saldo > 0 ? `Saldo em aberto: ${formatarReais(saldo)}` : 'Esta comanda não tem saldo em aberto.';
 
+  const badge = $('bar-mesa-status-badge');
+  badge.textContent = barComandaAtualId ? 'Em aberto' : 'Sem pedidos ainda';
+
   if(!barMesaAjustesTocados){
     $('bar-mesa-desconto').value = Number(r.desconto) || 0;
     $('bar-mesa-acrescimo').value = Number(r.acrescimo) || 0;
@@ -11680,13 +11732,12 @@ function renderResumoFinanceiroMesa(){
   }
 }
 
-// Requisito #7 (herdado): lançamento único. carregarCardapioBarSelect traz, junto com cada item do
-// cardápio, os grupos de escolha do modelo novo (bar_produto_grupos/bar_produto_grupo_opcoes) já
-// aninhados — dá para montar os campos de escolha (ex.: "Qual espeto?") sem nenhuma chamada extra
-// quando o garçom troca o item selecionado.
-async function carregarCardapioBarSelect(){
-  const sel = $('bar-mesa-item-select');
-  sel.innerHTML = '';
+// Traz o cardápio ativo (bar_produtos), com os grupos de escolha do modelo novo
+// (bar_produto_grupos/bar_produto_grupo_opcoes) já aninhados, para a busca de produtos da mesa —
+// dá para montar os campos de escolha (ex.: "Qual espeto?") sem nenhuma chamada extra quando o
+// operador troca o item escolhido. É a MESMA consulta de antes (só sem popular um <select>): a
+// busca de "Adicionar produto" agora filtra esta mesma lista, já carregada, no navegador.
+async function carregarCardapioBar(){
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
     .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda ),
@@ -11698,19 +11749,75 @@ async function carregarCardapioBarSelect(){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  barCardapioCache = data || [];
-  barCardapioCache
-    .slice()
-    .sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''))
-    .forEach(bp => {
-      const opt = document.createElement('option');
-      opt.value = bp.id;
-      opt.textContent = `${bp.produtos ? bp.produtos.nome : '—'} (${formatarReais(bp.produtos ? bp.produtos.preco_venda : 0)})`;
-      sel.appendChild(opt);
-    });
-  renderEscolhasMesa();
+  barCardapioCache = (data || []).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
 }
-$('bar-mesa-item-select').addEventListener('change', renderEscolhasMesa);
+
+// ---------- Busca de produto na mesa (Fase 2 — "mini PDV") ----------
+// Cardápio do Bar é uma lista compacta (já carregada inteira em barCardapioCache, ver acima), então
+// a busca aqui é só um filtro em memória por nome — sem round-trip ao banco a cada tecla. Mesmo
+// comportamento de "digitar para filtrar" já usado no restante do sistema, sem o código de barras
+// do PDV (o Bar nunca lê código de barras).
+function renderResultadosBuscaItemMesa(lista){
+  const cont = $('bar-mesa-busca-resultados');
+  if(lista.length === 0){
+    cont.innerHTML = '';
+    cont.classList.add('hidden');
+    return;
+  }
+  cont.innerHTML = lista.map(bp => `
+    <div class="search-result-item" data-bar-produto-id="${bp.id}">
+      <span>${escapeHtml(bp.produtos ? bp.produtos.nome : '—')}</span>
+      <span class="sr-preco">${formatarReais(bp.produtos ? bp.produtos.preco_venda : 0)}</span>
+    </div>
+  `).join('');
+  // mousedown (não click) para selecionar ANTES do blur do campo de busca fechar a lista.
+  cont.querySelectorAll('[data-bar-produto-id]').forEach(el => {
+    el.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const bp = barCardapioCache.find(x => x.id === el.dataset.barProdutoId);
+      if(bp) selecionarItemCardapioMesa(bp);
+    });
+  });
+  cont.classList.remove('hidden');
+}
+
+function filtrarCardapioBusca(termo){
+  const t = termo.trim().toLowerCase();
+  const lista = t === ''
+    ? barCardapioCache
+    : barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(t));
+  renderResultadosBuscaItemMesa(lista.slice(0, 30));
+}
+
+$('bar-mesa-busca-produto').addEventListener('input', (e) => filtrarCardapioBusca(e.target.value));
+$('bar-mesa-busca-produto').addEventListener('focus', (e) => filtrarCardapioBusca(e.target.value));
+$('bar-mesa-busca-produto').addEventListener('blur', () => {
+  setTimeout(() => $('bar-mesa-busca-resultados').classList.add('hidden'), 150);
+});
+$('bar-mesa-busca-produto').addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    $('bar-mesa-busca-resultados').classList.add('hidden');
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    const termo = e.target.value.trim().toLowerCase();
+    if(!termo) return;
+    const encontrados = barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(termo));
+    if(encontrados.length === 1) selecionarItemCardapioMesa(encontrados[0]);
+  }
+});
+
+function selecionarItemCardapioMesa(bp){
+  barMesaItemSelecionado = bp;
+  $('bar-mesa-busca-produto').value = '';
+  $('bar-mesa-busca-resultados').innerHTML = '';
+  $('bar-mesa-busca-resultados').classList.add('hidden');
+  $('bar-mesa-item-selecionado-nome').textContent = `${bp.produtos ? bp.produtos.nome : '—'} (${formatarReais(bp.produtos ? bp.produtos.preco_venda : 0)})`;
+  $('bar-mesa-item-qtd').value = 1;
+  $('bar-mesa-item-obs').value = '';
+  renderEscolhasMesa();
+  $('bar-mesa-item-selecionado').classList.remove('hidden');
+  $('bar-mesa-item-qtd').focus();
+}
 
 // Mostra um seletor por escolha exigida (ex.: "Escolha o espeto") quando o item selecionado é um
 // composto do modelo novo de grupos. Item simples, ou composto do modelo antigo (sem grupos
@@ -11718,7 +11825,7 @@ $('bar-mesa-item-select').addEventListener('change', renderEscolhasMesa);
 // nenhuma escolha aqui), não mostra nada nesta área — igual a antes.
 function renderEscolhasMesa(){
   const wrap = $('bar-mesa-escolhas');
-  const bp = barCardapioCache.find(x => x.id === $('bar-mesa-item-select').value);
+  const bp = barMesaItemSelecionado;
   const grupos = (bp && bp.bar_produto_grupos ? bp.bar_produto_grupos.slice() : []).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
   if(!bp || bp.tipo !== 'composto' || grupos.length === 0){
     wrap.innerHTML = '';
@@ -11737,32 +11844,90 @@ function renderEscolhasMesa(){
   }).join('');
 }
 
-$('btn-bar-mesa-lancar').addEventListener('click', async () => {
-  const barProdutoId = $('bar-mesa-item-select').value;
+// ---------- "Novo pedido" (carrinho local, Fase 2) ----------
+// Junta vários itens no navegador antes de enviar — igual ao cupom do PDV. O envio em si continua
+// sendo UMA única chamada a bar_pedido_lancar com todos os itens (a RPC já aceita um array de itens
+// desde a Migration 017/bar_pedido_enviar — só não era usada assim pelo frontend); nenhuma lógica
+// de estoque nova, nenhuma baixa acontece aqui, só ao clicar em "Lançar pedido".
+$('btn-bar-mesa-add-carrinho').addEventListener('click', () => {
+  const bp = barMesaItemSelecionado;
+  if(!bp) return;
   const qtd = parseFloat($('bar-mesa-item-qtd').value);
-  if(!barProdutoId){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Selecione um item do cardápio.</div>'; return; }
   if(!qtd || qtd <= 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe uma quantidade válida.</div>'; return; }
-  const bp = barCardapioCache.find(x => x.id === barProdutoId);
-  const grupos = (bp && bp.bar_produto_grupos) || [];
+
+  const grupos = bp.bar_produto_grupos || [];
   let escolhas = null;
-  if(bp && bp.tipo === 'composto' && grupos.length > 0){
+  if(bp.tipo === 'composto' && grupos.length > 0){
     escolhas = [];
     const selects = $('bar-mesa-escolhas').querySelectorAll('[data-escolha-grupo]');
     for(const s of selects){
-      if(!s.value){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Responda todas as escolhas deste item antes de lançar.</div>'; return; }
+      if(!s.value){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Responda todas as escolhas deste item antes de adicionar.</div>'; return; }
       escolhas.push({ grupo_id: s.dataset.escolhaGrupo, produto_id: s.value });
     }
   }
   const observacao = $('bar-mesa-item-obs').value.trim() || null;
+  barMesaCarrinho.push({
+    barProdutoId: bp.id,
+    nome: bp.produtos ? bp.produtos.nome : '—',
+    quantidade: qtd,
+    precoUnitario: bp.produtos ? Number(bp.produtos.preco_venda) : 0,
+    observacao,
+    escolhas,
+  });
+  $('bar-mesa-msg').innerHTML = '';
+  barMesaItemSelecionado = null;
+  $('bar-mesa-item-selecionado').classList.add('hidden');
+  $('bar-mesa-escolhas').innerHTML = '';
+  renderCarrinhoMesa();
+  $('bar-mesa-busca-produto').focus();
+});
+
+function renderCarrinhoMesa(){
+  const cont = $('bar-mesa-carrinho');
+  const wrap = $('bar-mesa-carrinho-wrap');
+  wrap.classList.toggle('hidden', barMesaCarrinho.length === 0);
+  cont.innerHTML = barMesaCarrinho.map((item, idx) => {
+    const subtotal = item.quantidade * item.precoUnitario;
+    const escolhasTexto = item.escolhas && item.escolhas.length
+      ? `<div class="modal-section-hint" style="margin:2px 0 0;">${item.escolhas.length} escolha(s) selecionada(s)</div>`
+      : '';
+    const obsTexto = item.observacao ? `<div class="modal-section-hint" style="margin:2px 0 0;">${escapeHtml(item.observacao)}</div>` : '';
+    return `
+      <div class="bar-carrinho-item">
+        <div>
+          <strong>${formatarQuantidade(item.quantidade)}x</strong> ${escapeHtml(item.nome)}
+          ${escolhasTexto}${obsTexto}
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>${formatarReais(subtotal)}</span>
+          <button type="button" class="link-btn" data-remover-carrinho="${idx}">Remover</button>
+        </div>
+      </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-remover-carrinho]').forEach(btn => btn.addEventListener('click', () => {
+    barMesaCarrinho.splice(Number(btn.dataset.removerCarrinho), 1);
+    renderCarrinhoMesa();
+  }));
+}
+
+$('btn-bar-mesa-lancar').addEventListener('click', async () => {
+  if(barMesaCarrinho.length === 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Adicione ao menos um item ao pedido antes de lançar.</div>'; return; }
   const btn = $('btn-bar-mesa-lancar');
   btn.disabled = true; btn.textContent = 'Lançando...';
   const idempotencia = crypto.randomUUID();
   // bar_pedido_lancar (Migration 018) abre a mesa sozinha (sem perguntar pessoas, pessoas=0) se
   // ela ainda estiver livre, e reaproveita a comanda já aberta caso contrário — nunca duplica
-  // comanda (idempotente pela mesma chave de sempre, herdada de bar_pedido_enviar).
+  // comanda (idempotente pela mesma chave de sempre, herdada de bar_pedido_enviar). Envia TODOS os
+  // itens do carrinho de uma vez (bar_pedido_enviar já aceita até 200 itens por chamada) — a baixa
+  // de estoque continua acontecendo só aqui, por item, exatamente como antes.
   const { data, error } = await supabase.rpc('bar_pedido_lancar', {
     p_mesa_id: barMesaAtual.id,
-    p_itens: [{ bar_produto_id: barProdutoId, quantidade: qtd, observacao, escolhas }],
+    p_itens: barMesaCarrinho.map(item => ({
+      bar_produto_id: item.barProdutoId,
+      quantidade: item.quantidade,
+      observacao: item.observacao,
+      escolhas: item.escolhas,
+    })),
     p_idempotencia: idempotencia,
   });
   btn.disabled = false; btn.textContent = 'Lançar pedido';
@@ -11778,8 +11943,8 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
       if(mesaAtualizada) barMesaAtual = mesaAtualizada;
     }
   }
-  $('bar-mesa-item-obs').value = '';
-  $('bar-mesa-item-qtd').value = 1;
+  barMesaCarrinho = [];
+  renderCarrinhoMesa();
   $('bar-mesa-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
   await atualizarSaldoEItensMesa();
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
