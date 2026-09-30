@@ -1498,17 +1498,6 @@
     .topbar-mini-user-text{ display:none; }
   }
 
-  .greeting h2{
-    font-family: var(--font-display);
-    font-weight:500;
-    font-size: 30px;
-    margin: 0 0 4px;
-  }
-  .greeting p{
-    color: var(--ink-soft);
-    margin: 0 0 32px;
-    font-size:14px;
-  }
 
   .metric-grid{
     display:grid;
@@ -1970,6 +1959,57 @@
     body.bar-imprimindo .bar-ticket-titulo{ text-align:center; font-weight:700; font-size:16px; margin-bottom:6px; }
     body.bar-imprimindo .bar-ticket-hr{ border-top:1px dashed #000; margin:6px 0; }
   }
+
+  /* ===== Central de Relatórios (Fase 1) ===== */
+  .rel-passo-titulo{ font-family:var(--font-display); font-weight:500; font-size:20px; margin:4px 0 2px; }
+  .rel-passo-descricao{ color:var(--ink-soft); font-size:13px; margin:0 0 16px; }
+  .rel-voltar{ display:inline-block; margin-bottom:14px; }
+  .rel-grade-categorias{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
+  .rel-categoria-card{
+    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px;
+    cursor:pointer; text-align:left; font-family:var(--font-body);
+  }
+  .rel-categoria-card:hover{ border-color:var(--florest-blue); }
+  .rel-categoria-card h4{ font-family:var(--font-display); font-weight:600; font-size:16px; margin:0 0 6px; color:var(--ink); }
+  .rel-categoria-card p{ color:var(--ink-soft); font-size:12.5px; margin:0; }
+  .rel-lista-relatorios{ display:flex; flex-direction:column; gap:10px; }
+  .rel-relatorio-item{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px;
+    cursor:pointer; font-family:var(--font-body);
+  }
+  .rel-relatorio-item:hover{ border-color:var(--florest-blue); }
+  .rel-relatorio-item .rel-relatorio-nome{ font-weight:600; font-size:14.5px; color:var(--ink); }
+  .rel-relatorio-item .rel-relatorio-desc{ color:var(--ink-soft); font-size:12.5px; margin-top:2px; }
+  .rel-relatorio-item .rel-relatorio-seta{ color:var(--ink-soft); font-size:20px; }
+  .rel-resultado-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .rel-resultado-header h3{ font-family:var(--font-display); font-weight:600; font-size:19px; margin:0 0 4px; }
+  .rel-resultado-header p{ color:var(--ink-soft); font-size:13px; margin:0; }
+  #rel-resultado-metricas{ margin-bottom:20px; }
+  #rel-resultado-metricas:empty{ display:none; margin:0; }
+  tfoot td{ font-weight:700; border-top:2px solid var(--border); background:var(--florest-bg); }
+
+  .rel-impressao-area{ display:none; }
+  @media print{
+    body.rel-imprimindo > *{ visibility:hidden; }
+    body.rel-imprimindo .rel-impressao-area{
+      display:block !important; visibility:visible; position:absolute; top:0; left:0; width:100%;
+      padding:20px; font-family: Arial, sans-serif; color:#000;
+    }
+    body.rel-imprimindo .rel-impressao-area *{ visibility:visible; }
+    .rel-impressao-area .rel-impressao-titulo{ font-size:18px; font-weight:700; margin:0 0 2px; }
+    .rel-impressao-area .rel-impressao-empresa{ font-size:13px; margin:0 0 10px; }
+    .rel-impressao-area .rel-impressao-meta{ font-size:12px; color:#333; margin:0 0 14px; }
+    .rel-impressao-area .rel-impressao-hr{ border:none; border-top:1px solid #000; margin:0 0 16px; }
+    .rel-impressao-area .metric-grid{ display:flex; gap:24px; flex-wrap:wrap; margin-bottom:14px; }
+    .rel-impressao-area .metric-card{ border:1px solid #000; border-radius:0; padding:8px 14px; background:none; box-shadow:none; }
+    .rel-impressao-area .metric-card-icon{ display:none; }
+    .rel-impressao-area .num{ font-size:16px; font-weight:700; display:block; color:#000; }
+    .rel-impressao-area .label{ font-size:11px; color:#333; }
+    .rel-impressao-area table{ width:100%; border-collapse:collapse; font-size:12px; }
+    .rel-impressao-area th, .rel-impressao-area td{ border-bottom:1px solid #999; padding:5px 6px; text-align:left; }
+    .rel-impressao-area tfoot td{ font-weight:700; border-top:2px solid #000; background:none; }
+  }
 </style>
 </head>
 <body>
@@ -2121,7 +2161,7 @@
   </div>
 </div>
 
-<!-- ===================== APP (DASHBOARD) ===================== -->
+<!-- ===================== APP (ÁREA LOGADA) ===================== -->
 <div id="app-screen" class="hidden">
   <div class="sidebar">
     <div class="sidebar-brand-top">
@@ -2133,7 +2173,6 @@
     </div>
     <div class="sidebar-nav">
       <div class="nav-group-label">ERP</div>
-    <div class="nav-item enabled active" data-view="dashboard" id="nav-dashboard"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6M6 10v9h12v-9"/></svg></span><span class="nav-label">Dashboard</span></div>
     <div class="nav-item enabled" data-view="clientes" id="nav-clientes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 20c.3-2.2 2-3.8 4.2-4"/></svg></span><span class="nav-label">Clientes</span></div>
     <div class="nav-item enabled" data-view="produtos" id="nav-produtos"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z"/><path d="M3.5 7.2v9.5L12 21l8.5-4.3V7.2"/><path d="M12 11.4V21"/></svg></span><span class="nav-label">Produtos</span></div>
     <div class="nav-item enabled" data-view="estoque" id="nav-estoque"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 8l9.5 5 9.5-5L12 3Z"/><path d="M2.5 12.3 12 17.3l9.5-5"/><path d="M2.5 16.3 12 21.3l9.5-5"/></svg></span><span class="nav-label">Estoque</span></div>
@@ -2207,80 +2246,6 @@
     <div id="aviso-sem-acesso" class="hidden" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:32px; text-align:center; margin-top:20px;">
       <h3 style="margin:0 0 8px;">Nenhum módulo liberado para o seu usuário</h3>
       <p style="margin:0; color:var(--ink-soft); font-size:14px;">Peça ao administrador da sua empresa para liberar o seu acesso em “Usuários e Acessos”.</p>
-    </div>
-
-    <!-- ===== VIEW: DASHBOARD ===== -->
-    <div id="view-dashboard">
-      <div class="greeting">
-        <h2 id="greeting-nome">Olá!</h2>
-        <p id="greeting-data" style="margin-bottom:4px;"></p>
-        <p style="margin:0 0 32px; color:var(--ink-soft); font-size:13px;">Bem-vindo ao Florest ERP — seu sistema completo para gerenciar o seu negócio.</p>
-      </div>
-
-      <div class="metric-grid">
-        <div class="metric-card c-teal">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
-          <span class="num" id="metric-clientes">0</span>
-          <span class="label">Clientes cadastrados</span>
-        </div>
-        <div class="metric-card c-accent">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
-          <span class="num" id="metric-produtos">0</span>
-          <span class="label">Produtos cadastrados</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
-          <span class="num" id="metric-vendas-hoje">R$ 0</span>
-          <span class="label">Vendas hoje</span>
-        </div>
-        <div class="metric-card c-danger">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
-          <span class="num" id="metric-estoque-baixo">0</span>
-          <span class="label">Produtos com estoque baixo</span>
-        </div>
-      </div>
-
-      <div class="subsection" style="margin-top:32px;">
-        <div class="subsection-header">
-          <div>
-            <h3>Últimas vendas</h3>
-            <p>As vendas mais recentes registradas no PDV.</p>
-          </div>
-          <button class="link-btn" id="btn-dash-ir-pdv">Abrir PDV</button>
-        </div>
-        <div class="table-card">
-          <div id="dash-vendas-lista"></div>
-          <div id="dash-vendas-empty" class="empty-state hidden">Nenhuma venda registrada ainda.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Contas a pagar — próximos 7 dias</h3>
-            <p>Parcelas de notas de entrada e despesas em aberto, incluindo as vencidas.</p>
-          </div>
-          <button class="link-btn" id="btn-dash-ver-financeiro">Ver financeiro</button>
-        </div>
-        <div class="table-card">
-          <div id="dash-pagar-lista"></div>
-          <div id="dash-pagar-empty" class="empty-state hidden">Nenhuma conta a pagar nos próximos 7 dias.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos com estoque baixo</h3>
-            <p>Produtos que atingiram o estoque mínimo (ou zerados).</p>
-          </div>
-          <button class="link-btn" id="btn-dash-ver-estoque">Ver estoque</button>
-        </div>
-        <div class="table-card">
-          <div id="dash-baixo-lista"></div>
-          <div id="dash-baixo-empty" class="empty-state hidden">Nenhum produto com estoque baixo.</div>
-        </div>
-      </div>
     </div>
 
     <!-- ===== VIEW: CLIENTES ===== -->
@@ -2640,210 +2605,51 @@
     <div id="view-relatorios" class="hidden">
       <div class="view-header">
         <div>
-          <h2>Relatórios</h2>
-          <p>Escolha o período para ver vendas, produtos, clientes e compras. A posição de estoque é sempre a atual.</p>
+          <h2>Central de Relatórios</h2>
+          <p>Escolha uma categoria, depois o relatório e os filtros. O relatório é gerado na tela e pode ser impresso ou salvo em PDF.</p>
         </div>
       </div>
 
-      <div class="search-row" style="align-items:flex-end;">
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>De</label>
-          <input type="date" id="rel-data-inicio">
-        </div>
-        <div class="field" style="margin-bottom:0; flex:none;">
-          <label>Até</label>
-          <input type="date" id="rel-data-fim">
-        </div>
-        <button class="btn-accent" id="btn-aplicar-relatorio">Aplicar filtro</button>
+      <!-- PASSO 1: categorias -->
+      <div id="rel-passo-categorias">
+        <div class="rel-grade-categorias" id="rel-grade-categorias"></div>
       </div>
-      <div id="rel-msg"></div>
 
-      <div class="subsection" style="margin-top:24px;">
-        <div class="subsection-header">
+      <!-- PASSO 2: relatórios da categoria -->
+      <div id="rel-passo-relatorios" class="hidden">
+        <div class="link-btn rel-voltar" id="btn-rel-voltar-categorias">&larr; Categorias</div>
+        <h3 class="rel-passo-titulo" id="rel-categoria-titulo"></h3>
+        <div class="rel-lista-relatorios" id="rel-lista-relatorios"></div>
+      </div>
+
+      <!-- PASSO 3: filtros do relatório escolhido -->
+      <div id="rel-passo-filtros" class="hidden">
+        <div class="link-btn rel-voltar" id="btn-rel-voltar-relatorios">&larr; Relatórios</div>
+        <h3 class="rel-passo-titulo" id="rel-filtro-titulo"></h3>
+        <p class="rel-passo-descricao" id="rel-filtro-descricao"></p>
+        <div class="search-row" style="align-items:flex-end;" id="rel-filtro-campos"></div>
+        <div id="rel-filtro-msg"></div>
+        <button class="btn-accent" id="btn-rel-gerar">Gerar relatório</button>
+      </div>
+
+      <!-- PASSO 4: resultado gerado -->
+      <div id="rel-passo-resultado" class="hidden">
+        <div class="link-btn rel-voltar" id="btn-rel-voltar-filtros">&larr; Filtros</div>
+        <div class="rel-resultado-header">
           <div>
-            <h3>Vendas do período</h3>
-            <p>Total vendido, quantidade de vendas e ticket médio.</p>
+            <h3 id="rel-resultado-titulo"></h3>
+            <p id="rel-resultado-filtros"></p>
           </div>
+          <button class="btn-accent" id="btn-rel-imprimir">Imprimir / Salvar PDF</button>
         </div>
-        <div class="metric-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="metric-card c-teal">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
-            <span class="num" id="rel-vendas-total">R$ 0</span>
-            <span class="label">Total vendido</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
-            <span class="num" id="rel-vendas-qtd">0</span>
-            <span class="label">Vendas realizadas</span>
-          </div>
-          <div class="metric-card c-accent">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
-            <span class="num" id="rel-ticket-medio">R$ 0</span>
-            <span class="label">Ticket médio</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Vendas por forma de pagamento</h3>
-            <p>Distribuição do valor vendido no período.</p>
-          </div>
-        </div>
-        <div class="table-card">
+        <div class="metric-grid" id="rel-resultado-metricas"></div>
+        <div class="table-card" id="rel-resultado-tabela-card">
           <table>
-            <thead>
-              <tr>
-                <th>Forma de pagamento</th>
-                <th>Vendas</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-pagamento-body"></tbody>
+            <thead><tr id="rel-resultado-thead"></tr></thead>
+            <tbody id="rel-resultado-tbody"></tbody>
+            <tfoot id="rel-resultado-tfoot"></tfoot>
           </table>
-          <div id="rel-pagamento-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Vendas por origem</h3>
-            <p>De onde veio cada venda (PDV, Módulo Bar, Pacotes do Módulo Pet). O total bate com "Total vendido" acima — nenhuma venda é contada duas vezes.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Origem</th>
-                <th>Vendas</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-origem-body"></tbody>
-          </table>
-          <div id="rel-origem-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos mais vendidos</h3>
-            <p>Top 10 por quantidade, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Quantidade</th>
-                <th>Total vendido</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-produtos-body"></tbody>
-          </table>
-          <div id="rel-produtos-empty" class="empty-state hidden">Nenhuma venda de produto neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Clientes que mais compraram</h3>
-            <p>Top 10 por valor total gasto, dentro do período.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Nº de compras</th>
-                <th>Total gasto</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-clientes-body"></tbody>
-          </table>
-          <div id="rel-clientes-empty" class="empty-state hidden">Nenhuma venda neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Compras por fornecedor</h3>
-            <p>Notas de entrada lançadas no período (pela data de emissão), agrupadas por fornecedor.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Fornecedor</th>
-                <th>Notas</th>
-                <th>Total comprado</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-fornecedores-body"></tbody>
-          </table>
-          <div id="rel-fornecedores-empty" class="empty-state hidden">Nenhuma nota de entrada neste período.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Posição do estoque</h3>
-            <p>Situação atual de todos os produtos cadastrados.</p>
-          </div>
-        </div>
-        <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
-          <div class="metric-card">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
-            <span class="num" id="rel-estoque-produtos">0</span>
-            <span class="label">Produtos cadastrados</span>
-          </div>
-          <div class="metric-card c-teal">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
-            <span class="num" id="rel-estoque-custo">R$ 0</span>
-            <span class="label">Estoque a preço de custo</span>
-          </div>
-          <div class="metric-card c-accent">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M16.8 6.8c0-1.8-2.1-2.8-4.8-2.8s-4.8 1.2-4.8 2.8 1.9 2.4 4.8 2.9 4.8 1.3 4.8 3-2.1 3-4.8 3-4.8-.9-4.8-2.6"/></svg></span>
-            <span class="num" id="rel-estoque-venda">R$ 0</span>
-            <span class="label">Estoque a preço de venda</span>
-          </div>
-          <div class="metric-card c-danger">
-            <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
-            <span class="num" id="rel-estoque-baixo">0</span>
-            <span class="label">Com estoque baixo</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-header">
-          <div>
-            <h3>Produtos com estoque baixo</h3>
-            <p>Até 30 produtos, dos mais críticos para os menos.</p>
-          </div>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Estoque</th>
-                <th>Mínimo</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-rel-baixo-body"></tbody>
-          </table>
-          <div id="rel-baixo-empty" class="empty-state hidden">Nenhum produto com estoque baixo.</div>
+          <div id="rel-resultado-empty" class="empty-state hidden">Nenhum dado encontrado para os filtros escolhidos.</div>
         </div>
       </div>
     </div>
@@ -4467,6 +4273,9 @@
 <!-- Página de impressão do ticket (operacional, não fiscal) — só visível durante window.print() -->
 <div id="bar-ticket-impressao" class="bar-ticket-impressao"></div>
 
+<!-- Página de impressão da Central de Relatórios — só visível durante window.print() -->
+<div id="rel-impressao-area" class="rel-impressao-area"></div>
+
 <script type="text/plain" id="importador-src">
 /* =====================================================================
    importador.js — Importador de planilhas (Excel .xlsx/.xls e CSV)
@@ -5392,7 +5201,6 @@ const recursos = { estoqueMinimo: false, categoria: false };
 // `podeAcessar`) — a mesma checagem em duas camadas que o próprio banco já aplica via RLS
 // (private.perm_alguma + private.empresa_tem_modulo, Migrations 006/007).
 const MODULOS_ACESSO = [
-  { k: 'dashboard',     view: 'dashboard',     rotulo: 'Dashboard' },
   { k: 'clientes',      view: 'clientes',      rotulo: 'Clientes' },
   { k: 'produtos',      view: 'produtos',      rotulo: 'Produtos' },
   { k: 'estoque',       view: 'estoque',       rotulo: 'Estoque' },
@@ -5750,8 +5558,6 @@ function mostrarApp({ nomeEmpresa, nomeResponsavel, email }){
   const inicial = (nomeEmpresa || '?').trim().charAt(0).toUpperCase() || '?';
   $('sidebar-avatar-inicial').textContent = inicial;
   $('topbar-avatar-inicial').textContent = inicial;
-  $('greeting-nome').textContent = 'Olá, ' + (nomeResponsavel || 'bem-vindo') + '!';
-  $('greeting-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   authScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
 }
@@ -5846,15 +5652,12 @@ async function carregarPerfilEMostrarApp(userId, email){
   await detectarRecursos();
   await carregarModulosComerciais();   // empresa_modulos (ex.: Módulo Pet) — sempre lido do banco, nunca de cache local
   aplicarAcessoNaTela();
-  irParaTelaInicial();   // proprietário: Dashboard (como antes); funcionário: primeiro módulo liberado (só PDV = direto no caixa)
+  irParaTelaInicial();   // abre sempre o primeiro módulo liberado ao usuário (Dashboard removido — não é mais tela de entrada; só PDV = direto no caixa)
 }
 
 // ---------- Aplicar o acesso na tela ----------
 function aplicarAcessoNaTela(){
   MODULOS_ACESSO.forEach(m => $('nav-' + m.view).classList.toggle('hidden', !podeAcessar(m.k)));
-  $('btn-dash-ver-financeiro').closest('.subsection').classList.toggle('hidden', !podeAcessar('financeiro'));
-  $('btn-dash-ir-pdv').classList.toggle('hidden', !podeAcessar('pdv'));
-  $('btn-dash-ver-estoque').classList.toggle('hidden', !podeAcessar('estoque'));
   // Seção inteira de cada módulo comercial (rótulo "MÓDULO PET" + itens): some junto quando a
   // empresa não tem o módulo contratado, nunca deixando um título "órfão" sem nenhum item visível
   // (os itens dentro dela já são individualmente controlados pela permissão do usuário, acima).
@@ -5865,7 +5668,7 @@ function aplicarAcessoNaTela(){
 }
 
 function primeiroModuloPermitido(exceto){
-  const ordem = ['dashboard', 'pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios'];
+  const ordem = ['pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios'];
   const k = ordem.find(m => m !== exceto && podeAcessar(m));
   return k ? MODULOS_ACESSO.find(m => m.k === k).view : null;
 }
@@ -7085,7 +6888,6 @@ $('btn-concluir-com-sessao').addEventListener('click', async () => {
 
 // ---------- Navegação entre módulos ----------
 const CARREGADORES_VIEW = {
-  'dashboard': () => carregarDashboard(),
   'clientes': () => carregarClientes(),
   'produtos': () => carregarProdutos(1),
   'estoque': () => carregarEstoque(1),
@@ -7094,7 +6896,7 @@ const CARREGADORES_VIEW = {
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => carregarFinanceiro(),
   'fiscal': () => carregarFiscal(),
-  'relatorios': () => prepararRelatorios(),
+  'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); },
   'usuarios': () => carregarUsuarios(),
   // ---- Módulo comercial: PET ----
@@ -7117,71 +6919,6 @@ function abrirView(view){
 document.querySelectorAll('.nav-item.enabled').forEach(item => {
   item.addEventListener('click', () => abrirView(item.dataset.view));
 });
-
-$('btn-dash-ir-pdv').addEventListener('click', () => $('nav-pdv').click());
-$('btn-dash-ver-financeiro').addEventListener('click', () => $('nav-financeiro').click());
-$('btn-dash-ver-estoque').addEventListener('click', () => $('nav-estoque').click());
-
-// ---------- Dashboard ----------
-function carregarDashboard(){
-  atualizarMetricaClientes();
-  atualizarMetricaProdutos();
-  atualizarMetricaVendasHoje();
-  atualizarMetricaEstoqueBaixo();
-  carregarUltimasVendas();
-  carregarContasPagarWidget();
-}
-
-async function atualizarMetricaProdutos(){
-  const { count, error } = await supabase.from('produtos').select('id', { count: 'exact', head: true });
-  if(!error && typeof count === 'number') $('metric-produtos').textContent = count.toLocaleString('pt-BR');
-}
-
-function itemDeLista(titulo, sub, badgeHtml){
-  return `<div class="lista-item"><div class="lista-info"><div class="lista-titulo">${titulo}</div><div class="lista-sub">${sub}</div></div>${badgeHtml || ''}</div>`;
-}
-
-async function carregarUltimasVendas(){
-  const lista = $('dash-vendas-lista');
-  const vazio = $('dash-vendas-empty');
-  const { data, error } = await supabase
-    .from('vendas')
-    .select('id, numero_venda, total, forma_pagamento, criado_em, clientes(nome)')
-    .is('cancelada_em', null)
-    .order('criado_em', { ascending: false })
-    .limit(5);
-  if(error){ console.error(error); return; }
-  lista.innerHTML = (data || []).map(v => itemDeLista(
-    `Venda #${escapeHtml(v.numero_venda ?? '—')} — ${formatarReais(v.total)}`,
-    `${new Date(v.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${escapeHtml(v.clientes ? v.clientes.nome : 'Cliente não identificado')}${v.forma_pagamento ? ' · ' + escapeHtml(v.forma_pagamento) : ''}`
-  )).join('');
-  vazio.classList.toggle('hidden', (data || []).length > 0);
-}
-
-async function carregarContasPagarWidget(){
-  const lista = $('dash-pagar-lista');
-  const vazio = $('dash-pagar-empty');
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const limite = new Date(hoje); limite.setDate(limite.getDate() + 7);
-  const { data, error } = await supabase
-    .from('despesas')
-    .select('id, descricao, valor, vencimento, status')
-    .or('status.is.null,status.neq.pago')
-    .not('vencimento', 'is', null)
-    .lte('vencimento', dataLocalISO(limite))
-    .order('vencimento', { ascending: true })
-    .limit(10);
-  if(error){ console.error(error); return; }
-  lista.innerHTML = (data || []).map(d => {
-    const venc = new Date(d.vencimento + 'T00:00:00');
-    const dias = Math.round((venc - hoje) / 86400000);
-    const badge = dias < 0
-      ? `<span class="status-badge status-baixo">Vencida há ${Math.abs(dias)} dia(s)</span>`
-      : `<span class="status-badge status-aviso2">${dias === 0 ? 'Vence hoje' : 'Em ' + dias + ' dia(s)'}</span>`;
-    return itemDeLista(escapeHtml(d.descricao || 'Conta a pagar'), `${formatarReais(d.valor)} · vencimento ${venc.toLocaleDateString('pt-BR')}`, badge);
-  }).join('');
-  vazio.classList.toggle('hidden', (data || []).length > 0);
-}
 
 // ---------- Menu mobile (hambúrguer) ----------
 function abrirMenuMobile(){
@@ -7255,15 +6992,6 @@ $('busca-cliente').addEventListener('input', (e) => {
     (c.telefone || '').toLowerCase().includes(termo));
   renderClientes(filtrado);
 });
-
-async function atualizarMetricaClientes(){
-  const { count, error } = await supabase
-    .from('clientes')
-    .select('id', { count: 'exact', head: true });
-  if(!error && typeof count === 'number'){
-    $('metric-clientes').textContent = count;
-  }
-}
 
 // ---------- Modal de cliente ----------
 function abrirModalCliente(cliente){
@@ -7346,7 +7074,6 @@ $('form-cliente').addEventListener('submit', async (e) => {
 
   fecharModalCliente();
   carregarClientes();
-  atualizarMetricaClientes();
 });
 
 // ---------- Produtos ----------
@@ -7710,8 +7437,6 @@ function configImportacaoProdutos(){
     },
     aoConcluir: () => {
       if(!$('view-produtos').classList.contains('hidden')) carregarProdutos(1);
-      atualizarMetricaProdutos();
-      atualizarMetricaEstoqueBaixo();
     },
   };
 }
@@ -7811,42 +7536,6 @@ $('busca-estoque').addEventListener('input', debounce((e) => {
 }, 250));
 $('estoque-so-baixo').addEventListener('change', () => carregarEstoque(1));
 
-// Atualiza o cartão "estoque baixo" e a lista do Dashboard.
-async function atualizarMetricaEstoqueBaixo(){
-  let baixos;
-  if(!recursos.estoqueMinimo){
-    const { count, error } = await supabase
-      .from('produtos')
-      .select('id', { count: 'exact', head: true })
-      .lte('quantidade_estoque', LIMITE_ESTOQUE_BAIXO_LEGADO);
-    if(error) return;
-    $('metric-estoque-baixo').textContent = count ?? 0;
-    const { data } = await supabase.from('produtos').select(colunasEstoque()).lte('quantidade_estoque', LIMITE_ESTOQUE_BAIXO_LEGADO).order('quantidade_estoque', { ascending: true }).limit(8);
-    baixos = data || [];
-    renderEstoqueBaixoDashboard(baixos);
-    return;
-  }
-  const { data, error } = await buscarTodos(() =>
-    supabase.from('produtos').select(colunasEstoque()).order('id', { ascending: true }));
-  if(error){ console.error(error); return; }
-  baixos = data.filter(p => situacaoEstoque(p) !== 'ok');
-  $('metric-estoque-baixo').textContent = baixos.length.toLocaleString('pt-BR');
-  baixos.sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
-  renderEstoqueBaixoDashboard(baixos.slice(0, 8));
-}
-
-function renderEstoqueBaixoDashboard(lista){
-  $('dash-baixo-lista').innerHTML = lista.map(p => {
-    const situacao = situacaoEstoque(p);
-    return itemDeLista(
-      escapeHtml(p.nome),
-      `Estoque: ${formatarQuantidade(p.quantidade_estoque)}${recursos.estoqueMinimo && p.estoque_minimo ? ' · mínimo: ' + formatarQuantidade(p.estoque_minimo) : ''}`,
-      `<span class="status-badge status-baixo">${situacao === 'zerado' ? 'Sem estoque' : 'Estoque baixo'}</span>`
-    );
-  }).join('');
-  $('dash-baixo-empty').classList.toggle('hidden', lista.length > 0);
-}
-
 function abrirModalEstoque(produto){
   $('estoque-msg').innerHTML = '';
   $('estoque-produto-id').value = produto.id;
@@ -7895,7 +7584,6 @@ $('form-estoque').addEventListener('submit', async (e) => {
 
   fecharModalEstoque();
   carregarEstoque(estoquePagina);
-  atualizarMetricaEstoqueBaixo();
 });
 
 // ---------- PDV ----------
@@ -8458,8 +8146,6 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   $('pdv-desconto').value = '0';
   pdxResetPreview();
   renderCarrinho();
-  atualizarMetricaVendasHoje();
-  atualizarMetricaEstoqueBaixo();
   $('pdv-busca-produto').focus();
 
   if(vendaId && numeroVenda){
@@ -9104,22 +8790,6 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
   }, 1500);
 });
 
-async function atualizarMetricaVendasHoje(){
-  const inicioHoje = new Date();
-  inicioHoje.setHours(0,0,0,0);
-
-  const { data, error } = await supabase
-    .from('vendas')
-    .select('total')
-    .gte('criado_em', inicioHoje.toISOString())
-    .is('cancelada_em', null);
-
-  if(error) return;
-
-  const total = (data || []).reduce((soma, v) => soma + Number(v.total), 0);
-  $('metric-vendas-hoje').textContent = formatarReais(total);
-}
-
 // ---------- Financeiro ----------
 let periodoFinanceiroAtual = 'hoje';
 
@@ -9296,57 +8966,349 @@ $('form-despesa').addEventListener('submit', async (e) => {
 });
 
 // ---------- Relatórios ----------
-function prepararRelatorios(){
-  if(!$('rel-data-inicio').value){
-    const hoje = new Date();
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    $('rel-data-inicio').value = dataLocalISO(inicioMes);
-    $('rel-data-fim').value = dataLocalISO(hoje);
-  }
-  carregarRelatorios();
+// A Central de Relatórios é orientada por um catálogo (categoria → lista de relatórios).
+// Cada relatório é uma função `gerar(filtros)` pequena que devolve um resultado padronizado
+// ({ titulo, metricas?, colunas?, linhas?, totalizadores? }) — a mesma tela de resultado e a
+// mesma função de impressão servem para todos, sem duplicar HTML por relatório. Todas as
+// consultas abaixo reaproveitam exatamente as mesmas tabelas/colunas que a tela de Relatórios
+// já usava (ver relatório de auditoria da Fase 1) — nenhuma tabela, coluna ou RPC nova.
+let relCategoriaAtual = null;
+let relRelatorioAtual = null;
+let relUltimoResultado = null;
+
+const CATALOGO_CATEGORIAS = [
+  { chave: 'vendas', titulo: 'Vendas', descricao: 'Faturamento, formas de pagamento, origem e produtos vendidos.' },
+  { chave: 'financeiro', titulo: 'Financeiro', descricao: 'Receitas, despesas e saldo do período.' },
+  { chave: 'fiscal', titulo: 'Fiscal', descricao: 'Documentos fiscais emitidos, por situação e por tipo.' },
+  { chave: 'estoque', titulo: 'Estoque', descricao: 'Posição atual do estoque e produtos com estoque baixo.' },
+  { chave: 'produtos', titulo: 'Produtos', descricao: 'Cadastro de produtos e mais vendidos.' },
+  { chave: 'clientes', titulo: 'Clientes', descricao: 'Cadastro de clientes e quem mais comprou.' },
+  { chave: 'fornecedores', titulo: 'Fornecedores/Compras', descricao: 'Cadastro de fornecedores e compras por fornecedor.' },
+  { chave: 'notas_entrada', titulo: 'Notas de Entrada', descricao: 'Notas de entrada por período, por fornecedor e seus itens.' },
+  { chave: 'bar', titulo: 'Bar', descricao: 'Produtos mais vendidos, faturamento e pedidos lançados no Módulo Bar.' },
+];
+
+const CATALOGO_RELATORIOS = {
+  vendas: [
+    { id: 'vendas_periodo', titulo: 'Vendas do período', descricao: 'Total vendido, quantidade de vendas e ticket médio.', filtros: ['periodo'], gerar: relatorioVendasPeriodo },
+    { id: 'vendas_forma_pagamento', titulo: 'Vendas por forma de pagamento', descricao: 'Distribuição do valor vendido por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
+    { id: 'vendas_origem', titulo: 'Vendas por origem', descricao: 'De onde veio cada venda (PDV, Módulo Bar, Pacotes do Módulo Pet).', filtros: ['periodo'], gerar: relatorioVendasOrigem },
+    { id: 'vendas_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
+    { id: 'vendas_clientes_mais_compraram', titulo: 'Clientes que mais compraram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
+  ],
+  financeiro: [
+    { id: 'fin_despesas', titulo: 'Despesas do período', descricao: 'Lançamentos de despesas, com data e categoria.', filtros: ['periodo'], gerar: relatorioDespesasPeriodo },
+    { id: 'fin_receitas', titulo: 'Receitas do período', descricao: 'Total recebido em vendas no período.', filtros: ['periodo'], gerar: relatorioReceitasPeriodo },
+    { id: 'fin_movimento', titulo: 'Movimento financeiro', descricao: 'Receitas menos despesas do período (saldo).', filtros: ['periodo'], gerar: relatorioMovimentoFinanceiro },
+    { id: 'fin_formas_pagamento', titulo: 'Formas de pagamento (receita)', descricao: 'Distribuição das vendas recebidas por forma de pagamento.', filtros: ['periodo'], gerar: relatorioVendasFormaPagamento },
+  ],
+  fiscal: [
+    { id: 'fiscal_emitidos', titulo: 'Documentos emitidos no período', descricao: 'Lista de documentos fiscais emitidos, com venda, cliente e valor.', filtros: ['periodo'], gerar: relatorioFiscalEmitidos },
+    { id: 'fiscal_situacao', titulo: 'Documentos por situação', descricao: 'Quantidade e valor por status (autorizada, rejeitada, cancelada...).', filtros: ['periodo'], gerar: relatorioFiscalPorSituacao },
+    { id: 'fiscal_tipo', titulo: 'Documentos por tipo', descricao: 'Quantidade e valor por tipo (NFC-e, NF-e, NFS-e).', filtros: ['periodo'], gerar: relatorioFiscalPorTipo },
+    { id: 'fiscal_valores', titulo: 'Valores fiscais do período', descricao: 'Total emitido, quantidade de documentos e total autorizado.', filtros: ['periodo'], gerar: relatorioFiscalValores },
+  ],
+  estoque: [
+    { id: 'estoque_posicao', titulo: 'Posição do estoque', descricao: 'Situação atual de todos os produtos cadastrados.', filtros: [], gerar: relatorioEstoquePosicao },
+    { id: 'estoque_baixo', titulo: 'Produtos com estoque baixo', descricao: 'Até 30 produtos abaixo do estoque mínimo, dos mais críticos.', filtros: [], gerar: relatorioEstoqueBaixo },
+  ],
+  produtos: [
+    { id: 'produtos_cadastrados', titulo: 'Produtos cadastrados', descricao: 'Lista de produtos com preço de custo, preço de venda e estoque.', filtros: ['busca'], gerar: relatorioProdutosCadastrados },
+    { id: 'produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
+  ],
+  clientes: [
+    { id: 'clientes_cadastrados', titulo: 'Clientes cadastrados', descricao: 'Lista de clientes com telefone, e-mail e cidade.', filtros: ['busca'], gerar: relatorioClientesCadastrados },
+    { id: 'clientes_mais_compraram', titulo: 'Clientes que mais compraram', descricao: 'Top 10 clientes por valor total gasto no período.', filtros: ['periodo'], gerar: relatorioClientesMaisCompraram },
+  ],
+  fornecedores: [
+    { id: 'fornecedores_cadastrados', titulo: 'Fornecedores cadastrados', descricao: 'Lista de fornecedores com CNPJ, cidade e telefone.', filtros: ['busca'], gerar: relatorioFornecedoresCadastrados },
+    { id: 'fornecedores_compras', titulo: 'Compras por fornecedor', descricao: 'Notas de entrada do período, agrupadas por fornecedor.', filtros: ['periodo'], gerar: relatorioComprasPorFornecedor },
+  ],
+  notas_entrada: [
+    { id: 'notas_entrada_periodo', titulo: 'Notas de entrada do período', descricao: 'Notas de entrada lançadas, pela data de emissão.', filtros: ['periodo'], gerar: relatorioNotasEntradaPeriodo },
+    { id: 'notas_por_fornecedor', titulo: 'Notas por fornecedor', descricao: 'Notas de entrada de um fornecedor específico (ou de todos), no período.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasPorFornecedor },
+    { id: 'notas_entrada_itens', titulo: 'Itens das notas de entrada', descricao: 'Todos os itens lançados nas notas de entrada do período, com totais.', filtros: ['periodo', 'fornecedor'], gerar: relatorioNotasEntradaItens },
+  ],
+  bar: [
+    { id: 'bar_produtos_mais_vendidos', titulo: 'Produtos mais vendidos no Bar', descricao: 'Top produtos por quantidade lançada em pedidos do Bar, no período.', filtros: ['periodo'], gerar: relatorioBarProdutosMaisVendidos },
+    { id: 'bar_faturamento_periodo', titulo: 'Faturamento do Bar por período', descricao: 'Valor dos itens lançados em pedidos do Bar (não estornados), no período.', filtros: ['periodo'], gerar: relatorioBarFaturamentoPeriodo },
+    { id: 'bar_pedidos_por_usuario', titulo: 'Pedidos lançados por usuário', descricao: 'Quantidade de pedidos do Bar lançados por cada usuário, no período.', filtros: ['periodo'], gerar: relatorioBarPedidosPorUsuario },
+  ],
+};
+
+function prepararCentralRelatorios(){
+  renderGradeCategoriasRelatorio();
+  mostrarPassoRelatorio('categorias');
 }
 
-$('btn-aplicar-relatorio').addEventListener('click', carregarRelatorios);
-
-function preencherTabelaRel(bodyId, emptyId, linhas){
-  const body = $(bodyId);
-  body.innerHTML = '';
-  $(emptyId).classList.toggle('hidden', linhas.length > 0);
-  linhas.forEach(celulas => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = celulas.map(c => `<td>${c}</td>`).join('');
-    body.appendChild(tr);
+function mostrarPassoRelatorio(passo){
+  ['categorias', 'relatorios', 'filtros', 'resultado'].forEach(p => {
+    $('rel-passo-' + p).classList.toggle('hidden', p !== passo);
   });
 }
 
-async function carregarRelatorios(){
-  const dataInicio = $('rel-data-inicio').value;
-  const dataFim = $('rel-data-fim').value;
-  if(!dataInicio || !dataFim) return;
+function renderGradeCategoriasRelatorio(){
+  const cont = $('rel-grade-categorias');
+  cont.innerHTML = '';
+  CATALOGO_CATEGORIAS.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'rel-categoria-card';
+    div.innerHTML = `<h4>${escapeHtml(cat.titulo)}</h4><p>${escapeHtml(cat.descricao)}</p>`;
+    div.addEventListener('click', () => abrirCategoriaRelatorio(cat.chave));
+    cont.appendChild(div);
+  });
+}
 
-  const inicioISO = new Date(dataInicio + 'T00:00:00').toISOString();
-  const fimISO = new Date(dataFim + 'T23:59:59.999').toISOString();
-  const proximoDia = new Date(dataFim + 'T00:00:00'); proximoDia.setDate(proximoDia.getDate() + 1);
+function abrirCategoriaRelatorio(chave){
+  relCategoriaAtual = chave;
+  const cat = CATALOGO_CATEGORIAS.find(c => c.chave === chave);
+  $('rel-categoria-titulo').textContent = cat ? cat.titulo : '';
+  const cont = $('rel-lista-relatorios');
+  cont.innerHTML = '';
+  (CATALOGO_RELATORIOS[chave] || []).forEach(rel => {
+    const item = document.createElement('div');
+    item.className = 'rel-relatorio-item';
+    item.innerHTML = `<div><div class="rel-relatorio-nome">${escapeHtml(rel.titulo)}</div><div class="rel-relatorio-desc">${escapeHtml(rel.descricao)}</div></div><span class="rel-relatorio-seta">&rsaquo;</span>`;
+    item.addEventListener('click', () => abrirFiltrosRelatorio(rel));
+    cont.appendChild(item);
+  });
+  mostrarPassoRelatorio('relatorios');
+}
 
-  const btn = $('btn-aplicar-relatorio');
+$('btn-rel-voltar-categorias').addEventListener('click', () => mostrarPassoRelatorio('categorias'));
+$('btn-rel-voltar-relatorios').addEventListener('click', () => mostrarPassoRelatorio('relatorios'));
+$('btn-rel-voltar-filtros').addEventListener('click', () => mostrarPassoRelatorio('filtros'));
+
+function abrirFiltrosRelatorio(rel){
+  relRelatorioAtual = rel;
+  $('rel-filtro-titulo').textContent = rel.titulo;
+  $('rel-filtro-descricao').textContent = rel.descricao;
+  $('rel-filtro-msg').innerHTML = '';
+
+  const campos = $('rel-filtro-campos');
+  campos.innerHTML = '';
+  if(rel.filtros.includes('periodo')){
+    const hoje = new Date();
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:none;">
+        <label>De</label>
+        <input type="date" id="rel-filtro-data-inicio" value="${dataLocalISO(inicioMes)}">
+      </div>
+      <div class="field" style="margin-bottom:0; flex:none;">
+        <label>Até</label>
+        <input type="date" id="rel-filtro-data-fim" value="${dataLocalISO(hoje)}">
+      </div>
+    `;
+  }
+  if(rel.filtros.includes('busca')){
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:1; min-width:220px;">
+        <label>Buscar por nome</label>
+        <input type="text" id="rel-filtro-busca" placeholder="Opcional">
+      </div>
+    `;
+  }
+  if(rel.filtros.includes('fornecedor')){
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:1; min-width:220px;">
+        <label>Fornecedor</label>
+        <select id="rel-filtro-fornecedor"><option value="">Todos os fornecedores</option></select>
+      </div>
+    `;
+    popularSelectFornecedoresRelatorio();
+  }
+  if(rel.filtros.length === 0){
+    campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
+  }
+  mostrarPassoRelatorio('filtros');
+}
+
+// Popula o <select> de fornecedores do filtro — mesma tabela/colunas já usadas em "Fornecedores
+// cadastrados". Busca em segundo plano (não trava a tela de filtros); se a tela mudar de relatório
+// antes da resposta chegar, o <select> capturado aqui pode já não estar mais visível, mas
+// preenchê-lo mesmo assim não causa erro nem efeito colateral.
+async function popularSelectFornecedoresRelatorio(){
+  const select = $('rel-filtro-fornecedor');
+  if(!select) return;
+  const { data, error } = await buscarTodos(() => supabase
+    .from('fornecedores')
+    .select('id, razao_social')
+    .order('razao_social', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error) return;
+  (data || []).forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.razao_social;
+    select.appendChild(opt);
+  });
+}
+
+$('btn-rel-gerar').addEventListener('click', gerarRelatorioAtual);
+
+async function gerarRelatorioAtual(){
+  const rel = relRelatorioAtual;
+  if(!rel) return;
+
+  const filtros = {};
+  if(rel.filtros.includes('periodo')){
+    const dataInicio = $('rel-filtro-data-inicio').value;
+    const dataFim = $('rel-filtro-data-fim').value;
+    if(!dataInicio || !dataFim){
+      $('rel-filtro-msg').innerHTML = '<div class="msg error">Informe as duas datas do período.</div>';
+      return;
+    }
+    if(dataInicio > dataFim){
+      $('rel-filtro-msg').innerHTML = '<div class="msg error">A data inicial não pode ser depois da data final.</div>';
+      return;
+    }
+    filtros.dataInicio = dataInicio;
+    filtros.dataFim = dataFim;
+  }
+  if(rel.filtros.includes('busca')){
+    filtros.busca = ($('rel-filtro-busca').value || '').trim();
+  }
+  if(rel.filtros.includes('fornecedor')){
+    const selectFornecedor = $('rel-filtro-fornecedor');
+    filtros.fornecedorId = selectFornecedor.value || null;
+    filtros.fornecedorNome = filtros.fornecedorId ? selectFornecedor.options[selectFornecedor.selectedIndex].textContent : null;
+  }
+
+  const btn = $('btn-rel-gerar');
   btn.disabled = true;
-  $('rel-msg').innerHTML = '';
+  $('rel-filtro-msg').innerHTML = '';
   try {
-    await Promise.all([
-      relVendasEClientes(inicioISO, fimISO),
-      relProdutosMaisVendidos(inicioISO, fimISO),
-      relComprasPorFornecedor(dataInicio, dataLocalISO(proximoDia)),
-      relPosicaoEstoque(),
-    ]);
+    const resultado = await rel.gerar(filtros);
+    relUltimoResultado = { rel, filtros, resultado };
+    renderizarResultadoRelatorio(rel, filtros, resultado);
+    mostrarPassoRelatorio('resultado');
   } catch(err){
     console.error(err);
-    $('rel-msg').innerHTML = `<div class="msg error">Não foi possível carregar todos os relatórios: ${escapeHtml(err.message || err)}</div>`;
+    $('rel-filtro-msg').innerHTML = `<div class="msg error">Não foi possível gerar o relatório: ${escapeHtml(err.message || err)}</div>`;
   } finally {
     btn.disabled = false;
   }
 }
 
-async function relVendasEClientes(inicioISO, fimISO){
+function descreverFiltrosRelatorio(rel, filtros){
+  const partes = [];
+  if(rel.filtros.includes('periodo')){
+    partes.push(`Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`);
+  }
+  if(rel.filtros.includes('busca') && filtros.busca){
+    partes.push(`Busca: "${filtros.busca}"`);
+  }
+  if(rel.filtros.includes('fornecedor')){
+    partes.push(`Fornecedor: ${filtros.fornecedorNome || 'Todos'}`);
+  }
+  return partes.length ? partes.join(' · ') : 'Sem filtros';
+}
+
+function renderizarResultadoRelatorio(rel, filtros, resultado){
+  $('rel-resultado-titulo').textContent = resultado.titulo || rel.titulo;
+  $('rel-resultado-filtros').textContent = descreverFiltrosRelatorio(rel, filtros);
+
+  const metricasCont = $('rel-resultado-metricas');
+  metricasCont.innerHTML = '';
+  if(resultado.metricas && resultado.metricas.length){
+    metricasCont.style.display = 'grid';
+    metricasCont.style.gridTemplateColumns = `repeat(${resultado.metricas.length}, 1fr)`;
+    resultado.metricas.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'metric-card';
+      div.innerHTML = `<span class="num">${escapeHtml(m.valor)}</span><span class="label">${escapeHtml(m.label)}</span>`;
+      metricasCont.appendChild(div);
+    });
+  } else {
+    metricasCont.style.display = 'none';
+  }
+
+  const tabelaCard = $('rel-resultado-tabela-card');
+  const thead = $('rel-resultado-thead');
+  const tbody = $('rel-resultado-tbody');
+  const tfoot = $('rel-resultado-tfoot');
+  const empty = $('rel-resultado-empty');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+  tfoot.innerHTML = '';
+
+  if(resultado.colunas && resultado.colunas.length){
+    tabelaCard.classList.remove('hidden');
+    thead.innerHTML = resultado.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('');
+    const linhas = resultado.linhas || [];
+    empty.classList.toggle('hidden', linhas.length > 0);
+    linhas.forEach(linha => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = linha.map(c => `<td>${c}</td>`).join('');
+      tbody.appendChild(tr);
+    });
+    if(resultado.totalizadores){
+      const tr = document.createElement('tr');
+      tr.innerHTML = resultado.totalizadores.map(c => `<td>${c}</td>`).join('');
+      tfoot.appendChild(tr);
+    }
+  } else {
+    tabelaCard.classList.add('hidden');
+  }
+}
+
+// ---------- Impressão / Salvar PDF (Central de Relatórios) ----------
+async function obterNomeEmpresaImpressaoRelatorio(){
+  try {
+    const empresaId = await obterEmpresaId();
+    const { data } = await supabase
+      .from('configuracoes_fiscais')
+      .select('razao_social, nome_fantasia')
+      .eq('empresa_id', empresaId)
+      .maybeSingle();
+    if(data && (data.nome_fantasia || data.razao_social)) return data.nome_fantasia || data.razao_social;
+  } catch(err){
+    console.warn('Não foi possível obter o nome da empresa para o cabeçalho de impressão.', err);
+  }
+  return 'Florest ERP';
+}
+
+$('btn-rel-imprimir').addEventListener('click', imprimirRelatorioAtual);
+
+async function imprimirRelatorioAtual(){
+  if(!relUltimoResultado) return;
+  const { rel, filtros, resultado } = relUltimoResultado;
+  const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
+  const agora = new Date().toLocaleString('pt-BR');
+
+  let html = `
+    <div class="rel-impressao-titulo">${escapeHtml(resultado.titulo || rel.titulo)}</div>
+    <div class="rel-impressao-empresa">${escapeHtml(nomeEmpresa)}</div>
+    <div class="rel-impressao-meta">${escapeHtml(descreverFiltrosRelatorio(rel, filtros))} · Gerado em ${escapeHtml(agora)}</div>
+    <hr class="rel-impressao-hr">
+  `;
+  if(resultado.metricas && resultado.metricas.length){
+    html += '<div class="metric-grid">' + resultado.metricas.map(m =>
+      `<div class="metric-card"><span class="num">${escapeHtml(m.valor)}</span><span class="label">${escapeHtml(m.label)}</span></div>`
+    ).join('') + '</div>';
+  }
+  if(resultado.colunas && resultado.colunas.length){
+    html += '<table><thead><tr>' + resultado.colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+    html += (resultado.linhas || []).map(linha => '<tr>' + linha.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+    html += '</tbody>';
+    if(resultado.totalizadores){
+      html += '<tfoot><tr>' + resultado.totalizadores.map(c => `<td>${c}</td>`).join('') + '</tr></tfoot>';
+    }
+    html += '</table>';
+  }
+
+  $('rel-impressao-area').innerHTML = html;
+  document.body.classList.add('rel-imprimindo');
+  window.print();
+}
+window.addEventListener('afterprint', () => document.body.classList.remove('rel-imprimindo'));
+
+// ---------- Geradores de relatório (um por item do catálogo acima) ----------
+
+async function buscarVendasPeriodoRelatorio(filtros){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
   const { data, error } = await buscarTodos(() => supabase
     .from('vendas')
     .select('id, total, forma_pagamento, tipo, cliente_id, criado_em, clientes(nome)')
@@ -9356,20 +9318,29 @@ async function relVendasEClientes(inicioISO, fimISO){
     .order('criado_em', { ascending: true })
     .order('id', { ascending: true }));
   if(error) throw error;
+  return data || [];
+}
 
-  const vendas = data || [];
+async function relatorioVendasPeriodo(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
   const total = vendas.reduce((s, v) => s + Number(v.total), 0);
-  $('rel-vendas-total').textContent = formatarReais(total);
-  $('rel-vendas-qtd').textContent = vendas.length.toLocaleString('pt-BR');
-  $('rel-ticket-medio').textContent = formatarReais(vendas.length ? total / vendas.length : 0);
+  return {
+    titulo: 'Vendas do período',
+    metricas: [
+      { label: 'Total vendido', valor: formatarReais(total) },
+      { label: 'Vendas realizadas', valor: vendas.length.toLocaleString('pt-BR') },
+      { label: 'Ticket médio', valor: formatarReais(vendas.length ? total / vendas.length : 0) },
+    ],
+  };
+}
 
-  // "dividido" (fechamento de conta do Bar com mais de uma forma de pagamento — ver
-  // bar_comanda_pagar) não é uma forma de pagamento de verdade: para não perder a distribuição
-  // real (ex.: R$50 dinheiro + R$100 Pix + R$50 cartão), busca o detalhamento em
-  // bar_pagamentos_formas e soma cada forma no seu próprio balde, em vez de um balde genérico
-  // "dividido". A contagem de "Vendas" por forma continua contando só vendas de forma única —
-  // contar a mesma venda dividida em 2-3 formas ao mesmo tempo infla a contagem sem necessidade;
-  // o que importa aqui é o Total.
+async function relatorioVendasFormaPagamento(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
+
+  // "dividido" (fechamento de conta do Bar com mais de uma forma de pagamento) não é uma forma
+  // de pagamento de verdade: para não perder a distribuição real, busca o detalhamento em
+  // bar_pagamentos_formas e soma cada forma no seu próprio balde — mesma lógica que a tela de
+  // Relatórios já usava antes desta reorganização (apenas leitura, nada do Módulo Bar é alterado).
   const porForma = {};
   const vendasDivididasIds = [];
   vendas.forEach(v => {
@@ -9390,13 +9361,20 @@ async function relVendasEClientes(inicioISO, fimISO){
       porForma[chave].total += Number(f.valor);
     });
   }
-  preencherTabelaRel('tabela-rel-pagamento-body', 'rel-pagamento-empty',
-    Object.entries(porForma).sort((a, b) => b[1].total - a[1].total)
-      .map(([forma, d]) => [escapeHtml(forma), d.qtd, formatarReais(d.total)]));
+  const linhas = Object.entries(porForma).sort((a, b) => b[1].total - a[1].total);
+  const total = linhas.reduce((s, [, d]) => s + d.total, 0);
+  return {
+    titulo: 'Vendas por forma de pagamento',
+    colunas: ['Forma de pagamento', 'Vendas', 'Total'],
+    linhas: linhas.map(([forma, d]) => [escapeHtml(forma), d.qtd, formatarReais(d.total)]),
+    totalizadores: ['Total', '', formatarReais(total)],
+  };
+}
 
+async function relatorioVendasOrigem(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
   // Origem/canal da venda: reaproveita public.vendas.tipo (mesmo campo que vender_pacote_produto
-  // já usa com 'pacote_novo' — nenhuma coluna nova). tipo=null continua sendo PDV (comportamento
-  // de sempre, sem mudança nenhuma para vendas que não vieram do Bar nem de um Pacote).
+  // já usa com 'pacote_novo') — nenhuma coluna nova. tipo=null continua sendo PDV.
   const porOrigem = {};
   vendas.forEach(v => {
     const chave = v.tipo === 'bar' ? 'Módulo Bar' : v.tipo === 'pacote_novo' ? 'Pacotes (Módulo Pet)' : 'PDV';
@@ -9404,25 +9382,19 @@ async function relVendasEClientes(inicioISO, fimISO){
     porOrigem[chave].qtd += 1;
     porOrigem[chave].total += Number(v.total);
   });
-  preencherTabelaRel('tabela-rel-origem-body', 'rel-origem-empty',
-    Object.entries(porOrigem).sort((a, b) => b[1].total - a[1].total)
-      .map(([origem, d]) => [escapeHtml(origem), d.qtd, formatarReais(d.total)]));
-
-  const porCliente = {};
-  vendas.forEach(v => {
-    const chave = v.cliente_id || 'sem-cliente';
-    const nome = v.clientes ? v.clientes.nome : 'Não identificado';
-    porCliente[chave] = porCliente[chave] || { nome, total: 0, qtd: 0 };
-    porCliente[chave].total += Number(v.total);
-    porCliente[chave].qtd += 1;
-  });
-  preencherTabelaRel('tabela-rel-clientes-body', 'rel-clientes-empty',
-    Object.values(porCliente).sort((a, b) => b.total - a.total).slice(0, 10)
-      .map(c => [escapeHtml(c.nome), c.qtd, formatarReais(c.total)]));
+  const linhas = Object.entries(porOrigem).sort((a, b) => b[1].total - a[1].total);
+  const total = linhas.reduce((s, [, d]) => s + d.total, 0);
+  return {
+    titulo: 'Vendas por origem',
+    colunas: ['Origem', 'Vendas', 'Total'],
+    linhas: linhas.map(([origem, d]) => [escapeHtml(origem), d.qtd, formatarReais(d.total)]),
+    totalizadores: ['Total', '', formatarReais(total)],
+  };
 }
 
-async function relProdutosMaisVendidos(inicioISO, fimISO){
-  // filtra os itens pela data da venda direto no servidor (sem montar lista gigante de ids)
+async function relatorioProdutosMaisVendidos(filtros){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
   const { data, error } = await buscarTodos(() => supabase
     .from('itens_venda')
     .select('quantidade, subtotal, produto_id, produtos(nome), vendas!inner(criado_em, cancelada_em)')
@@ -9439,17 +9411,264 @@ async function relProdutosMaisVendidos(inicioISO, fimISO){
     porProduto[chave].quantidade += Number(item.quantidade);
     porProduto[chave].total += Number(item.subtotal);
   });
-  preencherTabelaRel('tabela-rel-produtos-body', 'rel-produtos-empty',
-    Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10)
-      .map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]));
+  const top = Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10);
+  return {
+    titulo: 'Produtos mais vendidos',
+    colunas: ['Produto', 'Quantidade', 'Total vendido'],
+    linhas: top.map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]),
+  };
 }
 
-async function relComprasPorFornecedor(dataInicio, diaSeguinte){
+async function relatorioClientesMaisCompraram(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
+  const porCliente = {};
+  vendas.forEach(v => {
+    const chave = v.cliente_id || 'sem-cliente';
+    const nome = v.clientes ? v.clientes.nome : 'Não identificado';
+    porCliente[chave] = porCliente[chave] || { nome, total: 0, qtd: 0 };
+    porCliente[chave].total += Number(v.total);
+    porCliente[chave].qtd += 1;
+  });
+  const top = Object.values(porCliente).sort((a, b) => b.total - a.total).slice(0, 10);
+  return {
+    titulo: 'Clientes que mais compraram',
+    colunas: ['Cliente', 'Nº de compras', 'Total gasto'],
+    linhas: top.map(c => [escapeHtml(c.nome), c.qtd, formatarReais(c.total)]),
+  };
+}
+
+async function relatorioDespesasPeriodo(filtros){
+  const { data, error } = await buscarTodos(() => supabase
+    .from('despesas')
+    .select('id, descricao, categoria, valor, data')
+    .gte('data', filtros.dataInicio)
+    .lte('data', filtros.dataFim)
+    .order('data', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error) throw error;
+
+  const despesas = data || [];
+  const total = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  return {
+    titulo: 'Despesas do período',
+    colunas: ['Data', 'Descrição', 'Categoria', 'Valor'],
+    linhas: despesas.map(d => [formatarDataBR(d.data), escapeHtml(d.descricao), escapeHtml(d.categoria || '—'), formatarReais(d.valor)]),
+    totalizadores: ['', '', 'Total', formatarReais(total)],
+  };
+}
+
+async function relatorioReceitasPeriodo(filtros){
+  const vendas = await buscarVendasPeriodoRelatorio(filtros);
+  const total = vendas.reduce((s, v) => s + Number(v.total), 0);
+  return {
+    titulo: 'Receitas do período',
+    metricas: [
+      { label: 'Total recebido', valor: formatarReais(total) },
+      { label: 'Vendas realizadas', valor: vendas.length.toLocaleString('pt-BR') },
+    ],
+  };
+}
+
+async function relatorioMovimentoFinanceiro(filtros){
+  const [vendas, despesasResp] = await Promise.all([
+    buscarVendasPeriodoRelatorio(filtros),
+    buscarTodos(() => supabase.from('despesas').select('valor').gte('data', filtros.dataInicio).lte('data', filtros.dataFim)),
+  ]);
+  if(despesasResp.error) throw despesasResp.error;
+
+  const totalReceitas = vendas.reduce((s, v) => s + Number(v.total), 0);
+  const totalDespesas = (despesasResp.data || []).reduce((s, d) => s + Number(d.valor), 0);
+  const saldo = totalReceitas - totalDespesas;
+  return {
+    titulo: 'Movimento financeiro',
+    metricas: [
+      { label: 'Receitas', valor: formatarReais(totalReceitas) },
+      { label: 'Despesas', valor: formatarReais(totalDespesas) },
+      { label: 'Saldo', valor: formatarReais(saldo) },
+    ],
+  };
+}
+
+async function buscarDocumentosFiscaisPeriodo(filtros, colunas){
+  const empresaId = await obterEmpresaId();
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('documentos_fiscais')
+    .select(colunas)
+    .eq('empresa_id', empresaId)
+    .gte('created_at', inicioISO)
+    .lte('created_at', fimISO)
+    .order('created_at', { ascending: false }));
+  if(error) throw error;
+  return data || [];
+}
+
+async function relatorioFiscalEmitidos(filtros){
+  const lista = await buscarDocumentosFiscaisPeriodo(filtros, '*, vendas(numero_venda, clientes(nome))');
+  const total = lista.reduce((s, d) => s + Number(d.valor || 0), 0);
+  return {
+    titulo: 'Documentos fiscais emitidos no período',
+    colunas: ['Venda', 'Tipo', 'Número', 'Cliente', 'Valor', 'Data', 'Situação'],
+    linhas: lista.map(d => [
+      d.vendas ? '#' + d.vendas.numero_venda : '—',
+      fiscalTipoLabel(d.tipo_documento),
+      escapeHtml(d.numero || '—'),
+      escapeHtml(d.vendas && d.vendas.clientes ? d.vendas.clientes.nome : '—'),
+      formatarReais(d.valor),
+      new Date(d.created_at).toLocaleDateString('pt-BR'),
+      escapeHtml(fiscalStatusInfo(d.status).texto),
+    ]),
+    totalizadores: ['', '', '', 'Total', formatarReais(total), '', ''],
+  };
+}
+
+async function relatorioFiscalPorSituacao(filtros){
+  const docs = await buscarDocumentosFiscaisPeriodo(filtros, 'status, valor');
+  const porStatus = {};
+  docs.forEach(d => {
+    porStatus[d.status] = porStatus[d.status] || { qtd: 0, total: 0 };
+    porStatus[d.status].qtd += 1;
+    porStatus[d.status].total += Number(d.valor || 0);
+  });
+  const linhas = Object.entries(porStatus).sort((a, b) => b[1].qtd - a[1].qtd);
+  return {
+    titulo: 'Documentos fiscais por situação',
+    colunas: ['Situação', 'Quantidade', 'Valor total'],
+    linhas: linhas.map(([status, d]) => [escapeHtml(fiscalStatusInfo(status).texto), d.qtd, formatarReais(d.total)]),
+  };
+}
+
+async function relatorioFiscalPorTipo(filtros){
+  const docs = await buscarDocumentosFiscaisPeriodo(filtros, 'tipo_documento, valor');
+  const porTipo = {};
+  docs.forEach(d => {
+    porTipo[d.tipo_documento] = porTipo[d.tipo_documento] || { qtd: 0, total: 0 };
+    porTipo[d.tipo_documento].qtd += 1;
+    porTipo[d.tipo_documento].total += Number(d.valor || 0);
+  });
+  const linhas = Object.entries(porTipo).sort((a, b) => b[1].qtd - a[1].qtd);
+  return {
+    titulo: 'Documentos fiscais por tipo',
+    colunas: ['Tipo', 'Quantidade', 'Valor total'],
+    linhas: linhas.map(([tipo, d]) => [escapeHtml(fiscalTipoLabel(tipo)), d.qtd, formatarReais(d.total)]),
+  };
+}
+
+async function relatorioFiscalValores(filtros){
+  const docs = await buscarDocumentosFiscaisPeriodo(filtros, 'status, valor');
+  const total = docs.reduce((s, d) => s + Number(d.valor || 0), 0);
+  const autorizados = docs.filter(d => d.status === 'autorizada');
+  const totalAutorizado = autorizados.reduce((s, d) => s + Number(d.valor || 0), 0);
+  return {
+    titulo: 'Valores fiscais do período',
+    metricas: [
+      { label: 'Documentos no período', valor: docs.length.toLocaleString('pt-BR') },
+      { label: 'Valor total emitido', valor: formatarReais(total) },
+      { label: 'Autorizados', valor: autorizados.length.toLocaleString('pt-BR') },
+      { label: 'Valor autorizado', valor: formatarReais(totalAutorizado) },
+    ],
+  };
+}
+
+async function buscarProdutosParaRelatorioEstoque(){
+  const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
+  const { data, error } = await buscarTodos(() => supabase.from('produtos').select(colunas).order('id', { ascending: true }));
+  if(error) throw error;
+  return data || [];
+}
+
+async function relatorioEstoquePosicao(){
+  const produtos = await buscarProdutosParaRelatorioEstoque();
+  let custo = 0, venda = 0;
+  produtos.forEach(p => {
+    const qtd = Math.max(Number(p.quantidade_estoque ?? 0), 0);
+    custo += qtd * Number(p.preco_custo ?? 0);
+    venda += qtd * Number(p.preco_venda ?? 0);
+  });
+  const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok');
+  return {
+    titulo: 'Posição do estoque',
+    metricas: [
+      { label: 'Produtos cadastrados', valor: produtos.length.toLocaleString('pt-BR') },
+      { label: 'Estoque a preço de custo', valor: formatarReais(custo) },
+      { label: 'Estoque a preço de venda', valor: formatarReais(venda) },
+      { label: 'Com estoque baixo', valor: baixos.length.toLocaleString('pt-BR') },
+    ],
+  };
+}
+
+async function relatorioEstoqueBaixo(){
+  const produtos = await buscarProdutosParaRelatorioEstoque();
+  const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok')
+    .sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
+  return {
+    titulo: 'Produtos com estoque baixo',
+    colunas: ['Produto', 'Estoque', 'Mínimo'],
+    linhas: baixos.slice(0, 30).map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade_estoque), recursos.estoqueMinimo && p.estoque_minimo ? formatarQuantidade(p.estoque_minimo) : '—']),
+  };
+}
+
+async function relatorioProdutosCadastrados(filtros){
+  const termo = (filtros.busca || '').trim();
+  const { data, error } = await buscarTodos(() => {
+    let q = supabase.from('produtos').select('id, nome, codigo, preco_custo, preco_venda, quantidade_estoque');
+    if(termo) q = q.ilike('nome', `%${termo}%`);
+    return q.order('nome', { ascending: true }).order('id', { ascending: true });
+  });
+  if(error) throw error;
+  const produtos = data || [];
+  return {
+    titulo: 'Produtos cadastrados',
+    colunas: ['Produto', 'Código', 'Preço de custo', 'Preço de venda', 'Estoque'],
+    linhas: produtos.map(p => [escapeHtml(p.nome), escapeHtml(p.codigo || '—'), formatarReais(p.preco_custo || 0), formatarReais(p.preco_venda || 0), formatarQuantidade(p.quantidade_estoque)]),
+  };
+}
+
+async function relatorioClientesCadastrados(filtros){
+  const termo = (filtros.busca || '').trim();
+  const { data, error } = await buscarTodos(() => {
+    let q = supabase.from('clientes').select('id, nome, cpf, telefone, email, cidade');
+    if(termo) q = q.ilike('nome', `%${termo}%`);
+    return q.order('nome', { ascending: true }).order('id', { ascending: true });
+  });
+  if(error) throw error;
+  const clientes = data || [];
+  return {
+    titulo: 'Clientes cadastrados',
+    colunas: ['Cliente', 'CPF', 'Telefone', 'E-mail', 'Cidade'],
+    linhas: clientes.map(c => [escapeHtml(c.nome), escapeHtml(c.cpf || '—'), escapeHtml(c.telefone || '—'), escapeHtml(c.email || '—'), escapeHtml(c.cidade || '—')]),
+  };
+}
+
+async function relatorioFornecedoresCadastrados(filtros){
+  const termo = (filtros.busca || '').trim();
+  const { data, error } = await buscarTodos(() => {
+    let q = supabase.from('fornecedores').select('id, razao_social, nome_fantasia, cnpj, municipio, uf, telefone');
+    if(termo) q = q.ilike('razao_social', `%${termo}%`);
+    return q.order('razao_social', { ascending: true }).order('id', { ascending: true });
+  });
+  if(error) throw error;
+  const fornecedores = data || [];
+  return {
+    titulo: 'Fornecedores cadastrados',
+    colunas: ['Fornecedor', 'CNPJ', 'Cidade/UF', 'Telefone'],
+    linhas: fornecedores.map(f => [
+      escapeHtml(f.nome_fantasia ? `${f.razao_social} (${f.nome_fantasia})` : f.razao_social),
+      escapeHtml(formatarDocumento(f.cnpj)),
+      escapeHtml([f.municipio, f.uf].filter(Boolean).join(' / ') || '—'),
+      escapeHtml(f.telefone || '—'),
+    ]),
+  };
+}
+
+async function relatorioComprasPorFornecedor(filtros){
+  const proximoDia = new Date(filtros.dataFim + 'T00:00:00'); proximoDia.setDate(proximoDia.getDate() + 1);
   const { data, error } = await buscarTodos(() => supabase
     .from('notas_entrada')
     .select('id, valor_total, data_emissao, fornecedores(razao_social, cnpj)')
-    .gte('data_emissao', dataInicio)
-    .lt('data_emissao', diaSeguinte)
+    .gte('data_emissao', filtros.dataInicio)
+    .lt('data_emissao', dataLocalISO(proximoDia))
     .order('id', { ascending: true }));
   if(error) throw error;
 
@@ -9460,32 +9679,193 @@ async function relComprasPorFornecedor(dataInicio, diaSeguinte){
     porFornecedor[chave].qtd += 1;
     porFornecedor[chave].total += Number(n.valor_total);
   });
-  preencherTabelaRel('tabela-rel-fornecedores-body', 'rel-fornecedores-empty',
-    Object.values(porFornecedor).sort((a, b) => b.total - a.total)
-      .map(f => [escapeHtml(f.nome), f.qtd, formatarReais(f.total)]));
+  const linhas = Object.values(porFornecedor).sort((a, b) => b.total - a.total);
+  const total = linhas.reduce((s, f) => s + f.total, 0);
+  return {
+    titulo: 'Compras por fornecedor',
+    colunas: ['Fornecedor', 'Notas', 'Total comprado'],
+    linhas: linhas.map(f => [escapeHtml(f.nome), f.qtd, formatarReais(f.total)]),
+    totalizadores: ['Total', '', formatarReais(total)],
+  };
 }
 
-async function relPosicaoEstoque(){
-  const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
-  const { data, error } = await buscarTodos(() => supabase.from('produtos').select(colunas).order('id', { ascending: true }));
+async function relatorioNotasEntradaPeriodo(filtros){
+  const proximoDia = new Date(filtros.dataFim + 'T00:00:00'); proximoDia.setDate(proximoDia.getDate() + 1);
+  const { data, error } = await buscarTodos(() => supabase
+    .from('notas_entrada')
+    .select('id, numero, valor_total, data_emissao, fornecedores(razao_social)')
+    .gte('data_emissao', filtros.dataInicio)
+    .lt('data_emissao', dataLocalISO(proximoDia))
+    .order('data_emissao', { ascending: false })
+    .order('id', { ascending: false }));
   if(error) throw error;
 
-  const produtos = data || [];
-  let custo = 0, venda = 0;
-  produtos.forEach(p => {
-    const qtd = Math.max(Number(p.quantidade_estoque ?? 0), 0);
-    custo += qtd * Number(p.preco_custo ?? 0);
-    venda += qtd * Number(p.preco_venda ?? 0);
-  });
-  const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok')
-    .sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
+  const notas = data || [];
+  const total = notas.reduce((s, n) => s + Number(n.valor_total), 0);
+  return {
+    titulo: 'Notas de entrada do período',
+    colunas: ['Número', 'Fornecedor', 'Data de emissão', 'Valor total'],
+    linhas: notas.map(n => [escapeHtml(n.numero || '—'), escapeHtml(n.fornecedores ? n.fornecedores.razao_social : '—'), formatarDataBR(n.data_emissao), formatarReais(n.valor_total)]),
+    totalizadores: ['', '', 'Total', formatarReais(total)],
+  };
+}
 
-  $('rel-estoque-produtos').textContent = produtos.length.toLocaleString('pt-BR');
-  $('rel-estoque-custo').textContent = formatarReais(custo);
-  $('rel-estoque-venda').textContent = formatarReais(venda);
-  $('rel-estoque-baixo').textContent = baixos.length.toLocaleString('pt-BR');
-  preencherTabelaRel('tabela-rel-baixo-body', 'rel-baixo-empty',
-    baixos.slice(0, 30).map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade_estoque), recursos.estoqueMinimo && p.estoque_minimo ? formatarQuantidade(p.estoque_minimo) : '—']));
+// Busca as notas de entrada do período, com o embed de fornecedores como INNER JOIN só quando um
+// fornecedor específico foi escolhido (é o que permite filtrar por fornecedores.id no PostgREST) —
+// sem filtro, usa o mesmo embed "solto" que os outros relatórios de notas já usavam, então uma nota
+// sem fornecedor identificado continua aparecendo como "—", em vez de sumir da lista.
+async function buscarNotasEntradaComFiltroFornecedor(filtros, colunas){
+  const proximoDia = new Date(filtros.dataFim + 'T00:00:00'); proximoDia.setDate(proximoDia.getDate() + 1);
+  const selecaoFornecedor = filtros.fornecedorId ? 'fornecedores!inner(razao_social, cnpj)' : 'fornecedores(razao_social, cnpj)';
+  const { data, error } = await buscarTodos(() => {
+    let q = supabase.from('notas_entrada').select(`${colunas}, ${selecaoFornecedor}`);
+    if(filtros.fornecedorId) q = q.eq('fornecedores.id', filtros.fornecedorId);
+    return q
+      .gte('data_emissao', filtros.dataInicio)
+      .lt('data_emissao', dataLocalISO(proximoDia))
+      .order('data_emissao', { ascending: false })
+      .order('id', { ascending: false });
+  });
+  if(error) throw error;
+  return data || [];
+}
+
+async function relatorioNotasPorFornecedor(filtros){
+  const notas = await buscarNotasEntradaComFiltroFornecedor(filtros, 'id, numero, valor_total, data_emissao');
+  const total = notas.reduce((s, n) => s + Number(n.valor_total), 0);
+  return {
+    titulo: filtros.fornecedorNome ? `Notas de ${filtros.fornecedorNome}` : 'Notas por fornecedor',
+    colunas: ['Número', 'Fornecedor', 'Data de emissão', 'Valor total'],
+    linhas: notas.map(n => [escapeHtml(n.numero || '—'), escapeHtml(n.fornecedores ? n.fornecedores.razao_social : '—'), formatarDataBR(n.data_emissao), formatarReais(n.valor_total)]),
+    totalizadores: ['', '', 'Total', formatarReais(total)],
+  };
+}
+
+async function relatorioNotasEntradaItens(filtros){
+  const notas = await buscarNotasEntradaComFiltroFornecedor(filtros, 'id, numero, data_emissao');
+  const colunas = ['Nota', 'Fornecedor', 'Data', 'Item', 'Quantidade', 'Valor unitário', 'Valor total'];
+  if(notas.length === 0){
+    return { titulo: 'Itens das notas de entrada', colunas, linhas: [] };
+  }
+
+  const notaPorId = {};
+  notas.forEach(n => { notaPorId[n.id] = n; });
+
+  const { data: itens, error } = await buscarTodos(() => supabase
+    .from('notas_entrada_itens')
+    .select('nota_entrada_id, descricao, quantidade, valor_unitario, valor_total')
+    .in('nota_entrada_id', notas.map(n => n.id))
+    .order('nota_entrada_id', { ascending: true }));
+  if(error) throw error;
+
+  const listaItens = itens || [];
+  const total = listaItens.reduce((s, it) => s + Number(it.valor_total), 0);
+  return {
+    titulo: filtros.fornecedorNome ? `Itens das notas de ${filtros.fornecedorNome}` : 'Itens das notas de entrada',
+    colunas,
+    linhas: listaItens.map(it => {
+      const nota = notaPorId[it.nota_entrada_id];
+      return [
+        escapeHtml(nota ? (nota.numero || '—') : '—'),
+        escapeHtml(nota && nota.fornecedores ? nota.fornecedores.razao_social : '—'),
+        nota ? formatarDataBR(nota.data_emissao) : '—',
+        escapeHtml(it.descricao),
+        formatarQuantidade(it.quantidade),
+        formatarReais(it.valor_unitario),
+        formatarReais(it.valor_total),
+      ];
+    }),
+    totalizadores: ['', '', '', '', '', 'Total', formatarReais(total)],
+  };
+}
+
+// ---------- Geradores de relatório — categoria Bar (leitura, sem alterar nada do módulo) ----------
+// Reaproveita só tabelas/colunas confirmadas na Migration 016 (bar_pedidos, bar_pedidos_itens).
+// Não inclui relatório de formas de pagamento do Bar: as colunas de bar_pagamentos_formas para
+// esse cruzamento específico não foram confirmadas nesta etapa.
+
+async function buscarItensBarPeriodo(filtros, colunas){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos_itens')
+    .select(colunas)
+    .eq('estornado', false)
+    .gte('criado_em', inicioISO)
+    .lte('criado_em', fimISO));
+  if(error) throw error;
+  return data || [];
+}
+
+async function relatorioBarProdutosMaisVendidos(filtros){
+  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario, produto_id, produtos(nome)');
+  const porProduto = {};
+  itens.forEach(item => {
+    const chave = item.produto_id;
+    porProduto[chave] = porProduto[chave] || { nome: item.produtos ? item.produtos.nome : 'Produto removido', quantidade: 0, total: 0 };
+    porProduto[chave].quantidade += Number(item.quantidade);
+    porProduto[chave].total += Number(item.quantidade) * Number(item.preco_unitario);
+  });
+  const top = Object.values(porProduto).sort((a, b) => b.quantidade - a.quantidade).slice(0, 10);
+  return {
+    titulo: 'Produtos mais vendidos no Bar',
+    colunas: ['Produto', 'Quantidade', 'Total'],
+    linhas: top.map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade), formatarReais(p.total)]),
+  };
+}
+
+async function relatorioBarFaturamentoPeriodo(filtros){
+  const itens = await buscarItensBarPeriodo(filtros, 'quantidade, preco_unitario');
+  const total = itens.reduce((s, it) => s + Number(it.quantidade) * Number(it.preco_unitario), 0);
+  return {
+    titulo: 'Faturamento do Bar no período',
+    metricas: [
+      { label: 'Itens lançados (não estornados)', valor: itens.length.toLocaleString('pt-BR') },
+      { label: 'Faturamento do Bar', valor: formatarReais(total) },
+    ],
+  };
+}
+
+async function relatorioBarPedidosPorUsuario(filtros){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos')
+    .select('id, criado_por')
+    .gte('criado_em', inicioISO)
+    .lte('criado_em', fimISO));
+  if(error) throw error;
+  const pedidos = data || [];
+
+  const porUsuario = {};
+  pedidos.forEach(p => {
+    const chave = p.criado_por || 'sem-usuario';
+    porUsuario[chave] = (porUsuario[chave] || 0) + 1;
+  });
+
+  // Nome de exibição: reaproveita a mesma RPC que a tela de Usuários e Acessos já usa
+  // (usuarios_listar, sem alterá-la) só para transformar o id em nome. Se o usuário atual não tiver
+  // permissão para listá-la, ou a chamada falhar por qualquer motivo, o relatório continua
+  // funcionando — só mostra um identificador curto no lugar do nome, nunca quebra a tela.
+  const nomesPorId = {};
+  try {
+    const { data: usuarios, error: erroUsuarios } = await supabase.rpc('usuarios_listar');
+    if(!erroUsuarios && usuarios){
+      usuarios.forEach(u => { nomesPorId[u.id] = u.nome; });
+    }
+  } catch(err){
+    console.warn('Não foi possível resolver os nomes de usuário para este relatório.', err);
+  }
+
+  const linhas = Object.entries(porUsuario).sort((a, b) => b[1] - a[1]);
+  return {
+    titulo: 'Pedidos lançados por usuário (Bar)',
+    colunas: ['Usuário', 'Pedidos lançados'],
+    linhas: linhas.map(([id, qtd]) => [
+      escapeHtml(id === 'sem-usuario' ? 'Não identificado' : (nomesPorId[id] || ('Usuário ' + id.slice(0, 8)))),
+      qtd,
+    ]),
+  };
 }
 
 
@@ -10798,7 +11178,6 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
   $('modal-importar-nota').classList.add('hidden');
   notaEmConferencia = null;
   carregarNotasEntrada();
-  atualizarMetricaEstoqueBaixo();
 });
 
 // =====================================================================
