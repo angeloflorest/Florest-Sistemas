@@ -1964,6 +1964,25 @@
   .bar-componente-row select{ flex:2; } .bar-componente-row input[type=number]{ width:110px; }
   .bar-componente-row label.chk{ display:flex; align-items:center; gap:4px; font-size:12px; white-space:nowrap; }
 
+  /* ===== Bar → Configurações (Fase 3: Mesas / Destino dos Produtos / Impressoras) ===== */
+  .bar-config-card{
+    background: var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:20px; max-width:520px;
+  }
+  .bar-config-impressoras-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1080px;
+  }
+  .bar-config-impressoras-grid .bar-config-card{ max-width:none; }
+  @media (max-width:820px){
+    .bar-config-impressoras-grid{ grid-template-columns:1fr; }
+  }
+  .bar-config-hint-bloco{
+    background: var(--accent-soft); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; font-size:12.5px; color: var(--ink-soft); margin-bottom:18px; max-width:1080px;
+  }
+  .bar-config-hint-bloco code{ background:rgba(0,0,0,.06); padding:1px 5px; border-radius:4px; }
+  .btn-secondary:disabled, .btn-accent:disabled{ opacity:0.5; cursor:not-allowed; }
+
   .bar-ticket-impressao{ display:none; }
   @media print{
     body.bar-imprimindo > *{ visibility:hidden; }
@@ -2960,9 +2979,10 @@
       </div>
       <div class="bar-subnav" id="bar-subnav">
         <button type="button" class="bar-subnav-item active" data-barview="mesas">Mesas</button>
-        <button type="button" class="bar-subnav-item" data-barview="destino">Destino dos Produtos</button>
+        <button type="button" class="bar-subnav-item" data-barview="garcons">Garçons</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
         <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
+        <button type="button" class="bar-subnav-item" data-barview="configuracoes">Configurações</button>
       </div>
       <div id="bar-aviso-modulo" class="hidden"><div class="msg error">O módulo comercial Bar não está ativo para esta empresa.</div></div>
 
@@ -2970,39 +2990,10 @@
       <div id="bar-sub-mesas" class="bar-subview">
         <div class="bar-mesas-acoes">
           <button type="button" class="btn-secondary" id="btn-bar-estornar-busca" style="width:auto;">↩ Estornar pagamento</button>
-          <button type="button" class="btn-secondary" id="btn-bar-config-mesas-abrir" style="width:auto;">⚙ Configurar mesas</button>
         </div>
         <div id="bar-mesas-msg"></div>
         <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Clique em "⚙ Configurar mesas" para definir a quantidade.</div>
         <div id="bar-mesas-grid" class="bar-mesas-grid"></div>
-      </div>
-
-      <!-- ---- SUBVIEW: DESTINO DOS PRODUTOS (Bar/Cozinha em massa) ----
-           Requisito #2: carrega automaticamente TODOS os produtos do catálogo central da empresa
-           (nenhuma cópia — bar_produtos é só uma "camada" 1:1 sobre public.produtos, auto-criada
-           pelo gatilho da Migration 017 para todo produto existente/novo). Nunca precisa abrir
-           cadastro produto a produto: marca vários e define o destino em lote. -->
-      <div id="bar-sub-destino" class="bar-subview hidden">
-        <p class="modal-section-hint" style="margin-top:0;">Todo produto cadastrado em Produtos aparece aqui automaticamente. Marque vários e defina o destino de uma vez — não precisa abrir um por um.</p>
-        <div class="search-row">
-          <input type="text" id="bar-destino-busca" placeholder="Buscar por nome do produto...">
-        </div>
-        <div id="bar-destino-msg"></div>
-        <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
-          <label class="chk"><input type="checkbox" id="bar-destino-marcar-todos"><span>Selecionar todos os visíveis</span></label>
-          <button type="button" class="btn-accent" id="btn-bar-destino-definir-bar" style="width:auto;">Definir como Bar</button>
-          <button type="button" class="btn-accent" id="btn-bar-destino-definir-cozinha" style="width:auto;">Definir como Cozinha</button>
-          <button type="button" class="btn-secondary" id="btn-bar-destino-remover" style="width:auto;">Remover destino</button>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead>
-              <tr><th></th><th>Produto</th><th>Tipo</th><th>Destino atual</th></tr>
-            </thead>
-            <tbody id="bar-destino-tabela-body"></tbody>
-          </table>
-          <div id="bar-destino-empty" class="empty-state hidden">Nenhum produto cadastrado ainda. Cadastre produtos em Produtos primeiro.</div>
-        </div>
       </div>
 
       <!-- ---- SUBVIEW: PRODUTOS COMPOSTOS (ex-"Produtos do Bar") ----
@@ -3055,6 +3046,135 @@
             <button class="btn-accent" id="btn-bar-rel-doc-imprimir">Imprimir / Salvar PDF</button>
           </div>
           <div class="rel-doc-folha" id="bar-rel-doc-folha"></div>
+        </div>
+      </div>
+
+      <!-- ---- SUBVIEW: GARÇONS (placeholder — Fase 3) ----
+           A aba já ocupa a posição definitiva no menu do Bar (Mesas | Garçons | Produtos
+           Compostos | Relatórios | Configurações), mas cadastro/autenticação de garçons fica para
+           a próxima etapa. Nenhum usuário, senha, tabela nova ou alteração em Supabase Auth/perfis
+           acontece aqui. -->
+      <div id="bar-sub-garcons" class="bar-subview hidden">
+        <div class="table-card">
+          <div class="empty-state">
+            <div style="font-family:var(--font-display); text-transform:uppercase; letter-spacing:.04em; font-weight:700; color:var(--ink); font-size:15px; margin-bottom:8px;">Garçons</div>
+            O gerenciamento de garçons será configurado na próxima etapa.
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- SUBVIEW: CONFIGURAÇÕES DO BAR (Fase 3) ----
+           Reúne em três sub-abas internas telas que já existiam espalhadas — o modal "Configurar
+           mesas" e a antiga aba principal "Destino dos Produtos" — mais a nova tela de Impressoras
+           (só interface visual, sem persistência real ainda). Nada aqui cria tabela, RPC, RLS ou
+           migration nova, e nada disso aparece no menu lateral do ERP: tudo vive dentro do Módulo
+           Bar, como pedido. -->
+      <div id="bar-sub-configuracoes" class="bar-subview hidden">
+        <div class="bar-subnav" id="bar-config-subnav">
+          <button type="button" class="bar-subnav-item active" data-barconfigview="mesas">Mesas</button>
+          <button type="button" class="bar-subnav-item" data-barconfigview="destino">Destino dos Produtos</button>
+          <button type="button" class="bar-subnav-item" data-barconfigview="impressoras">Impressoras</button>
+        </div>
+
+        <!-- Configurações → Mesas: era o modal "Configurar mesas" (mesma RPC bar_configurar_mesas,
+             mesma tabela bar_configuracoes) — só deixou de ser modal e passou a viver aqui. As
+             mesmas bar_mesas usadas pelo Mini PDV e pelo Florest Garçom continuam sendo as únicas;
+             não existe cadastro de mesas paralelo. -->
+        <div id="bar-config-sub-mesas" class="bar-subview">
+          <div class="bar-config-card">
+            <div class="rel-secao-titulo">Configuração das mesas</div>
+            <div id="bar-config-mesas-msg"></div>
+            <div class="field">
+              <label>Quantidade de mesas</label>
+              <input type="number" id="bar-config-mesas-quantidade" min="0" max="500" step="1">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Taxa de serviço padrão (%)</label>
+              <input type="number" id="bar-config-mesas-taxa" min="0" max="100" step="0.01">
+            </div>
+            <div class="modal-actions" style="justify-content:flex-start; margin-top:16px;">
+              <button type="button" class="btn-primary" id="btn-bar-config-mesas-salvar" style="width:auto; padding:10px 20px;">Salvar configuração</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurações → Destino dos Produtos: conteúdo movido 1:1 da antiga aba principal de
+             mesmo nome — mesmos ids, mesmas funções (carregarBarDestino/aplicarDestinoEmLote), só
+             a posição na navegação mudou. Regra de destino (Bar/Cozinha/sem destino) inalterada. -->
+        <div id="bar-config-sub-destino" class="bar-subview hidden">
+          <p class="modal-section-hint" style="margin-top:0;">Todo produto cadastrado em Produtos aparece aqui automaticamente. Marque vários e defina o destino de uma vez — não precisa abrir um por um.</p>
+          <div class="search-row">
+            <input type="text" id="bar-destino-busca" placeholder="Buscar por nome do produto...">
+          </div>
+          <div id="bar-destino-msg"></div>
+          <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
+            <label class="chk"><input type="checkbox" id="bar-destino-marcar-todos"><span>Selecionar todos os visíveis</span></label>
+            <button type="button" class="btn-accent" id="btn-bar-destino-definir-bar" style="width:auto;">Definir como Bar</button>
+            <button type="button" class="btn-accent" id="btn-bar-destino-definir-cozinha" style="width:auto;">Definir como Cozinha</button>
+            <button type="button" class="btn-secondary" id="btn-bar-destino-remover" style="width:auto;">Remover destino</button>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr><th></th><th>Produto</th><th>Tipo</th><th>Destino atual</th></tr>
+              </thead>
+              <tbody id="bar-destino-tabela-body"></tbody>
+            </table>
+            <div id="bar-destino-empty" class="empty-state hidden">Nenhum produto cadastrado ainda. Cadastre produtos em Produtos primeiro.</div>
+          </div>
+        </div>
+
+        <!-- Configurações → Impressoras: SOMENTE interface visual (Fase 3, itens 6 e 8). Não existe
+             hoje nenhuma tabela de impressora no banco, e o Florest ERP roda na nuvem — não há como
+             o servidor alcançar diretamente um IP de rede local (192.168.x.x). Por isso nenhum
+             botão aqui chama RPC, Supabase ou localStorage: tudo fica desabilitado e identificado
+             como dependente do futuro Agente Florest de Impressão. Nada é salvo de verdade ainda. -->
+        <div id="bar-config-sub-impressoras" class="bar-subview hidden">
+          <div class="bar-config-hint-bloco">
+            O Florest ERP roda na nuvem e as impressoras ficam na rede local do estabelecimento (ex.: <code>192.168.x.x</code>), um endereço que a nuvem não alcança diretamente. Esta tela prepara os dados de cada impressora; a impressão de verdade — e o salvamento dessas configurações — só entra em operação quando o Agente Florest de Impressão for instalado no computador do estabelecimento, numa próxima fase.
+          </div>
+          <div class="bar-config-impressoras-grid">
+            <div class="bar-config-card">
+              <div class="rel-secao-titulo">Impressora do Bar</div>
+              <div class="field">
+                <label>Nome da impressora</label>
+                <input type="text" id="bar-config-imp-bar-nome" placeholder="Impressora Bar">
+              </div>
+              <div class="field">
+                <label>IP da impressora</label>
+                <input type="text" id="bar-config-imp-bar-ip" placeholder="192.168.0.150">
+              </div>
+              <div class="field" style="margin-bottom:14px;">
+                <label>Porta</label>
+                <input type="text" id="bar-config-imp-bar-porta" placeholder="9100">
+              </div>
+              <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
+                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar conexão</button>
+                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar impressão</button>
+              </div>
+              <p class="modal-section-hint" style="margin:8px 0 0;">Indisponível até a instalação do agente local de impressão.</p>
+            </div>
+            <div class="bar-config-card">
+              <div class="rel-secao-titulo">Impressora da Cozinha</div>
+              <div class="field">
+                <label>Nome da impressora</label>
+                <input type="text" id="bar-config-imp-cozinha-nome" placeholder="Impressora Cozinha">
+              </div>
+              <div class="field">
+                <label>IP da impressora</label>
+                <input type="text" id="bar-config-imp-cozinha-ip" placeholder="192.168.0.151">
+              </div>
+              <div class="field" style="margin-bottom:14px;">
+                <label>Porta</label>
+                <input type="text" id="bar-config-imp-cozinha-porta" placeholder="9100">
+              </div>
+              <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
+                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar conexão</button>
+                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar impressão</button>
+              </div>
+              <p class="modal-section-hint" style="margin:8px 0 0;">Indisponível até a instalação do agente local de impressão.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -4224,24 +4344,6 @@
 <!-- MODAL: configurar mesas (Migration 018 — antes era uma aba própria "Configurações"; agora é
      um botão pequeno dentro de Mesas, permissão bar_configurar, reaproveitando bar_configurar_mesas
      sem nenhuma alteração). -->
-<div id="modal-bar-config-mesas" class="modal-overlay hidden">
-  <div class="modal-card" style="max-width:420px;">
-    <h3>Configurar mesas</h3>
-    <div id="bar-config-mesas-msg"></div>
-    <div class="field">
-      <label>Quantidade de mesas</label>
-      <input type="number" id="bar-config-mesas-quantidade" min="0" max="500" step="1">
-    </div>
-    <div class="field">
-      <label>Taxa de serviço padrão (%)</label>
-      <input type="number" id="bar-config-mesas-taxa" min="0" max="100" step="0.01">
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="btn-bar-config-mesas-cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-bar-config-mesas-salvar" style="width:auto; padding:10px 20px;">Salvar</button>
-    </div>
-  </div>
-</div>
 
 <!-- MODAL: buscar mesa para estornar pagamento (Migration 018) — a Portaria/Caixa deixaram de
      existir como telas; como a mesa libera sozinha, este é o único caminho que sobra para achar
@@ -11204,6 +11306,7 @@ let barMesaItemSelecionado = null; // item do cardápio (bar_produtos) escolhido
 let barMesaCarrinho = []; // itens já adicionados ao "novo pedido" nesta sessão do modal, ainda não enviados por bar_pedido_lancar — [{ barProdutoId, nome, quantidade, precoUnitario, observacao, escolhas }]
 let barMesaAjustesTocados = false; // true assim que o operador abre/edita "Ajustes da conta" nesta sessão do modal — controla se desconto/acréscimo/taxa são enviados (substituindo o que já está salvo) ou omitidos (nulo = mantém o que já estava) no próximo pagamento
 let barEstornarBuscaComandaId = null; // comanda encontrada pela busca "Estornar pagamento" (histórico de mesa já liberada)
+let barConfigSubViewAtual = 'mesas'; // sub-aba interna ativa dentro de Bar → Configurações (Fase 3: mesas | destino | impressoras)
 
 function podeAcessarBar(permissao){
   return acesso.papel === 'proprietario' || acesso.permissoes.includes(permissao);
@@ -11216,11 +11319,16 @@ function podeAcessarBar(permissao){
 // quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
-  destino: ['bar_configurar'],
+  // Garçons (Fase 3): aba ainda é só um aviso, sem cadastro — mesma permissão de quem já
+  // configura o Bar hoje (bar_configurar), até a próxima etapa implementar o gerenciamento real.
+  garcons: ['bar_configurar'],
   produtos: ['bar_configurar'],
   // Relatórios do Bar: mesma regra de "Mesas" — qualquer permissão operacional do Bar já basta
   // (é a mesma checagem de acesso ao módulo, em duas camadas, que o restante do Bar já usa).
   relatorios: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
+  // Configurações (Fase 3): reúne Mesas/Destino dos Produtos/Impressoras — mesma permissão que já
+  // protegia "Destino dos Produtos" e "Configurar mesas" (bar_configurar).
+  configuracoes: ['bar_configurar'],
 };
 
 async function carregarBarView(){
@@ -11241,11 +11349,25 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 async function abrirSubViewBar(sub){
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','destino','produtos','relatorios'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','garcons','produtos','relatorios','configuracoes'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarMesas();
-  else if(sub === 'destino') await carregarBarDestino();
   else if(sub === 'produtos') await carregarBarProdutos();
   else if(sub === 'relatorios') carregarBarRelatorios();
+  else if(sub === 'configuracoes') await abrirConfigSubViewBar(barConfigSubViewAtual);
+}
+
+// Bar → Configurações: navegação interna (Fase 3) entre as sub-abas Mesas / Destino dos Produtos /
+// Impressoras — mesmo padrão de abrirSubViewBar, só que aninhado dentro da aba "Configurações".
+document.querySelectorAll('#bar-config-subnav .bar-subnav-item[data-barconfigview]').forEach(btn => {
+  btn.addEventListener('click', () => abrirConfigSubViewBar(btn.dataset.barconfigview));
+});
+
+async function abrirConfigSubViewBar(sub){
+  barConfigSubViewAtual = sub;
+  document.querySelectorAll('#bar-config-subnav .bar-subnav-item[data-barconfigview]').forEach(b => b.classList.toggle('active', b.dataset.barconfigview === sub));
+  ['mesas','destino','impressoras'].forEach(v => $('bar-config-sub-' + v).classList.toggle('hidden', v !== sub));
+  if(sub === 'mesas') await carregarBarConfigMesas();
+  else if(sub === 'destino') await carregarBarDestino();
 }
 
 // Supabase Realtime (Migration 016 adiciona bar_mesas/bar_comandas/bar_pedidos_itens à publicação
@@ -11585,7 +11707,6 @@ async function relatorioBarVendasPorMesa(filtros){
 // ---------- Mesas ----------
 async function carregarBarMesas(){
   $('bar-mesas-msg').innerHTML = '';
-  $('btn-bar-config-mesas-abrir').classList.toggle('hidden', !podeAcessarBar('bar_configurar'));
   $('btn-bar-estornar-busca').classList.toggle('hidden', !podeAcessarBar('bar_estornar_pagamento'));
   const { data: mesas, error } = await supabase.from('bar_mesas').select('*').order('numero');
   if(error){
@@ -12631,16 +12752,17 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
 });
 
 // ---------- Configurar mesas (Migration 018) ----------
-// Antes era uma aba própria "Configurações"; agora é um botão pequeno dentro de Mesas
-// (⚙ Configurar mesas), gated por bar_configurar — o próprio botão já fica escondido em
-// carregarBarMesas para quem não tem essa permissão. Reaproveita bar_configurar_mesas sem nenhuma
-// alteração: mesma validação de sempre (bloqueia redução abaixo da quantidade de mesas ocupadas),
-// nunca uma quantidade fixa/hardcoded no frontend.
+// Fase 3: era um modal aberto por um botão dentro de "Mesas"; agora vive dentro de
+// Bar → Configurações → Mesas (a mesma sub-aba interna, sem modal). Reaproveita
+// bar_configurar_mesas e a tabela bar_configuracoes sem nenhuma alteração: mesma validação de
+// sempre (bloqueia redução abaixo da quantidade de mesas ocupadas), nunca uma quantidade
+// fixa/hardcoded no frontend. As mesmas bar_mesas usadas pelo Mini PDV e pelo Florest Garçom
+// continuam sendo as únicas — nenhum cadastro de mesas paralelo.
 //
 // As RPCs de relatório da Migration 017 (bar_relatorio_itens_comerciais,
 // bar_relatorio_produtos_fisicos_consumidos) continuam intactas no banco — só a tela dedicada a
 // elas foi removida daqui, para reaparecerem futuramente num módulo geral de Relatórios do ERP.
-$('btn-bar-config-mesas-abrir').addEventListener('click', async () => {
+async function carregarBarConfigMesas(){
   $('bar-config-mesas-msg').innerHTML = '';
   const { data, error } = await supabase.from('bar_configuracoes').select('*').maybeSingle();
   if(error){
@@ -12648,9 +12770,7 @@ $('btn-bar-config-mesas-abrir').addEventListener('click', async () => {
   }
   $('bar-config-mesas-quantidade').value = data ? data.quantidade_mesas : 0;
   $('bar-config-mesas-taxa').value = data ? data.taxa_servico_padrao_percentual : 0;
-  $('modal-bar-config-mesas').classList.remove('hidden');
-});
-$('btn-bar-config-mesas-cancelar').addEventListener('click', () => $('modal-bar-config-mesas').classList.add('hidden'));
+}
 $('btn-bar-config-mesas-salvar').addEventListener('click', async () => {
   const quantidade = parseInt($('bar-config-mesas-quantidade').value, 10);
   const taxa = parseFloat($('bar-config-mesas-taxa').value);
@@ -12664,12 +12784,12 @@ $('btn-bar-config-mesas-salvar').addEventListener('click', async () => {
     p_quantidade: quantidade,
     p_taxa_servico_padrao_percentual: isNaN(taxa) ? null : taxa,
   });
-  btn.disabled = false; btn.textContent = 'Salvar';
+  btn.disabled = false; btn.textContent = 'Salvar configuração';
   if(error){
     $('bar-config-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  $('modal-bar-config-mesas').classList.add('hidden');
+  $('bar-config-mesas-msg').innerHTML = '<div class="msg success">Configuração salva.</div>';
   await carregarBarMesas();
 });
 // ---------- Verifica sessão ao carregar ----------
