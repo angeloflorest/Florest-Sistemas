@@ -3049,10 +3049,12 @@
         </div>
       </div>
 
-      <!-- ---- SUBVIEW: GARÇONS (Fase 4) ----
-           Tela simples: nome + ações (Editar/Excluir). Sem Ativo/Inativo, sem filtro, sem e-mail —
-           por trás, é só public.perfis (papel='funcionario', permissões fixas do garçom); "Excluir"
-           é desativação lógica (bar_garcom_excluir), nunca apaga o perfil nem o histórico. -->
+      <!-- ---- SUBVIEW: GARÇONS (Fase 4; coluna Usuário na Fase 5 — Migration 022) ----
+           Tela simples: nome + usuário (login) + ações (Editar/Excluir). Sem Ativo/Inativo, sem
+           filtro, sem e-mail — por trás, é só public.perfis (papel='funcionario', permissões fixas
+           do garçom); "Excluir" é desativação lógica (bar_garcom_excluir), nunca apaga o perfil nem
+           o histórico. Um garçom antigo (de antes da Fase 5) pode aparecer sem usuário ainda — a
+           coluna mostra "—" até que alguém o edite e defina um. -->
       <div id="bar-sub-garcons" class="bar-subview hidden">
         <div class="view-header" style="padding:0 0 12px;">
           <div></div>
@@ -3061,7 +3063,7 @@
         <div id="bar-garcons-msg"></div>
         <div class="table-card">
           <table>
-            <thead><tr><th>Nome do garçom</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Nome do garçom</th><th>Usuário</th><th>Ações</th></tr></thead>
             <tbody id="bar-garcons-tabela-body"></tbody>
           </table>
           <div id="bar-garcons-empty" class="empty-state hidden">Nenhum garçom cadastrado ainda.</div>
@@ -4432,11 +4434,14 @@
   </div>
 </div>
 
-<!-- ---- MODAL: GARÇOM (Fase 4) ----
-     Tela deliberadamente simples (Nome + Senha), sem e-mail, sem status Ativo/Inativo e sem
-     checkboxes de permissão: o conjunto de permissões do garçom é sempre fixo, decidido pelo
-     banco (bar_garcom_vincular, Migration 020). Serve tanto para "+ Cadastrar garçom" quanto
-     para "Editar" (troca só o título, o rótulo do botão e torna a senha opcional). -->
+<!-- ---- MODAL: GARÇOM (Fase 4; campo Usuário na Fase 5 — login por e-mail da empresa + usuário +
+     senha, Migration 021/022) ----
+     Tela deliberadamente simples (Nome + Usuário + Senha), sem e-mail, sem status Ativo/Inativo e
+     sem checkboxes de permissão: o conjunto de permissões do garçom é sempre fixo, decidido pelo
+     banco (bar_garcom_vincular, Migration 020/022). "Usuário" é o login dele em florest-login (e-mail
+     da empresa + usuário + senha) — único dentro desta empresa, não globalmente; é gravado sempre em
+     minúsculas, sem espaços. Serve tanto para "+ Cadastrar garçom" quanto para "Editar" (troca só o
+     título, o rótulo do botão e torna a senha opcional). -->
 <div id="modal-garcom" class="modal-overlay hidden">
   <div class="modal-card">
     <h3 id="modal-garcom-titulo">Cadastrar garçom</h3>
@@ -4447,6 +4452,11 @@
         <label>Nome do garçom</label>
         <input type="text" id="garcom-nome" maxlength="200" required>
       </div>
+      <div class="field">
+        <label>Usuário</label>
+        <input type="text" id="garcom-usuario" maxlength="60" autocomplete="off" placeholder="sem espaços, de 2 a 60 caracteres" required>
+      </div>
+      <div class="modal-section-hint" id="garcom-usuario-dica">É o login do garçom (junto com o e-mail da empresa e a senha). Único nesta empresa — outra empresa pode ter um usuário com o mesmo nome. Será salvo em minúsculas.</div>
       <div class="field-row">
         <div class="field">
           <label id="garcom-senha-rotulo">Senha</label>
@@ -13032,6 +13042,7 @@ function renderBarGarcons(){
   $('bar-garcons-tabela-body').innerHTML = barGarcons.map(g => `
     <tr>
       <td>${escapeHtml(g.nome)}</td>
+      <td>${g.usuario ? escapeHtml(g.usuario) : '<span style="color:#9AA0AC;">—</span>'}</td>
       <td>
         <button type="button" class="link-btn" data-acao="editar" data-id="${g.id}">Editar</button>
         &nbsp;|&nbsp;
@@ -13047,6 +13058,10 @@ function abrirModalGarcom(g){
   $('garcom-msg').innerHTML = '';
   $('modal-garcom-titulo').textContent = g ? 'Editar garçom' : 'Cadastrar garçom';
   $('garcom-nome').value = g ? g.nome : '';
+  // Garçom antigo (anterior à Fase 5) pode não ter usuario ainda — campo fica em branco e passa a
+  // ser obrigatório preencher para salvar a edição (não mexemos nele sozinhos, sem o proprietário
+  // editar e confirmar explicitamente).
+  $('garcom-usuario').value = g && g.usuario ? g.usuario : '';
   $('garcom-senha').value = '';
   $('garcom-senha-confirmar').value = '';
   $('garcom-senha-rotulo').textContent = g ? 'Nova senha (opcional)' : 'Senha';
@@ -13088,15 +13103,27 @@ $('bar-garcons-tabela-body').addEventListener('click', async (e) => {
   await carregarBarGarcons();
 });
 
+// Mesmo formato exigido pela constraint perfis_usuario_formato_ck (Migration 021): sem espaços,
+// de 2 a 60 caracteres. A checagem de unicidade em si é sempre feita pelo banco (dentro da mesma
+// empresa) — aqui é só validação de formato, para dar um erro claro antes de chamar o servidor.
+const USUARIO_GARCOM_RE = /^\S{2,60}$/;
+
 $('form-garcom').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('garcom-msg').innerHTML = '';
   const id = $('garcom-id').value;
   const nome = $('garcom-nome').value.trim();
+  // Normalizado aqui (trim + minúsculas) do mesmo jeito que o banco normaliza — assim o que
+  // aparece na tela depois de salvar já é exatamente o que foi gravado.
+  const usuario = $('garcom-usuario').value.trim().toLowerCase();
   const senha = $('garcom-senha').value;
   const senhaConfirmar = $('garcom-senha-confirmar').value;
 
   if(nome.length < 2){ $('garcom-msg').innerHTML = '<div class="msg error">Informe o nome do garçom.</div>'; return; }
+  if(!USUARIO_GARCOM_RE.test(usuario)){
+    $('garcom-msg').innerHTML = '<div class="msg error">Informe um usuário sem espaços, de 2 a 60 caracteres.</div>';
+    return;
+  }
   // Checagem local idêntica à da Edge Function para o garçom (validarSenha: 6 a 18 caracteres) —
   // usa seu próprio limite em vez de senhaValida()/MSG_SENHA (que são de 5 a 18, reaproveitados
   // pela tela geral de Usuários e Acessos e não alterados por esta correção).
@@ -13116,10 +13143,10 @@ $('form-garcom').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     if(!id){
-      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar_garcom', nome, senha } });
+      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar_garcom', nome, usuario, senha } });
       if(error || !data || data.ok !== true){ $('garcom-msg').innerHTML = `<div class="msg error">${escapeHtml(await mensagemErroFuncao(error, data))}</div>`; return; }
     } else {
-      const { error } = await supabase.rpc('bar_garcom_atualizar', { p_id: id, p_nome: nome });
+      const { error } = await supabase.rpc('bar_garcom_atualizar', { p_id: id, p_nome: nome, p_usuario: usuario });
       if(error){ $('garcom-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
       if(senha){
         const { data, error: errSenha } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'redefinir_senha_garcom', usuario_id: id, senha } });
