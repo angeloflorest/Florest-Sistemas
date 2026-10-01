@@ -3049,17 +3049,22 @@
         </div>
       </div>
 
-      <!-- ---- SUBVIEW: GARÇONS (placeholder — Fase 3) ----
-           A aba já ocupa a posição definitiva no menu do Bar (Mesas | Garçons | Produtos
-           Compostos | Relatórios | Configurações), mas cadastro/autenticação de garçons fica para
-           a próxima etapa. Nenhum usuário, senha, tabela nova ou alteração em Supabase Auth/perfis
-           acontece aqui. -->
+      <!-- ---- SUBVIEW: GARÇONS (Fase 4) ----
+           Tela simples: nome + ações (Editar/Excluir). Sem Ativo/Inativo, sem filtro, sem e-mail —
+           por trás, é só public.perfis (papel='funcionario', permissões fixas do garçom); "Excluir"
+           é desativação lógica (bar_garcom_excluir), nunca apaga o perfil nem o histórico. -->
       <div id="bar-sub-garcons" class="bar-subview hidden">
+        <div class="view-header" style="padding:0 0 12px;">
+          <div></div>
+          <button class="btn-accent" id="btn-novo-garcom">+ Cadastrar garçom</button>
+        </div>
+        <div id="bar-garcons-msg"></div>
         <div class="table-card">
-          <div class="empty-state">
-            <div style="font-family:var(--font-display); text-transform:uppercase; letter-spacing:.04em; font-weight:700; color:var(--ink); font-size:15px; margin-bottom:8px;">Garçons</div>
-            O gerenciamento de garçons será configurado na próxima etapa.
-          </div>
+          <table>
+            <thead><tr><th>Nome do garçom</th><th>Ações</th></tr></thead>
+            <tbody id="bar-garcons-tabela-body"></tbody>
+          </table>
+          <div id="bar-garcons-empty" class="empty-state hidden">Nenhum garçom cadastrado ainda.</div>
         </div>
       </div>
 
@@ -4422,6 +4427,43 @@
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-produto-bar">Cancelar</button>
         <button type="submit" class="btn-primary" id="btn-salvar-produto-bar" style="width:auto; padding:10px 20px;">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ---- MODAL: GARÇOM (Fase 4) ----
+     Tela deliberadamente simples (Nome + Senha), sem e-mail, sem status Ativo/Inativo e sem
+     checkboxes de permissão: o conjunto de permissões do garçom é sempre fixo, decidido pelo
+     banco (bar_garcom_vincular, Migration 020). Serve tanto para "+ Cadastrar garçom" quanto
+     para "Editar" (troca só o título, o rótulo do botão e torna a senha opcional). -->
+<div id="modal-garcom" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="modal-garcom-titulo">Cadastrar garçom</h3>
+    <div id="garcom-msg"></div>
+    <form id="form-garcom" autocomplete="off">
+      <input type="hidden" id="garcom-id">
+      <div class="field">
+        <label>Nome do garçom</label>
+        <input type="text" id="garcom-nome" maxlength="200" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label id="garcom-senha-rotulo">Senha</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="garcom-senha" maxlength="18" autocomplete="new-password" placeholder="de 6 a 18 caracteres" style="flex:1;">
+            <button type="button" class="btn-secondary" id="btn-garcom-gerar-senha" style="white-space:nowrap;">Gerar</button>
+          </div>
+        </div>
+        <div class="field">
+          <label id="garcom-senha-confirmar-rotulo">Confirmar senha</label>
+          <input type="text" id="garcom-senha-confirmar" maxlength="18" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="modal-section-hint" id="garcom-senha-dica">Entregue esta senha ao garçom.</div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-garcom-cancelar">Cancelar</button>
+        <button type="submit" class="btn-accent" id="btn-garcom-salvar">Cadastrar</button>
       </div>
     </form>
   </div>
@@ -11319,9 +11361,12 @@ function podeAcessarBar(permissao){
 // quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
-  // Garçons (Fase 3): aba ainda é só um aviso, sem cadastro — mesma permissão de quem já
-  // configura o Bar hoje (bar_configurar), até a próxima etapa implementar o gerenciamento real.
-  garcons: ['bar_configurar'],
+  // Garçons (Fase 4 — correção): administrar contas de garçom (cadastrar/editar/excluir/redefinir
+  // senha) é restrito EXCLUSIVAMENTE ao proprietário nesta primeira versão — bar_configurar NÃO
+  // autoriza (ver bar_garcons_listar/bar_garcom_atualizar/bar_garcom_excluir, Migration 020). Por
+  // isso esta aba não usa a lista de permissões abaixo: a visibilidade é tratada à parte, em
+  // visivelBarSubview(), checando papel==='proprietario' diretamente.
+  garcons: [],
   produtos: ['bar_configurar'],
   // Relatórios do Bar: mesma regra de "Mesas" — qualquer permissão operacional do Bar já basta
   // (é a mesma checagem de acesso ao módulo, em duas camadas, que o restante do Bar já usa).
@@ -11331,15 +11376,20 @@ const BAR_SUBVIEW_PERMISSOES = {
   configuracoes: ['bar_configurar'],
 };
 
+// Garçons (Fase 4 — correção): única aba do Bar cuja visibilidade não é por lista de permissões —
+// é sempre e só o proprietário, mesmo que o funcionário logado tenha bar_configurar.
+function visivelBarSubview(view){
+  if(view === 'garcons') return !!acesso && acesso.papel === 'proprietario';
+  return (BAR_SUBVIEW_PERMISSOES[view] || []).some(p => podeAcessarBar(p));
+}
+
 async function carregarBarView(){
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(btn => {
-    const perms = BAR_SUBVIEW_PERMISSOES[btn.dataset.barview] || [];
-    btn.classList.toggle('hidden', !perms.some(p => podeAcessarBar(p)));
+    btn.classList.toggle('hidden', !visivelBarSubview(btn.dataset.barview));
   });
   configurarRealtimeBar();
-  const primeiraDisponivel = Object.keys(BAR_SUBVIEW_PERMISSOES).find(v =>
-    BAR_SUBVIEW_PERMISSOES[v].some(p => podeAcessarBar(p)));
-  await abrirSubViewBar(BAR_SUBVIEW_PERMISSOES[barSubViewAtual].some(p => podeAcessarBar(p)) ? barSubViewAtual : (primeiraDisponivel || 'mesas'));
+  const primeiraDisponivel = Object.keys(BAR_SUBVIEW_PERMISSOES).find(v => visivelBarSubview(v));
+  await abrirSubViewBar(visivelBarSubview(barSubViewAtual) ? barSubViewAtual : (primeiraDisponivel || 'mesas'));
 }
 
 document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(btn => {
@@ -11351,6 +11401,7 @@ async function abrirSubViewBar(sub){
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
   ['mesas','garcons','produtos','relatorios','configuracoes'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarMesas();
+  else if(sub === 'garcons') await carregarBarGarcons();
   else if(sub === 'produtos') await carregarBarProdutos();
   else if(sub === 'relatorios') carregarBarRelatorios();
   else if(sub === 'configuracoes') await abrirConfigSubViewBar(barConfigSubViewAtual);
@@ -11407,6 +11458,9 @@ const SECOES_RELATORIOS_BAR = [
   { id: 'bar_pedidos_periodo', titulo: 'Pedidos por período', descricao: 'Pedidos lançados no Bar, com mesa, usuário e valor.', filtros: ['periodo'], gerar: relatorioBarPedidosPeriodo },
   { id: 'bar_pedidos_por_usuario', titulo: 'Pedidos lançados por usuário', descricao: 'Quantidade de pedidos do Bar lançados por cada usuário, no período.', filtros: ['periodo'], gerar: relatorioBarPedidosPorUsuario },
   { id: 'bar_vendas_por_mesa', titulo: 'Vendas por mesa', descricao: 'Pedidos, itens e valor lançados no período, agrupados por mesa.', filtros: ['periodo'], gerar: relatorioBarVendasPorMesa },
+  { id: 'bar_atendimento_por_garcom', titulo: 'Atendimento por garçom', descricao: 'Pedidos, itens e valor movimentado por garçom, no período.', filtros: ['periodo'], gerar: relatorioBarAtendimentoPorGarcom },
+  { id: 'bar_detalhamento_garcom', titulo: 'Detalhamento do garçom', descricao: 'Todos os itens lançados por um garçom específico, no período.', filtros: ['periodo', 'garcom'], gerar: relatorioBarDetalhamentoGarcom },
+  { id: 'bar_comparativo_garcons', titulo: 'Comparativo de garçons', descricao: 'Números de cada garçom lado a lado, no período.', filtros: ['periodo'], gerar: relatorioBarComparativoGarcons },
 ];
 
 function carregarBarRelatorios(){
@@ -11457,9 +11511,41 @@ function abrirFiltrosRelatorioBar(rel){
       </div>
     `;
   } else {
+    campos.innerHTML = '';
+  }
+  // Fase 4: "Detalhamento do garçom" — seleção obrigatória de um garçom, igual em espírito ao
+  // filtro "Cliente" da Central de Relatórios (mesmo padrão: <select> populado em segundo plano),
+  // mas sem opção "Todos" porque este relatório é sempre de UM garçom por vez.
+  if(rel.filtros.includes('garcom')){
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:1; min-width:220px;">
+        <label>Garçom</label>
+        <select id="bar-rel-filtro-garcom"><option value="">Selecione um garçom</option></select>
+      </div>
+    `;
+    popularSelectGarconsRelatorioBar();
+  }
+  if(rel.filtros.length === 0){
     campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
   }
   mostrarPassoRelatorioBar('filtros');
+}
+
+// Popula o <select> de garçom do filtro "Detalhamento do garçom" — bar_funcionarios_nomes() (não
+// bar_garcons_listar, que exige bar_configurar) porque qualquer permissão de leitura do Bar já
+// pode abrir esta aba; inclui garçons já excluídos, para dar para consultar o histórico deles.
+async function popularSelectGarconsRelatorioBar(){
+  const select = $('bar-rel-filtro-garcom');
+  if(!select) return;
+  const nomesPorId = await resolverNomesFuncionariosBar();
+  Object.entries(nomesPorId)
+    .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+    .forEach(([id, nome]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = nome;
+      select.appendChild(opt);
+    });
 }
 
 $('btn-bar-rel-gerar').addEventListener('click', gerarRelatorioBarAtual);
@@ -11483,6 +11569,15 @@ async function gerarRelatorioBarAtual(){
     filtros.dataInicio = dataInicio;
     filtros.dataFim = dataFim;
   }
+  if(rel.filtros.includes('garcom')){
+    const selectGarcom = $('bar-rel-filtro-garcom');
+    if(!selectGarcom.value){
+      $('bar-rel-filtro-msg').innerHTML = '<div class="msg error">Selecione um garçom.</div>';
+      return;
+    }
+    filtros.garcomId = selectGarcom.value;
+    filtros.garcomNome = selectGarcom.options[selectGarcom.selectedIndex].textContent;
+  }
 
   const btn = $('btn-bar-rel-gerar');
   btn.disabled = true;
@@ -11491,9 +11586,10 @@ async function gerarRelatorioBarAtual(){
     const resultado = await rel.gerar(filtros);
     const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
     const tituloDocumento = (resultado.titulo || rel.titulo).toUpperCase() + ' — MÓDULO BAR';
-    const descricaoFiltros = rel.filtros.includes('periodo')
-      ? `Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`
-      : 'Sem filtros';
+    const partesFiltro = [];
+    if(rel.filtros.includes('periodo')) partesFiltro.push(`Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`);
+    if(rel.filtros.includes('garcom')) partesFiltro.push(`Garçom: ${filtros.garcomNome}`);
+    const descricaoFiltros = partesFiltro.length ? partesFiltro.join(' · ') : 'Sem filtros';
     $('bar-rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado);
     mostrarPassoRelatorioBar('documento');
   } catch(err){
@@ -11557,19 +11653,24 @@ async function buscarItensPorPedidoBar(pedidoIds){
   return data || [];
 }
 
-// Nome de exibição por usuário: reaproveita a mesma RPC que a tela de Usuários e Acessos já usa
-// (usuarios_listar, sem alterá-la). Se o usuário atual não tiver permissão para listá-la, ou a
-// chamada falhar por qualquer motivo, os relatórios continuam funcionando — só mostram um
-// identificador curto no lugar do nome, nunca quebram a tela.
-async function resolverNomesUsuarios(){
+// Nome de exibição por usuário (Fase 4 — Migration 020): bar_funcionarios_nomes() substitui o uso
+// anterior de usuarios_listar() aqui. usuarios_listar() só pode ser chamada por quem é proprietário
+// ou já tem o módulo "usuarios" — um garçom comum (ou um gerente só com bar_configurar) nunca
+// conseguiria resolver nome nenhum, nem nestes relatórios nem em "Lançado por" no Mini PDV.
+// bar_funcionarios_nomes() é liberada para qualquer permissão de leitura do Bar, devolve só
+// id+nome (nunca e-mail/permissões) e inclui também garçons já excluídos — pedidos antigos
+// precisam continuar mostrando o nome de quem lançou. Se a chamada falhar por qualquer motivo, os
+// relatórios/o Mini PDV continuam funcionando — só mostram um identificador curto no lugar do
+// nome, nunca quebram a tela.
+async function resolverNomesFuncionariosBar(){
   const nomesPorId = {};
   try {
-    const { data: usuarios, error } = await supabase.rpc('usuarios_listar');
-    if(!error && usuarios){
-      usuarios.forEach(u => { nomesPorId[u.id] = u.nome; });
+    const { data: funcionarios, error } = await supabase.rpc('bar_funcionarios_nomes');
+    if(!error && funcionarios){
+      funcionarios.forEach(u => { nomesPorId[u.id] = u.nome; });
     }
   } catch(err){
-    console.warn('Não foi possível resolver os nomes de usuário para os relatórios do Bar.', err);
+    console.warn('Não foi possível resolver os nomes de funcionários para o Bar.', err);
   }
   return nomesPorId;
 }
@@ -11612,7 +11713,7 @@ async function relatorioBarPedidosPeriodo(filtros){
   const pedidos = await buscarPedidosBarPeriodo(filtros);
   const [itens, nomesPorId] = await Promise.all([
     buscarItensPorPedidoBar(pedidos.map(p => p.id)),
-    resolverNomesUsuarios(),
+    resolverNomesFuncionariosBar(),
   ]);
 
   const porPedido = {};
@@ -11645,7 +11746,7 @@ async function relatorioBarPedidosPeriodo(filtros){
 
 async function relatorioBarPedidosPorUsuario(filtros){
   const pedidos = await buscarPedidosBarPeriodo(filtros);
-  const nomesPorId = await resolverNomesUsuarios();
+  const nomesPorId = await resolverNomesFuncionariosBar();
 
   const porUsuario = {};
   pedidos.forEach(p => {
@@ -11700,6 +11801,151 @@ async function relatorioBarVendasPorMesa(filtros){
       formatarReais(m.valor),
     ]),
     totalizadores: ['Total', totalPedidos, formatarQuantidade(totalQtd), formatarReais(totalValor)],
+  };
+}
+
+// ---------------------------------------------------------------------
+// Relatórios de GARÇOM (Fase 4). Os três reaproveitam exatamente as mesmas consultas de sempre
+// (buscarPedidosBarPeriodo/buscarItensPorPedidoBar, bar_pedidos.criado_por) — nenhuma tabela ou
+// coluna nova foi necessária: a autoria já existia desde a Migration 016/017.
+// ---------------------------------------------------------------------
+
+async function relatorioBarAtendimentoPorGarcom(filtros){
+  const pedidos = await buscarPedidosBarPeriodo(filtros);
+  const [itens, nomesPorId] = await Promise.all([
+    buscarItensPorPedidoBar(pedidos.map(p => p.id)),
+    resolverNomesFuncionariosBar(),
+  ]);
+  const porPedido = {};
+  itens.forEach(it => {
+    porPedido[it.pedido_id] = porPedido[it.pedido_id] || { qtd: 0, valor: 0 };
+    porPedido[it.pedido_id].qtd += Number(it.quantidade);
+    porPedido[it.pedido_id].valor += Number(it.quantidade) * Number(it.preco_unitario);
+  });
+  const porGarcom = {};
+  pedidos.forEach(p => {
+    const chave = p.criado_por || 'sem-usuario';
+    const agr = porPedido[p.id] || { qtd: 0, valor: 0 };
+    porGarcom[chave] = porGarcom[chave] || { pedidos: 0, itens: 0, valor: 0 };
+    porGarcom[chave].pedidos += 1;
+    porGarcom[chave].itens += agr.qtd;
+    porGarcom[chave].valor += agr.valor;
+  });
+  const linhas = Object.entries(porGarcom).sort((a, b) => b[1].valor - a[1].valor);
+  let totalPedidos = 0, totalItens = 0, totalValor = 0;
+  const linhasFmt = linhas.map(([id, d]) => {
+    totalPedidos += d.pedidos; totalItens += d.itens; totalValor += d.valor;
+    return [
+      escapeHtml(id === 'sem-usuario' ? 'Não identificado' : nomeUsuarioBar(id, nomesPorId)),
+      formatarQuantidade(d.pedidos),
+      formatarQuantidade(d.itens),
+      formatarReais(d.valor),
+    ];
+  });
+  return {
+    titulo: 'Atendimento por garçom',
+    colunas: ['Garçom', 'Pedidos lançados', 'Itens lançados', 'Valor movimentado'],
+    linhas: linhasFmt,
+    totalizadores: ['Total', formatarQuantidade(totalPedidos), formatarQuantidade(totalItens), formatarReais(totalValor)],
+  };
+}
+
+async function buscarPedidosBarDeGarcomPeriodo(filtros){
+  const inicioISO = new Date(filtros.dataInicio + 'T00:00:00').toISOString();
+  const fimISO = new Date(filtros.dataFim + 'T23:59:59.999').toISOString();
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos')
+    .select('id, criado_em, mesa_id, bar_mesas(numero)')
+    .eq('criado_por', filtros.garcomId)
+    .gte('criado_em', inicioISO)
+    .lte('criado_em', fimISO)
+    .order('criado_em', { ascending: true })
+    .order('id', { ascending: true }));
+  if(error) throw error;
+  return data || [];
+}
+
+async function buscarItensDetalhadosPorPedidoBar(pedidoIds){
+  if(!pedidoIds.length) return [];
+  const { data, error } = await buscarTodos(() => supabase
+    .from('bar_pedidos_itens')
+    .select('pedido_id, quantidade, preco_unitario, produtos ( nome )')
+    .eq('estornado', false)
+    .in('pedido_id', pedidoIds));
+  if(error) throw error;
+  return data || [];
+}
+
+async function relatorioBarDetalhamentoGarcom(filtros){
+  const [pedidos, nomesPorId] = await Promise.all([
+    buscarPedidosBarDeGarcomPeriodo(filtros),
+    resolverNomesFuncionariosBar(),
+  ]);
+  const itens = await buscarItensDetalhadosPorPedidoBar(pedidos.map(p => p.id));
+  const porPedido = {};
+  pedidos.forEach(p => { porPedido[p.id] = p; });
+  let totalQtd = 0, totalValor = 0;
+  const linhas = itens.map(it => {
+    const p = porPedido[it.pedido_id];
+    const valor = Number(it.quantidade) * Number(it.preco_unitario);
+    totalQtd += Number(it.quantidade); totalValor += valor;
+    return [
+      p ? new Date(p.criado_em).toLocaleString('pt-BR') : '—',
+      p && p.bar_mesas ? ('Mesa ' + p.bar_mesas.numero) : '—',
+      escapeHtml(it.produtos ? it.produtos.nome : '—'),
+      formatarQuantidade(it.quantidade),
+      formatarReais(valor),
+    ];
+  });
+  return {
+    titulo: `Detalhamento do garçom — ${escapeHtml(nomeUsuarioBar(filtros.garcomId, nomesPorId))}`,
+    colunas: ['Data/Hora', 'Mesa', 'Item', 'Quantidade', 'Valor'],
+    linhas,
+    totalizadores: ['', '', 'Total', formatarQuantidade(totalQtd), formatarReais(totalValor)],
+  };
+}
+
+async function relatorioBarComparativoGarcons(filtros){
+  const pedidos = await buscarPedidosBarPeriodo(filtros);
+  const [itens, nomesPorId] = await Promise.all([
+    buscarItensPorPedidoBar(pedidos.map(p => p.id)),
+    resolverNomesFuncionariosBar(),
+  ]);
+  const porPedido = {};
+  itens.forEach(it => {
+    porPedido[it.pedido_id] = porPedido[it.pedido_id] || { qtd: 0, valor: 0 };
+    porPedido[it.pedido_id].qtd += Number(it.quantidade);
+    porPedido[it.pedido_id].valor += Number(it.quantidade) * Number(it.preco_unitario);
+  });
+  const porGarcom = {};
+  let totalGeralValor = 0;
+  pedidos.forEach(p => {
+    const chave = p.criado_por || 'sem-usuario';
+    const agr = porPedido[p.id] || { qtd: 0, valor: 0 };
+    porGarcom[chave] = porGarcom[chave] || { pedidos: 0, itens: 0, valor: 0 };
+    porGarcom[chave].pedidos += 1;
+    porGarcom[chave].itens += agr.qtd;
+    porGarcom[chave].valor += agr.valor;
+    totalGeralValor += agr.valor;
+  });
+  const linhas = Object.entries(porGarcom).sort((a, b) => b[1].valor - a[1].valor);
+  let totalPedidos = 0, totalItens = 0;
+  const linhasFmt = linhas.map(([id, d]) => {
+    totalPedidos += d.pedidos; totalItens += d.itens;
+    const percentual = totalGeralValor > 0 ? (d.valor / totalGeralValor) * 100 : 0;
+    return [
+      escapeHtml(id === 'sem-usuario' ? 'Não identificado' : nomeUsuarioBar(id, nomesPorId)),
+      formatarQuantidade(d.pedidos),
+      formatarQuantidade(d.itens),
+      formatarReais(d.valor),
+      percentual.toFixed(1).replace('.', ',') + '%',
+    ];
+  });
+  return {
+    titulo: 'Comparativo de garçons',
+    colunas: ['Garçom', 'Pedidos', 'Itens', 'Valor movimentado', '% do total'],
+    linhas: linhasFmt,
+    totalizadores: ['Total', formatarQuantidade(totalPedidos), formatarQuantidade(totalItens), formatarReais(totalGeralValor), '100,0%'],
   };
 }
 
@@ -11806,13 +12052,19 @@ async function atualizarSaldoEItensMesa(){
     $('bar-mesa-historico-wrap').classList.add('hidden');
     return;
   }
-  const [resumoResp, itensResp] = await Promise.all([
+  // Fase 4: pedido_id + bar_pedidos(criado_por) entram só para resolver "Lançado por X" — a
+  // consulta em si (comanda_id, campos do item) é a mesma de sempre. bar_pedidos_itens não tem
+  // (e não precisa de) coluna própria de autoria: cada lançamento já grava UM bar_pedidos com
+  // criado_por=auth.uid(), e todos os itens daquele lançamento apontam para o mesmo pedido_id —
+  // é o que já faz dois garçons na mesma mesa ficarem naturalmente separados.
+  const [resumoResp, itensResp, nomesPorId] = await Promise.all([
     supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: barComandaAtualId }),
     buscarTodos(() => supabase
       .from('bar_pedidos_itens')
-      .select('id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional )')
+      .select('id, pedido_id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional ), bar_pedidos ( criado_por )')
       .eq('comanda_id', barComandaAtualId)
       .order('criado_em')),
+    resolverNomesFuncionariosBar(),
   ]);
   if(resumoResp.error || itensResp.error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error))}</div>`;
@@ -11820,7 +12072,7 @@ async function atualizarSaldoEItensMesa(){
   }
   barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
   renderResumoFinanceiroMesa();
-  renderItensComandaMesa(itensResp.data || []);
+  renderItensComandaMesa(itensResp.data || [], nomesPorId);
   await carregarHistoricoPagamentosMesa();
 }
 
@@ -12071,7 +12323,7 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
 });
 
-function renderItensComandaMesa(itens){
+function renderItensComandaMesa(itens, nomesPorId){
   const corpo = $('bar-mesa-itens-body');
   $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
   corpo.innerHTML = itens.map(it => {
@@ -12085,9 +12337,13 @@ function renderItensComandaMesa(itens){
     // escolhas gravadas em bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s)
     // destino(s) reais.
     const escolhas = it.bar_pedidos_itens_escolhas || [];
+    // Fase 4: "Lançado por X", discreto, igual às escolhas — não vira coluna nova (o Mini PDV não
+    // foi redesenhado, só ganhou esta linha a mais sob o nome do item).
+    const autorId = it.bar_pedidos ? it.bar_pedidos.criado_por : null;
+    const lancadoPorTexto = `Lançado por ${escapeHtml(nomeUsuarioBar(autorId, nomesPorId || {}))}`;
     const nomeLinha = escolhas.length > 0
-      ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div>`
-      : escapeHtml(it.produtos ? it.produtos.nome : '—');
+      ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div><div class="modal-section-hint" style="margin:1px 0 0;">${lancadoPorTexto}</div>`
+      : `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${lancadoPorTexto}</div>`;
     const nomeDestino = d => d === 'bar' ? 'Bar' : d === 'cozinha' ? 'Cozinha' : 'Sem destino';
     const destinoTexto = escolhas.length > 0
       ? Array.from(new Set(escolhas.map(e => e.destino_operacional))).map(nomeDestino).join(' + ')
@@ -12749,6 +13005,137 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
   }
   $('modal-bar-produto').classList.add('hidden');
   await carregarBarProdutos();
+});
+
+// ---------- Garçons (Fase 4 — Migration 020) ----------
+// Tela simples (nome + ações) sobre public.perfis: um garçom é um funcionário comum, com o trio
+// fixo de permissões bar_visualizar/bar_mesas/bar_pedidos. "Excluir" nunca apaga nada — é
+// desativação lógica (bar_garcom_excluir só marca perfis.ativo=false), por isso o garçom some
+// desta lista mas o nome continua resolvendo normalmente em "Lançado por" (bar_funcionarios_nomes)
+// e nos relatórios do Bar.
+let barGarcons = [];
+let barGarcomEditandoId = null;
+
+async function carregarBarGarcons(){
+  $('bar-garcons-msg').innerHTML = '';
+  const { data, error } = await supabase.rpc('bar_garcons_listar');
+  if(error){
+    $('bar-garcons-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  barGarcons = data || [];
+  renderBarGarcons();
+}
+
+function renderBarGarcons(){
+  $('bar-garcons-empty').classList.toggle('hidden', barGarcons.length > 0);
+  $('bar-garcons-tabela-body').innerHTML = barGarcons.map(g => `
+    <tr>
+      <td>${escapeHtml(g.nome)}</td>
+      <td>
+        <button type="button" class="link-btn" data-acao="editar" data-id="${g.id}">Editar</button>
+        &nbsp;|&nbsp;
+        <button type="button" class="link-btn" data-acao="excluir" data-id="${g.id}">Excluir</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function abrirModalGarcom(g){
+  barGarcomEditandoId = g ? g.id : null;
+  $('garcom-id').value = g ? g.id : '';
+  $('garcom-msg').innerHTML = '';
+  $('modal-garcom-titulo').textContent = g ? 'Editar garçom' : 'Cadastrar garçom';
+  $('garcom-nome').value = g ? g.nome : '';
+  $('garcom-senha').value = '';
+  $('garcom-senha-confirmar').value = '';
+  $('garcom-senha-rotulo').textContent = g ? 'Nova senha (opcional)' : 'Senha';
+  $('garcom-senha-confirmar-rotulo').textContent = g ? 'Confirmar nova senha' : 'Confirmar senha';
+  $('garcom-senha-dica').textContent = g
+    ? 'Preencha só se quiser trocar a senha deste garçom.'
+    : 'Entregue esta senha ao garçom.';
+  $('btn-garcom-salvar').textContent = g ? 'Salvar' : 'Cadastrar';
+  $('modal-garcom').classList.remove('hidden');
+  setTimeout(() => $('garcom-nome').focus(), 0);
+}
+function fecharModalGarcom(){ $('modal-garcom').classList.add('hidden'); }
+
+$('btn-novo-garcom').addEventListener('click', () => abrirModalGarcom(null));
+$('btn-garcom-cancelar').addEventListener('click', fecharModalGarcom);
+$('btn-garcom-gerar-senha').addEventListener('click', () => { $('garcom-senha').value = gerarSenhaAleatoria(); });
+
+$('bar-garcons-tabela-body').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-acao]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const garcom = barGarcons.find(g => g.id === id);
+  if(!garcom) return;
+  if(btn.dataset.acao === 'editar'){
+    abrirModalGarcom(garcom);
+    return;
+  }
+  // Excluir = desativação lógica (bar_garcom_excluir). O histórico de pedidos dele permanece
+  // intacto — só perde o acesso e sai desta lista.
+  if(!confirm(`Excluir o garçom "${garcom.nome}"? Ele não conseguirá mais entrar, mas os pedidos já lançados por ele continuam no histórico normalmente.`)) return;
+  btn.disabled = true;
+  const { error } = await supabase.rpc('bar_garcom_excluir', { p_id: id });
+  if(error){
+    $('bar-garcons-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    btn.disabled = false;
+    return;
+  }
+  $('bar-garcons-msg').innerHTML = '<div class="msg success">Garçom excluído.</div>';
+  await carregarBarGarcons();
+});
+
+$('form-garcom').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('garcom-msg').innerHTML = '';
+  const id = $('garcom-id').value;
+  const nome = $('garcom-nome').value.trim();
+  const senha = $('garcom-senha').value;
+  const senhaConfirmar = $('garcom-senha-confirmar').value;
+
+  if(nome.length < 2){ $('garcom-msg').innerHTML = '<div class="msg error">Informe o nome do garçom.</div>'; return; }
+  // Checagem local idêntica à da Edge Function para o garçom (validarSenha: 6 a 18 caracteres) —
+  // usa seu próprio limite em vez de senhaValida()/MSG_SENHA (que são de 5 a 18, reaproveitados
+  // pela tela geral de Usuários e Acessos e não alterados por esta correção).
+  const MSG_SENHA_GARCOM = 'Use uma senha de 6 a 18 caracteres.';
+  const senhaValidaGarcom = (s) => typeof s === 'string' && s.length >= 6 && s.length <= 18;
+  if(!id){
+    if(!senhaValidaGarcom(senha)){ $('garcom-msg').innerHTML = `<div class="msg error">${MSG_SENHA_GARCOM}</div>`; return; }
+  } else if(senha && !senhaValidaGarcom(senha)){
+    $('garcom-msg').innerHTML = `<div class="msg error">${MSG_SENHA_GARCOM}</div>`; return;
+  }
+  if(senha && senha !== senhaConfirmar){
+    $('garcom-msg').innerHTML = '<div class="msg error">As senhas não coincidem.</div>';
+    return;
+  }
+
+  const btn = $('btn-garcom-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    if(!id){
+      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar_garcom', nome, senha } });
+      if(error || !data || data.ok !== true){ $('garcom-msg').innerHTML = `<div class="msg error">${escapeHtml(await mensagemErroFuncao(error, data))}</div>`; return; }
+    } else {
+      const { error } = await supabase.rpc('bar_garcom_atualizar', { p_id: id, p_nome: nome });
+      if(error){ $('garcom-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
+      if(senha){
+        const { data, error: errSenha } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'redefinir_senha_garcom', usuario_id: id, senha } });
+        if(errSenha || !data || data.ok !== true){
+          $('garcom-msg').innerHTML = `<div class="msg error">Os dados foram salvos, mas a senha não foi trocada: ${escapeHtml(await mensagemErroFuncao(errSenha, data))}</div>`;
+          await carregarBarGarcons();
+          return;
+        }
+      }
+    }
+    fecharModalGarcom();
+    $('bar-garcons-msg').innerHTML = `<div class="msg success">${id ? 'Garçom atualizado.' : 'Garçom cadastrado. Entregue a senha a ele.'}</div>`;
+    await carregarBarGarcons();
+  } finally {
+    btn.disabled = false; btn.textContent = id ? 'Salvar' : 'Cadastrar';
+  }
 });
 
 // ---------- Configurar mesas (Migration 018) ----------
