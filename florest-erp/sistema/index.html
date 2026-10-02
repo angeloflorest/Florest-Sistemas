@@ -1771,6 +1771,16 @@
   .pdx-cliente{ display:flex; align-items:center; gap:10px; font-size:14px; min-width:0; }
   .pdx-cliente span{ color:#B9BEC8; }
   .pdx-cliente b{ color:var(--florest-yellow); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:360px; }
+  .pdx-cpf-nota{ display:flex; align-items:center; gap:7px; font-size:13px; min-width:0; }
+  .pdx-cpf-nota span{ color:#B9BEC8; white-space:nowrap; }
+  .pdx-cpf-nota input{
+    width:150px; padding:6px 9px; font-size:13px; border-radius:7px; border:1px solid #4A505C;
+    background:#1B2027; color:#fff; font-family:inherit;
+  }
+  .pdx-cpf-nota input::placeholder{ color:#6E7482; }
+  .pdx-cpf-nota input:focus{ outline:none; border-color:var(--florest-yellow); box-shadow:0 0 0 2px rgba(248,200,32,.3); }
+  .pdx-cpf-nota input.pdx-cpf-nota-invalida{ border-color:#FF8A80; box-shadow:0 0 0 2px rgba(255,138,128,.3); }
+  .pdx-cpf-nota-erro{ color:#FF8A80; font-size:11px; white-space:nowrap; }
   .pdx-teclas{ margin-left:auto; font-size:12px; color:#B9BEC8; }
   .pdx-btn-mini{
     font-family:inherit; font-size:12px; font-weight:700; padding:7px 12px; border-radius:8px; cursor:pointer;
@@ -2518,6 +2528,11 @@
           <select id="pdv-cliente" style="display:none;" tabindex="-1" aria-hidden="true">
             <option value="">Consumidor Final</option>
           </select>
+        </div>
+        <div class="pdx-cpf-nota">
+          <span>CPF na nota:</span>
+          <input type="text" id="pdv-cpf-nota" inputmode="numeric" placeholder="Opcional" autocomplete="off" maxlength="14">
+          <span class="pdx-cpf-nota-erro" id="pdx-cpf-nota-erro"></span>
         </div>
         <div class="pdx-teclas"><kbd>F2</kbd> Cliente &nbsp; <kbd>F3</kbd> Finalizar &nbsp; <kbd>F5</kbd> Desconto &nbsp; <kbd>ESC</kbd> Cancelar</div>
         <button type="button" class="pdx-btn-mini pdx-btn-mini-perigo" id="btn-limpar-venda">Limpar cupom</button>
@@ -7799,6 +7814,45 @@ let pdvIndiceAtivo = -1;
 let pdvBuscaSeq = 0;
 let pdvUltimoAdicionado = null;
 let pdvAudio = null;
+const pdvClientesCpf = new Map(); // id do cliente -> cpf (somente dígitos), para autopreencher "CPF na nota"
+
+/** Confere os 11 dígitos e os dois dígitos verificadores do CPF (mesmo algoritmo da função private.cpf_valido no banco). */
+function cpfValido(v){
+  const d = somenteDigitos(v);
+  if(d.length !== 11) return false;
+  if(/^(\d)\1{10}$/.test(d)) return false;
+  let soma = 0;
+  for(let i = 0; i < 9; i++) soma += Number(d[i]) * (10 - i);
+  let resto = soma % 11;
+  const dv1 = resto < 2 ? 0 : 11 - resto;
+  if(dv1 !== Number(d[9])) return false;
+  soma = 0;
+  for(let i = 0; i < 10; i++) soma += Number(d[i]) * (11 - i);
+  resto = soma % 11;
+  const dv2 = resto < 2 ? 0 : 11 - resto;
+  if(dv2 !== Number(d[10])) return false;
+  return true;
+}
+
+/** Mostra/esconde o aviso de CPF inválido no rodapé do PDV e marca o campo. Retorna true se o conteúdo atual é aceitável (vazio ou válido). */
+function pdxValidarCpfNota(){
+  const campo = $('pdv-cpf-nota');
+  const erro = $('pdx-cpf-nota-erro');
+  const d = somenteDigitos(campo.value);
+  if(!d){
+    campo.classList.remove('pdx-cpf-nota-invalida');
+    erro.textContent = '';
+    return true;
+  }
+  if(!cpfValido(d)){
+    campo.classList.add('pdx-cpf-nota-invalida');
+    erro.textContent = 'CPF inválido';
+    return false;
+  }
+  campo.classList.remove('pdx-cpf-nota-invalida');
+  erro.textContent = '';
+  return true;
+}
 
 const PDV_COLUNAS = 'id, nome, codigo, gtin, preco_venda, quantidade_estoque, unidade_comercial';
 const PDV_CACHE_MS = 30000;
@@ -7823,16 +7877,18 @@ async function prepararPdv(){
   focarCampoPdv(); // o campo já fica pronto para receber a leitura, sem clicar
 
   const { data: clientesData } = await buscarTodos(() =>
-    supabase.from('clientes').select('id, nome').order('nome', { ascending: true }).order('id', { ascending: true }));
+    supabase.from('clientes').select('id, nome, cpf').order('nome', { ascending: true }).order('id', { ascending: true }));
 
   const select = $('pdv-cliente');
   const selecionado = select.value;
   select.innerHTML = '<option value="">Consumidor Final</option>';
+  pdvClientesCpf.clear();
   (clientesData || []).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.nome;
     select.appendChild(opt);
+    if(c.cpf) pdvClientesCpf.set(c.id, somenteDigitos(c.cpf));
   });
   if(selecionado) select.value = selecionado;
   pdxAtualizarClienteRotulo();
@@ -8305,6 +8361,14 @@ $('btn-limpar-venda').addEventListener('click', () => {
 $('btn-finalizar-venda').addEventListener('click', async () => {
   if(pdvCarrinho.length === 0) return;
 
+  // "CPF na nota" é opcional, mas se foi digitado algo precisa ser um CPF válido antes de finalizar.
+  if(!pdxValidarCpfNota()){
+    pdvMensagem('CPF informado em "CPF na nota" é inválido. Corrija ou apague o campo antes de finalizar.');
+    $('pdv-cpf-nota').focus();
+    return;
+  }
+  const cpfNota = somenteDigitos($('pdv-cpf-nota').value) || null;
+
   const clienteId = $('pdv-cliente').value || null;
   const formaPagamento = $('pdv-pagamento').value;
 
@@ -8325,7 +8389,8 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const { data, error } = await supabase.rpc('registrar_venda', {
     p_cliente_id: clienteId,
     p_forma_pagamento: formaPagamento,
-    p_itens: itensParaEnviar
+    p_itens: itensParaEnviar,
+    p_cpf_nota: cpfNota
   });
 
   btn.textContent = 'FINALIZAR VENDA (F3)';
@@ -8345,6 +8410,8 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   pdvCarrinho = [];
   pdvCache.clear(); // o estoque mudou: as próximas leituras consultam o saldo atualizado
   $('pdv-desconto').value = '0';
+  $('pdv-cpf-nota').value = '';
+  pdxValidarCpfNota();
   pdxResetPreview();
   renderCarrinho();
   $('pdv-busca-produto').focus();
@@ -8673,6 +8740,10 @@ document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
   });
 });
 
+// ----- CPF na nota (campo opcional no rodapé do PDV; ver pdxValidarCpfNota) -----
+$('pdv-cpf-nota').addEventListener('input', pdxValidarCpfNota);
+$('pdv-cpf-nota').addEventListener('blur', pdxValidarCpfNota);
+
 // ----- cliente (a seleção continua no <select id="pdv-cliente">, usado pela venda) -----
 function pdxAtualizarClienteRotulo(){
   const sel = $('pdv-cliente');
@@ -8695,6 +8766,13 @@ function pdxRenderClientes(){
     b.addEventListener('click', () => {
       $('pdv-cliente').value = o.value;
       pdxAtualizarClienteRotulo();
+      // Cliente com CPF válido no cadastro: preenche "CPF na nota" automaticamente.
+      // O operador ainda pode alterar ou apagar o campo antes de finalizar a venda.
+      const cpfDoCliente = o.value ? pdvClientesCpf.get(o.value) : null;
+      if(cpfDoCliente && cpfValido(cpfDoCliente)){
+        $('pdv-cpf-nota').value = cpfDoCliente;
+        pdxValidarCpfNota();
+      }
       $('pdx-modal-cliente').classList.add('hidden');
       focarCampoPdv();
     });
