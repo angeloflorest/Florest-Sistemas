@@ -3544,16 +3544,7 @@
           <input type="number" step="0.01" min="0" id="produto-preco-custo">
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Quantidade em estoque</label>
-          <input type="number" step="0.0001" min="0" id="produto-estoque" placeholder="0">
-        </div>
-        <div class="field" id="produto-estoque-minimo-campo">
-          <label>Estoque mínimo</label>
-          <input type="number" step="0.0001" min="0" id="produto-estoque-minimo" placeholder="Opcional">
-        </div>
-      </div>
+      <div class="modal-section-hint" style="margin-top:-6px;">Estoque não é definido aqui — controle a quantidade em Estoque, por Nota Fiscal de Entrada ou pelas vendas.</div>
 
       <div class="hidden" id="produto-tipo-fiscal-wrap">
         <select id="produto-tipo-fiscal">
@@ -3576,19 +3567,27 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label>CEST</label>
-            <input type="text" id="produto-cest" placeholder="Quando aplicável">
-          </div>
-          <div class="field">
             <label>CFOP</label>
             <input type="text" id="produto-cfop" placeholder="Ex: 5102">
           </div>
-        </div>
-        <div class="field-row">
           <div class="field">
             <label>Origem da mercadoria</label>
             <input type="text" id="produto-origem" placeholder="Ex: 0 - Nacional">
           </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>CSOSN/CST ICMS</label>
+            <input type="text" id="produto-cst" placeholder="Ex: 102">
+          </div>
+          <div class="field">
+            <label>CEST</label>
+            <input type="text" id="produto-cest" placeholder="Quando aplicável">
+          </div>
+        </div>
+
+        <div class="modal-section-hint" style="margin:10px 0 10px; text-transform:uppercase; font-weight:700; letter-spacing:0.03em; font-size:11px;">Outros dados fiscais (uso menos frequente)</div>
+        <div class="field-row">
           <div class="field">
             <label>Unidade comercial</label>
             <select id="produto-unidade">
@@ -3634,12 +3633,6 @@
                 <option value="MIL">MIL - Milheiro</option>
               </optgroup>
             </select>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>CSOSN/CST ICMS</label>
-            <input type="text" id="produto-cst" placeholder="Ex: 102">
           </div>
           <div class="field">
             <label>Alíquota ICMS (%)</label>
@@ -7364,7 +7357,6 @@ function definirValorCampo(el, valor){
 function abrirModalProduto(produto){
   $('produto-msg').innerHTML = '';
   $('form-produto').reset();
-  $('produto-estoque-minimo-campo').classList.toggle('hidden', !recursos.estoqueMinimo);
 
   if(produto){
     $('modal-produto-titulo').textContent = 'Editar produto';
@@ -7373,13 +7365,12 @@ function abrirModalProduto(produto){
     $('produto-nome').value = produto.nome || '';
     $('produto-preco-venda').value = produto.preco_venda ?? '';
     $('produto-preco-custo').value = produto.preco_custo ?? '';
-    $('produto-estoque').value = produto.quantidade_estoque ?? 0;
-    $('produto-estoque-minimo').value = produto.estoque_minimo ?? '';
 
     $('produto-tipo-fiscal').value = produto.tipo_fiscal || 'produto';
     $('produto-gtin').value = produto.gtin || '';
     $('produto-ncm').value = produto.ncm || '';
     $('produto-cest').value = produto.cest || '';
+    // Edição: preserva exatamente o CFOP já salvo. Nunca sobrescrever com 5102 aqui.
     $('produto-cfop').value = produto.cfop || '';
     definirValorCampo($('produto-origem'), produto.origem_mercadoria);
     definirValorCampo($('produto-unidade'), produto.unidade_comercial);
@@ -7395,6 +7386,9 @@ function abrirModalProduto(produto){
     $('modal-produto-titulo').textContent = 'Novo produto';
     $('produto-id').value = '';
     $('produto-tipo-fiscal').value = 'produto';
+    // Produto novo: CFOP mais comum do fluxo de venda de balcão, já vem sugerido, mas
+    // continua editável para quem precisar de um CFOP diferente nesta operação.
+    $('produto-cfop').value = '5102';
   }
 
   alternarSecaoFiscal();
@@ -7444,11 +7438,14 @@ $('form-produto').addEventListener('submit', async (e) => {
   const id = $('produto-id').value;
   const tipoFiscal = $('produto-tipo-fiscal').value;
 
+  // Estoque (quantidade_estoque/estoque_minimo) não faz parte deste formulário: fica de fora
+  // do payload tanto no insert (o banco grava quantidade_estoque = 0 por padrão) quanto no
+  // update (não altera o que já está salvo). Ajuste de estoque é feito só pela tela de Estoque,
+  // por Nota Fiscal de Entrada ou pelas vendas.
   const payload = {
     nome: $('produto-nome').value.trim(),
     preco_venda: parseFloat($('produto-preco-venda').value),
     preco_custo: $('produto-preco-custo').value ? parseFloat($('produto-preco-custo').value) : null,
-    quantidade_estoque: $('produto-estoque').value ? parseFloat($('produto-estoque').value) : 0,
     tipo_fiscal: tipoFiscal,
     gtin: $('produto-gtin').value.trim() || null,
     ncm: $('produto-ncm').value.trim() || null,
@@ -7465,9 +7462,6 @@ $('form-produto').addEventListener('submit', async (e) => {
     municipio_incidencia: $('produto-municipio-incidencia').value.trim() || null,
     iss: $('produto-iss').value ? parseFloat($('produto-iss').value) : null,
   };
-  if(recursos.estoqueMinimo){
-    payload.estoque_minimo = $('produto-estoque-minimo').value !== '' ? parseFloat($('produto-estoque-minimo').value) : null;
-  }
 
   const btn = $('btn-salvar-produto');
   btn.disabled = true;
