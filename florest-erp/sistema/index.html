@@ -3806,20 +3806,20 @@
       <div class="usr-perms" id="usr-perms"></div>
 
       <!-- Permissões granulares do Módulo Bar: só aparece se a empresa tiver o módulo contratado
-           (ver renderPermsUsuario). Os checkboxes ficam FORA de #usr-perms por clareza visual (é
-           uma seção à parte, com atalhos de papel próprios), mas permsMarcadas()/definirPerms()
-           também leem daqui — ver essas funções. -->
+           (ver renderPermsUsuario). Os checkboxes ficam FORA de #usr-perms por clareza visual, mas
+           permsMarcadas()/definirPerms() também leem daqui — ver essas funções.
+           Fase 5 (Migration 024): os atalhos "Bar — Garçom/Caixa/Portaria" que existiam aqui foram
+           removidos — eram herança da arquitetura anterior, de quando um "garçom" só existia como
+           um conjunto específico de permissões. Hoje um garçom é identificado estruturalmente por
+           perfis.tipo_acesso='garcom' e é administrado exclusivamente em Módulo Bar → Garçons;
+           esta seção (Usuários e Acessos) passa a existir só para dar a um funcionário do ERP,
+           caso a caixa, qualquer combinação das permissões do Bar, sem nenhum atalho de "papel"
+           pré-pronto — cada caixa é marcada manualmente. -->
       <div id="usr-perms-bar-secao" class="hidden" style="margin-top:14px;">
         <div class="usr-perms-topo">
           <strong>Módulo Bar — permissões detalhadas</strong>
-          <span>
-            <button type="button" class="link-btn" id="btn-usr-preset-bar-garcom">Bar — Garçom</button>
-            <button type="button" class="link-btn" id="btn-usr-preset-bar-caixa">Bar — Caixa</button>
-            <button type="button" class="link-btn" id="btn-usr-preset-bar-portaria">Bar — Portaria</button>
-          </span>
         </div>
         <div class="usr-perms" id="usr-perms-bar"></div>
-        <div class="modal-section-hint">Estes atalhos de papel são só um ponto de partida: marque ou desmarque qualquer permissão individual depois de aplicar um.</div>
       </div>
 
       <div class="modal-section-hint" id="usr-perms-dica"></div>
@@ -6053,13 +6053,11 @@ $('btn-usr-preset-todos').addEventListener('click', () => definirPerms(
 ));
 $('btn-usr-preset-nenhum').addEventListener('click', () => definirPerms([]));
 
-// Atalhos de papel do Módulo Bar (mesmo espírito do "Somente PDV (caixa)" acima): só marcam um
-// conjunto de permissões já existentes — nenhum papel "garçom/caixa/portaria" é hardcoded no
-// banco, é só uma conveniência de preenchimento aqui no frontend (ver seção "Controle de acesso"
-// do relatório final). O usuário pode ajustar cada checkbox individualmente depois.
-$('btn-usr-preset-bar-garcom').addEventListener('click', () => definirPerms(['bar_visualizar', 'bar_mesas', 'bar_pedidos']));
-$('btn-usr-preset-bar-caixa').addEventListener('click', () => definirPerms(['bar_visualizar', 'bar_mesas', 'bar_caixa', 'bar_corrigir_pessoas']));
-$('btn-usr-preset-bar-portaria').addEventListener('click', () => definirPerms(['bar_visualizar', 'bar_portaria']));
+// Fase 5 (Migration 024): os atalhos de papel do Módulo Bar ("Bar — Garçom/Caixa/Portaria") que
+// existiam aqui foram removidos — eram herança da arquitetura anterior. Garçom agora é
+// administrado exclusivamente em Módulo Bar → Garçons (identificado por perfis.tipo_acesso, nunca
+// por um conjunto de permissões); as permissões detalhadas do Bar continuam disponíveis nesta
+// tela para o proprietário montar qualquer combinação num funcionário do ERP, uma a uma.
 
 $('form-usuario').addEventListener('submit', async (e) => {
   e.preventDefault();
