@@ -2089,28 +2089,57 @@
         <div id="auth-msg"></div>
 
         <!-- LOGIN -->
-        <form id="form-login">
-          <div class="field auth-input-wrap">
-            <label>E-mail</label>
-            <span class="auth-input-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></svg></span>
-            <input type="email" id="login-email" required autocomplete="email" placeholder="seu@email.com">
-          </div>
-          <div class="field auth-input-wrap">
-            <label>Senha</label>
-            <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-            <input type="password" id="login-senha" required autocomplete="current-password" placeholder="Sua senha">
-            <button type="button" class="auth-toggle-senha" data-target="login-senha" aria-label="Mostrar senha">
-              <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-          <button class="btn-auth" type="submit" id="btn-login">ENTRAR NO SISTEMA</button>
+        <div id="form-login">
+          <!-- Login novo (padrão): e-mail da empresa + usuário + senha, via Edge Function florest-login -->
+          <form id="form-login-erp">
+            <div class="field auth-input-wrap">
+              <label>E-mail da empresa</label>
+              <span class="auth-input-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></svg></span>
+              <input type="email" id="login-erp-empresa" required autocomplete="organization" placeholder="empresa@gmail.com">
+            </div>
+            <div class="field auth-input-wrap">
+              <label>Usuário</label>
+              <span class="auth-input-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M4.5 20c0-3.8 3.3-6.5 7.5-6.5s7.5 2.7 7.5 6.5"/></svg></span>
+              <input type="text" id="login-erp-usuario" required autocomplete="username" placeholder="Ex: angelo">
+            </div>
+            <div class="field auth-input-wrap">
+              <label>Senha</label>
+              <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
+              <input type="password" id="login-erp-senha" required autocomplete="current-password" placeholder="Sua senha">
+              <button type="button" class="auth-toggle-senha" data-target="login-erp-senha" aria-label="Mostrar senha">
+                <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <button class="btn-auth" type="submit" id="btn-login-erp">ENTRAR NO SISTEMA</button>
 
-          <div class="auth-divider"><span>ou</span></div>
-          <button type="button" class="btn-auth-secondary" id="tab-cadastro">
-            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><path d="M18 8v5M15.5 10.5h5"/></svg>
-            Criar minha conta
-          </button>
-        </form>
+            <button type="button" class="auth-switch-link" id="btn-acesso-antigo">Entrar com acesso antigo</button>
+
+            <div class="auth-divider"><span>ou</span></div>
+            <button type="button" class="btn-auth-secondary" id="tab-cadastro">
+              <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><path d="M18 8v5M15.5 10.5h5"/></svg>
+              Criar minha conta
+            </button>
+          </form>
+
+          <!-- Login antigo (compatibilidade): e-mail pessoal + senha, continua usando signInWithPassword diretamente -->
+          <form id="form-login-legado" class="hidden">
+            <div class="field auth-input-wrap">
+              <label>E-mail</label>
+              <span class="auth-input-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></svg></span>
+              <input type="email" id="login-email" required autocomplete="email" placeholder="seu@email.com">
+            </div>
+            <div class="field auth-input-wrap">
+              <label>Senha</label>
+              <span class="auth-input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
+              <input type="password" id="login-senha" required autocomplete="current-password" placeholder="Sua senha">
+              <button type="button" class="auth-toggle-senha" data-target="login-senha" aria-label="Mostrar senha">
+                <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <button class="btn-auth" type="submit" id="btn-login">ENTRAR NO SISTEMA</button>
+            <button type="button" class="auth-switch-link" id="btn-acesso-novo">Voltar</button>
+          </form>
+        </div>
 
         <!-- CADASTRO -->
         <form id="form-cadastro" class="hidden">
@@ -2119,13 +2148,18 @@
             <input type="text" id="cad-empresa" required placeholder="Ex: Minha Empresa Ltda">
           </div>
           <div class="field">
-            <label>Seu nome</label>
+            <label>Nome do responsável</label>
             <input type="text" id="cad-nome" required placeholder="Ex: Maria Silva">
           </div>
           <div class="field auth-input-wrap">
-            <label>E-mail</label>
+            <label>E-mail da empresa</label>
             <span class="auth-input-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></svg></span>
-            <input type="email" id="cad-email" required autocomplete="email" placeholder="seu@email.com">
+            <input type="email" id="cad-email" required autocomplete="email" placeholder="empresa@gmail.com">
+          </div>
+          <div class="field auth-input-wrap">
+            <label>Usuário do proprietário</label>
+            <span class="auth-input-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M4.5 20c0-3.8 3.3-6.5 7.5-6.5s7.5 2.7 7.5 6.5"/></svg></span>
+            <input type="text" id="cad-usuario" required minlength="2" maxlength="60" pattern="\S{2,60}" title="Sem espaços, de 2 a 60 caracteres" autocomplete="username" placeholder="Ex: angelo">
           </div>
           <div class="field auth-input-wrap">
             <label>Senha</label>
@@ -5619,6 +5653,9 @@ $('tab-login').addEventListener('click', () => {
   $('tab-cadastro').classList.remove('active');
   $('form-login').classList.remove('hidden');
   $('form-cadastro').classList.add('hidden');
+  // Sempre volta para o login novo (ERP) como padrão ao retornar da aba de cadastro.
+  $('form-login-erp').classList.remove('hidden');
+  $('form-login-legado').classList.add('hidden');
   $('auth-card-titulo').textContent = 'Bem-vindo ao Florest ERP';
   $('auth-card-subtitulo').textContent = 'Acesse sua conta para continuar';
   clearMsg();
@@ -5639,6 +5676,18 @@ document.querySelectorAll('.auth-toggle-senha').forEach(btn => {
     const input = $(btn.dataset.target);
     input.type = input.type === 'password' ? 'text' : 'password';
   });
+});
+
+// ---------- Alternar entre o login novo (ERP) e o login antigo (compatibilidade) ----------
+$('btn-acesso-antigo').addEventListener('click', () => {
+  $('form-login-erp').classList.add('hidden');
+  $('form-login-legado').classList.remove('hidden');
+  clearMsg();
+});
+$('btn-acesso-novo').addEventListener('click', () => {
+  $('form-login-legado').classList.add('hidden');
+  $('form-login-erp').classList.remove('hidden');
+  clearMsg();
 });
 
 // ---------- Florest Sync: aviso ao Admin central (não bloqueia o cadastro/login) ----------
@@ -5664,9 +5713,17 @@ $('form-cadastro').addEventListener('submit', async (e) => {
   const nomeEmpresa = $('cad-empresa').value.trim();
   const nomeResponsavel = $('cad-nome').value.trim();
   const email = $('cad-email').value.trim();
+  const usuario = $('cad-usuario').value.trim();
   const senha = $('cad-senha').value;
   const senha2 = $('cad-senha2').value;
 
+  // Mesmo formato exigido pela constraint perfis_usuario_formato_ck (Migration 021) e validado
+  // de novo no servidor por registrar_empresa (Migration 026) — a checagem aqui é só uma
+  // conveniência para o usuário, nunca a garantia real.
+  if(!/^\S{2,60}$/.test(usuario)){
+    showMsg('Informe um usuário sem espaços, de 2 a 60 caracteres.', 'error');
+    return;
+  }
   if(!senhaValida(senha)){
     showMsg(MSG_SENHA, 'error');
     return;
@@ -5680,8 +5737,23 @@ $('form-cadastro').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Criando conta...';
 
+  // Guarda o cadastro pendente dentro do próprio auth.users (raw_user_meta_data/user_metadata),
+  // sem precisar de tabela nova: se este signUp não devolver sessão agora (confirmação de e-mail
+  // pendente, ou qualquer outro motivo), esses dados são lidos de volta em
+  // carregarPerfilEMostrarApp() na primeira vez que este usuário tiver uma sessão válida, e só
+  // então empresa/perfil são criados — nunca sem auth.uid() resolvido (ver recuperação abaixo).
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email, password: senha
+    email, password: senha,
+    options: {
+      data: {
+        registro_pendente: {
+          nome_empresa: nomeEmpresa,
+          nome_responsavel: nomeResponsavel,
+          email_empresa: email,
+          usuario_proprietario: usuario
+        }
+      }
+    }
   });
 
   if(signUpError){
@@ -5702,7 +5774,9 @@ $('form-cadastro').addEventListener('submit', async (e) => {
 
   const { error: rpcError } = await supabase.rpc('registrar_empresa', {
     nome_empresa: nomeEmpresa,
-    nome_responsavel: nomeResponsavel
+    nome_responsavel: nomeResponsavel,
+    email_empresa: email,
+    usuario_proprietario: usuario
   });
 
   if(rpcError){
@@ -5726,8 +5800,65 @@ $('form-cadastro').addEventListener('submit', async (e) => {
   showMsg('Cadastro recebido! Sua conta está em análise — assim que for aprovada, você poderá entrar normalmente com o e-mail e senha que acabou de criar.', 'success');
 });
 
-// ---------- Login ----------
-$('form-login').addEventListener('submit', async (e) => {
+// ---------- Login (novo, padrão): e-mail da empresa + usuário + senha, via Edge Function florest-login ----------
+$('form-login-erp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  clearMsg();
+  if(!SUPABASE_CONFIGURADO){ showMsg(MSG_NAO_CONFIGURADO, 'error'); return; }
+
+  const empresaEmail = $('login-erp-empresa').value.trim();
+  const usuario = $('login-erp-usuario').value.trim();
+  const senha = $('login-erp-senha').value;
+
+  const btn = $('btn-login-erp');
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  let resposta;
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/florest-login`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ empresa: empresaEmail, usuario, senha, superficie: 'erp' }),
+    });
+    resposta = await resp.json().catch(() => null);
+  } catch(_e) {
+    showMsg('Não foi possível conectar. Verifique sua internet e tente novamente.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'ENTRAR NO SISTEMA';
+    return;
+  }
+
+  if(!resposta || !resposta.ok){
+    showMsg((resposta && resposta.mensagem) || 'Empresa, usuário ou senha inválidos.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'ENTRAR NO SISTEMA';
+    return;
+  }
+
+  const { error: sessaoError } = await supabase.auth.setSession({
+    access_token: resposta.session.access_token,
+    refresh_token: resposta.session.refresh_token,
+  });
+  if(sessaoError){
+    showMsg('Não foi possível concluir o login. Tente novamente.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'ENTRAR NO SISTEMA';
+    return;
+  }
+
+  await carregarPerfilEMostrarApp(resposta.perfil.id, empresaEmail);
+  btn.disabled = false;
+  btn.textContent = 'ENTRAR NO SISTEMA';
+});
+
+// ---------- Login (antigo, compatibilidade): e-mail pessoal + senha, via supabase.auth.signInWithPassword ----------
+$('form-login-legado').addEventListener('submit', async (e) => {
   e.preventDefault();
   clearMsg();
   if(!SUPABASE_CONFIGURADO){ showMsg(MSG_NAO_CONFIGURADO, 'error'); return; }
@@ -5762,7 +5893,8 @@ $('btn-logout').addEventListener('click', async () => {
   renderCarrinho();
   appScreen.classList.add('hidden');
   authScreen.classList.remove('hidden');
-  $('form-login').reset();
+  $('form-login-erp').reset();
+  $('form-login-legado').reset();
   $('form-cadastro').reset();
 });
 
@@ -5796,13 +5928,61 @@ async function carregarPerfilEMostrarApp(userId, email){
   }
 
   if(error || !perfil){
-    // Sessão salva no navegador não corresponde mais a uma conta válida
-    // (ex: usuário apagado no Supabase). Desloga e volta para a tela de login.
+    // ---- Recuperação de cadastro pendente (signUp sem sessão — ver handler de Cadastro) ----
+    // Só tenta se uma consulta DEDICADA confirmar que realmente não existe perfis para este
+    // usuário (nunca a partir do erro das consultas acima, que também disparam por qualquer
+    // outra falha/instabilidade; nesses casos cai direto no aviso de sempre, sem tentar nada).
+    const { data: perfilExiste, error: erroExiste } = await supabase
+      .from('perfis')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if(!erroExiste && !perfilExiste){
+      const { data: userData } = await supabase.auth.getUser();
+      const pendente = userData && userData.user && userData.user.user_metadata
+        ? userData.user.user_metadata.registro_pendente
+        : null;
+
+      // Exige TODOS os campos esperados, sem exceção — qualquer um ausente/vazio e a recuperação
+      // nem é tentada (nunca cria empresa/perfil parcial a partir de um cadastro incompleto).
+      const pendenteCompleto = !!pendente &&
+        typeof pendente.nome_empresa === 'string' && pendente.nome_empresa.trim() &&
+        typeof pendente.nome_responsavel === 'string' && pendente.nome_responsavel.trim() &&
+        typeof pendente.email_empresa === 'string' && pendente.email_empresa.trim() &&
+        typeof pendente.usuario_proprietario === 'string' && pendente.usuario_proprietario.trim();
+
+      if(pendenteCompleto){
+        // Uma única tentativa, sem loop. registrar_empresa recusa sozinha criar uma segunda
+        // empresa/perfil se, por alguma corrida, este usuário já tiver um — nunca sobrescreve
+        // nem atualiza nada existente.
+        const { error: recuperaError } = await supabase.rpc('registrar_empresa', {
+          nome_empresa: pendente.nome_empresa,
+          nome_responsavel: pendente.nome_responsavel,
+          email_empresa: pendente.email_empresa,
+          usuario_proprietario: pendente.usuario_proprietario
+        });
+        if(!recuperaError){
+          // Busca de novo (mesma consulta do início da função) — nunca chama registrar_empresa
+          // uma segunda vez, dê ela certo ou errado.
+          ({ data: perfil, error } = await supabase
+            .from('perfis')
+            .select('nome, papel, permissoes, ativo, empresas(nome, bloqueado, vencimento, status_conta)')
+            .eq('id', userId)
+            .single());
+        }
+      }
+    }
+  }
+
+  if(error || !perfil){
+    // Sessão salva no navegador não corresponde mais a uma conta válida (ex: usuário apagado no
+    // Supabase) OU havia um cadastro pendente que não foi possível concluir agora (ver acima).
     await supabase.auth.signOut();
     appScreen.classList.add('hidden');
     loading.classList.add('hidden');
     authScreen.classList.remove('hidden');
-    showMsg('Sua sessão expirou. Faça login novamente.', 'error');
+    showMsg('Não foi possível concluir seu acesso. Faça login novamente ou, se o problema continuar, fale com o suporte.', 'error');
     return;
   }
 
