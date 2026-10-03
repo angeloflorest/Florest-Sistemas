@@ -2897,7 +2897,7 @@
           <thead>
             <tr>
               <th>Nome</th>
-              <th>E-mail</th>
+              <th>Usuário</th>
               <th>Perfil</th>
               <th>Status</th>
               <th>Módulos liberados</th>
@@ -3817,7 +3817,7 @@
       <input type="hidden" id="usr-id">
       <div class="field-row">
         <div class="field"><label>Nome</label><input type="text" id="usr-nome" maxlength="200" required></div>
-        <div class="field"><label>E-mail (login)</label><input type="email" id="usr-email" maxlength="254" required></div>
+        <div class="field"><label>Usuário</label><input type="text" id="usr-usuario" maxlength="60" pattern="\S{2,60}" title="Sem espaços, de 2 a 60 caracteres" autocomplete="off"></div>
       </div>
       <div class="field-row">
         <div class="field">
@@ -3826,7 +3826,7 @@
             <input type="text" id="usr-senha" maxlength="18" autocomplete="new-password" placeholder="de 5 a 18 caracteres" style="flex:1;">
             <button type="button" class="btn-secondary" id="btn-usr-gerar-senha" style="white-space:nowrap;">Gerar</button>
           </div>
-          <div class="modal-section-hint" id="usr-senha-dica" style="margin:6px 0 0;">Entregue esta senha ao funcionário. Ele entra com este e-mail, na mesma tela de login.</div>
+          <div class="modal-section-hint" id="usr-senha-dica" style="margin:6px 0 0;">Entregue este usuário e esta senha ao funcionário. Ele entra com o e-mail da empresa, este usuário e esta senha, na tela de login.</div>
         </div>
         <div class="field">
           <label>Status</label>
@@ -6125,7 +6125,7 @@ function renderUsuarios(){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div class="cliente-nome">${escapeHtml(u.nome)}${eu ? ' <span class="cliente-sub">(você)</span>' : ''}</div></td>
-      <td>${escapeHtml(u.email || '—')}</td>
+      <td>${escapeHtml(u.usuario || '—')}</td>
       <td>${dono ? 'Proprietário' : 'Funcionário'}</td>
       <td><span class="status-badge ${u.ativo ? 'status-ok' : 'status-neutro'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
       <td><div class="usr-chips">${chips}</div></td>
@@ -6195,12 +6195,17 @@ function abrirModalUsuario(u){
   $('modal-usuario-titulo').textContent = novo ? 'Novo funcionário' : 'Editar funcionário';
   $('usr-id').value = novo ? '' : u.id;
   $('usr-nome').value = novo ? '' : u.nome;
-  $('usr-email').value = novo ? '' : (u.email || '');
-  $('usr-email').disabled = !novo;          // o e-mail é o login: não muda por aqui
+  // Usuário (Migration 026): sempre editável — diferente do antigo e-mail de login, que ficava
+  // trancado na edição. Obrigatório só para um funcionário NOVO (required controlado aqui, não
+  // fixo no HTML); ao editar um funcionário antigo que ainda não tem "usuario" (criado antes desta
+  // etapa), o campo nasce em branco e pode continuar em branco — nenhuma migração automática é
+  // forçada por esta tela; o proprietário só preenche quando quiser.
+  $('usr-usuario').value = novo ? '' : (u.usuario || '');
+  $('usr-usuario').required = novo;
   $('usr-senha').value = '';
   $('usr-senha-rotulo').textContent = novo ? 'Senha inicial' : 'Nova senha (opcional)';
   $('usr-senha-dica').textContent = novo
-    ? 'Entregue esta senha ao funcionário. Ele entra com este e-mail, na mesma tela de login.'
+    ? 'Entregue este usuário e esta senha ao funcionário. Ele entra com o e-mail da empresa, este usuário e esta senha, na tela de login.'
     : 'Preencha apenas se quiser trocar a senha deste funcionário.';
   $('usr-status').value = novo || u.ativo ? 'ativo' : 'inativo';
   $('usr-status').disabled = novo;
@@ -6252,30 +6257,51 @@ $('form-usuario').addEventListener('submit', async (e) => {
   usuarioMsg('');
   const id = $('usr-id').value;
   const nome = $('usr-nome').value.trim();
-  const email = $('usr-email').value.trim();
+  // Mesma normalização usada no banco (trim + minúsculas) e no cadastro do proprietário
+  // (cad-usuario) — conveniência de exibição/comparação; quem garante de verdade é sempre o banco.
+  const usuario = $('usr-usuario').value.trim().toLowerCase();
   const senha = $('usr-senha').value;
   const permissoes = permsMarcadas();
 
   if(nome.length < 2){ usuarioMsg('Informe o nome do funcionário.'); return; }
+  // Mesmo formato exigido pela constraint perfis_usuario_formato_ck (Migration 021) e validado de
+  // novo no servidor (usuarios_vincular/usuarios_atualizar) — aqui é só conveniência. Obrigatório
+  // para um funcionário novo; ao editar, só valida se algo foi digitado (campo pode ficar em
+  // branco para um funcionário antigo que ainda não tem "usuario").
   if(!id){
-    if(!email){ usuarioMsg('Informe o e-mail do funcionário.'); return; }
+    if(!/^\S{2,60}$/.test(usuario)){ usuarioMsg('Informe um usuário sem espaços, de 2 a 60 caracteres.'); return; }
     if(!senhaValida(senha)){ usuarioMsg(MSG_SENHA); return; }
     if(permissoes.length === 0 && !confirm('Nenhum módulo foi marcado: este funcionário não conseguirá usar nada. Criar mesmo assim?')) return;
-  } else if(senha && !senhaValida(senha)){
-    usuarioMsg(MSG_SENHA); return;
+  } else {
+    if(usuario && !/^\S{2,60}$/.test(usuario)){ usuarioMsg('Informe um usuário sem espaços, de 2 a 60 caracteres, ou deixe em branco.'); return; }
+    if(senha && !senhaValida(senha)){ usuarioMsg(MSG_SENHA); return; }
   }
 
   const btn = $('btn-usr-salvar');
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     if(!id){
-      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar', nome, email, senha, permissoes } });
+      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar', nome, usuario, senha, permissoes } });
       if(error || !data || data.ok !== true){ usuarioMsg(escapeHtml(await mensagemErroFuncao(error, data))); return; }
     } else {
-      const { error } = await supabase.rpc('usuarios_atualizar', {
-        p_id: id, p_nome: nome, p_ativo: $('usr-status').value === 'ativo', p_permissoes: permissoes,
-      });
-      if(error){ usuarioMsg(escapeHtml(mensagemBancoAcesso(error))); return; }
+      const base = { p_id: id, p_nome: nome, p_ativo: $('usr-status').value === 'ativo', p_permissoes: permissoes };
+      // "usuario" só é enviado se o campo foi preenchido — Migration 027 (p_usuario em
+      // usuarios_atualizar) ainda pode não estar aplicada neste banco; se a função ainda não
+      // aceitar este parâmetro, refazemos a chamada sem ele (mesmo idioma de detecção já usado em
+      // mensagemBancoAcesso) para não impedir salvar nome/status/permissões por causa disso.
+      let resultado = usuario
+        ? await supabase.rpc('usuarios_atualizar', { ...base, p_usuario: usuario })
+        : await supabase.rpc('usuarios_atualizar', base);
+      let usuarioNaoSalvo = false;
+      if(resultado.error && usuario){
+        const m = (resultado.error.message || '');
+        const semSuporte = resultado.error.code === 'PGRST202' || resultado.error.code === '42883' || /could not find the function|does not exist/i.test(m);
+        if(semSuporte){
+          resultado = await supabase.rpc('usuarios_atualizar', base);
+          usuarioNaoSalvo = !resultado.error;
+        }
+      }
+      if(resultado.error){ usuarioMsg(escapeHtml(mensagemBancoAcesso(resultado.error))); return; }
       if(senha){
         const { data, error: errSenha } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'redefinir_senha', usuario_id: id, senha } });
         if(errSenha || !data || data.ok !== true){
@@ -6284,9 +6310,16 @@ $('form-usuario').addEventListener('submit', async (e) => {
           return;
         }
       }
+      if(usuarioNaoSalvo){
+        fecharModalUsuario();
+        $('usuarios-msg').innerHTML = '<div class="msg success">Funcionário atualizado. O usuário ainda não pôde ser salvo (recurso pendente de atualização no banco) — os demais dados foram salvos normalmente.</div>';
+        const { data, error } = await supabase.rpc('usuarios_listar');
+        if(!error){ usuariosLista = data || []; renderUsuarios(); }
+        return;
+      }
     }
     fecharModalUsuario();
-    $('usuarios-msg').innerHTML = `<div class="msg success">${id ? 'Funcionário atualizado.' : 'Funcionário criado. Entregue o e-mail e a senha inicial a ele.'}</div>`;
+    $('usuarios-msg').innerHTML = `<div class="msg success">${id ? 'Funcionário atualizado.' : 'Funcionário criado. Entregue o usuário e a senha inicial a ele.'}</div>`;
     const { data, error } = await supabase.rpc('usuarios_listar');
     if(!error){ usuariosLista = data || []; renderUsuarios(); }
   } finally {
