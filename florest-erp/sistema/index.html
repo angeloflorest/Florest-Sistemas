@@ -1963,8 +1963,23 @@
   .bar-saldo-resumo-vertical{ flex-direction:column; gap:10px; }
   .bar-saldo-resumo-destaque{ background:var(--accent-soft); border-radius:8px; padding:8px 10px; margin:-2px -6px 4px; }
   .bar-saldo-resumo-destaque strong{ font-size:23px; color:var(--florest-navy); }
-  .bar-pagamento-forma-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-  .bar-pagamento-forma-row select{ flex:1; } .bar-pagamento-forma-row input{ width:140px; }
+  /* Cards de forma de pagamento da Mesa (recebimento rápido no caixa): 2x2, verdes, grandes. O clique
+     no card É a confirmação — registra o pagamento na hora (ver receberPagamentoMesaComForma). */
+  .bar-forma-cards{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0 14px; }
+  .bar-forma-card{
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:68px; padding:14px 8px;
+    background:var(--florest-success); color:#fff;
+    border:none; border-radius:10px;
+    font-family:var(--font-body); font-size:16px; font-weight:800; letter-spacing:.05em;
+    cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:filter .12s, transform .06s;
+  }
+  .bar-forma-card:hover{ filter:brightness(.92); }
+  .bar-forma-card:active{ transform:scale(.98); }
+  .bar-forma-card:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:2px; }
+  .bar-forma-card:disabled{ opacity:.5; cursor:not-allowed; filter:none; transform:none; }
+  .bar-forma-cards.hidden{ display:none; }
   .bar-cozinha-lista{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
   .bar-cozinha-card{ border:1px solid var(--border); border-radius:10px; padding:14px; background:#fff; }
   .bar-cozinha-card-header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
@@ -4316,13 +4331,14 @@
           <label>Valor a receber agora (R$)</label>
           <input type="number" id="bar-mesa-pagamento-valor" min="0.01" step="0.01">
         </div>
-        <button type="button" class="link-btn" id="btn-bar-mesa-pagar-tudo">Preencher com o saldo em aberto</button>
         <p class="modal-section-hint">Qualquer valor é aceito — não precisa corresponder ao preço de nenhum item. O banco confere o valor contra o saldo real antes de aceitar.</p>
 
-        <div class="modal-section-label">Formas de pagamento</div>
-        <div id="bar-mesa-pagamento-formas"></div>
-        <div class="modal-actions" style="justify-content:flex-start;">
-          <button type="button" class="btn-secondary" id="btn-bar-mesa-pagamento-add-forma" style="width:auto;">+ Forma de pagamento</button>
+        <div class="modal-section-label">Forma de pagamento — clique para receber</div>
+        <div class="bar-forma-cards" id="bar-mesa-forma-cards">
+          <button type="button" class="bar-forma-card" data-forma="Dinheiro">DINHEIRO</button>
+          <button type="button" class="bar-forma-card" data-forma="Pix">PIX</button>
+          <button type="button" class="bar-forma-card" data-forma="Cartão de Débito">DÉBITO</button>
+          <button type="button" class="bar-forma-card" data-forma="Cartão de Crédito">CRÉDITO</button>
         </div>
         <div class="modal-section-hint" id="bar-mesa-pagamento-total-linha" style="margin-top:0;"></div>
 
@@ -4336,10 +4352,6 @@
             <div class="field"><label>Acréscimo (R$)</label><input type="number" id="bar-mesa-acrescimo" min="0" step="0.01" value="0"></div>
             <div class="field"><label>Taxa de serviço (R$)</label><input type="number" id="bar-mesa-taxa" min="0" step="0.01" value="0"></div>
           </div>
-        </div>
-
-        <div class="modal-actions" style="justify-content:flex-start;">
-          <button type="button" class="btn-primary" id="btn-bar-mesa-receber-pagamento" style="width:100%; padding:16px 20px; font-size:16px;">Receber pagamento</button>
         </div>
 
         <div id="bar-mesa-historico-wrap" class="hidden">
@@ -12321,12 +12333,11 @@ async function abrirModalMesa(mesa){
   barMesaAjustesTocados = false;
   $('bar-mesa-avancado').classList.add('hidden');
   $('btn-bar-mesa-avancado-toggle').textContent = 'Ajustes da conta — desconto, acréscimo, taxa de serviço ▾';
-  $('bar-mesa-pagamento-formas').innerHTML = '';
-  adicionarLinhaFormaPagamento();
+  setBarMesaFormaCardsDisabled(false);
 
   $('bar-mesa-adicionar-secao').classList.toggle('hidden', !podeAcessarBar('bar_pedidos'));
   const podeReceber = podeAcessarBar('bar_caixa');
-  ['bar-mesa-pagamento-valor', 'btn-bar-mesa-pagar-tudo', 'btn-bar-mesa-avancado-toggle', 'btn-bar-mesa-pagamento-add-forma', 'btn-bar-mesa-receber-pagamento']
+  ['bar-mesa-pagamento-valor', 'bar-mesa-forma-cards', 'btn-bar-mesa-avancado-toggle']
     .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
 
   $('modal-bar-mesa').classList.remove('hidden');
@@ -12681,22 +12692,13 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
 // Precisa ser EXATAMENTE a mesma lista (mesmas strings, mesma grafia) usada pelos botões de forma
 // de pagamento do PDV (ver #pdx-pagto) — senão a mesma forma de pagamento vira dois "baldes"
 // diferentes nos relatórios (ex.: "Cartão de Crédito" do PDV x "Cartão de crédito" do Bar).
-const FORMAS_PAGAMENTO_BAR = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito', 'Outros'];
-function adicionarLinhaFormaPagamento(){
-  const wrap = $('bar-mesa-pagamento-formas');
-  const row = document.createElement('div');
-  row.className = 'bar-pagamento-forma-row';
-  const sel = document.createElement('select');
-  FORMAS_PAGAMENTO_BAR.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; sel.appendChild(o); });
-  const input = document.createElement('input');
-  input.type = 'number'; input.min = '0'; input.step = '0.01'; input.placeholder = 'Valor';
-  const btnRemover = document.createElement('button');
-  btnRemover.type = 'button'; btnRemover.className = 'link-btn'; btnRemover.textContent = 'Remover';
-  btnRemover.addEventListener('click', () => row.remove());
-  row.appendChild(sel); row.appendChild(input); row.appendChild(btnRemover);
-  wrap.appendChild(row);
+// Os 4 cards da tela (data-forma em #bar-mesa-forma-cards) usam estas mesmas strings; "Outros" saiu
+// só da INTERFACE — pagamentos antigos feitos com essa forma continuam aparecendo no histórico.
+const FORMAS_PAGAMENTO_BAR = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito'];
+let barMesaRecebendo = false; // true enquanto um clique de card está sendo processado (bloqueia duplo clique)
+function setBarMesaFormaCardsDisabled(desabilitado){
+  $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => { b.disabled = desabilitado; });
 }
-$('btn-bar-mesa-pagamento-add-forma').addEventListener('click', adicionarLinhaFormaPagamento);
 
 function barMesaAvancadoAberto(){
   return !$('bar-mesa-avancado').classList.contains('hidden');
@@ -12715,23 +12717,24 @@ $('btn-bar-mesa-avancado-toggle').addEventListener('click', () => {
 // terceiro pagamento parcial jamais reaplica o mesmo desconto/taxa sozinho.
 ['bar-mesa-desconto', 'bar-mesa-acrescimo', 'bar-mesa-taxa'].forEach(id => $(id).addEventListener('input', () => { barMesaAjustesTocados = true; }));
 
-$('btn-bar-mesa-pagar-tudo').addEventListener('click', () => {
-  const emAberto = barMesaResumoAtual ? Number(barMesaResumoAtual.subtotal_aberto) : 0;
-  $('bar-mesa-pagamento-valor').value = emAberto > 0 ? emAberto.toFixed(2) : '';
-});
-
-$('btn-bar-mesa-receber-pagamento').addEventListener('click', async () => {
+// Recebimento rápido: o operador informa "Valor a receber agora" e CLICA na forma de pagamento —
+// o clique no card É a confirmação e registra na hora (sem botão "Receber pagamento" separado).
+// Reaproveita exatamente a mesma RPC, os mesmos parâmetros e o mesmo pós-processamento do fluxo
+// anterior (a diferença é só que a lista de formas agora tem uma única linha, com o valor
+// informado — a RPC já aceitava isso). Nada de regra nova de pagamento misto: pagamento misto
+// continua sendo vários recebimentos parciais (cada um uma forma) até o saldo chegar a zero.
+async function receberPagamentoMesaComForma(forma){
+  if(barMesaRecebendo) return; // duplo clique / clique em outro card enquanto um está em andamento
+  if(!FORMAS_PAGAMENTO_BAR.includes(forma)) return;
   if(!barComandaAtualId){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Esta mesa ainda não tem nenhum pedido lançado.</div>'; return; }
-  const valor = parseFloat($('bar-mesa-pagamento-valor').value);
-  if(!valor || valor <= 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe um valor a receber maior que zero.</div>'; return; }
-  const formas = Array.from($('bar-mesa-pagamento-formas').querySelectorAll('.bar-pagamento-forma-row')).map(row => ({
-    forma_pagamento: row.querySelector('select').value,
-    valor: parseFloat(row.querySelector('input').value) || 0,
-  })).filter(f => f.valor > 0);
-  if(formas.length === 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe ao menos uma forma de pagamento com valor maior que zero.</div>'; return; }
-  const somaFormas = formas.reduce((s, f) => s + f.valor, 0);
-  if(Math.abs(somaFormas - valor) > 0.01){
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">A soma das formas de pagamento (${formatarReais(somaFormas)}) precisa bater com o valor a receber (${formatarReais(valor)}).</div>`;
+  const valorDigitado = parseFloat($('bar-mesa-pagamento-valor').value);
+  if(!valorDigitado || valorDigitado <= 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe um valor a receber maior que zero.</div>'; return; }
+  const valor = Math.round(valorDigitado * 100) / 100;
+  // Conferência só de conveniência (mensagem imediata) — quem decide de verdade é o banco, que
+  // revalida o valor contra o saldo real recalculado (private.bar_comanda_saldo_calcular).
+  const saldoTela = barMesaResumoAtual ? Number(barMesaResumoAtual.subtotal_aberto) : null;
+  if(saldoTela !== null && valor > saldoTela + 0.01){
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">O valor informado (${formatarReais(valor)}) é maior que o saldo em aberto (${formatarReais(saldoTela)}).</div>`;
     return;
   }
   // Ajustes da conta só são enviados (substituindo o que já está salvo) se o operador de fato abriu
@@ -12741,50 +12744,62 @@ $('btn-bar-mesa-receber-pagamento').addEventListener('click', async () => {
   const acrescimo = ajustesTocados ? (parseFloat($('bar-mesa-acrescimo').value) || 0) : null;
   const taxa = ajustesTocados ? (parseFloat($('bar-mesa-taxa').value) || 0) : null;
 
-  const btn = $('btn-bar-mesa-receber-pagamento');
-  btn.disabled = true; btn.textContent = 'Recebendo...';
+  barMesaRecebendo = true;
+  setBarMesaFormaCardsDisabled(true);
   const mesaId = barMesaAtual.id;
   const comandaDoPagamento = barComandaAtualId;
-  // Requisito central da correção do pagamento parcial: o operador só informa VALOR + FORMAS —
-  // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
-  // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
-  // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
-  const { data, error } = await supabase.rpc('bar_comanda_pagar_valor', {
-    p_comanda_id: comandaDoPagamento,
-    p_valor: valor,
-    p_formas: formas,
-    p_idempotencia: crypto.randomUUID(),
-    p_desconto: desconto,
-    p_acrescimo: acrescimo,
-    p_taxa_servico: taxa,
-  });
-  btn.disabled = false; btn.textContent = 'Receber pagamento';
-  if(error){
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
+  let mesaFoiLiberada = false;
+  try {
+    // Requisito central da correção do pagamento parcial: o operador só informa VALOR + FORMA —
+    // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
+    // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
+    // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
+    const { data, error } = await supabase.rpc('bar_comanda_pagar_valor', {
+      p_comanda_id: comandaDoPagamento,
+      p_valor: valor,
+      p_formas: [{ forma_pagamento: forma, valor }],
+      p_idempotencia: crypto.randomUUID(),
+      p_desconto: desconto,
+      p_acrescimo: acrescimo,
+      p_taxa_servico: taxa,
+    });
+    if(error){
+      $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+      return;
+    }
+    const resultado = (data && data[0]) || null;
+    barMesaAjustesTocados = false;
+    $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
+      ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado em ${escapeHtml(forma)}. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
+      : '<div class="msg success">Pagamento registrado. Conta quitada.</div>';
+
+    // A mesa libera SOZINHA quando o saldo real chega a zero (bar_comanda_pagar_valor chama
+    // bar_mesa_fechar internamente) — nunca com base no número de pagamentos feitos, e nunca em
+    // cima de um pagamento parcial. Só confiamos no status que voltou do banco, nunca calculamos
+    // isso no navegador.
+    const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', mesaId).single();
+    mesaFoiLiberada = !!mesaAtualizada && mesaAtualizada.status === 'livre';
+    if(mesaAtualizada) barMesaAtual = mesaAtualizada;
+    if(mesaFoiLiberada) barComandaAtualId = null;
+
+    await atualizarSaldoEItensMesa();
+    // "Valor a receber agora" sempre volta preenchido com o NOVO saldo restante (vazio se zerou) —
+    // atribuído explicitamente aqui (e não só por renderResumoFinanceiroMesa) para não depender de
+    // qual elemento ficou com o foco depois do clique no card.
+    const saldoNovo = barMesaResumoAtual ? Number(barMesaResumoAtual.subtotal_aberto) : 0;
+    $('bar-mesa-pagamento-valor').value = saldoNovo > 0 ? saldoNovo.toFixed(2) : '';
+    if(barSubViewAtual === 'mesas') await carregarBarMesas();
+  } finally {
+    barMesaRecebendo = false;
+    setBarMesaFormaCardsDisabled(false);
   }
-  const resultado = (data && data[0]) || null;
-  $('bar-mesa-pagamento-valor').value = '';
-  barMesaAjustesTocados = false;
-  $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
-    ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
-    : '<div class="msg success">Pagamento registrado. Conta quitada.</div>';
-
-  // A mesa libera SOZINHA quando o saldo real chega a zero (bar_comanda_pagar chama
-  // bar_mesa_fechar internamente) — nunca com base no número de pagamentos feitos, e nunca em cima
-  // de um pagamento parcial. Só confiamos no status que voltou do banco, nunca calculamos isso no
-  // navegador.
-  const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', mesaId).single();
-  const mesaFoiLiberada = !!mesaAtualizada && mesaAtualizada.status === 'livre';
-  if(mesaAtualizada) barMesaAtual = mesaAtualizada;
-  if(mesaFoiLiberada) barComandaAtualId = null;
-
-  await atualizarSaldoEItensMesa();
-  if(barSubViewAtual === 'mesas') await carregarBarMesas();
 
   if(mesaFoiLiberada){
     await abrirModalBarPagamentoConcluido(comandaDoPagamento, { numero: barMesaAtual.numero });
   }
+}
+$('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => {
+  b.addEventListener('click', () => receberPagamentoMesaComForma(b.dataset.forma));
 });
 
 $('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa').classList.add('hidden'));
