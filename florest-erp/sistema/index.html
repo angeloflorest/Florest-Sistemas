@@ -1779,9 +1779,28 @@
   .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"]{ grid-column:1 / -1; }
   .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"], .pdx-pg[data-forma="Outros"]{ min-height:52px; }
   .pdx-pg[data-forma="Outros"]{ grid-column:1 / -1; min-height:52px; }
+  .pdx-pg:disabled{ opacity:.45; cursor:not-allowed; }
+  .pdx-pg:disabled:hover{ border-color:#CBCFD6; }
+  .pdx-pag-valor{ font-size:22px; font-weight:700; text-align:right; }
+  .pdx-pag-valor:disabled{ background:#F3F4F6; color:#8A909C; }
+  .pdx-pag-erro{ font-size:12px; font-weight:600; color:var(--danger,#B84B3C); min-height:0; margin-top:6px; }
+  .pdx-pag-erro:empty{ display:none; }
+  .pdx-pag-lista{ margin-top:8px; display:flex; flex-direction:column; gap:4px; max-height:150px; overflow-y:auto; min-height:0; }
+  .pdx-pag-item{
+    display:flex; align-items:center; gap:8px; padding:6px 8px 6px 10px;
+    background:#F3F4F6; border:1px solid #CBCFD6; border-radius:8px; font-size:14px; font-weight:600; color:var(--florest-navy);
+  }
+  .pdx-pag-item .pdx-pag-txt{ flex:1; min-width:0; overflow-wrap:anywhere; }
+  .pdx-pag-item button{
+    flex:0 0 auto; width:26px; height:26px; border:none; border-radius:6px; background:transparent;
+    color:#6B717D; font-size:18px; line-height:1; cursor:pointer; font-family:inherit;
+  }
+  .pdx-pag-item button:hover{ background:#FDECEA; color:var(--danger,#B84B3C); }
   .pdx-finalizar-wrap{ margin-top:auto; padding-top:12px; }
   .pdx-fin-total{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:#4A505C; margin-bottom:8px; }
   .pdx-fin-total b{ font-size:22px; color:var(--florest-navy); }
+  .pdx-fin-restante{ margin-top:-2px; }
+  .pdx-fin-restante b{ font-size:18px; }
   .pdx-btn-finalizar{
     width:100%; min-height:84px; border:none; border-radius:12px; cursor:pointer;
     background:var(--florest-yellow); color:var(--florest-navy); font-family:inherit; font-size:20px; font-weight:800; letter-spacing:.03em;
@@ -2576,14 +2595,12 @@
 
         <!-- DIREITA: pagamento -->
         <section class="pdx-painel pdx-dir">
-          <label class="pdx-rotulo">Forma de pagamento</label>
-          <select id="pdv-pagamento" style="display:none;" tabindex="-1" aria-hidden="true">
-            <option value="Dinheiro">Dinheiro</option>
-            <option value="Pix">Pix</option>
-            <option value="Cartão de Débito">Cartão de Débito</option>
-            <option value="Cartão de Crédito">Cartão de Crédito</option>
-            <option value="Outros">Outros</option>
-          </select>
+          <!-- Pagamento misto/parcial (Migration 028): o operador informa o valor desta forma e clica
+               na forma — cada clique ADICIONA um pagamento à lista; a venda só finaliza com Restante = 0.
+               Todo o cálculo é em centavos inteiros (ver "PDV: pagamento misto" no script). -->
+          <label class="pdx-rotulo" for="pdv-valor-forma">Valor a pagar nesta forma</label>
+          <input type="text" inputmode="decimal" id="pdv-valor-forma" class="pdx-input pdx-pag-valor" value="" autocomplete="off" disabled>
+          <label class="pdx-rotulo" style="margin-top:10px;">Forma de pagamento</label>
           <div class="pdx-pagto" id="pdx-pagto">
             <button type="button" class="pdx-pg" data-forma="Dinheiro"><i>$</i>Dinheiro</button>
             <button type="button" class="pdx-pg" data-forma="Pix"><i>&#9632;</i>PIX</button>
@@ -2591,8 +2608,11 @@
             <button type="button" class="pdx-pg" data-forma="Cartão de Crédito"><i>&#9645;</i>Cartão Crédito</button>
             <button type="button" class="pdx-pg" data-forma="Outros"><i>&hellip;</i>Outros</button>
           </div>
+          <div id="pdx-pag-erro" class="pdx-pag-erro" role="alert"></div>
+          <div class="pdx-pag-lista" id="pdx-pag-lista"></div>
           <div class="pdx-finalizar-wrap">
             <div class="pdx-fin-total"><span>Total a pagar</span><b id="pdx-fin-total">R$ 0,00</b></div>
+            <div class="pdx-fin-total pdx-fin-restante"><span>Restante</span><b id="pdx-pag-restante">R$ 0,00</b></div>
             <button type="button" class="pdx-btn-finalizar" id="btn-finalizar-venda" disabled>FINALIZAR VENDA (F3)</button>
           </div>
         </section>
@@ -8134,6 +8154,13 @@ const PDV_CACHE_MS = 30000;
 const pdvCache = new Map();   // leituras recentes: evita nova consulta ao bipar o mesmo produto em sequência
 const pdvFila = [];           // leituras aguardando consulta (nenhum bip é perdido se o operador for rápido)
 let pdvProcessando = false;
+// Pagamento misto/parcial (Migration 028): pagamentos já lançados na venda em andamento, em CENTAVOS
+// inteiros — [{ forma: 'Pix', centavos: 1500 }]. Só existe em memória até FINALIZAR (nada é gravado
+// antes); remover uma forma aqui não exige estorno. pdvTotalCentavosRef = total vigente da venda.
+let pdvPagamentos = [];
+let pdvTotalCentavosRef = 0;
+const PDV_MAX_PAGAMENTOS = 10; // mesmo limite validado no servidor (registrar_venda_mista)
+const PDV_FORMA_ROTULO = { 'Pix': 'PIX' }; // texto exibido na lista; o valor enviado é sempre o nome da forma
 
 const pdvEhCodigoDeBarras = (t) => /^\d{8,14}$/.test(t);
 
@@ -8613,13 +8640,175 @@ function atualizarTotalPdv(){
   descontoInput.disabled = subtotal <= 0;
 
   $('pdv-subtotal').textContent = formatarReais(subtotal);
-  $('pdv-total').textContent = formatarReais(subtotal - desconto);
-  $('pdx-fin-total').textContent = formatarReais(subtotal - desconto);
 
-  $('btn-finalizar-venda').disabled = pdvCarrinho.length === 0;
+  // Total EXATO, calculado como o servidor calcula (ver pdvTotalCentavosServidor): é ele que o
+  // operador vê e é contra ele que a soma dos pagamentos é conferida. Antes era "subtotal - desconto"
+  // em ponto flutuante, que pode diferir em centavos do total gravado pelo servidor (cada item é
+  // arredondado separadamente depois de aplicado o fator de desconto).
+  const totalCentavos = pdvTotalCentavosServidor(pdvMontarItensVenda());
+  $('pdv-total').textContent = pdvCentavosParaReais(totalCentavos);
+  $('pdx-fin-total').textContent = pdvCentavosParaReais(totalCentavos);
+
+  // Se o total mudou depois de lançar pagamentos (item novo/removido, quantidade, desconto), os
+  // pagamentos antigos deixam de valer: são removidos e o operador é avisado.
+  if(pdvPagamentos.length > 0 && totalCentavos !== pdvTotalCentavosRef){
+    pdvPagamentos = [];
+    if(totalCentavos > 0){
+      pdvMensagem('O total da venda mudou. Os pagamentos já lançados foram removidos — lance-os novamente.');
+    }
+  }
+  pdvTotalCentavosRef = totalCentavos;
+  atualizarPainelPagamentoPdv();
 }
 
 $('pdv-desconto').addEventListener('input', atualizarTotalPdv);
+
+// ---------- PDV: pagamento misto/parcial (Migration 028 — public.registrar_venda_mista) ----------
+// Tudo em CENTAVOS inteiros: nenhum cálculo de dinheiro usa ponto flutuante (só a exibição e o
+// envio final dividem por 100 uma única vez).
+function pdvCentavosParaTexto(c){ return (c / 100).toFixed(2).replace('.', ','); } // 1128 -> "11,28"
+function pdvCentavosParaReais(c){ return formatarReais(c / 100); }
+
+// "15", "15,5", "15.50", "1.234,56", "R$ 15,00" -> centavos inteiros; null se inválido (mais de duas
+// casas decimais, texto, vazio...). Com vírgula, pontos são separador de milhar.
+function pdvParseValorCentavos(txt){
+  let t = String(txt ?? '').replace(/R\$/gi, '').replace(/\s/g, '');
+  if(!t) return null;
+  if(t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  if(!/^\d{1,9}(\.\d{1,2})?$/.test(t)) return null;
+  const [inteiro, dec = ''] = t.split('.');
+  return parseInt(inteiro, 10) * 100 + parseInt((dec + '00').slice(0, 2), 10);
+}
+
+// Itens exatamente como são enviados ao servidor: o desconto vira um fator aplicado ao preço de cada
+// item (mesma fórmula que o PDV sempre usou). Usada tanto no cálculo do total quanto no envio.
+function pdvMontarItensVenda(){
+  const subtotal = calcularSubtotalPdv();
+  const desconto = Math.min(parseFloat($('pdv-desconto').value) || 0, subtotal);
+  const fatorDesconto = subtotal > 0 ? (subtotal - desconto) / subtotal : 1;
+  return pdvCarrinho.map(i => ({
+    produto_id: i.produto_id,
+    quantidade: i.quantidade,
+    preco_unitario: Math.round(i.preco_unitario * fatorDesconto * 100) / 100
+  }));
+}
+
+// Replica o total que public.registrar_venda grava em vendas.total: para cada item,
+// subtotal = round(round(quantidade, 4) * round(preço, 2), 2) (arredondamento "meio para cima"),
+// somados. Em inteiros: quantidade em décimos de milésimo × preço em centavos ÷ 10.000.
+function pdvTotalCentavosServidor(itens){
+  let total = 0;
+  for(const it of itens){
+    const q = Math.round(it.quantidade * 10000);
+    const p = Math.round(it.preco_unitario * 100);
+    total += Math.floor((q * p + 5000) / 10000);
+  }
+  return total;
+}
+
+function pdvSomaPagamentos(){
+  return pdvPagamentos.reduce((s, p) => s + p.centavos, 0);
+}
+
+function pdvErroPagamento(texto){
+  $('pdx-pag-erro').textContent = texto || '';
+}
+
+// Redesenha lista, restante, campo de valor e estado dos botões (inclusive o FINALIZAR) a partir
+// do estado atual (pdvCarrinho + pdvPagamentos). Chamada sempre que algo disso muda.
+function atualizarPainelPagamentoPdv(){
+  const total = pdvTotalCentavosRef;
+  const restante = total - pdvSomaPagamentos();
+  const temVenda = pdvCarrinho.length > 0 && total > 0;
+
+  const lista = $('pdx-pag-lista');
+  lista.innerHTML = '';
+  pdvPagamentos.forEach((p, idx) => {
+    const row = document.createElement('div');
+    row.className = 'pdx-pag-item';
+    row.innerHTML = `<span class="pdx-pag-txt">${escapeHtml(PDV_FORMA_ROTULO[p.forma] || p.forma)} — ${pdvCentavosParaReais(p.centavos)}</span>` +
+      `<button type="button" title="Remover este pagamento" aria-label="Remover pagamento">×</button>`;
+    row.querySelector('button').addEventListener('click', () => pdvRemoverPagamento(idx));
+    lista.appendChild(row);
+  });
+
+  $('pdx-pag-restante').textContent = pdvCentavosParaReais(Math.max(restante, 0));
+
+  const podeAdicionar = temVenda && restante > 0 && pdvPagamentos.length < PDV_MAX_PAGAMENTOS;
+  document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => { b.disabled = !podeAdicionar; });
+  const campo = $('pdv-valor-forma');
+  campo.disabled = !podeAdicionar;
+  campo.value = podeAdicionar ? pdvCentavosParaTexto(restante) : '';
+
+  if(pdvCarrinho.length > 0 && total <= 0){
+    pdvErroPagamento('O total da venda é R$ 0,00: não há valor a receber, então ela não pode ser finalizada aqui.');
+  } else if(temVenda && restante > 0 && pdvPagamentos.length >= PDV_MAX_PAGAMENTOS){
+    pdvErroPagamento(`Limite de ${PDV_MAX_PAGAMENTOS} formas de pagamento por venda atingido. Remova uma para continuar.`);
+  } else {
+    pdvErroPagamento('');
+  }
+
+  // FINALIZAR só com pagamentos lançados e Restante exatamente zero.
+  $('btn-finalizar-venda').disabled = !(temVenda && restante === 0 && pdvPagamentos.length > 0);
+}
+
+// Clique numa forma = adiciona um pagamento com o valor do campo.
+function pdvAdicionarPagamento(forma){
+  pdvErroPagamento('');
+  if(pdvCarrinho.length === 0) return;
+
+  // O total pode ter mudado sem passar por atualizarTotalPdv: recalcula antes de validar.
+  const totalAgora = pdvTotalCentavosServidor(pdvMontarItensVenda());
+  if(totalAgora !== pdvTotalCentavosRef){ atualizarTotalPdv(); return; }
+
+  const restante = totalAgora - pdvSomaPagamentos();
+  if(restante <= 0){ pdvErroPagamento('Não há valor restante a receber.'); return; }
+  if(pdvPagamentos.length >= PDV_MAX_PAGAMENTOS){
+    pdvErroPagamento(`Limite de ${PDV_MAX_PAGAMENTOS} formas de pagamento por venda atingido.`);
+    return;
+  }
+
+  const campo = $('pdv-valor-forma');
+  const centavos = pdvParseValorCentavos(campo.value);
+  if(centavos === null){
+    pdvErroPagamento('Informe um valor válido, com no máximo duas casas decimais (ex.: 15,00).');
+    campo.focus(); campo.select();
+    return;
+  }
+  if(centavos <= 0){
+    pdvErroPagamento('O valor deve ser maior que zero.');
+    campo.focus(); campo.select();
+    return;
+  }
+  if(centavos > restante){
+    pdvErroPagamento(`O valor não pode ser maior que o restante (${pdvCentavosParaReais(restante)}).`);
+    campo.focus(); campo.select();
+    return;
+  }
+
+  pdvPagamentos.push({ forma, centavos });
+  atualizarPainelPagamentoPdv();   // lista, Restante e campo preenchido de novo com o restante
+  if(totalAgora - pdvSomaPagamentos() > 0){
+    campo.focus(); campo.select();
+  } else {
+    $('btn-finalizar-venda').focus();
+  }
+}
+
+function pdvRemoverPagamento(idx){
+  if(idx < 0 || idx >= pdvPagamentos.length) return;
+  pdvPagamentos.splice(idx, 1);
+  atualizarPainelPagamentoPdv();
+  const campo = $('pdv-valor-forma');
+  if(!campo.disabled){ campo.focus(); campo.select(); }
+}
+
+document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
+  b.addEventListener('click', () => pdvAdicionarPagamento(b.dataset.forma));
+});
+$('pdv-valor-forma').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') e.preventDefault(); // a forma é escolhida clicando no botão correspondente
+});
 
 $('btn-limpar-venda').addEventListener('click', () => {
   if(pdvCarrinho.length === 0) return;
@@ -8645,31 +8834,38 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const cpfNota = somenteDigitos($('pdv-cpf-nota').value) || null;
 
   const clienteId = $('pdv-cliente').value || null;
-  const formaPagamento = $('pdv-pagamento').value;
 
-  const subtotal = calcularSubtotalPdv();
-  const desconto = Math.min(parseFloat($('pdv-desconto').value) || 0, subtotal);
-  const fatorDesconto = subtotal > 0 ? (subtotal - desconto) / subtotal : 1;
+  // Itens (mesma fórmula de desconto de sempre) e conferência FINAL em centavos: a venda só segue
+  // com pelo menos um pagamento lançado e soma dos pagamentos exatamente igual ao total.
+  const itensParaEnviar = pdvMontarItensVenda();
+  const totalCentavos = pdvTotalCentavosServidor(itensParaEnviar);
+  const restanteCentavos = totalCentavos - pdvSomaPagamentos();
+  if(pdvPagamentos.length === 0 || totalCentavos <= 0 || restanteCentavos !== 0){
+    pdvMensagem(restanteCentavos > 0
+      ? `Ainda falta receber ${pdvCentavosParaReais(restanteCentavos)}. Lance o restante antes de finalizar.`
+      : 'Lance o pagamento da venda antes de finalizar.');
+    atualizarTotalPdv();
+    return;
+  }
+  // Pagamentos no formato da Migration 028: [{ forma_pagamento, valor }]. Valor = centavos ÷ 100
+  // (divisão inteira exata → serializa com no máximo 2 casas, como o servidor exige).
+  const pagamentosParaEnviar = pdvPagamentos.map(p => ({ forma_pagamento: p.forma, valor: p.centavos / 100 }));
 
   const btn = $('btn-finalizar-venda');
   btn.disabled = true;
   btn.textContent = 'Registrando venda...';
 
-  const itensParaEnviar = pdvCarrinho.map(i => ({
-    produto_id: i.produto_id,
-    quantidade: i.quantidade,
-    preco_unitario: Math.round(i.preco_unitario * fatorDesconto * 100) / 100
-  }));
-
-  const { data, error } = await supabase.rpc('registrar_venda', {
+  // TODA venda nova do PDV central passa por registrar_venda_mista (inclusive com uma forma só): ela
+  // chama a registrar_venda de sempre por dentro e grava vendas_pagamentos na mesma transação.
+  const { data, error } = await supabase.rpc('registrar_venda_mista', {
     p_cliente_id: clienteId,
-    p_forma_pagamento: formaPagamento,
     p_itens: itensParaEnviar,
+    p_pagamentos: pagamentosParaEnviar,
     p_cpf_nota: cpfNota
   });
 
   btn.textContent = 'FINALIZAR VENDA (F3)';
-  btn.disabled = false;
+  atualizarPainelPagamentoPdv(); // reabilita o botão só se os pagamentos ainda estiverem completos
 
   if(error){
     pdvMensagem('Erro ao registrar venda: ' + escapeHtml(error.message));
@@ -8683,6 +8879,7 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   pdvMensagem('Venda registrada com sucesso!', 'success');
 
   pdvCarrinho = [];
+  pdvPagamentos = [];
   pdvCache.clear(); // o estoque mudou: as próximas leituras consultam o saldo atualizado
   $('pdv-desconto').value = '0';
   $('pdv-cpf-nota').value = '';
@@ -8848,7 +9045,7 @@ function pdxIniciar(){
   pdxRelogio();
   clearInterval(pdxRelogioTimer);
   pdxRelogioTimer = setInterval(pdxRelogio, 15000);
-  pdxPagtoMarcar();
+  atualizarPainelPagamentoPdv();
   $('btn-pdx-config-atalhos').classList.toggle('hidden', !pdxPodeConfigurar());   // funcionário só usa os atalhos
   pdxAtalhosCarregar().then(pdxRenderAtalhos);
 }
@@ -9003,17 +9200,9 @@ $('pdx-add-qtd').addEventListener('keydown', (e) => {
 });
 
 // ----- pagamento -----
-function pdxPagtoMarcar(){
-  const atual = $('pdv-pagamento').value;
-  document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => b.classList.toggle('ativo', b.dataset.forma === atual));
-}
-document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
-  b.addEventListener('click', () => {
-    $('pdv-pagamento').value = b.dataset.forma;
-    pdxPagtoMarcar();
-    focarCampoPdv();
-  });
-});
+// Os botões de forma de pagamento (#pdx-pagto) agora ADICIONAM um pagamento à venda (pagamento
+// misto/parcial, Migration 028): handlers e estado em pdvAdicionarPagamento/atualizarPainelPagamentoPdv,
+// logo depois de atualizarTotalPdv. A antiga seleção de uma forma única (#pdv-pagamento) não existe mais.
 
 // ----- CPF na nota (campo opcional no rodapé do PDV; ver pdxValidarCpfNota) -----
 $('pdv-cpf-nota').addEventListener('input', pdxValidarCpfNota);
