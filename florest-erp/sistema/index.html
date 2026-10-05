@@ -1227,6 +1227,35 @@
   .lista-item .lista-info{ flex:1; }
   .lista-item .lista-titulo{ font-weight:600; }
   .lista-item .lista-sub{ font-size:12px; color: var(--ink-soft); }
+  /* NFC-e CANCELADA (tela Fiscal) — precisa ser inconfundível: fundo vermelho suave, faixa lateral
+     vermelha, selo grande "NFC-e CANCELADA" e texto do valor riscado. Imprimir/Baixar XML continuam. */
+  .lista-item.doc-cancelado{
+    background: var(--danger-soft);
+    border-left:5px solid var(--danger);
+    border-radius:6px;
+  }
+  .lista-item.doc-cancelado .lista-titulo{ text-decoration:line-through; color: var(--ink-soft); }
+  .doc-cancelado-selo{
+    display:inline-block;
+    background: var(--danger);
+    color:#fff;
+    font-weight:800;
+    font-size:13px;
+    letter-spacing:0.06em;
+    padding:5px 12px;
+    border-radius:6px;
+    margin-bottom:6px;
+  }
+  .doc-cancelado-info{ font-size:12px; color: var(--danger); font-weight:600; margin-top:2px; }
+  #tabela-fiscal-body tr.fiscal-linha-cancelada td{ background: var(--danger-soft); }
+  #tabela-fiscal-body tr.fiscal-linha-cancelada td:first-child{ box-shadow: inset 4px 0 0 var(--danger); }
+  #tabela-fiscal-body tr.fiscal-linha-cancelada .status-badge{ font-weight:800; letter-spacing:0.04em; text-transform:uppercase; }
+  .link-btn.link-btn-perigo{ color: var(--danger); font-weight:700; }
+  .btn-perigo{
+    background: var(--danger); color:#fff; border:none; border-radius:8px;
+    padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; font-family: var(--font-body);
+  }
+  .btn-perigo:disabled{ opacity:0.5; cursor:not-allowed; }
   .historico-item{
     display:flex;
     justify-content:space-between;
@@ -4368,8 +4397,29 @@
   </div>
 </div>
 
+<!-- MODAL: cancelar NFC-e (tela Fiscal) — chama a Edge Function fiscal-cancelar-documento -->
+<div id="modal-fiscal-cancelar-nfce" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:520px;">
+    <h3>Cancelar NFC-e</h3>
+    <div id="fiscal-cancelar-dados" class="modal-section-hint" style="margin-top:-6px; word-break:break-all;"></div>
+    <div class="msg error" style="margin:12px 0;">
+      <strong>Atenção: o cancelamento é irreversível.</strong> Depois de confirmado na SEFAZ, a NFC-e não pode voltar a ser autorizada. O cancelamento não altera a venda nem o estoque.
+    </div>
+    <div id="fiscal-cancelar-msg"></div>
+    <div class="field">
+      <label for="fiscal-cancelar-justificativa">Justificativa do cancelamento</label>
+      <textarea id="fiscal-cancelar-justificativa" maxlength="255" placeholder="Descreva o motivo do cancelamento (mínimo de 15 caracteres)."></textarea>
+      <div class="modal-section-hint" id="fiscal-cancelar-contador" style="margin-top:4px;">0 / 15 caracteres mínimos</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-fiscal-cancelar-voltar">Voltar</button>
+      <button type="button" class="btn-perigo" id="btn-fiscal-cancelar-confirmar" disabled>Cancelar NFC-e</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: cancelar item de pedido -->
-<div id="modal-bar-cancelar-item" class="modal-overlay modal-overlay-secundario hidden">
+<div id="modal-bar-cancelar-item"class="modal-overlay modal-overlay-secundario hidden">
   <div class="modal-card" style="max-width:420px;">
     <h3>Cancelar item</h3>
     <p class="modal-section-hint" style="margin-top:-6px;">O estoque baixado por este item é devolvido automaticamente. O item continua no histórico, marcado como cancelado.</p>
@@ -10517,6 +10567,8 @@ async function carregarFiscal(){
     const venda = doc.vendas;
     const status = fiscalStatusInfo(doc.status);
     const tr = document.createElement('tr');
+    if(doc.status === 'cancelada') tr.className = 'fiscal-linha-cancelada';
+    const podeCancelarNfce = docPodeCancelarNfce(doc);
     tr.innerHTML = `
       <td>${venda ? '#' + venda.numero_venda : '—'}</td>
       <td>${fiscalTipoLabel(doc.tipo_documento)}</td>
@@ -10527,8 +10579,11 @@ async function carregarFiscal(){
       <td><span class="status-badge ${status.classe}">${status.texto}</span></td>
       <td style="text-align:right;">
         <button class="link-btn btn-fiscal-abrir-venda" data-venda="${venda ? venda.numero_venda : ''}">Abrir venda</button>
+        ${podeCancelarNfce ? '<button type="button" class="link-btn link-btn-perigo btn-fiscal-cancelar-nfce" style="margin-left:12px;">Cancelar NFC-e</button>' : ''}
       </td>
     `;
+    const btnCancelarNfce = tr.querySelector('.btn-fiscal-cancelar-nfce');
+    if(btnCancelarNfce) btnCancelarNfce.addEventListener('click', () => abrirModalCancelarNfce(doc, venda ? venda.numero_venda : null));
     const btnAbrir = tr.querySelector('.btn-fiscal-abrir-venda');
     if(venda){
       btnAbrir.addEventListener('click', () => {
@@ -10630,6 +10685,7 @@ async function renderVendaFiscal(venda){
     .eq('venda_id', venda.id)
     .order('created_at', { ascending: true });
 
+  fiscalVendaAbertaId = venda.id;
   renderDocumentosDaVenda(venda.id, documentos || []);
 
   const acoes = $('fiscal-venda-acoes');
@@ -10668,7 +10724,10 @@ function renderDocumentosDaVenda(vendaId, documentos){
 
     let acoesHtml = '';
     if(temPdf) acoesHtml += `<button type="button" class="link-btn btn-imprimir-nfce" data-id="${doc.id}" style="margin-right:12px;">Imprimir NFC-e</button>`;
-    if(temXml) acoesHtml += `<button type="button" class="link-btn btn-baixar-xml" data-id="${doc.id}">Baixar XML</button>`;
+    if(temXml) acoesHtml += `<button type="button" class="link-btn btn-baixar-xml" data-id="${doc.id}" style="margin-right:12px;">Baixar XML</button>`;
+    // Cancelar NFC-e: só NFC-e AUTORIZADA e só para quem tem o módulo Fiscal (o backend revalida).
+    const cancelada = doc.status === 'cancelada';
+    if(docPodeCancelarNfce(doc)) acoesHtml += '<button type="button" class="link-btn link-btn-perigo btn-cancelar-nfce">Cancelar NFC-e</button>';
 
     let subtexto;
     if(dependeIntegracao){
@@ -10682,15 +10741,20 @@ function renderDocumentosDaVenda(vendaId, documentos){
     }
 
     const div = document.createElement('div');
-    div.className = 'lista-item';
+    div.className = 'lista-item' + (cancelada ? ' doc-cancelado' : '');
     div.innerHTML = `
       <span class="status-badge ${status.classe}" style="min-width:110px; text-align:center;">${status.texto}</span>
       <div class="lista-info">
+        ${cancelada ? `<div class="doc-cancelado-selo">${fiscalTipoLabel(doc.tipo_documento)} CANCELADA</div>` : ''}
         <div class="lista-titulo">${fiscalTipoLabel(doc.tipo_documento)} — ${formatarReais(doc.valor)}</div>
         <div class="lista-sub">${subtexto}</div>
+        ${cancelada ? `<div class="doc-cancelado-info" data-cancelamento-info="${doc.id}">Documento cancelado na SEFAZ.</div>` : ''}
         ${acoesHtml ? `<div style="margin-top:6px;">${acoesHtml}</div>` : ''}
       </div>
     `;
+
+    const btnCancelarNfce = div.querySelector('.btn-cancelar-nfce');
+    if(btnCancelarNfce) btnCancelarNfce.addEventListener('click', () => abrirModalCancelarNfce(doc, null));
 
     const btnImprimir = div.querySelector('.btn-imprimir-nfce');
     if(btnImprimir) btnImprimir.addEventListener('click', () => {
@@ -10717,7 +10781,172 @@ function renderDocumentosDaVenda(vendaId, documentos){
   if(documentos.some(d => d.status === 'nao_emitida')){
     container.innerHTML += '<p class="modal-section-hint" style="margin-top:10px;">Cancelamento e nova tentativa detalhada ficam disponíveis em uma próxima etapa.</p>';
   }
+
+  // Notas canceladas: preenche, sem bloquear a tela, data/justificativa/protocolo do cancelamento.
+  const idsCancelados = documentos.filter(d => d.status === 'cancelada').map(d => d.id);
+  if(idsCancelados.length) carregarInfoCancelamentoNfce(idsCancelados);
 }
+
+// ---------- Cancelamento de NFC-e (Edge Function fiscal-cancelar-documento) ----------
+// Quem decide é SEMPRE o backend (autenticação, permissão Fiscal/proprietário, empresa, status e
+// cStat da SEFAZ). Aqui só se coleta a justificativa, se chama a função e se reflete o resultado:
+// a nota só aparece como CANCELADA depois de recarregar do banco o status gravado pelo backend.
+const CANCELAMENTO_NFCE_MIN = 15;
+let cancelamentoNfceDoc = null;          // documento (linha de documentos_fiscais) em cancelamento
+let cancelamentoNfceEmAndamento = false; // trava de clique duplo durante a requisição
+let fiscalVendaAbertaId = null;          // venda atualmente aberta no painel "Buscar venda"
+
+function normalizarJustificativaNfce(v){
+  return String(v || '').replace(/\s+/g, ' ').trim();
+}
+function docPodeCancelarNfce(doc){
+  return !!doc && doc.tipo_documento === 'nfce' && doc.status === 'autorizada' && podeAcessar('fiscal');
+}
+
+function atualizarEstadoModalCancelarNfce(){
+  const n = normalizarJustificativaNfce($('fiscal-cancelar-justificativa').value).length;
+  const ok = n >= CANCELAMENTO_NFCE_MIN;
+  $('fiscal-cancelar-contador').textContent = ok
+    ? `${n} caracteres`
+    : `${n} / ${CANCELAMENTO_NFCE_MIN} caracteres mínimos`;
+  $('btn-fiscal-cancelar-confirmar').disabled = !ok || cancelamentoNfceEmAndamento;
+}
+
+function abrirModalCancelarNfce(doc, numeroVenda){
+  if(!docPodeCancelarNfce(doc)) return;
+  cancelamentoNfceDoc = doc;
+  cancelamentoNfceEmAndamento = false;
+  const partes = [];
+  if(numeroVenda) partes.push(`Venda #${escapeHtml(numeroVenda)}`);
+  partes.push(`NFC-e nº ${escapeHtml(doc.numero || '—')}${doc.serie ? ' · série ' + escapeHtml(doc.serie) : ''}`);
+  partes.push(`Valor: ${formatarReais(doc.valor)}`);
+  const dadosHtml = partes.join(' · ') + (doc.chave_acesso ? `<br>Chave: ${escapeHtml(doc.chave_acesso)}` : '');
+  $('fiscal-cancelar-dados').innerHTML = dadosHtml;
+  $('fiscal-cancelar-msg').innerHTML = '';
+  $('fiscal-cancelar-justificativa').value = '';
+  $('fiscal-cancelar-justificativa').disabled = false;
+  $('btn-fiscal-cancelar-voltar').disabled = false;
+  $('btn-fiscal-cancelar-confirmar').textContent = 'Cancelar NFC-e';
+  atualizarEstadoModalCancelarNfce();
+  $('modal-fiscal-cancelar-nfce').classList.remove('hidden');
+  $('fiscal-cancelar-justificativa').focus();
+}
+
+function fecharModalCancelarNfce(){
+  if(cancelamentoNfceEmAndamento) return; // não fecha no meio da requisição
+  $('modal-fiscal-cancelar-nfce').classList.add('hidden');
+  cancelamentoNfceDoc = null;
+}
+
+// Mesmo padrão de chamarEmissaoRealNFCe: a mensagem específica do backend vem em `data.error`
+// (o supabase-js marca `error` em respostas 4xx/5xx mas o corpo JSON continua em `data`).
+async function chamarCancelamentoNFCe(documentoFiscalId, justificativa){
+  try {
+    const { data, error } = await supabase.functions.invoke('fiscal-cancelar-documento', {
+      body: { documento_fiscal_id: documentoFiscalId, justificativa }
+    });
+    if(data && data.error){
+      return { ok: false, mensagem: data.error, cStat: data.cStat || null, xMotivo: data.xMotivo || null };
+    }
+    if(error){
+      return { ok: false, mensagem: 'Não foi possível concluir o cancelamento. A nota continua autorizada — confira a conexão e tente novamente.' };
+    }
+    if(data && data.status === 'cancelada') return { ok: true, dados: data };
+    return { ok: false, mensagem: 'Resposta inesperada do servidor. A nota continua autorizada — atualize a tela e confira o status antes de tentar de novo.' };
+  } catch(err){
+    return { ok: false, mensagem: 'Não foi possível concluir o cancelamento. A nota continua autorizada — confira a conexão e tente novamente.' };
+  }
+}
+
+async function confirmarCancelamentoNfce(){
+  if(cancelamentoNfceEmAndamento || !cancelamentoNfceDoc) return;
+  const justificativa = normalizarJustificativaNfce($('fiscal-cancelar-justificativa').value);
+  if(justificativa.length < CANCELAMENTO_NFCE_MIN){
+    $('fiscal-cancelar-msg').innerHTML = `<div class="msg error">A justificativa precisa ter no mínimo ${CANCELAMENTO_NFCE_MIN} caracteres.</div>`;
+    return;
+  }
+
+  const doc = cancelamentoNfceDoc;
+  cancelamentoNfceEmAndamento = true;
+  $('fiscal-cancelar-msg').innerHTML = '';
+  $('fiscal-cancelar-justificativa').disabled = true;
+  $('btn-fiscal-cancelar-voltar').disabled = true;
+  $('btn-fiscal-cancelar-confirmar').disabled = true;
+  $('btn-fiscal-cancelar-confirmar').textContent = 'Cancelando na SEFAZ...';
+
+  const resultado = await chamarCancelamentoNFCe(doc.id, justificativa);
+
+  cancelamentoNfceEmAndamento = false;
+  $('fiscal-cancelar-justificativa').disabled = false;
+  $('btn-fiscal-cancelar-voltar').disabled = false;
+  $('btn-fiscal-cancelar-confirmar').textContent = 'Cancelar NFC-e';
+
+  if(!resultado.ok){
+    // Rejeição/erro: o modal continua aberto, a nota continua AUTORIZADA, mensagem clara
+    // (inclui "cStat X: xMotivo" quando a SEFAZ rejeitou) e o usuário pode corrigir e tentar de novo.
+    let texto = escapeHtml(resultado.mensagem);
+    if(resultado.cStat && !String(resultado.mensagem).includes(String(resultado.cStat))){
+      texto += `<br>cStat ${escapeHtml(resultado.cStat)}${resultado.xMotivo ? ' — ' + escapeHtml(resultado.xMotivo) : ''}`;
+    }
+    $('fiscal-cancelar-msg').innerHTML = `<div class="msg error">${texto}</div>`;
+    atualizarEstadoModalCancelarNfce();
+    return;
+  }
+
+  // Sucesso confirmado pelo backend (status gravado como 'cancelada'): fecha o modal e recarrega
+  // tudo do banco — a tela nunca "inventa" o status localmente.
+  const jaCancelada = !!resultado.dados.jaCancelada;
+  const vendaId = doc.venda_id;
+  cancelamentoNfceDoc = null;
+  $('modal-fiscal-cancelar-nfce').classList.add('hidden');
+
+  const textoOk = jaCancelada
+    ? 'Esta NFC-e já estava cancelada na SEFAZ — o status foi sincronizado.'
+    : `NFC-e cancelada com sucesso.${resultado.dados.protocoloCancelamento ? ' Protocolo do cancelamento: ' + escapeHtml(resultado.dados.protocoloCancelamento) : ''}`;
+  $('fiscal-venda-msg').innerHTML = `<div class="msg success">${textoOk}</div>`;
+
+  await carregarFiscal(); // atualiza a tabela e os contadores (Autorizados / Cancelados)
+  if(vendaId && vendaId === fiscalVendaAbertaId && !$('fiscal-venda-resultado').classList.contains('hidden')){
+    await abrirVendaFiscalPorId(vendaId);
+  }
+}
+
+// Preenche "Cancelada em ... — motivo: ... — protocolo: ..." a partir do evento de auditoria
+// (documentos_fiscais_eventos, tipo_evento = 'cancelamento_nfce', status = 'cancelada'). Se não
+// houver evento legível (ou a leitura falhar), o texto padrão "Documento cancelado na SEFAZ." fica.
+async function carregarInfoCancelamentoNfce(ids){
+  try {
+    const empresaId = await obterEmpresaId();
+    const { data, error } = await supabase
+      .from('documentos_fiscais_eventos')
+      .select('documento_fiscal_id, created_at, c_stat, justificativa:payload->>justificativa, protocolo:payload->>nProtCan')
+      .eq('empresa_id', empresaId)
+      .eq('tipo_evento', 'cancelamento_nfce')
+      .eq('status', 'cancelada')
+      .in('documento_fiscal_id', ids)
+      .order('created_at', { ascending: true });
+    if(error || !data) return;
+
+    const primeiroPorDoc = {};
+    data.forEach(ev => { if(!primeiroPorDoc[ev.documento_fiscal_id]) primeiroPorDoc[ev.documento_fiscal_id] = ev; });
+
+    Object.keys(primeiroPorDoc).forEach(docId => {
+      const ev = primeiroPorDoc[docId];
+      const el = document.querySelector(`[data-cancelamento-info="${docId}"]`);
+      if(!el) return;
+      let txt = `Cancelada em ${new Date(ev.created_at).toLocaleString('pt-BR')}`;
+      if(ev.justificativa) txt += ` — motivo: ${ev.justificativa}`;
+      if(ev.protocolo) txt += ` — protocolo do cancelamento: ${ev.protocolo}`;
+      el.textContent = txt;
+    });
+  } catch(err){
+    console.error('Falha ao carregar dados do cancelamento da NFC-e', err);
+  }
+}
+
+$('fiscal-cancelar-justificativa').addEventListener('input', atualizarEstadoModalCancelarNfce);
+$('btn-fiscal-cancelar-voltar').addEventListener('click', fecharModalCancelarNfce);
+$('btn-fiscal-cancelar-confirmar').addEventListener('click', confirmarCancelamentoNfce);
 
 // ---------- Chamada real de emissão (Edge Function) + mensagens padronizadas ----------
 // REVISÃO FISCAL 2 (Módulo Bar): a ordem das duas checagens abaixo foi invertida. Quando a Edge
