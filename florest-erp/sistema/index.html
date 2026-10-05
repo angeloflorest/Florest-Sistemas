@@ -2056,6 +2056,38 @@
   .bar-config-hint-bloco code{ background:rgba(0,0,0,.06); padding:1px 5px; border-radius:4px; }
   .btn-secondary:disabled, .btn-accent:disabled{ opacity:0.5; cursor:not-allowed; }
 
+  /* ===== Impressoras (Fase A — Migration 029): MESMOS cartões em ERP → Configurações e Bar → Configurações ===== */
+  .imp-cab{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .imp-cab h3{ margin:0; }
+  .imp-aviso{
+    background: var(--florest-warning-soft); border:1px solid #F3D9A6; color:#6B4A0B;
+    border-radius:8px; padding:10px 14px; font-size:13px; line-height:1.5; margin:12px 0; max-width:1080px;
+  }
+  .imp-aviso strong{ display:block; }
+  .imp-aviso.info{ background: var(--florest-blue-light); border-color:#CFE3F7; color: var(--florest-navy); }
+  .imp-card{ display:flex; flex-direction:column; gap:14px; }
+  .imp-card-topo{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .imp-card-topo .rel-secao-titulo{ margin:0; }
+  .imp-tag{
+    font-size:11px; font-weight:600; color: var(--florest-navy); background: var(--accent-soft);
+    border-radius:999px; padding:2px 9px; white-space:nowrap;
+  }
+  .imp-atual{ background: var(--florest-bg); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .imp-atual-rotulo{ font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color: var(--ink-soft); margin-bottom:6px; }
+  .imp-atual-nome{ font-weight:700; color: var(--florest-navy); font-size:15px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .imp-atual-vazia{ color: var(--ink-soft); font-size:13.5px; }
+  .imp-det{ margin:8px 0 0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:13px; }
+  .imp-det dt{ color: var(--ink-soft); }
+  .imp-det dd{ margin:0; color: var(--ink); word-break:break-word; }
+  .imp-badge{ font-size:11.5px; font-weight:700; border-radius:999px; padding:2px 10px; white-space:nowrap; }
+  .imp-badge.ok{ background: var(--teal-soft); color: var(--teal); }
+  .imp-badge.off{ background: var(--danger-soft); color: var(--danger); }
+  .imp-badge.indisp{ background:#EEF1F5; color:#475569; }
+  .imp-badge.agente{ background: var(--florest-warning-soft); color:#8A5A00; }
+  .imp-escolha .field{ margin-bottom:10px; }
+  .imp-acoes{ display:flex; flex-wrap:wrap; gap:10px; }
+  .imp-somente{ font-size:12.5px; color: var(--ink-soft); background:#F1F5F9; border-radius:8px; padding:9px 12px; line-height:1.45; }
+
   .bar-ticket-impressao{ display:none; }
   @media print{
     body.bar-imprimindo > *{ visibility:hidden; }
@@ -3185,10 +3217,10 @@
 
       <!-- ---- SUBVIEW: CONFIGURAÇÕES DO BAR (Fase 3) ----
            Reúne em três sub-abas internas telas que já existiam espalhadas — o modal "Configurar
-           mesas" e a antiga aba principal "Destino dos Produtos" — mais a nova tela de Impressoras
-           (só interface visual, sem persistência real ainda). Nada aqui cria tabela, RPC, RLS ou
-           migration nova, e nada disso aparece no menu lateral do ERP: tudo vive dentro do Módulo
-           Bar, como pedido. -->
+           mesas" e a antiga aba principal "Destino dos Produtos" — mais a tela de Impressoras
+           (Migration 029: lê/grava pelas RPCs impressao_*; ver renderImpressoras). Nada aqui cria
+           tabela, RPC, RLS ou migration nova, e nada disso aparece no menu lateral do ERP: tudo vive
+           dentro do Módulo Bar, como pedido. -->
       <div id="bar-sub-configuracoes" class="bar-subview hidden">
         <div class="bar-subnav" id="bar-config-subnav">
           <button type="button" class="bar-subnav-item active" data-barconfigview="mesas">Mesas</button>
@@ -3244,57 +3276,20 @@
           </div>
         </div>
 
-        <!-- Configurações → Impressoras: SOMENTE interface visual (Fase 3, itens 6 e 8). Não existe
-             hoje nenhuma tabela de impressora no banco, e o Florest ERP roda na nuvem — não há como
-             o servidor alcançar diretamente um IP de rede local (192.168.x.x). Por isso nenhum
-             botão aqui chama RPC, Supabase ou localStorage: tudo fica desabilitado e identificado
-             como dependente do futuro Agente Florest de Impressão. Nada é salvo de verdade ainda. -->
+        <!-- Configurações → Impressoras (Fase A — Migration 029). Os campos manuais nome/IP/porta foram
+             REMOVIDOS: a escolha é feita entre as impressoras detectadas pelo Florest Print Agent, lidas por
+             impressao_configuracao_obter() e gravadas por impressao_destino_definir/limpar. Bar e Cozinha são
+             específicos do Módulo Bar; Caixa e Adicional são as MESMAS configurações centrais de ERP →
+             Configurações → Impressoras (mesma linha no banco — nada é copiado para o Bar). Os cartões são
+             desenhados por renderImpressoras() (o mesmo código do ERP). -->
         <div id="bar-config-sub-impressoras" class="bar-subview hidden">
-          <div class="bar-config-hint-bloco">
-            O Florest ERP roda na nuvem e as impressoras ficam na rede local do estabelecimento (ex.: <code>192.168.x.x</code>), um endereço que a nuvem não alcança diretamente. Esta tela prepara os dados de cada impressora; a impressão de verdade — e o salvamento dessas configurações — só entra em operação quando o Agente Florest de Impressão for instalado no computador do estabelecimento, numa próxima fase.
+          <div class="imp-cab">
+            <p class="modal-section-hint" style="margin:0; flex:1; min-width:240px;">Escolha a impressora de cada destino entre as encontradas pelo Florest Print Agent. Caixa e Adicional são configurações centrais da empresa, as mesmas de Configurações → Impressoras.</p>
+            <button type="button" class="btn-secondary" id="btn-imp-buscar-bar">Buscar impressoras</button>
           </div>
-          <div class="bar-config-impressoras-grid">
-            <div class="bar-config-card">
-              <div class="rel-secao-titulo">Impressora do Bar</div>
-              <div class="field">
-                <label>Nome da impressora</label>
-                <input type="text" id="bar-config-imp-bar-nome" placeholder="Impressora Bar">
-              </div>
-              <div class="field">
-                <label>IP da impressora</label>
-                <input type="text" id="bar-config-imp-bar-ip" placeholder="192.168.0.150">
-              </div>
-              <div class="field" style="margin-bottom:14px;">
-                <label>Porta</label>
-                <input type="text" id="bar-config-imp-bar-porta" placeholder="9100">
-              </div>
-              <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
-                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar conexão</button>
-                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar impressão</button>
-              </div>
-              <p class="modal-section-hint" style="margin:8px 0 0;">Indisponível até a instalação do agente local de impressão.</p>
-            </div>
-            <div class="bar-config-card">
-              <div class="rel-secao-titulo">Impressora da Cozinha</div>
-              <div class="field">
-                <label>Nome da impressora</label>
-                <input type="text" id="bar-config-imp-cozinha-nome" placeholder="Impressora Cozinha">
-              </div>
-              <div class="field">
-                <label>IP da impressora</label>
-                <input type="text" id="bar-config-imp-cozinha-ip" placeholder="192.168.0.151">
-              </div>
-              <div class="field" style="margin-bottom:14px;">
-                <label>Porta</label>
-                <input type="text" id="bar-config-imp-cozinha-porta" placeholder="9100">
-              </div>
-              <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:10px;">
-                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar conexão</button>
-                <button type="button" class="btn-secondary" disabled title="Disponível após a instalação do Agente Florest de Impressão">Testar impressão</button>
-              </div>
-              <p class="modal-section-hint" style="margin:8px 0 0;">Indisponível até a instalação do agente local de impressão.</p>
-            </div>
-          </div>
+          <div id="imp-bar-aviso"></div>
+          <div id="imp-bar-msg"></div>
+          <div class="bar-config-impressoras-grid" id="imp-bar-cards" data-imp-ctx="bar"></div>
         </div>
       </div>
     </div>
@@ -3318,6 +3313,20 @@
             <em>Quando ativado, o PDV poderá vender produtos mesmo quando a quantidade disponível for insuficiente. O estoque poderá ficar negativo.</em>
           </span>
         </label>
+      </div>
+
+      <!-- Impressoras (Fase A — Migration 029): configuração CENTRAL da empresa, independente de ter ou não o
+           Módulo Bar. Os cartões são desenhados por renderImpressoras() a partir de impressao_configuracao_obter();
+           Caixa e Adicional são as MESMAS linhas que o Bar mostra em Bar → Configurações → Impressoras. -->
+      <div class="pdv-panel" id="painel-impressoras" style="margin-bottom:20px;">
+        <div class="imp-cab">
+          <h3>Impressoras</h3>
+          <button type="button" class="btn-secondary" id="btn-imp-buscar-erp">Buscar impressoras</button>
+        </div>
+        <p class="modal-section-hint" style="margin-top:0;">Escolha, entre as impressoras encontradas pelo Florest Print Agent, qual será usada em cada função. Não é preciso digitar nome, IP ou porta.</p>
+        <div id="imp-erp-aviso"></div>
+        <div id="imp-erp-msg"></div>
+        <div class="bar-config-impressoras-grid" id="imp-erp-cards" data-imp-ctx="erp"></div>
       </div>
 
       <div id="config-fiscal-msg"></div>
@@ -6439,6 +6448,208 @@ $('cfg-venda-sem-estoque').addEventListener('change', async (e) => {
   $('cfg-operacional-msg').innerHTML = `<div class="msg success">${novo ? 'Venda sem estoque ATIVADA: o PDV poderá vender mesmo sem saldo e o estoque poderá ficar negativo.' : 'Venda sem estoque desativada: o PDV volta a bloquear vendas acima do estoque disponível.'}</div>`;
 });
 
+// ---------- Impressoras (Fase A — Migration 029) ----------
+// UMA fonte de dados (impConfig, vinda de impressao_configuracao_obter) e UM renderizador para as duas
+// telas: ERP → Configurações → Impressoras (Caixa e Adicional) e Bar → Configurações → Impressoras
+// (Bar, Cozinha, Caixa e Adicional). Caixa e Adicional são a MESMA linha no banco (impressao_destino_impressora
+// por empresa) — o Bar só as exibe; nada é copiado. A empresa nunca é enviada: as RPCs a derivam do usuário.
+// Não existe cadastro manual de nome/IP/porta: só se escolhe entre impressoras detectadas pelo futuro
+// Florest Print Agent. "Buscar impressoras" apenas relê impressao_configuracao_obter().
+let impConfig = null;      // último retorno de impressao_configuracao_obter() (null = ainda não carregado/erro)
+let impSeq = 0;            // descarta respostas antigas quando há duas leituras em andamento
+let impOcupado = false;    // uma gravação por vez
+const IMP_DESTINOS_POR_TELA = { erp: ['caixa', 'adicional'], bar: ['bar', 'cozinha', 'caixa', 'adicional'] };
+const IMP_CONEXAO_ROTULO = { usb: 'USB', windows: 'Instalada no Windows', rede: 'Rede', compartilhada: 'Compartilhada', outro: 'Outro' };
+const IMP_TEXTO_AGENTE = 'Florest Print Agent não está conectado neste estabelecimento.';
+
+function impMensagemErro(error){
+  const m = (error && error.message) || '';
+  if(error && (error.code === 'PGRST202' || error.code === '42883' || /could not find the function|does not exist/i.test(m))){
+    return 'O recurso de impressoras ainda não foi ativado no banco de dados (falta executar a Migration 029).';
+  }
+  return m || 'Erro inesperado.';
+}
+
+function impAgenteConectado(){
+  return !!(impConfig && impConfig.agente && impConfig.agente.conectado);
+}
+
+// Status visual de uma impressora já escolhida. O status que o agente informa só vale com o agente conectado.
+function impStatusVisual(imp){
+  if(!imp) return null;
+  if(!imp.ativa) return { texto: 'Indisponível', cls: 'indisp' };
+  if(!impAgenteConectado()) return { texto: 'Agente desconectado', cls: 'agente' };
+  if(imp.status === 'disponivel') return { texto: 'Conectada', cls: 'ok' };
+  if(imp.status === 'offline') return { texto: 'Offline', cls: 'off' };
+  return { texto: 'Indisponível', cls: 'indisp' };
+}
+
+function impTextoConexao(c){
+  return IMP_CONEXAO_ROTULO[c] || (c ? String(c) : 'Não informado');
+}
+
+// Só mostra IP/porta quando o agente realmente informou — nada é inventado.
+function impDetalhesHtml(imp){
+  const linhas = [['Estação', imp.estacao_nome || '—'], ['Conexão', impTextoConexao(imp.conexao)]];
+  if(imp.ip) linhas.push(['Endereço IP', imp.ip]);
+  if(imp.porta) linhas.push(['Porta', String(imp.porta)]);
+  if(imp.porta_windows) linhas.push(['Porta no Windows', imp.porta_windows]);
+  return '<dl class="imp-det">' + linhas.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('') + '</dl>';
+}
+
+function impCardHtml(d, tela){
+  const atual = d.impressora;
+  const st = impStatusVisual(atual);
+  const central = d.modulo_exigido === null || d.modulo_exigido === undefined;
+  const disponiveis = (impConfig && impConfig.impressoras) || [];
+
+  let atualHtml;
+  if(atual){
+    atualHtml = `<div class="imp-atual-nome"><span>${escapeHtml(atual.nome)}</span><span class="imp-badge ${st.cls}">${escapeHtml(st.texto)}</span></div>${impDetalhesHtml(atual)}`;
+  } else {
+    atualHtml = '<div class="imp-atual-vazia">Nenhuma impressora selecionada.</div>';
+  }
+
+  let corpo;
+  if(!d.pode_alterar){
+    corpo = `<div class="imp-somente">${tela === 'bar' && d.permissao_configurar === 'configuracoes'
+      ? 'Esta impressora é configurada em Configurações → Impressoras.'
+      : 'Você não tem permissão para alterar esta impressora.'}</div>`;
+  } else {
+    const noSeletor = atual && disponiveis.some(i => i.id === d.impressora_id);
+    const opcoes = ['<option value="">Selecione uma impressora...</option>'].concat(disponiveis.map(i =>
+      `<option value="${escapeHtml(i.id)}"${noSeletor && i.id === d.impressora_id ? ' selected' : ''}>${escapeHtml(i.nome)} — ${escapeHtml(i.estacao_nome || '')}</option>`)).join('');
+    corpo = `<div class="imp-escolha">
+        <div class="field"><label>${atual ? 'Trocar impressora' : 'Impressora'}</label>
+          <select data-imp-select ${disponiveis.length === 0 ? 'disabled' : ''}>${opcoes}</select></div>
+        <div class="imp-acoes">
+          <button type="button" class="btn-accent" data-imp-acao="salvar" ${disponiveis.length === 0 ? 'disabled' : ''}>${atual ? 'Salvar troca' : 'Salvar'}</button>
+          <button type="button" class="btn-secondary" data-imp-acao="limpar" ${atual ? '' : 'disabled'}>Limpar configuração</button>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="bar-config-card imp-card" data-imp-destino="${escapeHtml(d.codigo)}">
+      <div class="imp-card-topo">
+        <div class="rel-secao-titulo">${escapeHtml(d.rotulo)}</div>
+        ${central ? '<span class="imp-tag">Configuração central da empresa</span>' : ''}
+      </div>
+      <div class="imp-atual"><div class="imp-atual-rotulo">Impressora selecionada</div>${atualHtml}</div>
+      ${corpo}
+    </div>`;
+}
+
+function impAvisoHtml(){
+  if(!impConfig) return '';
+  const qtd = (impConfig.impressoras || []).length;
+  if(!impAgenteConectado()){
+    return `<div class="imp-aviso"><strong>${IMP_TEXTO_AGENTE}</strong>${qtd === 0
+      ? 'Nenhuma impressora foi detectada ainda. Quando o agente for instalado e conectado, as impressoras encontradas aparecerão aqui para você escolher — não é preciso informar nome, IP ou porta.'
+      : 'As impressoras listadas foram detectadas anteriormente; o status delas só é confirmado com o agente conectado.'}</div>`;
+  }
+  if(qtd === 0) return '<div class="imp-aviso info"><strong>Nenhuma impressora encontrada.</strong>O agente está conectado, mas não informou nenhuma impressora disponível.</div>';
+  return '';
+}
+
+function impMsg(tela, html){
+  const el = $('imp-' + tela + '-msg');
+  if(el) el.innerHTML = html || '';
+}
+
+function renderImpressoras(){
+  ['erp', 'bar'].forEach(tela => {
+    const cont = $('imp-' + tela + '-cards');
+    const aviso = $('imp-' + tela + '-aviso');
+    if(!cont || !aviso) return;
+    if(!impConfig){ cont.innerHTML = ''; aviso.innerHTML = ''; return; }
+    aviso.innerHTML = impAvisoHtml();
+    const destinos = impConfig.destinos || [];
+    const cartoes = IMP_DESTINOS_POR_TELA[tela].map(cod => destinos.find(d => d.codigo === cod)).filter(Boolean);
+    cont.innerHTML = cartoes.length ? cartoes.map(d => impCardHtml(d, tela)).join('')
+      : '<p class="modal-section-hint">Nenhum destino de impressão disponível para esta empresa.</p>';
+  });
+}
+
+async function carregarImpressoras(){
+  const seq = ++impSeq;
+  ['erp', 'bar'].forEach(t => impMsg(t, ''));
+  if(!impConfig){
+    ['erp', 'bar'].forEach(t => { const c = $('imp-' + t + '-cards'); if(c) c.innerHTML = '<p class="modal-section-hint">Carregando impressoras...</p>'; });
+  }
+  const { data, error } = await supabase.rpc('impressao_configuracao_obter');
+  if(seq !== impSeq) return false;   // chegou uma leitura mais nova
+  if(error){
+    impConfig = null;
+    renderImpressoras();
+    ['erp', 'bar'].forEach(t => impMsg(t, `<div class="msg error">${escapeHtml(impMensagemErro(error))}</div>`));
+    return false;
+  }
+  impConfig = data || null;
+  renderImpressoras();
+  return true;
+}
+
+// "Buscar impressoras": nesta fase só relê o banco (o agente ainda não existe; o navegador nunca varre a rede).
+async function impBuscar(tela){
+  const btn = $('btn-imp-buscar-' + tela);
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Buscando...';
+  const ok = await carregarImpressoras();
+  btn.disabled = false;
+  btn.textContent = textoOriginal;
+  if(!ok) return;
+  const qtd = ((impConfig && impConfig.impressoras) || []).length;
+  impMsg(tela, qtd > 0
+    ? `<div class="msg success">Lista atualizada: ${qtd} impressora${qtd > 1 ? 's' : ''} ${qtd > 1 ? 'disponíveis' : 'disponível'}.</div>`
+    : '');   // sem impressoras: o aviso permanente acima já explica (sem agente / sem impressoras)
+}
+$('btn-imp-buscar-erp').addEventListener('click', () => impBuscar('erp'));
+$('btn-imp-buscar-bar').addEventListener('click', () => impBuscar('bar'));
+
+async function impAgir(tela, card, acao){
+  if(impOcupado) return;
+  const codigo = card.dataset.impDestino;
+  const destino = ((impConfig && impConfig.destinos) || []).find(d => d.codigo === codigo);
+  if(!destino) return;
+  const rotulo = destino.rotulo;
+
+  let rpc, params, sucesso;
+  if(acao === 'salvar'){
+    const id = card.querySelector('[data-imp-select]').value;
+    if(!id){ impMsg(tela, '<div class="msg error">Escolha uma impressora na lista antes de salvar.</div>'); return; }
+    rpc = 'impressao_destino_definir';
+    params = { p_destino: codigo, p_impressora_id: id };
+    sucesso = `${rotulo}: configuração salva.`;
+  } else {
+    if(!confirm(`Limpar a configuração de "${rotulo}"?`)) return;
+    rpc = 'impressao_destino_limpar';
+    params = { p_destino: codigo };
+    sucesso = `${rotulo}: configuração removida.`;
+  }
+
+  impOcupado = true;
+  impMsg(tela, '');
+  document.querySelectorAll('#imp-erp-cards button, #imp-bar-cards button').forEach(b => { b.disabled = true; });
+  const { error } = await supabase.rpc(rpc, params);
+  impOcupado = false;
+  // sempre relê: o estado pode ter mudado (outra tela, outro usuário) e os cartões voltam ao estado real
+  const releu = await carregarImpressoras();
+  if(!releu && !error) return;   // a própria releitura já mostrou o erro dela
+  impMsg(tela, error
+    ? `<div class="msg error">${escapeHtml(impMensagemErro(error))}</div>`
+    : `<div class="msg success">${escapeHtml(sucesso)}</div>`);
+}
+
+['erp', 'bar'].forEach(tela => {
+  $('imp-' + tela + '-cards').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-imp-acao]');
+    if(!btn || btn.disabled) return;
+    const card = btn.closest('[data-imp-destino]');
+    if(card) impAgir(tela, card, btn.dataset.impAcao);
+  });
+});
+
 // =====================================================================
 // MÓDULO PET (opcional, por empresa) — Agenda / Pets / Pacotes
 // Etapa 2: telas completas. Regra central: um pacote NUNCA nasce de uma venda no PDV — o PDV,
@@ -7407,7 +7618,7 @@ const CARREGADORES_VIEW = {
   'financeiro': () => carregarFinanceiro(),
   'fiscal': () => carregarFiscal(),
   'relatorios': () => prepararCentralRelatorios(),
-  'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); },
+  'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); },
   'usuarios': () => carregarUsuarios(),
   // ---- Módulo comercial: PET ----
   'agenda': () => carregarAgendaView(),
@@ -12142,6 +12353,7 @@ async function abrirConfigSubViewBar(sub){
   ['mesas','destino','impressoras'].forEach(v => $('bar-config-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas') await carregarBarConfigMesas();
   else if(sub === 'destino') await carregarBarDestino();
+  else if(sub === 'impressoras') await carregarImpressoras();
 }
 
 // Supabase Realtime (Migration 016 adiciona bar_mesas/bar_comandas/bar_pedidos_itens à publicação
