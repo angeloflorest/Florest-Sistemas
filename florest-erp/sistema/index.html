@@ -976,7 +976,7 @@
     overflow:hidden;
     flex-shrink:0;
   }
-  .maria-fab-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .maria-fab-avatar img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:50%; }
   .maria-fab:hover .maria-fab-avatar{ transform: translateY(-2px); }
   .maria-fab:focus-visible .maria-fab-avatar{ outline:3px solid var(--florest-blue); outline-offset:2px; }
   @media (max-width: 760px){
@@ -8386,9 +8386,9 @@ const MARIA_MSG_INICIAL = 'Olá! Sou a MARIA. O que você quer saber hoje?';
 const MARIA_MSG_ESPERA = 'MARIA está analisando...';
 const MARIA_TIMEOUT_MS = 90000;   // o botão nunca fica travado para sempre se a função não responder
 
-// Imagem definitiva do atalho flutuante: basta informar o caminho/URL aqui (ex.: 'assets/maria.png').
-// Vazio = placeholder simples (inicial "M"). Se a imagem falhar ao carregar, volta ao placeholder.
-const MARIA_AVATAR_URL = '';
+// Imagem definitiva do atalho flutuante: basta informar o caminho/URL aqui.
+// Se a imagem falhar ao carregar (arquivo ausente), o atalho mantém o placeholder simples (inicial "M").
+const MARIA_AVATAR_URL = 'assets/maria-avatar.png';
 
 // Sugestões rápidas. `preencher: true` apenas escreve o texto no campo (o usuário completa e envia),
 // para perguntas que precisam de um complemento — os demais chips enviam a pergunta direto.
