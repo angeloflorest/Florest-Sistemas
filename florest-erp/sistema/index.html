@@ -2146,7 +2146,7 @@
   .cmd-titulo-comanda{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
   .cmd-titulo-comanda h3{ margin:0; }
   .cmd-titulo-comanda span{ font-size:18px; font-weight:800; color:var(--florest-navy); word-break:break-word; }
-  .cmd-add-linha{ display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:10px; align-items:end; }
+  .cmd-add-linha{ display:block; }
   .cmd-add-linha .pdx-busca-wrap{ margin-bottom:0; }
   .cmd-itens-topo, .cmd-item{
     display:grid; grid-template-columns:62px minmax(0,1fr) 96px 104px 36px; gap:8px; align-items:center;
@@ -2188,6 +2188,11 @@
   .cmd-ok-titulo{ font-family:var(--font-display); font-size:22px; margin:0 0 10px; }
   .cmd-ok-icone{ width:54px; height:54px; border-radius:50%; background:var(--florest-success-soft); color:var(--florest-success); display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; margin:0 auto 10px; }
   .cmd-conf-texto{ font-size:14.5px; line-height:1.45; margin:0 0 12px; }
+  #cmd-cli-lista:empty{ display:none; }
+  .cmd-qtd-produto{ font-size:18px; font-weight:800; line-height:1.25; word-break:break-word; margin:0 0 4px; color:var(--florest-navy); }
+  .cmd-qtd-preco{ font-size:13px; color:#6B717D; margin:0 0 12px; min-height:16px; }
+  .cmd-qtd-input{ width:100%; box-sizing:border-box; font-family:inherit; font-size:52px; font-weight:800; text-align:center; padding:10px 8px; border:2px solid var(--florest-navy); border-radius:12px; background:#fff; color:var(--florest-navy); }
+  .cmd-qtd-input:focus{ outline:3px solid var(--florest-yellow); outline-offset:1px; }
 
   @media (max-width: 760px){
     .cmd-grid{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
@@ -2195,7 +2200,6 @@
     .cmd-card-num{ font-size:30px; }
     .cmd-itens-topo, .cmd-item{ grid-template-columns:44px minmax(0,1fr) 84px 34px; }
     .cmd-itens-topo .u, .cmd-item .u{ display:none; }
-    .cmd-add-linha{ grid-template-columns:minmax(0,1fr) 72px; }
     .cmd-fin-total b{ font-size:26px; }
     .cmd-forma{ min-height:64px; font-size:14.5px; }
   }
@@ -3184,15 +3188,11 @@
                 <div class="search-results hidden" id="cmd-prod-res"></div>
               </div>
             </div>
-            <div>
-              <label class="pdx-rotulo" for="cmd-qtd">Qtd.</label>
-              <div class="pdx-busca-wrap"><input type="text" inputmode="decimal" id="cmd-qtd" class="pdx-input pdx-input-grande" value="1" autocomplete="off" style="padding:11px 6px;"></div>
-            </div>
           </div>
           <div class="cmd-itens-topo"><span>Qtd.</span><span>Produto</span><span class="u" style="text-align:right;">Unit.</span><span style="text-align:right;">Subtotal</span><span></span></div>
           <div class="cmd-itens" id="cmd-itens"><div class="cmd-itens-vazio">Nenhum item lançado ainda.</div></div>
           <div class="cmd-rodape-acoes">
-            <button type="button" class="cmd-link hidden" id="btn-cmd-cancelar-comanda">Cancelar esta comanda (aberta por engano)</button>
+            <button type="button" class="cmd-link hidden" id="btn-cmd-cancelar-comanda">Cancelar comanda</button>
             <span></span>
           </div>
           <div class="cmd-fin-total" style="margin-top:10px;"><span>TOTAL</span><b id="cmd-total">R$ 0,00</b></div>
@@ -3220,13 +3220,55 @@
         </div>
       </div>
 
+      <div id="cmd-modal-qtd" class="pdx-modal cmd-z8 hidden" role="dialog" aria-modal="true" aria-labelledby="cmd-qtd-titulo">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-qtd-titulo">Quantidade</h3></div>
+          <p class="cmd-qtd-produto" id="cmd-qtd-produto">—</p>
+          <p class="cmd-qtd-preco" id="cmd-qtd-preco"></p>
+          <input type="text" inputmode="decimal" id="cmd-qtd-input" class="cmd-qtd-input" value="1" maxlength="9" autocomplete="off" aria-label="Quantidade">
+          <div id="cmd-qtd-msg" class="cmd-msg" style="margin-top:8px;"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-qtd-cancelar">CANCELAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-qtd-ok">ADICIONAR</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-rem" class="pdx-modal cmd-z8 hidden" role="dialog" aria-modal="true" aria-labelledby="cmd-rem-titulo">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-rem-titulo">Remover item</h3></div>
+          <div id="cmd-rem-corpo"></div>
+          <label class="pdx-rotulo" for="cmd-rem-motivo">Motivo (opcional)</label>
+          <input type="text" id="cmd-rem-motivo" class="pdx-input" maxlength="200" placeholder="Motivo (opcional)" autocomplete="off">
+          <div id="cmd-rem-msg" class="cmd-msg" style="margin-top:8px;"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-rem-voltar">VOLTAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-rem-ok">REMOVER ITEM</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-canc" class="pdx-modal cmd-z8 hidden" role="dialog" aria-modal="true" aria-labelledby="cmd-canc-titulo">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-canc-titulo">Cancelar comanda</h3></div>
+          <div id="cmd-canc-corpo"></div>
+          <label class="pdx-rotulo" for="cmd-canc-motivo">Motivo (opcional)</label>
+          <input type="text" id="cmd-canc-motivo" class="pdx-input" maxlength="200" placeholder="Motivo (opcional)" autocomplete="off">
+          <div id="cmd-canc-msg" class="cmd-msg" style="margin-top:8px;"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-canc-voltar">VOLTAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-canc-ok">CANCELAR COMANDA</button>
+          </div>
+        </div>
+      </div>
+
       <div id="cmd-modal-conf" class="pdx-modal cmd-z8 hidden">
         <div class="pdx-card cmd-card-sm">
           <div class="pdx-card-head"><h3 id="cmd-conf-titulo">Confirmar</h3></div>
           <div id="cmd-conf-corpo"></div>
           <div id="cmd-conf-motivo-wrap" class="hidden">
             <label class="pdx-rotulo" for="cmd-conf-motivo">Motivo (opcional)</label>
-            <input type="text" id="cmd-conf-motivo" class="pdx-input" maxlength="200" placeholder="Ex.: lançado por engano" autocomplete="off">
+            <input type="text" id="cmd-conf-motivo" class="pdx-input" maxlength="200" placeholder="Motivo (opcional)" autocomplete="off">
           </div>
           <div id="cmd-conf-msg" class="cmd-msg" style="margin-top:8px;"></div>
           <div class="pdx-add-botoes">
@@ -11340,27 +11382,50 @@ let cmdClientesPromessa = null;
 let cmdAbrirSel = null;          // { comandaId, numero, clienteId, clienteNome }
 let cmdAtual = null;             // resposta de pdv_comanda_obter da comanda aberta na tela
 let cmdFin = null;               // { sessaoId, nome, totalCent, forma }
-let cmdConf = null;              // { onOk } do modal genérico de confirmação
+let cmdConf = null;              // { onOk } do modal genérico de confirmação (só Nota a Prazo)
+// Modais próprios (não dependem de cmdOcupado nem de closures): remover item, cancelar comanda, quantidade.
+let cmdRem = null, cmdCanc = null, cmdQtdSt = null;
+let cmdRemOcup = false, cmdCancOcup = false, cmdQtdOcup = false, cmdBuscandoProd = false;
 let cmdOcupado = false;          // trava de operações de escrita (abrir/cancelar/finalizar): impede duplo clique
 let cmdPend = 0;                 // lançamentos de produto em andamento (fila)
 let cmdFila = Promise.resolve();
 let cmdSeq = 0;                  // muda no logout: descarta respostas que chegam depois
 let cmdListaSeq = 0, cmdObterSeq = 0, cmdBuscaSeq = 0;
 let cmdResultados = [], cmdIdx = -1;
-let cmdMsgTimer = null;
 const cmdChaves = new Map();     // sessao_id -> chave de idempotência da finalização (reutilizada em reenvio da MESMA tentativa)
 
-const CMD_MODAIS = ['cmd-modal-ok', 'cmd-modal-conf', 'cmd-modal-fin', 'cmd-modal-comanda', 'cmd-modal-abrir', 'cmd-painel'];   // do topo para o fundo
+const CMD_MODAIS = ['cmd-modal-ok', 'cmd-modal-qtd', 'cmd-modal-rem', 'cmd-modal-canc', 'cmd-modal-conf', 'cmd-modal-fin', 'cmd-modal-comanda', 'cmd-modal-abrir', 'cmd-painel'];   // do topo para o fundo
 function cmdVisivel(id){ return !$(id).classList.contains('hidden'); }
 function cmdMostrar(id){ $(id).classList.remove('hidden'); }
 function cmdOcultar(id){ $(id).classList.add('hidden'); }
 function cmdMsg(zona, texto, tipo){
-  const ids = { painel: 'cmd-painel-msg', abrir: 'cmd-abrir-msg', com: 'cmd-com-msg', fin: 'cmd-fin-msg', conf: 'cmd-conf-msg' };
+  const ids = { painel: 'cmd-painel-msg', abrir: 'cmd-abrir-msg', com: 'cmd-com-msg', fin: 'cmd-fin-msg', conf: 'cmd-conf-msg', qtd: 'cmd-qtd-msg', rem: 'cmd-rem-msg', canc: 'cmd-canc-msg' };
   msgBox(ids[zona], texto, tipo);
 }
 function cmdTrava(sim){
   cmdOcupado = sim;
   cmdAtualizarBotoes();
+}
+// Botão de um modal próprio: ocupado = desabilitado + texto de andamento
+function cmdBtnOcupado(idOk, idVoltar, ocupado, textoOcupado, textoNormal){
+  const ok = $(idOk), v = $(idVoltar);
+  ok.disabled = !!ocupado; v.disabled = !!ocupado;
+  ok.textContent = ocupado ? textoOcupado : textoNormal;
+  ok.setAttribute('aria-busy', ocupado ? 'true' : 'false');
+}
+const CMD_PROPRIOS = [
+  ['btn-cmd-qtd-ok', 'btn-cmd-qtd-cancelar', 'ADICIONAR'],
+  ['btn-cmd-rem-ok', 'btn-cmd-rem-voltar', 'REMOVER ITEM'],
+  ['btn-cmd-canc-ok', 'btn-cmd-canc-voltar', 'CANCELAR COMANDA']
+];
+function cmdResetModaisProprios(){
+  ['cmd-modal-qtd', 'cmd-modal-rem', 'cmd-modal-canc'].forEach(cmdOcultar);
+  cmdRem = null; cmdCanc = null; cmdQtdSt = null;
+  cmdRemOcup = false; cmdCancOcup = false; cmdQtdOcup = false; cmdBuscandoProd = false;
+  CMD_PROPRIOS.forEach(([ok, v, t]) => cmdBtnOcupado(ok, v, false, '', t));
+  ['cmd-qtd-msg', 'cmd-rem-msg', 'cmd-canc-msg'].forEach(id => { $(id).innerHTML = ''; });
+  delete $('cmd-modal-rem').dataset.itemId; delete $('cmd-modal-rem').dataset.sessaoId;
+  delete $('cmd-modal-canc').dataset.sessaoId;
 }
 
 // ---- lista de comandas (grade de 10 posições) ----
@@ -11418,6 +11483,7 @@ function cmdFecharPainel(){
 }
 function cmdFecharTudo(){                                      // ao (re)entrar no PDV: o banco é a autoridade, nada de tela velha
   CMD_MODAIS.forEach(cmdOcultar);
+  cmdResetModaisProprios();
   cmdAtual = null; cmdFin = null; cmdConf = null; cmdAbrirSel = null;
   cmdBuscaSeq++; cmdResultados = []; cmdIdx = -1;
 }
@@ -11466,7 +11532,13 @@ function cmdRenderClientesAbrir(){
     return;
   }
   const termo = semAcentoMin($('cmd-cli-busca').value.trim());
-  const achados = cmdClientes.filter(c => !termo || c._n.includes(termo));
+  if(!termo){                                       // nenhum cliente é mostrado antes de digitar
+    lista.innerHTML = '';
+    cmdAtualizarSelCliente();
+    return;
+  }
+  const achados = cmdClientes.filter(c => c._n.includes(termo))
+    .sort((a, b) => ((b._n.startsWith(termo) ? 1 : 0) - (a._n.startsWith(termo) ? 1 : 0)) || a._n.localeCompare(b._n, 'pt-BR'));
   const mostrar = achados.slice(0, 60);
   const sel = cmdAbrirSel && cmdAbrirSel.clienteId;
   lista.innerHTML = mostrar.map(c =>
@@ -11534,7 +11606,6 @@ async function cmdAbrirComanda(comandaId){
     cmdAtual = data;
     cmdResultados = []; cmdIdx = -1;
     $('cmd-prod-busca').value = '';
-    $('cmd-qtd').value = '1';
     $('cmd-prod-res').classList.add('hidden');
     cmdMsg('com', '');
     cmdRenderComanda();
@@ -11549,6 +11620,7 @@ function cmdFecharTelaComanda(){
   cmdOcultar('cmd-modal-comanda');
   cmdOcultar('cmd-modal-fin');
   cmdOcultar('cmd-modal-conf');
+  cmdResetModaisProprios();
   cmdAtual = null; cmdFin = null; cmdConf = null;
   cmdBuscaSeq++; cmdResultados = []; cmdIdx = -1;
   $('cmd-prod-res').classList.add('hidden');
@@ -11581,7 +11653,7 @@ function cmdAtualizarBotoes(){
   const c = cmdAtual;
   const itens = c && Array.isArray(c.itens) ? c.itens.length : 0;
   $('btn-cmd-finalizar').disabled = !c || itens === 0 || cmdOcupado || cmdPend > 0;
-  $('btn-cmd-cancelar-comanda').classList.toggle('hidden', !c || itens > 0);
+  $('btn-cmd-cancelar-comanda').classList.toggle('hidden', !c);
   $('btn-cmd-cancelar-comanda').disabled = cmdOcupado || cmdPend > 0;
   $('cmd-itens').querySelectorAll('button[data-item]').forEach(b => { b.disabled = cmdOcupado; });
   $('btn-cmd-abrir-ok').disabled = !(cmdAbrirSel && cmdAbrirSel.clienteId) || cmdOcupado;
@@ -11605,45 +11677,10 @@ async function cmdRecarregarAtual(){
   return data;
 }
 
-// ---- lançar produto (leitor, nome ou código) ----
-function cmdLerQtd(){
-  const n = pdxLerNumero($('cmd-qtd').value);
-  return n > 0 ? n : 0;
-}
-
+// ---- lançar produto: escolher/bipar -> modal de Quantidade -> pdv_comanda_item_adicionar ----
+// Nenhum produto é lançado sem passar pelo modal de quantidade (nem pelo leitor de código de barras).
 function cmdAvisoLancamento(texto, tipo){
   cmdMsg('com', texto, tipo);
-  clearTimeout(cmdMsgTimer);
-  if(tipo === 'success'){
-    const marca = texto;
-    cmdMsgTimer = setTimeout(() => { if(($('cmd-com-msg').textContent || '').trim() === marca) cmdMsg('com', ''); }, 2500);
-  }
-}
-
-function cmdEnfileirar(tarefa){
-  cmdPend++;
-  cmdAtualizarBotoes();
-  cmdFila = cmdFila
-    .then(tarefa)
-    .catch(e => console.error('[Comandas] fila:', e))
-    .then(() => { cmdPend = Math.max(0, cmdPend - 1); cmdAtualizarBotoes(); });
-}
-
-async function cmdLancarProduto(sessaoId, produto, qtd){
-  const sq = cmdSeq;
-  if(!cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
-  try {
-    const { data, error } = await supabase.rpc('pdv_comanda_item_adicionar', { p_sessao_id: sessaoId, p_produto_id: produto.id, p_quantidade: qtd });
-    if(error) throw error;
-    if(sq !== cmdSeq) return;
-    cmdAvisoLancamento(`Lançado: ${formatarQuantidade(data && data.quantidade != null ? data.quantidade : qtd)} × ${produto.nome}`, 'success');
-  } catch(e){
-    if(sq === cmdSeq){ cmdAvisoLancamento(msgErroRpc(e, 'Não foi possível lançar o produto. Tente de novo.'), 'error'); beepPdv(); }
-  }
-  // sempre relê do banco (também depois de erro: numa falha de rede o item pode ter sido gravado)
-  if(sq === cmdSeq && cmdAtual && cmdAtual.sessao_id === sessaoId && cmdPend <= 1){
-    try { await cmdRecarregarAtual(); } catch(e){ cmdMsg('com', msgErroRpc(e, 'Não foi possível atualizar a comanda.')); }
-  }
 }
 
 function cmdFecharResultados(){
@@ -11663,54 +11700,118 @@ function cmdRenderResultados(){
   r.classList.remove('hidden');
 }
 
-// Escolheu/leu um produto: o campo é limpo na hora e o foco volta para o próximo (leitor não perde bipe).
-function cmdEscolherProduto(produto, qtd){
-  if(!cmdAtual) return;
-  const sessaoId = cmdAtual.sessao_id;
-  cmdFecharResultados();
-  $('cmd-prod-busca').value = '';
-  $('cmd-qtd').value = '1';
-  $('cmd-prod-busca').focus();
-  cmdEnfileirar(() => cmdLancarProduto(sessaoId, produto, qtd));
+// Quantidade digitada no modal: só dígitos com vírgula/ponto (até 3 casas), > 0 e <= 99999.
+function cmdLerQtdModal(){
+  const raw = $('cmd-qtd-input').value.trim();
+  if(!/^\d+([.,]\d{1,3})?$/.test(raw)) return 0;
+  const n = Number(raw.replace(',', '.'));
+  return n > 0 && n <= 99999 ? n : 0;
 }
 
-function cmdProcessarEntrada(){
-  if(!cmdAtual) return;
+function cmdAbrirQtd(produto){
+  if(!cmdAtual || !produto || cmdQtdOcup) return;
+  cmdFecharResultados();
+  $('cmd-prod-busca').value = '';
+  cmdQtdSt = { produto, sessaoId: cmdAtual.sessao_id };
+  $('cmd-qtd-produto').textContent = produto.nome || 'Produto';
+  $('cmd-qtd-preco').textContent = produto.preco_venda != null ? brl(produto.preco_venda) + ' cada' : '';
+  $('cmd-qtd-input').value = '1';
+  cmdMsg('qtd', '');
+  cmdBtnOcupado('btn-cmd-qtd-ok', 'btn-cmd-qtd-cancelar', false, '', 'ADICIONAR');
+  cmdMostrar('cmd-modal-qtd');
+  setTimeout(() => { const i = $('cmd-qtd-input'); i.focus(); i.select(); }, 0);
+}
+
+function cmdFecharQtd(){
+  if(cmdQtdOcup) return;
+  cmdOcultar('cmd-modal-qtd');
+  cmdQtdSt = null;
+  $('cmd-prod-busca').value = '';
+  cmdFecharResultados();
+  if(cmdVisivel('cmd-modal-comanda')) setTimeout(() => $('cmd-prod-busca').focus(), 0);
+}
+
+async function cmdConfirmarQtd(){
+  if(cmdQtdOcup) return;                                        // proteção contra duplo clique / Enter repetido
+  const st = cmdQtdSt;
+  if(!st || !st.produto || !st.produto.id){ cmdMsg('qtd', 'Produto não identificado. Feche e tente de novo.'); return; }
+  if(!cmdAtual || cmdAtual.sessao_id !== st.sessaoId){ cmdMsg('qtd', 'A comanda mudou. Feche e tente de novo.'); return; }
+  const qtd = cmdLerQtdModal();
+  if(!qtd){
+    cmdMsg('qtd', 'Informe uma quantidade maior que zero.');
+    $('cmd-qtd-input').focus(); $('cmd-qtd-input').select();
+    return;
+  }
+  const sq = cmdSeq;
+  cmdQtdOcup = true; cmdPend = 1; cmdAtualizarBotoes();
+  cmdBtnOcupado('btn-cmd-qtd-ok', 'btn-cmd-qtd-cancelar', true, 'ADICIONANDO...', 'ADICIONAR');
+  cmdMsg('qtd', '');
+  let ok = false;
+  try {
+    const { error } = await supabase.rpc('pdv_comanda_item_adicionar', { p_sessao_id: st.sessaoId, p_produto_id: st.produto.id, p_quantidade: qtd });
+    if(error) throw error;
+    ok = true;
+  } catch(e){
+    if(sq === cmdSeq){ cmdMsg('qtd', msgErroRpc(e, 'Não foi possível lançar o produto. Tente de novo.')); beepPdv(); }
+  }
+  if(sq !== cmdSeq) return;                                     // logout/troca de tela: cmdReset já limpou tudo
+  cmdQtdOcup = false; cmdPend = 0;
+  cmdBtnOcupado('btn-cmd-qtd-ok', 'btn-cmd-qtd-cancelar', false, '', 'ADICIONAR');
+  if(ok){
+    cmdOcultar('cmd-modal-qtd'); cmdQtdSt = null;
+    $('cmd-prod-busca').value = ''; cmdFecharResultados();
+    $('cmd-prod-busca').focus();
+  } else {
+    $('cmd-qtd-input').focus(); $('cmd-qtd-input').select();
+  }
+  cmdAtualizarBotoes();
+  // sempre relê do banco (também depois de erro: numa falha de rede o item pode ter sido gravado)
+  if(cmdAtual && cmdAtual.sessao_id === st.sessaoId){
+    try { await cmdRecarregarAtual(); }
+    catch(e){ if(ok && sq === cmdSeq) cmdMsg('com', msgErroRpc(e, 'Item lançado, mas não foi possível atualizar a comanda. Feche e abra a comanda de novo.')); }
+  }
+}
+
+// Escolheu um produto da lista: abre o modal de quantidade.
+function cmdEscolherProduto(produto){
+  cmdAbrirQtd(produto);
+}
+
+async function cmdProcessarEntrada(){
+  if(!cmdAtual || cmdBuscandoProd || cmdQtdOcup || cmdVisivel('cmd-modal-qtd')) return;
   const campo = $('cmd-prod-busca');
   const texto = campo.value.trim();
   if(!texto) return;
-  const qtd = cmdLerQtd();
-  if(!qtd){ cmdAvisoLancamento('Quantidade inválida.', 'error'); $('cmd-qtd').focus(); $('cmd-qtd').select(); return; }
-  if(cmdIdx >= 0 && cmdResultados[cmdIdx]){ cmdEscolherProduto(cmdResultados[cmdIdx], qtd); return; }
+  if(cmdIdx >= 0 && cmdResultados[cmdIdx]){ cmdAbrirQtd(cmdResultados[cmdIdx]); return; }
 
-  const sessaoId = cmdAtual.sessao_id;
+  const sessaoId = cmdAtual.sessao_id, sq = cmdSeq;
   cmdFecharResultados();
-  campo.value = ''; $('cmd-qtd').value = '1'; campo.focus();
-  cmdEnfileirar(async () => {
-    const sq = cmdSeq;
-    if(!cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
-    let produto = null;
-    try {
-      produto = await buscarProdutoPorCodigo(texto);             // código de barras ou código interno (busca exata)
-      if(!produto){
-        const lista = await pesquisarProdutosPdv(texto);         // por nome
-        if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
-        if(lista.length === 1) produto = lista[0];
-        else if(lista.length > 1){
-          campo.value = texto; $('cmd-qtd').value = String(qtd).replace('.', ',');
-          cmdResultados = lista; cmdIdx = -1; cmdRenderResultados();
-          cmdAvisoLancamento('Vários produtos encontrados: escolha um da lista.', 'error');
-          return;
-        }
+  campo.value = ''; campo.focus();                              // o leitor já pode bipar o próximo enquanto a busca roda
+  cmdBuscandoProd = true;
+  let produto = null;
+  try {
+    produto = await buscarProdutoPorCodigo(texto);              // código de barras ou código interno (busca exata)
+    if(!produto){
+      const lista = await pesquisarProdutosPdv(texto);          // por nome
+      if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+      if(lista.length === 1) produto = lista[0];
+      else if(lista.length > 1){
+        campo.value = texto;
+        cmdResultados = lista; cmdIdx = -1; cmdRenderResultados();
+        cmdAvisoLancamento('Vários produtos encontrados: escolha um da lista.', 'error');
+        return;
       }
-    } catch(e){
-      if(sq === cmdSeq) cmdAvisoLancamento(msgErroRpc(e, 'Não foi possível buscar o produto. Tente de novo.'), 'error');
-      return;
     }
-    if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
-    if(!produto){ cmdAvisoLancamento(`Produto não encontrado: "${texto}".`, 'error'); beepPdv(); return; }
-    await cmdLancarProduto(sessaoId, produto, qtd);
-  });
+  } catch(e){
+    if(sq === cmdSeq) cmdAvisoLancamento(msgErroRpc(e, 'Não foi possível buscar o produto. Tente de novo.'), 'error');
+    return;
+  } finally {
+    if(sq === cmdSeq) cmdBuscandoProd = false;
+  }
+  if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+  if(!produto){ cmdAvisoLancamento(`Produto não encontrado: "${texto}".`, 'error'); beepPdv(); return; }
+  cmdMsg('com', '');
+  cmdAbrirQtd(produto);                                         // sempre pergunta a quantidade (nada de lançar 1 automático)
 }
 
 const cmdBuscarPorNome = debounce(async (termo) => {
@@ -11725,7 +11826,7 @@ const cmdBuscarPorNome = debounce(async (termo) => {
   } catch(e){ console.error('[Comandas] busca:', e); }
 }, 250);
 
-// ---- remover item / cancelar comanda (modal genérico de confirmação) ----
+// ---- modal genérico de confirmação (usado só pela Nota a Prazo) ----
 function cmdConfAbrir({ titulo, corpoHtml, motivo, okTexto, voltarTexto, onOk }){
   $('cmd-conf-titulo').textContent = titulo;
   $('cmd-conf-corpo').innerHTML = corpoHtml;
@@ -11745,59 +11846,123 @@ function cmdConfFechar(){
   if(cmdVisivel('cmd-modal-comanda') && !cmdVisivel('cmd-modal-fin')) setTimeout(() => $('cmd-prod-busca').focus(), 0);
 }
 
+// ---- remover item (modal próprio; usa só pdv_comanda_item_cancelar) ----
 function cmdPedirRemoverItem(itemId){
   const c = cmdAtual;
-  const it = c && (c.itens || []).find(i => i.item_id === itemId);
-  if(!it) return;
-  cmdConfAbrir({
-    titulo: 'Remover item',
-    corpoHtml: `<p class="cmd-conf-texto">Remover <b>${escapeHtml(formatarQuantidade(it.quantidade))} × ${escapeHtml(it.produto_nome)}</b> (${brl(it.subtotal)}) da comanda? O produto volta ao estoque.</p>`,
-    motivo: true, okTexto: 'REMOVER ITEM',
-    onOk: async () => {
-      const sq = cmdSeq;
-      const motivo = $('cmd-conf-motivo').value.trim();
-      cmdTrava(true);
-      try {
-        const { error } = await supabase.rpc('pdv_comanda_item_cancelar', { p_item_id: itemId, p_motivo: motivo || null });
-        if(error) throw error;
-        if(sq !== cmdSeq) return;
-        cmdOcultar('cmd-modal-conf'); cmdConf = null;
-        cmdAvisoLancamento('Item removido.', 'success');
-        await cmdRecarregarAtual();
-        if(cmdVisivel('cmd-modal-comanda')) $('cmd-prod-busca').focus();
-      } catch(e){
-        if(sq === cmdSeq){
-          cmdMsg('conf', msgErroRpc(e, 'Não foi possível remover o item. Atualize a tela e tente novamente.'));
-          try { await cmdRecarregarAtual(); } catch(_){ /* mantém a mensagem do erro */ }
-        }
-      } finally { cmdTrava(false); }
-    }
-  });
+  const it = c && (c.itens || []).find(i => String(i.item_id) === String(itemId));
+  if(!it){
+    cmdMsg('com', 'Item não encontrado. Atualizando a comanda...');
+    cmdRecarregarAtual().catch(e => cmdMsg('com', msgErroRpc(e, 'Não foi possível atualizar a comanda.')));
+    return;
+  }
+  if(cmdRemOcup) return;
+  cmdRem = { itemId: it.item_id, sessaoId: c.sessao_id };
+  const m = $('cmd-modal-rem');
+  m.dataset.itemId = String(it.item_id);                        // o id lido no clique é o do DOM, não de uma closure antiga
+  m.dataset.sessaoId = String(c.sessao_id);
+  $('cmd-rem-corpo').innerHTML = `<p class="cmd-conf-texto">Remover <b>${escapeHtml(formatarQuantidade(it.quantidade))} × ${escapeHtml(it.produto_nome)}</b> (${brl(it.subtotal)}) da comanda? O produto volta ao estoque.</p>`;
+  $('cmd-rem-motivo').value = '';
+  cmdMsg('rem', '');
+  cmdBtnOcupado('btn-cmd-rem-ok', 'btn-cmd-rem-voltar', false, '', 'REMOVER ITEM');
+  cmdMostrar('cmd-modal-rem');
+  setTimeout(() => $('cmd-rem-motivo').focus(), 0);
 }
 
+function cmdFecharRem(){
+  if(cmdRemOcup) return;
+  cmdOcultar('cmd-modal-rem');
+  cmdRem = null;
+  if(cmdVisivel('cmd-modal-comanda')) setTimeout(() => $('cmd-prod-busca').focus(), 0);
+}
+
+async function cmdConfirmarRemover(){
+  if(cmdRemOcup) return;                                        // duplo clique / Enter repetido
+  const m = $('cmd-modal-rem');
+  const itemId = m.dataset.itemId || (cmdRem && cmdRem.itemId) || '';
+  if(!itemId){ cmdMsg('rem', 'Item não identificado. Feche e tente de novo.'); return; }
+  const motivo = $('cmd-rem-motivo').value.trim();
+  const params = { p_item_id: itemId };
+  if(motivo) params.p_motivo = motivo;
+  const sq = cmdSeq;
+  cmdRemOcup = true;
+  cmdBtnOcupado('btn-cmd-rem-ok', 'btn-cmd-rem-voltar', true, 'REMOVENDO...', 'REMOVER ITEM');
+  cmdMsg('rem', '');
+  let ok = false;
+  try {
+    const { error } = await supabase.rpc('pdv_comanda_item_cancelar', params);
+    if(error) throw error;
+    ok = true;
+  } catch(e){
+    if(sq === cmdSeq) cmdMsg('rem', msgErroRpc(e, 'Não foi possível remover o item. Tente novamente.'));
+  }
+  if(sq !== cmdSeq) return;
+  cmdRemOcup = false;
+  cmdBtnOcupado('btn-cmd-rem-ok', 'btn-cmd-rem-voltar', false, '', 'REMOVER ITEM');
+  if(ok){
+    cmdOcultar('cmd-modal-rem'); cmdRem = null;
+    delete m.dataset.itemId; delete m.dataset.sessaoId;
+  }
+  // relê a comanda com pdv_comanda_obter (também depois de erro, para mostrar a situação real)
+  try { await cmdRecarregarAtual(); }
+  catch(e){ if(ok && sq === cmdSeq) cmdMsg('com', msgErroRpc(e, 'Item removido, mas não foi possível atualizar a comanda. Feche e abra a comanda de novo.')); }
+  if(ok && sq === cmdSeq && cmdVisivel('cmd-modal-comanda')) $('cmd-prod-busca').focus();
+}
+
+// ---- cancelar comanda (modal próprio; usa só pdv_comanda_cancelar) ----
 function cmdPedirCancelarComanda(){
   const c = cmdAtual;
-  if(!c || cmdOcupado || cmdPend > 0) return;
-  cmdConfAbrir({
-    titulo: 'Cancelar comanda ' + pad2(c.numero),
-    corpoHtml: `<p class="cmd-conf-texto">Cancelar a comanda de <b>${escapeHtml(c.cliente_nome || '')}</b>? Use só se foi aberta por engano. A posição volta a ficar livre.</p>`,
-    motivo: true, okTexto: 'CANCELAR COMANDA', voltarTexto: 'VOLTAR',
-    onOk: async () => {
-      const sq = cmdSeq, sessaoId = c.sessao_id;
-      const motivo = $('cmd-conf-motivo').value.trim();
-      cmdTrava(true);
-      try {
-        const { error } = await supabase.rpc('pdv_comanda_cancelar', { p_sessao_id: sessaoId, p_motivo: motivo || null });
-        if(error) throw error;
-        if(sq !== cmdSeq) return;
-        cmdFecharTelaComanda();
-        cmdMsg('painel', 'Comanda cancelada. A posição está livre.', 'success');
-        cmdCarregarLista();
-      } catch(e){
-        if(sq === cmdSeq) cmdMsg('conf', msgErroRpc(e, 'Não foi possível cancelar a comanda. Atualize a tela e tente novamente.'));
-      } finally { cmdTrava(false); }
-    }
-  });
+  if(!c || cmdCancOcup) return;
+  if((c.itens || []).length > 0){
+    cmdMsg('com', 'Para cancelar a comanda, remova todos os itens antes.', 'error');
+    return;
+  }
+  cmdCanc = { sessaoId: c.sessao_id };
+  const m = $('cmd-modal-canc');
+  m.dataset.sessaoId = String(c.sessao_id);
+  $('cmd-canc-titulo').textContent = 'Cancelar comanda ' + pad2(c.numero);
+  $('cmd-canc-corpo').innerHTML = `<p class="cmd-conf-texto">Cancelar a comanda de <b>${escapeHtml(c.cliente_nome || '')}</b>? A posição volta a ficar livre.</p>`;
+  $('cmd-canc-motivo').value = '';
+  cmdMsg('canc', '');
+  cmdBtnOcupado('btn-cmd-canc-ok', 'btn-cmd-canc-voltar', false, '', 'CANCELAR COMANDA');
+  cmdMostrar('cmd-modal-canc');
+  setTimeout(() => $('cmd-canc-motivo').focus(), 0);
+}
+
+function cmdFecharCanc(){
+  if(cmdCancOcup) return;
+  cmdOcultar('cmd-modal-canc');
+  cmdCanc = null;
+  if(cmdVisivel('cmd-modal-comanda')) setTimeout(() => $('cmd-prod-busca').focus(), 0);
+}
+
+async function cmdConfirmarCancelar(){
+  if(cmdCancOcup) return;
+  const m = $('cmd-modal-canc');
+  const sessaoId = m.dataset.sessaoId || (cmdCanc && cmdCanc.sessaoId) || '';
+  if(!sessaoId){ cmdMsg('canc', 'Comanda não identificada. Feche e tente de novo.'); return; }
+  const motivo = $('cmd-canc-motivo').value.trim();
+  const params = { p_sessao_id: sessaoId };
+  if(motivo) params.p_motivo = motivo;
+  const sq = cmdSeq;
+  cmdCancOcup = true;
+  cmdBtnOcupado('btn-cmd-canc-ok', 'btn-cmd-canc-voltar', true, 'CANCELANDO...', 'CANCELAR COMANDA');
+  cmdMsg('canc', '');
+  let ok = false;
+  try {
+    const { error } = await supabase.rpc('pdv_comanda_cancelar', params);
+    if(error) throw error;
+    ok = true;
+  } catch(e){
+    if(sq === cmdSeq) cmdMsg('canc', msgErroRpc(e, 'Não foi possível cancelar a comanda. Tente novamente.'));
+  }
+  if(sq !== cmdSeq) return;
+  cmdCancOcup = false;
+  cmdBtnOcupado('btn-cmd-canc-ok', 'btn-cmd-canc-voltar', false, '', 'CANCELAR COMANDA');
+  if(!ok){ cmdCarregarLista(); return; }                         // erro: o aviso fica no modal; a grade é atualizada ao fundo
+  cmdFecharTelaComanda();                                        // fecha comanda + modais próprios
+  cmdMsg('painel', 'Comanda cancelada.', 'success');
+  await cmdCarregarLista();                                      // pdv_comandas_listar: a posição volta a "Livre"
+  setTimeout(() => { const b = $('cmd-grid').querySelector('.cmd-card'); if(b) b.focus(); }, 0);
 }
 
 // ---- finalizar ----
@@ -11968,19 +12133,13 @@ $('cmd-prod-busca').addEventListener('keydown', (e) => {
   else if(e.key === 'ArrowUp' && cmdResultados.length){ e.preventDefault(); cmdIdx = Math.max(0, cmdIdx - 1); cmdRenderResultados(); }
   else if(e.key === 'Escape' && cmdResultados.length){ e.preventDefault(); e.stopPropagation(); cmdFecharResultados(); }
 });
-$('cmd-qtd').addEventListener('keydown', (e) => {
-  if(e.key === 'Enter'){ e.preventDefault(); if($('cmd-prod-busca').value.trim()) cmdProcessarEntrada(); else $('cmd-prod-busca').focus(); }
-});
-$('cmd-qtd').addEventListener('focus', () => $('cmd-qtd').select());
 $('cmd-prod-res').addEventListener('mousedown', (e) => {
   const d = e.target.closest('.search-result-item');
   if(!d) return;
   e.preventDefault();
   const p = cmdResultados[Number(d.dataset.idx)];
   if(!p) return;
-  const qtd = cmdLerQtd();
-  if(!qtd){ cmdAvisoLancamento('Quantidade inválida.', 'error'); return; }
-  cmdEscolherProduto(p, qtd);
+  cmdEscolherProduto(p);
 });
 $('cmd-itens').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-item]');
@@ -12004,6 +12163,24 @@ $('btn-cmd-fin-voltar').addEventListener('click', () => {
 $('btn-cmd-fin-ok').addEventListener('click', () => cmdFinalizar(false));
 $('btn-cmd-conf-voltar').addEventListener('click', cmdConfFechar);
 $('btn-cmd-conf-ok').addEventListener('click', () => { if(cmdConf && !cmdOcupado) cmdConf.onOk(); });
+
+// modais próprios: quantidade / remover item / cancelar comanda
+$('btn-cmd-qtd-ok').addEventListener('click', cmdConfirmarQtd);
+$('btn-cmd-qtd-cancelar').addEventListener('click', cmdFecharQtd);
+$('cmd-qtd-input').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); cmdConfirmarQtd(); }
+});
+$('cmd-qtd-input').addEventListener('input', () => cmdMsg('qtd', ''));
+$('btn-cmd-rem-ok').addEventListener('click', cmdConfirmarRemover);
+$('btn-cmd-rem-voltar').addEventListener('click', cmdFecharRem);
+$('cmd-rem-motivo').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); cmdConfirmarRemover(); }
+});
+$('btn-cmd-canc-ok').addEventListener('click', cmdConfirmarCancelar);
+$('btn-cmd-canc-voltar').addEventListener('click', cmdFecharCanc);
+$('cmd-canc-motivo').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); cmdConfirmarCancelar(); }
+});
 $('btn-cmd-ok').addEventListener('click', () => { cmdOcultar('cmd-modal-ok'); cmdCarregarLista(); setTimeout(() => { const b = $('cmd-grid').querySelector('.cmd-card'); if(b) b.focus(); }, 0); });
 
 // ESC fecha só a camada de cima (as teclas F do PDV já ficam bloqueadas enquanto há .pdx-modal aberto)
@@ -12013,6 +12190,9 @@ document.addEventListener('keydown', (e) => {
   if(!topo || cmdOcupado) return;
   e.preventDefault();
   if(topo === 'cmd-modal-ok') $('btn-cmd-ok').click();
+  else if(topo === 'cmd-modal-qtd') cmdFecharQtd();
+  else if(topo === 'cmd-modal-rem') cmdFecharRem();
+  else if(topo === 'cmd-modal-canc') cmdFecharCanc();
   else if(topo === 'cmd-modal-conf') cmdConfFechar();
   else if(topo === 'cmd-modal-fin') $('btn-cmd-fin-voltar').click();
   else if(topo === 'cmd-modal-comanda') $('btn-cmd-comanda-fechar').click();
@@ -12027,10 +12207,11 @@ function cmdReset(){
   cmdOcupado = false; cmdPend = 0; cmdFila = Promise.resolve(); cmdResultados = []; cmdIdx = -1;
   cmdChaves.clear();
   CMD_MODAIS.forEach(cmdOcultar);
+  cmdResetModaisProprios();
   $('cmd-grid').innerHTML = '';
   $('cmd-itens').innerHTML = '';
   $('cmd-prod-busca').value = '';
-  ['cmd-painel-msg', 'cmd-abrir-msg', 'cmd-com-msg', 'cmd-fin-msg', 'cmd-conf-msg'].forEach(id => { $(id).innerHTML = ''; });
+  ['cmd-painel-msg', 'cmd-abrir-msg', 'cmd-com-msg', 'cmd-fin-msg', 'cmd-conf-msg', 'cmd-qtd-msg', 'cmd-rem-msg', 'cmd-canc-msg'].forEach(id => { $(id).innerHTML = ''; });
 }
 
 // =====================================================================
