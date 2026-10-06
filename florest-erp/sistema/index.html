@@ -2100,6 +2100,189 @@
   .pdx-cfg-perigo{ margin-top:14px; background:#fff; color:#B3261E; border:1px solid #E7B4B0; border-radius:8px; padding:8px 12px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; }
   .pdx-cfg-perigo:hover{ background:#FDECEA; }
 
+
+
+  /* =====================================================================
+     COMANDAS DO PDV (Migration 031) — prefixo cmd-  |  CONTAS A RECEBER — prefixo cr- / fin-aba
+     Independentes do Módulo Bar. Modais das comandas usam a classe .pdx-modal (empilham dentro do PDV):
+     painel z5 · abrir/comanda z6 · confirmações z7 · resultado z8.
+     ===================================================================== */
+  .pdx-btn-navy{ background:var(--florest-navy); color:var(--florest-yellow); }
+  .pdx-btn-navy:hover{ background:#103a68; }
+  .cmd-z7{ z-index:7; }
+  .cmd-z8{ z-index:8; }
+  .cmd-card-painel{ max-width:1100px; }
+  .cmd-card-comanda{ max-width:860px; }
+  .cmd-card-sm{ max-width:480px; }
+  .cmd-head-acoes{ display:flex; gap:8px; align-items:center; }
+  .cmd-sub{ font-size:13px; color:#6B717D; margin:-6px 0 12px; }
+  .cmd-msg{ min-height:0; }
+  .cmd-msg:empty{ display:none; }
+  .cmd-msg .msg{ margin:0 0 10px; padding:9px 12px; font-size:13.5px; }
+  .cmd-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; }
+  .cmd-card{
+    display:flex; flex-direction:column; justify-content:space-between; gap:8px; min-height:140px; text-align:left;
+    padding:14px 16px; border-radius:14px; border:2px solid #CBCFD6; background:#F7F8FA;
+    font-family:inherit; color:var(--florest-navy); cursor:pointer; min-width:0;
+  }
+  .cmd-card:hover{ border-color:var(--florest-navy); }
+  .cmd-card:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:2px; }
+  .cmd-card-topo{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .cmd-card-rot{ font-size:11px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#6B717D; }
+  .cmd-card-num{ font-size:36px; font-weight:800; line-height:1; font-family:var(--font-display); }
+  .cmd-card-meio{ font-size:17px; font-weight:800; line-height:1.2; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .cmd-card-baixo{ font-size:20px; font-weight:800; }
+  .cmd-card-baixo small{ display:block; font-size:12px; font-weight:600; color:#6B717D; }
+  .cmd-card.livre{ border-style:dashed; background:#fff; }
+  .cmd-card.livre .cmd-card-meio{ color:var(--florest-success); font-weight:700; }
+  .cmd-card.aberta{ border-color:var(--florest-navy); background:#FFFBEA; box-shadow:0 3px 0 var(--florest-yellow); }
+  .cmd-card.flash{ animation:cmdFlash 1.4s ease-out; }
+  @keyframes cmdFlash{ 0%{ background:#FDE68A; } 100%{ background:#FFFBEA; } }
+  .cmd-vazio{ grid-column:1 / -1; text-align:center; color:#6B717D; padding:30px 10px; font-size:14px; }
+
+  .cmd-cli-selecionado{ font-size:13px; margin:10px 0 0; color:#6B717D; min-height:18px; }
+  .cmd-cli-selecionado b{ color:var(--florest-navy); }
+
+  .cmd-titulo-comanda{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+  .cmd-titulo-comanda h3{ margin:0; }
+  .cmd-titulo-comanda span{ font-size:18px; font-weight:800; color:var(--florest-navy); word-break:break-word; }
+  .cmd-add-linha{ display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:10px; align-items:end; }
+  .cmd-add-linha .pdx-busca-wrap{ margin-bottom:0; }
+  .cmd-itens-topo, .cmd-item{
+    display:grid; grid-template-columns:62px minmax(0,1fr) 96px 104px 36px; gap:8px; align-items:center;
+  }
+  .cmd-itens-topo{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#6B717D; padding:14px 8px 6px; }
+  .cmd-itens{ border-top:2px solid var(--florest-navy); margin-top:0; max-height:38vh; overflow-y:auto; }
+  .cmd-item{ padding:9px 8px; border-bottom:1px solid #E1E4E9; font-size:15px; }
+  .cmd-item:nth-child(even){ background:#F7F8FA; }
+  .cmd-item .q{ font-weight:800; }
+  .cmd-item .n{ font-weight:600; word-break:break-word; min-width:0; }
+  .cmd-item .u{ color:#4A505C; text-align:right; }
+  .cmd-item .s{ font-weight:800; text-align:right; }
+  .cmd-item button{ border:1px solid #CBCFD6; background:#fff; border-radius:7px; width:32px; height:32px; cursor:pointer; font-size:15px; color:#B3261E; font-family:inherit; }
+  .cmd-item button:hover:not(:disabled){ background:#FDECEA; border-color:#E7B4B0; }
+  .cmd-item button:disabled{ opacity:.4; cursor:not-allowed; }
+  .cmd-itens-vazio{ text-align:center; color:#6B717D; padding:26px 10px; font-size:14px; }
+  .cmd-rodape-acoes{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:10px; }
+  .cmd-link{ background:none; border:none; color:#6B717D; font-family:inherit; font-size:12.5px; text-decoration:underline; cursor:pointer; padding:4px; }
+  .cmd-link:hover{ color:#B3261E; }
+
+  .cmd-fin-total{ display:flex; align-items:baseline; justify-content:space-between; background:var(--florest-navy); color:#fff; border-radius:10px; padding:12px 16px; margin-bottom:14px; }
+  .cmd-fin-total span{ font-size:13px; font-weight:800; letter-spacing:.1em; color:var(--florest-yellow); }
+  .cmd-fin-total b{ font-size:32px; font-weight:800; line-height:1; }
+  .cmd-formas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 12px; }
+  .cmd-forma{
+    min-height:76px; border:2px solid #CBCFD6; border-radius:12px; background:#fff; color:var(--florest-navy);
+    font-family:inherit; font-size:16px; font-weight:800; letter-spacing:.02em; cursor:pointer; padding:8px;
+  }
+  .cmd-forma:hover:not(:disabled){ border-color:var(--florest-navy); }
+  .cmd-forma.sel{ background:var(--florest-yellow); border-color:var(--florest-navy); }
+  .cmd-forma:disabled{ opacity:.5; cursor:not-allowed; }
+  .cmd-forma:focus-visible{ outline:3px solid var(--florest-navy); outline-offset:2px; }
+  .cmd-forma-prazo{ grid-column:1 / -1; background:#EAF3FC; border-color:var(--florest-blue); }
+  .cmd-resumo{ border:1px solid #E1E4E9; border-radius:10px; padding:4px 14px; margin:6px 0 12px; }
+  .cmd-resumo div{ display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid #EEF0F3; font-size:15px; }
+  .cmd-resumo div:last-child{ border-bottom:none; }
+  .cmd-resumo span{ color:#6B717D; }
+  .cmd-resumo b{ text-align:right; word-break:break-word; }
+  .cmd-ok-titulo{ font-family:var(--font-display); font-size:22px; margin:0 0 10px; }
+  .cmd-ok-icone{ width:54px; height:54px; border-radius:50%; background:var(--florest-success-soft); color:var(--florest-success); display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; margin:0 auto 10px; }
+  .cmd-conf-texto{ font-size:14.5px; line-height:1.45; margin:0 0 12px; }
+
+  @media (max-width: 760px){
+    .cmd-grid{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+    .cmd-card{ min-height:120px; padding:12px; }
+    .cmd-card-num{ font-size:30px; }
+    .cmd-itens-topo, .cmd-item{ grid-template-columns:44px minmax(0,1fr) 84px 34px; }
+    .cmd-itens-topo .u, .cmd-item .u{ display:none; }
+    .cmd-add-linha{ grid-template-columns:minmax(0,1fr) 72px; }
+    .cmd-fin-total b{ font-size:26px; }
+    .cmd-forma{ min-height:64px; font-size:14.5px; }
+  }
+
+  /* ----- Financeiro: abas internas + Contas a Receber ----- */
+  .fin-abas{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; border-bottom:1px solid var(--border); }
+  .fin-aba{
+    border:none; background:transparent; padding:10px 16px; font-family:var(--font-body); font-size:14px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px;
+  }
+  .fin-aba:hover:not(:disabled){ color:var(--ink); }
+  .fin-aba.active{ color:var(--florest-navy); border-bottom-color:var(--florest-yellow); }
+  .fin-aba:disabled{ opacity:.5; cursor:not-allowed; }
+  .fin-aba small{ font-size:10.5px; font-weight:700; background:var(--florest-bg); border-radius:10px; padding:1px 7px; margin-left:4px; }
+  .cr-busca{ margin:0 0 16px; max-width:460px; }
+  .cr-busca label{ display:block; font-size:12px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+  .cr-busca input{ width:100%; padding:11px 13px; font-size:15px; border:1px solid var(--border); border-radius:8px; font-family:var(--font-body); box-sizing:border-box; }
+  .cr-busca input:focus{ outline:2px solid var(--florest-blue-light); border-color:var(--florest-blue); }
+  .cr-clientes{ display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:14px; }
+  .cr-cliente{
+    display:flex; flex-direction:column; gap:6px; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; cursor:pointer; font-family:var(--font-body); color:var(--ink); min-width:0;
+  }
+  .cr-cliente:hover{ border-color:var(--florest-navy); box-shadow:0 2px 10px rgba(11,42,77,.1); }
+  .cr-cliente:focus-visible{ outline:3px solid var(--florest-blue); outline-offset:2px; }
+  .cr-cliente-nome{ font-size:17px; font-weight:700; word-break:break-word; }
+  .cr-cliente-qtd{ font-size:13px; color:var(--ink-soft); }
+  .cr-cliente-saldo{ font-size:22px; font-weight:800; color:var(--florest-navy); }
+  .cr-tag{ display:inline-block; font-size:11.5px; font-weight:700; border-radius:20px; padding:2px 9px; margin-right:6px; }
+  .cr-tag.venc{ background:var(--florest-danger-soft); color:var(--florest-danger); }
+  .cr-tag.aviso{ background:var(--florest-warning-soft); color:#8A5A00; }
+  .cr-vazio{ grid-column:1 / -1; text-align:center; color:var(--ink-soft); padding:36px 10px; font-size:14.5px; background:var(--card); border:1px dashed var(--border); border-radius:12px; }
+  .cr-det-topo{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .cr-det-topo h3{ margin:0; font-family:var(--font-display); font-size:22px; font-weight:500; }
+  .cr-det-topo span{ font-size:13px; color:var(--ink-soft); display:block; }
+  .cr-todos{ margin-left:auto; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  .cr-todos input, .cr-tit input{ width:20px; height:20px; cursor:pointer; accent-color:var(--florest-navy); }
+  .cr-titulos{ background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:visible; }
+  .cr-tit{
+    display:grid; grid-template-columns:28px 110px minmax(0,1fr) 120px 36px; gap:10px; align-items:center; padding:13px 16px;
+    border-bottom:1px solid var(--border); cursor:pointer; position:relative;
+  }
+  .cr-tit:last-child{ border-bottom:none; }
+  .cr-tit:hover{ background:var(--florest-bg); }
+  .cr-tit.sel{ background:#FFFBEA; }
+  .cr-tit-venc{ font-weight:700; font-size:14.5px; }
+  .cr-tit-venda{ font-size:14.5px; min-width:0; }
+  .cr-tit-venda small{ display:block; margin-top:3px; }
+  .cr-tit-valor{ font-weight:800; font-size:16px; text-align:right; }
+  .cr-mais{ border:1px solid transparent; background:transparent; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:18px; color:var(--ink-soft); line-height:1; }
+  .cr-mais:hover{ border-color:var(--border); background:#fff; }
+  .cr-menu{
+    position:absolute; right:12px; top:calc(100% - 8px); z-index:30; background:#fff; border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 8px 24px rgba(11,42,77,.18); min-width:170px; padding:4px;
+  }
+  .cr-menu button{ display:block; width:100%; text-align:left; background:none; border:none; padding:9px 12px; font-family:var(--font-body); font-size:13.5px; font-weight:600; color:var(--florest-danger); cursor:pointer; border-radius:6px; }
+  .cr-menu button:hover{ background:var(--florest-danger-soft); }
+  .cr-barra{
+    position:sticky; bottom:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--border); border-top:3px solid var(--florest-yellow); border-radius:12px; padding:14px 18px; margin-top:16px;
+    box-shadow:0 -4px 18px rgba(11,42,77,.1);
+  }
+  /* O atalho flutuante da MARIA (canto inferior direito, 230px / 110px no celular) fica por cima desta barra:
+     a barra reserva o espaço dele para o botão RECEBER nunca ficar escondido. */
+  @media (min-width: 761px){ .cr-barra{ margin-right:270px; } }
+  .cr-barra-info{ display:flex; flex-direction:column; gap:2px; font-size:14px; }
+  .cr-barra-info b{ font-size:15px; }
+  .cr-barra-info .total{ font-size:22px; font-weight:800; color:var(--florest-navy); }
+  .cr-barra .btn-accent{ font-size:16px; padding:14px 24px; font-weight:800; }
+  .cr-nota{ font-size:12.5px; color:var(--ink-soft); margin:10px 2px 0; }
+  .cr-modal-resumo{ background:var(--florest-bg); border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; flex-direction:column; gap:3px; }
+  .cr-modal-resumo b{ font-size:17px; }
+  .cr-modal-resumo .total{ font-size:26px; font-weight:800; color:var(--florest-navy); }
+  .cr-sucesso{ text-align:center; padding:6px 0 0; }
+  @media (max-width: 760px){
+    .cr-tit{ grid-template-columns:26px minmax(0,1fr) 92px 34px; }
+    .cr-tit-venc{ grid-column:2 / 3; }
+    .cr-tit-venda{ grid-column:2 / 3; grid-row:2; }
+    .cr-tit-valor{ grid-column:3 / 4; grid-row:1 / 3; }
+    .cr-tit .cr-mais{ grid-column:4 / 5; grid-row:1 / 3; }
+    .cr-tit > input{ grid-row:1 / 3; }
+    .cr-det-topo{ gap:10px; }
+    .cr-todos{ margin-left:0; flex:1 0 100%; }
+    .cr-barra{ flex-direction:column; align-items:stretch; padding-right:136px; }
+    .cr-barra .btn-accent{ width:100%; white-space:normal; padding:12px 10px; font-size:15px; }
+  }
+
   @media (max-width: 1100px){
     .pdx-main{ grid-template-columns: 270px minmax(0,1fr) 250px; gap:8px; padding:8px; }
     .pdx-grid{ grid-template-columns:repeat(5, minmax(0,1fr)); gap:8px; }
@@ -2811,6 +2994,7 @@
               <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-pdx-cancelar">Cancelar</button>
               <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-pdx-limpar">Limpar</button>
             </div>
+            <button type="button" class="pdx-btn pdx-btn-navy" id="btn-pdv-comandas" title="Abrir as comandas do balcão">&#128203; COMANDAS</button>
           </div>
           <p class="pdx-dica">Leitor: bipe com o campo selecionado — o item entra no cupom na hora e o campo fica pronto para o próximo. Bipar de novo soma a quantidade.</p>
         </section>
@@ -2952,6 +3136,115 @@
         </div>
       </div>
 
+
+      <!-- ===== COMANDAS DO PDV (Migration 031) — independente do Módulo Bar =====
+           Painel z5 · abrir/comanda z6 · finalizar z7 · confirmações/resultado z8. Todo dado vem das RPCs pdv_comanda*. -->
+      <div id="cmd-painel" class="pdx-modal hidden">
+        <div class="pdx-card cmd-card-painel">
+          <div class="pdx-card-head">
+            <h3>Comandas</h3>
+            <div class="cmd-head-acoes">
+              <button type="button" class="pdx-btn-mini" id="btn-cmd-atualizar">Atualizar</button>
+              <button type="button" class="pdx-btn-mini" id="btn-cmd-painel-fechar">Fechar (ESC)</button>
+            </div>
+          </div>
+          <p class="cmd-sub">Toque numa comanda <b>livre</b> para abrir, ou numa <b>aberta</b> para lançar produtos e finalizar.</p>
+          <div id="cmd-painel-msg" class="cmd-msg"></div>
+          <div id="cmd-grid" class="cmd-grid"></div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-abrir" class="pdx-modal pdx-modal-alto hidden">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-abrir-titulo">ABRIR COMANDA</h3></div>
+          <label class="pdx-rotulo" for="cmd-cli-busca">Cliente (já cadastrado)</label>
+          <input type="text" id="cmd-cli-busca" class="pdx-input" placeholder="Pesquisar cliente pelo nome..." autocomplete="off">
+          <div class="pdx-cliente-lista" id="cmd-cli-lista"></div>
+          <p class="cmd-cli-selecionado" id="cmd-cli-sel">Nenhum cliente selecionado.</p>
+          <div id="cmd-abrir-msg" class="cmd-msg"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-abrir-cancelar">CANCELAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-abrir-ok" disabled>ABRIR COMANDA</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-comanda" class="pdx-modal pdx-modal-alto hidden">
+        <div class="pdx-card cmd-card-comanda">
+          <div class="pdx-card-head">
+            <div class="cmd-titulo-comanda"><h3 id="cmd-com-titulo">COMANDA</h3><span id="cmd-com-cliente">—</span></div>
+            <button type="button" class="pdx-btn-mini" id="btn-cmd-comanda-fechar">&larr; Comandas (ESC)</button>
+          </div>
+          <div id="cmd-com-msg" class="cmd-msg"></div>
+          <div class="cmd-add-linha">
+            <div>
+              <label class="pdx-rotulo" for="cmd-prod-busca">Produto — bipe o código, digite o código ou o nome</label>
+              <div class="pdx-busca-wrap">
+                <input type="text" id="cmd-prod-busca" class="pdx-input-barras" placeholder="Bipe ou pesquise o produto..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                <div class="search-results hidden" id="cmd-prod-res"></div>
+              </div>
+            </div>
+            <div>
+              <label class="pdx-rotulo" for="cmd-qtd">Qtd.</label>
+              <div class="pdx-busca-wrap"><input type="text" inputmode="decimal" id="cmd-qtd" class="pdx-input pdx-input-grande" value="1" autocomplete="off" style="padding:11px 6px;"></div>
+            </div>
+          </div>
+          <div class="cmd-itens-topo"><span>Qtd.</span><span>Produto</span><span class="u" style="text-align:right;">Unit.</span><span style="text-align:right;">Subtotal</span><span></span></div>
+          <div class="cmd-itens" id="cmd-itens"><div class="cmd-itens-vazio">Nenhum item lançado ainda.</div></div>
+          <div class="cmd-rodape-acoes">
+            <button type="button" class="cmd-link hidden" id="btn-cmd-cancelar-comanda">Cancelar esta comanda (aberta por engano)</button>
+            <span></span>
+          </div>
+          <div class="cmd-fin-total" style="margin-top:10px;"><span>TOTAL</span><b id="cmd-total">R$ 0,00</b></div>
+          <button type="button" class="pdx-btn-finalizar" id="btn-cmd-finalizar" disabled>FINALIZAR COMANDA</button>
+        </div>
+      </div>
+
+      <div id="cmd-modal-fin" class="pdx-modal cmd-z7 hidden">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-fin-titulo">FINALIZAR</h3></div>
+          <div class="cmd-fin-total"><span>TOTAL</span><b id="cmd-fin-total">R$ 0,00</b></div>
+          <label class="pdx-rotulo">Como deseja receber?</label>
+          <div class="cmd-formas" id="cmd-formas">
+            <button type="button" class="cmd-forma" data-forma="Dinheiro">DINHEIRO</button>
+            <button type="button" class="cmd-forma" data-forma="Pix">PIX</button>
+            <button type="button" class="cmd-forma" data-forma="Cartão de Débito">DÉBITO</button>
+            <button type="button" class="cmd-forma" data-forma="Cartão de Crédito">CRÉDITO</button>
+            <button type="button" class="cmd-forma cmd-forma-prazo" data-forma="prazo">NOTA A PRAZO</button>
+          </div>
+          <div id="cmd-fin-msg" class="cmd-msg"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-fin-voltar">VOLTAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-fin-ok" disabled>FINALIZAR</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-conf" class="pdx-modal cmd-z8 hidden">
+        <div class="pdx-card cmd-card-sm">
+          <div class="pdx-card-head"><h3 id="cmd-conf-titulo">Confirmar</h3></div>
+          <div id="cmd-conf-corpo"></div>
+          <div id="cmd-conf-motivo-wrap" class="hidden">
+            <label class="pdx-rotulo" for="cmd-conf-motivo">Motivo (opcional)</label>
+            <input type="text" id="cmd-conf-motivo" class="pdx-input" maxlength="200" placeholder="Ex.: lançado por engano" autocomplete="off">
+          </div>
+          <div id="cmd-conf-msg" class="cmd-msg" style="margin-top:8px;"></div>
+          <div class="pdx-add-botoes">
+            <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-cmd-conf-voltar">VOLTAR</button>
+            <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-conf-ok">CONFIRMAR</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmd-modal-ok" class="pdx-modal cmd-z8 hidden">
+        <div class="pdx-card cmd-card-sm" style="text-align:center;">
+          <div class="cmd-ok-icone">&#10003;</div>
+          <h3 class="cmd-ok-titulo" id="cmd-ok-titulo">Pronto</h3>
+          <div class="cmd-resumo" id="cmd-ok-corpo" style="text-align:left;"></div>
+          <button type="button" class="pdx-btn pdx-btn-amarelo" id="btn-cmd-ok" style="width:100%;">OK</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- ===== VIEW: FINANCEIRO ===== -->
@@ -2963,6 +3256,14 @@
         </div>
         <button class="btn-accent" id="btn-nova-despesa">+ Nova despesa</button>
       </div>
+
+      <div class="fin-abas" role="tablist" aria-label="Seções do Financeiro">
+        <button type="button" class="fin-aba active" id="fin-aba-resumo" data-fin-aba="resumo" role="tab" aria-selected="true">Resumo</button>
+        <button type="button" class="fin-aba" id="fin-aba-receber" data-fin-aba="receber" role="tab" aria-selected="false">Contas a Receber</button>
+        <button type="button" class="fin-aba" id="fin-aba-pagar" disabled title="Em breve">Contas a Pagar <small>em breve</small></button>
+      </div>
+
+      <div id="fin-pane-resumo">
 
       <div class="period-tabs">
         <button class="period-tab-btn active" data-periodo="hoje">Hoje</button>
@@ -3003,6 +3304,35 @@
           </tbody>
         </table>
         <div id="financeiro-empty" class="empty-state hidden">Nenhum lançamento neste período.</div>
+      </div>
+      </div>
+
+      <!-- ===== FINANCEIRO > CONTAS A RECEBER (Migration 031) ===== -->
+      <div id="fin-pane-receber" class="hidden">
+        <div id="cr-tela-clientes">
+          <div class="cr-busca">
+            <label for="cr-busca">Buscar cliente</label>
+            <input type="search" id="cr-busca" placeholder="Digite o nome do cliente..." autocomplete="off">
+          </div>
+          <div id="cr-msg"></div>
+          <p class="cr-nota" id="cr-resumo-linha" style="margin:-4px 2px 14px;"></p>
+          <div id="cr-clientes" class="cr-clientes"></div>
+        </div>
+
+        <div id="cr-tela-cliente" class="hidden">
+          <div class="cr-det-topo">
+            <button type="button" class="btn-secondary" id="btn-cr-voltar">&larr; Voltar</button>
+            <div><h3 id="cr-det-nome">—</h3><span id="cr-det-sub"></span></div>
+            <label class="cr-todos"><input type="checkbox" id="cr-sel-todos"> Selecionar todos</label>
+          </div>
+          <div id="cr-msg-det"></div>
+          <div id="cr-titulos" class="cr-titulos"></div>
+          <p class="cr-nota">Marque os títulos que o cliente está pagando agora. Os demais continuam em aberto.</p>
+          <div class="cr-barra">
+            <div class="cr-barra-info"><b id="cr-sel-qtd">Nenhum título selecionado</b><span class="total" id="cr-sel-total">R$ 0,00</span></div>
+            <button type="button" class="btn-accent" id="btn-cr-receber" disabled>RECEBER</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3912,6 +4242,62 @@
         <button type="submit" class="btn-primary" id="btn-salvar-despesa" style="width:auto; padding:10px 20px;">Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== MODAL: RECEBER TÍTULOS (Contas a Receber) ===== -->
+<div id="modal-cr-receber" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:480px;">
+    <h3>Receber títulos</h3>
+    <div class="cr-modal-resumo">
+      <b id="cr-rec-cliente">—</b>
+      <span id="cr-rec-qtd">—</span>
+      <span class="total" id="cr-rec-total">R$ 0,00</span>
+    </div>
+    <label class="pdx-rotulo" style="margin-top:14px;">Forma de recebimento</label>
+    <div class="cmd-formas" id="cr-formas">
+      <button type="button" class="cmd-forma" data-forma="Dinheiro">DINHEIRO</button>
+      <button type="button" class="cmd-forma" data-forma="Pix">PIX</button>
+      <button type="button" class="cmd-forma" data-forma="Cartão de Débito">DÉBITO</button>
+      <button type="button" class="cmd-forma" data-forma="Cartão de Crédito">CRÉDITO</button>
+    </div>
+    <div id="cr-rec-msg"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cr-rec-cancelar">CANCELAR</button>
+      <button type="button" class="btn-accent" id="btn-cr-rec-ok" disabled style="font-weight:800;">CONFIRMAR RECEBIMENTO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RESULTADO DO RECEBIMENTO ===== -->
+<div id="modal-cr-ok" class="modal-overlay hidden">
+  <div class="modal-card cr-sucesso" style="max-width:400px;">
+    <div class="cmd-ok-icone">&#10003;</div>
+    <h3 class="cmd-ok-titulo">Recebimento realizado</h3>
+    <div class="cmd-resumo" id="cr-ok-corpo" style="text-align:left;"></div>
+    <button type="button" class="btn-accent" id="btn-cr-ok" style="width:100%; font-weight:800;">OK</button>
+  </div>
+</div>
+
+<!-- ===== MODAL: CANCELAR TÍTULO (ação financeira) ===== -->
+<div id="modal-cr-cancelar" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:460px;">
+    <h3>Cancelar título</h3>
+    <div class="cr-modal-resumo">
+      <b id="cr-can-cliente">—</b>
+      <span id="cr-can-info">—</span>
+      <span class="total" id="cr-can-valor">R$ 0,00</span>
+    </div>
+    <p class="cmd-conf-texto"><b>Isso NÃO cancela a venda</b> e não devolve estoque. Só retira este valor da lista de contas a receber.</p>
+    <div class="field">
+      <label for="cr-can-motivo">Motivo do cancelamento (obrigatório)</label>
+      <input type="text" id="cr-can-motivo" maxlength="200" placeholder="Explique o motivo (mín. 3 letras)" autocomplete="off">
+    </div>
+    <div id="cr-can-msg"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cr-can-voltar">VOLTAR</button>
+      <button type="button" class="btn-perigo" id="btn-cr-can-ok">CANCELAR TÍTULO</button>
+    </div>
   </div>
 </div>
 
@@ -6281,6 +6667,8 @@ $('btn-logout').addEventListener('click', async () => {
   pdvCarrinho = [];           // o cupom em andamento não pode passar para o próximo usuário
   pdvPermitirSemEstoque = false;
   renderCarrinho();
+  cmdReset();                 // comandas e contas a receber não passam para o próximo usuário
+  crReset();
   viewAtual = null;           // MARIA: esconde o atalho flutuante e apaga a conversa
   atualizarMariaFlutuante();
   mariaReiniciar();
@@ -8559,10 +8947,10 @@ const CARREGADORES_VIEW = {
   'clientes': () => carregarClientes(),
   'produtos': () => carregarProdutos(1),
   'estoque': () => carregarEstoque(1),
-  'pdv': () => prepararPdv(),
+  'pdv': () => { cmdFecharTudo(); prepararPdv(); },
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
-  'financeiro': () => carregarFinanceiro(),
+  'financeiro': () => finAbrir(),
   'fiscal': () => carregarFiscal(),
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
@@ -10873,6 +11261,1186 @@ $('form-despesa').addEventListener('submit', async (e) => {
   fecharModalDespesa();
   carregarFinanceiro();
 });
+
+// =====================================================================
+// COMANDAS DO PDV + CONTAS A RECEBER  (Migration 031)
+// ---------------------------------------------------------------------
+// Tudo que é dado vem das RPCs da Migration 031 — o banco é a autoridade (estoque, total, vencimento, baixa):
+//   pdv_comandas_listar · pdv_comanda_abrir · pdv_comanda_obter · pdv_comanda_item_adicionar ·
+//   pdv_comanda_item_cancelar · pdv_comanda_cancelar · pdv_comanda_finalizar ·
+//   contas_receber_resumo · contas_receber_listar · contas_receber_receber · contas_receber_cancelar
+// O frontend NUNCA mexe em estoque, NUNCA chama registrar_venda/registrar_venda_mista e NUNCA grava em tabela.
+// Não usa nada do Módulo Bar (bar_mesas/bar_comandas/bar_pedidos/bar_pagamentos). Depois de abrir, lançar, cancelar,
+// finalizar ou receber, a tela é SEMPRE recarregada pelas RPCs (nada de confiar no estado local).
+// =====================================================================
+
+// ----- utilitários compartilhados (comandas + contas a receber) -----
+function msgBox(id, texto, tipo){
+  const el = $(id);
+  if(!el) return;
+  el.innerHTML = texto ? `<div class="msg ${tipo === 'success' ? 'success' : 'error'}">${escapeHtml(texto)}</div>` : '';
+}
+
+// Chave de idempotência: uma por TENTATIVA lógica (comanda / seleção de títulos). Nunca derivada de dado do usuário.
+function novaChaveUuid(){
+  try {
+    if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    const b = new Uint8Array(16); window.crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  } catch(e){
+    return 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+  }
+}
+
+const centavos = (n) => Math.round((Number(n) || 0) * 100);
+const reaisDeCentavos = (c) => Math.round(c) / 100;                 // 68450 -> 684.5 (número JSON com até 2 casas)
+const brlCent = (c) => formatarReais(reaisDeCentavos(c));
+const brl = (n) => formatarReais(Number(n) || 0);
+const pad2 = (n) => String(n).padStart(2, '0');
+function semAcentoMin(s){ return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function dataBR(s){                                                   // 'YYYY-MM-DD' -> 'DD/MM/AAAA' (sem fuso)
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '—';
+}
+
+// Erro de RPC -> mensagem curta em português para o operador. O erro técnico completo vai para o console.
+function msgErroRpc(err, padrao){
+  console.error('[Comandas/Contas a Receber] erro de RPC:', err);
+  const m = String((err && (err.message || err.msg)) || '');
+  const code = err && err.code;
+  const rede = !code && (err instanceof TypeError || /failed to fetch|networkerror|load failed|network request failed|timeout|timed out|fetch/i.test(m));
+  if(rede) return 'Sem conexão com o servidor. Verifique a internet e tente de novo.';
+  if(typeof pdxRpcInexistente === 'function' && pdxRpcInexistente(err)) return 'Esta função ainda não está disponível no sistema. Avise o suporte.';
+  if(/permission denied|JWT|not authenticated|row-level security/i.test(m) || code === '42501' && /permission denied/i.test(m)) return 'Você não tem permissão para esta ação.';
+  let r;
+  if((r = /Estoque insuficiente para "(.+)": dispon[ií]vel ([-\d.,]+), solicitado ([-\d.,]+)/i.exec(m))){
+    return `Estoque insuficiente para "${r[1]}": disponível ${formatarQuantidade(Number(r[2]))}.`;
+  }
+  if(/Estoque insuficiente/i.test(m)) return 'Estoque insuficiente.';
+  if(/j[aá] est[aá] aberta para outro cliente/i.test(m)) return 'Comanda já está aberta. Atualize a tela e tente novamente.';
+  if(/n[aã]o est[aá] aberta|j[aá] foi finalizada|foi cancelada|j[aá] foi finalizada ou cancelada/i.test(m)) return 'Esta comanda foi atualizada por outro usuário. Atualize a tela.';
+  if(/n[aã]o est[aá] mais em aberto|j[aá] foi pago/i.test(m)) return 'Este título já foi recebido (ou cancelado). Atualize a tela e tente novamente.';
+  if(/n[aã]o foi encontrado nesta empresa|Atualize a lista/i.test(m)) return 'Atualize a tela e tente novamente.';
+  if(/soma dos pagamentos/i.test(m)) return 'O valor mudou. Atualize a tela e tente novamente.';
+  if(/Selecione ao menos um t[ií]tulo/i.test(m)) return 'Selecione ao menos um título.';
+  if(/Informe o cliente/i.test(m)) return 'Selecione um cliente.';
+  // exceções de regra de negócio da própria migration (P0001 / 42501 com texto em português) podem ser mostradas
+  if((code === 'P0001' || code === '42501') && m && m.length < 220 && !/\bpublic\.|\bprivate\.|SQLSTATE|violates|syntax|relation|constraint/i.test(m)) return m;
+  return padrao || 'Não foi possível concluir. Atualize a tela e tente novamente.';
+}
+
+// =====================================================================
+// A) PDV > COMANDAS
+// =====================================================================
+let cmdLista = [];               // última resposta de pdv_comandas_listar (só para desenhar os cartões)
+let cmdClientes = null;          // [{id, nome}] — clientes já cadastrados (sem cadastro rápido)
+let cmdClientesPromessa = null;
+let cmdAbrirSel = null;          // { comandaId, numero, clienteId, clienteNome }
+let cmdAtual = null;             // resposta de pdv_comanda_obter da comanda aberta na tela
+let cmdFin = null;               // { sessaoId, nome, totalCent, forma }
+let cmdConf = null;              // { onOk } do modal genérico de confirmação
+let cmdOcupado = false;          // trava de operações de escrita (abrir/cancelar/finalizar): impede duplo clique
+let cmdPend = 0;                 // lançamentos de produto em andamento (fila)
+let cmdFila = Promise.resolve();
+let cmdSeq = 0;                  // muda no logout: descarta respostas que chegam depois
+let cmdListaSeq = 0, cmdObterSeq = 0, cmdBuscaSeq = 0;
+let cmdResultados = [], cmdIdx = -1;
+let cmdMsgTimer = null;
+const cmdChaves = new Map();     // sessao_id -> chave de idempotência da finalização (reutilizada em reenvio da MESMA tentativa)
+
+const CMD_MODAIS = ['cmd-modal-ok', 'cmd-modal-conf', 'cmd-modal-fin', 'cmd-modal-comanda', 'cmd-modal-abrir', 'cmd-painel'];   // do topo para o fundo
+function cmdVisivel(id){ return !$(id).classList.contains('hidden'); }
+function cmdMostrar(id){ $(id).classList.remove('hidden'); }
+function cmdOcultar(id){ $(id).classList.add('hidden'); }
+function cmdMsg(zona, texto, tipo){
+  const ids = { painel: 'cmd-painel-msg', abrir: 'cmd-abrir-msg', com: 'cmd-com-msg', fin: 'cmd-fin-msg', conf: 'cmd-conf-msg' };
+  msgBox(ids[zona], texto, tipo);
+}
+function cmdTrava(sim){
+  cmdOcupado = sim;
+  cmdAtualizarBotoes();
+}
+
+// ---- lista de comandas (grade de 10 posições) ----
+async function cmdCarregarLista(){
+  const seq = ++cmdListaSeq, sq = cmdSeq;
+  try {
+    const { data, error } = await supabase.rpc('pdv_comandas_listar');
+    if(error) throw error;
+    if(seq !== cmdListaSeq || sq !== cmdSeq) return;
+    cmdLista = Array.isArray(data) ? data : [];
+    cmdRenderGrid();
+  } catch(e){
+    if(seq !== cmdListaSeq || sq !== cmdSeq) return;
+    cmdMsg('painel', msgErroRpc(e, 'Não foi possível carregar as comandas. Toque em Atualizar.'));
+  }
+}
+
+function cmdRenderGrid(flashId){
+  const grid = $('cmd-grid');
+  if(!cmdLista.length){
+    grid.innerHTML = '<div class="cmd-vazio">Nenhuma comanda disponível.</div>';
+    return;
+  }
+  grid.innerHTML = cmdLista.map(c => {
+    const aberta = c.status === 'aberta';
+    const num = pad2(c.numero);
+    const flash = flashId && c.comanda_id === flashId ? ' flash' : '';
+    if(!aberta){
+      return `<button type="button" class="cmd-card livre${flash}" data-comanda="${escapeHtml(c.comanda_id)}" aria-label="Comanda ${num} livre">
+        <span class="cmd-card-topo"><span class="cmd-card-rot">Comanda</span><span class="cmd-card-num">${num}</span></span>
+        <span class="cmd-card-meio">Livre</span>
+        <span class="cmd-card-baixo"><small>&nbsp;</small></span>
+      </button>`;
+    }
+    const n = Number(c.qtd_itens) || 0;
+    return `<button type="button" class="cmd-card aberta${flash}" data-comanda="${escapeHtml(c.comanda_id)}" aria-label="Comanda ${num} aberta">
+      <span class="cmd-card-topo"><span class="cmd-card-rot">Comanda</span><span class="cmd-card-num">${num}</span></span>
+      <span class="cmd-card-meio">${escapeHtml(c.cliente_nome || 'Cliente')}</span>
+      <span class="cmd-card-baixo"><small>${n === 1 ? '1 item' : n + ' itens'}</small>${brl(c.total)}</span>
+    </button>`;
+  }).join('');
+}
+
+function cmdAbrirPainel(){
+  cmdMsg('painel', '');
+  cmdMostrar('cmd-painel');
+  cmdCarregarLista();
+  cmdCarregarClientes();            // já deixa a lista de clientes pronta para "abrir comanda"
+  setTimeout(() => { const b = $('cmd-grid').querySelector('.cmd-card'); if(b) b.focus(); }, 0);
+}
+function cmdFecharPainel(){
+  if(cmdOcupado) return;
+  cmdOcultar('cmd-painel');
+  focarCampoPdv();
+}
+function cmdFecharTudo(){                                      // ao (re)entrar no PDV: o banco é a autoridade, nada de tela velha
+  CMD_MODAIS.forEach(cmdOcultar);
+  cmdAtual = null; cmdFin = null; cmdConf = null; cmdAbrirSel = null;
+  cmdBuscaSeq++; cmdResultados = []; cmdIdx = -1;
+}
+
+// ---- abrir comanda livre (cliente obrigatório, só cadastrados) ----
+function cmdCarregarClientes(){
+  if(cmdClientesPromessa) return cmdClientesPromessa;
+  const sq = cmdSeq;
+  cmdClientesPromessa = (async () => {
+    try {
+      const { data, error } = await buscarTodos(() => supabase.from('clientes').select('id, nome')
+        .order('nome', { ascending: true }).order('id', { ascending: true }));
+      if(error) throw error;
+      if(sq === cmdSeq) cmdClientes = (data || []).filter(c => c && c.id && c.nome).map(c => ({ id: c.id, nome: c.nome, _n: semAcentoMin(c.nome) }));
+    } catch(e){
+      console.error('[Comandas] clientes:', e);
+      if(sq === cmdSeq) cmdClientes = null;
+    } finally {
+      cmdClientesPromessa = null;
+    }
+  })();
+  return cmdClientesPromessa;
+}
+
+async function cmdAbrirModalAbrir(comandaId){
+  const c = cmdLista.find(x => x.comanda_id === comandaId);
+  if(!c) return;
+  cmdAbrirSel = { comandaId, numero: c.numero, clienteId: null, clienteNome: '' };
+  $('cmd-abrir-titulo').textContent = 'ABRIR COMANDA ' + pad2(c.numero);
+  $('cmd-cli-busca').value = '';
+  cmdMsg('abrir', '');
+  cmdRenderClientesAbrir();
+  cmdMostrar('cmd-modal-abrir');
+  setTimeout(() => $('cmd-cli-busca').focus(), 0);
+  if(cmdClientes === null){                       // ainda carregando (ou falhou antes): tenta de novo
+    $('cmd-cli-lista').innerHTML = '<div class="pdx-vazio" style="padding:20px;">Carregando clientes...</div>';
+    await cmdCarregarClientes();
+    if(cmdAbrirSel && cmdVisivel('cmd-modal-abrir')) cmdRenderClientesAbrir();
+  }
+}
+
+function cmdRenderClientesAbrir(){
+  const lista = $('cmd-cli-lista');
+  if(cmdClientes === null){
+    lista.innerHTML = '<div class="pdx-vazio" style="padding:20px;">Não foi possível carregar os clientes. Feche e tente de novo.</div>';
+    return;
+  }
+  const termo = semAcentoMin($('cmd-cli-busca').value.trim());
+  const achados = cmdClientes.filter(c => !termo || c._n.includes(termo));
+  const mostrar = achados.slice(0, 60);
+  const sel = cmdAbrirSel && cmdAbrirSel.clienteId;
+  lista.innerHTML = mostrar.map(c =>
+    `<button type="button" class="pdx-cliente-item${c.id === sel ? ' sel' : ''}" data-cli="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</button>`).join('')
+    + (achados.length > mostrar.length ? `<div class="pdx-vazio" style="padding:10px;">Mostrando ${mostrar.length} de ${achados.length}. Digite mais letras para filtrar.</div>` : '')
+    + (!achados.length ? '<div class="pdx-vazio" style="padding:20px;">Nenhum cliente encontrado. Cadastre o cliente no módulo Clientes.</div>' : '');
+  cmdAtualizarSelCliente();
+}
+
+function cmdAtualizarSelCliente(){
+  const s = cmdAbrirSel;
+  $('cmd-cli-sel').innerHTML = s && s.clienteId ? `Cliente: <b>${escapeHtml(s.clienteNome)}</b>` : 'Nenhum cliente selecionado.';
+  $('btn-cmd-abrir-ok').disabled = !(s && s.clienteId) || cmdOcupado;
+}
+
+function cmdSelecionarCliente(id){
+  const c = (cmdClientes || []).find(x => x.id === id);
+  if(!c || !cmdAbrirSel) return;
+  cmdAbrirSel.clienteId = c.id;
+  cmdAbrirSel.clienteNome = c.nome;
+  cmdMsg('abrir', '');
+  cmdRenderClientesAbrir();
+}
+
+async function cmdConfirmarAbrir(){
+  const s = cmdAbrirSel;
+  if(cmdOcupado) return;
+  if(!s || !s.clienteId){ cmdMsg('abrir', 'Selecione um cliente.'); return; }
+  const sq = cmdSeq;
+  cmdTrava(true);
+  const btn = $('btn-cmd-abrir-ok'); const txt = btn.textContent; btn.textContent = 'Abrindo...';
+  try {
+    const { data, error } = await supabase.rpc('pdv_comanda_abrir', { p_comanda_id: s.comandaId, p_cliente_id: s.clienteId });
+    if(error) throw error;
+    if(sq !== cmdSeq) return;
+    cmdOcultar('cmd-modal-abrir');
+    cmdAbrirSel = null;
+    await cmdCarregarLista();                       // o cartão passa a mostrar o nome do cliente
+    cmdRenderGrid(data && data.comanda_id);
+  } catch(e){
+    if(sq === cmdSeq){
+      cmdMsg('abrir', msgErroRpc(e, 'Não foi possível abrir a comanda. Atualize a tela e tente novamente.'));
+      cmdCarregarLista();                           // pode ter sido aberta por outro usuário
+    }
+  } finally {
+    btn.textContent = txt;
+    cmdTrava(false);
+  }
+}
+
+// ---- tela da comanda aberta ----
+async function cmdAbrirComanda(comandaId){
+  const sq = cmdSeq;
+  cmdMsg('painel', '');
+  try {
+    const { data, error } = await supabase.rpc('pdv_comanda_obter', { p_comanda_id: comandaId });
+    if(error) throw error;
+    if(sq !== cmdSeq) return;
+    if(!data || data.status !== 'aberta' || !data.sessao_id){
+      cmdMsg('painel', 'Esta comanda foi atualizada por outro usuário. Veja a situação atual abaixo.');
+      cmdCarregarLista();
+      return;
+    }
+    cmdObterSeq++;
+    cmdAtual = data;
+    cmdResultados = []; cmdIdx = -1;
+    $('cmd-prod-busca').value = '';
+    $('cmd-qtd').value = '1';
+    $('cmd-prod-res').classList.add('hidden');
+    cmdMsg('com', '');
+    cmdRenderComanda();
+    cmdMostrar('cmd-modal-comanda');
+    setTimeout(() => $('cmd-prod-busca').focus(), 0);
+  } catch(e){
+    cmdMsg('painel', msgErroRpc(e, 'Não foi possível abrir a comanda. Toque em Atualizar.'));
+  }
+}
+
+function cmdFecharTelaComanda(){
+  cmdOcultar('cmd-modal-comanda');
+  cmdOcultar('cmd-modal-fin');
+  cmdOcultar('cmd-modal-conf');
+  cmdAtual = null; cmdFin = null; cmdConf = null;
+  cmdBuscaSeq++; cmdResultados = []; cmdIdx = -1;
+  $('cmd-prod-res').classList.add('hidden');
+}
+
+function cmdRenderComanda(){
+  const c = cmdAtual;
+  if(!c) return;
+  $('cmd-com-titulo').textContent = 'COMANDA ' + pad2(c.numero);
+  $('cmd-com-cliente').textContent = c.cliente_nome || '—';
+  const itens = Array.isArray(c.itens) ? c.itens : [];
+  const box = $('cmd-itens');
+  if(!itens.length){
+    box.innerHTML = '<div class="cmd-itens-vazio">Nenhum item lançado ainda. Bipe ou pesquise um produto acima.</div>';
+  } else {
+    box.innerHTML = itens.map(i => `<div class="cmd-item">
+        <span class="q">${escapeHtml(formatarQuantidade(i.quantidade))}</span>
+        <span class="n">${escapeHtml(i.produto_nome)}</span>
+        <span class="u">${brl(i.preco_unitario)}</span>
+        <span class="s">${brl(i.subtotal)}</span>
+        <button type="button" data-item="${escapeHtml(i.item_id)}" title="Remover item" aria-label="Remover ${escapeHtml(i.produto_nome)}">&#10005;</button>
+      </div>`).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+  $('cmd-total').textContent = brl(c.total);
+  cmdAtualizarBotoes();
+}
+
+function cmdAtualizarBotoes(){
+  const c = cmdAtual;
+  const itens = c && Array.isArray(c.itens) ? c.itens.length : 0;
+  $('btn-cmd-finalizar').disabled = !c || itens === 0 || cmdOcupado || cmdPend > 0;
+  $('btn-cmd-cancelar-comanda').classList.toggle('hidden', !c || itens > 0);
+  $('btn-cmd-cancelar-comanda').disabled = cmdOcupado || cmdPend > 0;
+  $('cmd-itens').querySelectorAll('button[data-item]').forEach(b => { b.disabled = cmdOcupado; });
+  $('btn-cmd-abrir-ok').disabled = !(cmdAbrirSel && cmdAbrirSel.clienteId) || cmdOcupado;
+}
+
+// Relê a comanda no banco. Se ela foi finalizada/cancelada por outro usuário, fecha a tela e avisa.
+async function cmdRecarregarAtual(){
+  if(!cmdAtual) return null;
+  const sq = cmdSeq, seq = ++cmdObterSeq, id = cmdAtual.comanda_id, sessao = cmdAtual.sessao_id;
+  const { data, error } = await supabase.rpc('pdv_comanda_obter', { p_comanda_id: id });
+  if(error) throw error;
+  if(sq !== cmdSeq || seq !== cmdObterSeq || !cmdAtual || cmdAtual.sessao_id !== sessao) return null;   // resposta antiga
+  if(!data || data.status !== 'aberta' || data.sessao_id !== sessao){
+    cmdFecharTelaComanda();
+    cmdMsg('painel', 'Esta comanda foi atualizada por outro usuário.');
+    cmdCarregarLista();
+    return null;
+  }
+  cmdAtual = data;
+  cmdRenderComanda();
+  return data;
+}
+
+// ---- lançar produto (leitor, nome ou código) ----
+function cmdLerQtd(){
+  const n = pdxLerNumero($('cmd-qtd').value);
+  return n > 0 ? n : 0;
+}
+
+function cmdAvisoLancamento(texto, tipo){
+  cmdMsg('com', texto, tipo);
+  clearTimeout(cmdMsgTimer);
+  if(tipo === 'success'){
+    const marca = texto;
+    cmdMsgTimer = setTimeout(() => { if(($('cmd-com-msg').textContent || '').trim() === marca) cmdMsg('com', ''); }, 2500);
+  }
+}
+
+function cmdEnfileirar(tarefa){
+  cmdPend++;
+  cmdAtualizarBotoes();
+  cmdFila = cmdFila
+    .then(tarefa)
+    .catch(e => console.error('[Comandas] fila:', e))
+    .then(() => { cmdPend = Math.max(0, cmdPend - 1); cmdAtualizarBotoes(); });
+}
+
+async function cmdLancarProduto(sessaoId, produto, qtd){
+  const sq = cmdSeq;
+  if(!cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+  try {
+    const { data, error } = await supabase.rpc('pdv_comanda_item_adicionar', { p_sessao_id: sessaoId, p_produto_id: produto.id, p_quantidade: qtd });
+    if(error) throw error;
+    if(sq !== cmdSeq) return;
+    cmdAvisoLancamento(`Lançado: ${formatarQuantidade(data && data.quantidade != null ? data.quantidade : qtd)} × ${produto.nome}`, 'success');
+  } catch(e){
+    if(sq === cmdSeq){ cmdAvisoLancamento(msgErroRpc(e, 'Não foi possível lançar o produto. Tente de novo.'), 'error'); beepPdv(); }
+  }
+  // sempre relê do banco (também depois de erro: numa falha de rede o item pode ter sido gravado)
+  if(sq === cmdSeq && cmdAtual && cmdAtual.sessao_id === sessaoId && cmdPend <= 1){
+    try { await cmdRecarregarAtual(); } catch(e){ cmdMsg('com', msgErroRpc(e, 'Não foi possível atualizar a comanda.')); }
+  }
+}
+
+function cmdFecharResultados(){
+  cmdBuscaSeq++;
+  cmdResultados = []; cmdIdx = -1;
+  const r = $('cmd-prod-res');
+  r.classList.add('hidden'); r.innerHTML = '';
+}
+
+function cmdRenderResultados(){
+  const r = $('cmd-prod-res');
+  if(!cmdResultados.length){ r.classList.add('hidden'); r.innerHTML = ''; return; }
+  r.innerHTML = cmdResultados.map((p, idx) => `<div class="search-result-item${idx === cmdIdx ? ' active' : ''}" data-idx="${idx}">
+      <span>${p.codigo ? `<strong>${escapeHtml(p.codigo)}</strong> — ` : ''}${escapeHtml(p.nome)}<br><span class="sr-qtd">${escapeHtml(formatarQuantidade(p.quantidade_estoque))} em estoque${p.gtin ? ' · ' + escapeHtml(p.gtin) : ''}</span></span>
+      <span class="sr-preco">${brl(p.preco_venda)}</span>
+    </div>`).join('');
+  r.classList.remove('hidden');
+}
+
+// Escolheu/leu um produto: o campo é limpo na hora e o foco volta para o próximo (leitor não perde bipe).
+function cmdEscolherProduto(produto, qtd){
+  if(!cmdAtual) return;
+  const sessaoId = cmdAtual.sessao_id;
+  cmdFecharResultados();
+  $('cmd-prod-busca').value = '';
+  $('cmd-qtd').value = '1';
+  $('cmd-prod-busca').focus();
+  cmdEnfileirar(() => cmdLancarProduto(sessaoId, produto, qtd));
+}
+
+function cmdProcessarEntrada(){
+  if(!cmdAtual) return;
+  const campo = $('cmd-prod-busca');
+  const texto = campo.value.trim();
+  if(!texto) return;
+  const qtd = cmdLerQtd();
+  if(!qtd){ cmdAvisoLancamento('Quantidade inválida.', 'error'); $('cmd-qtd').focus(); $('cmd-qtd').select(); return; }
+  if(cmdIdx >= 0 && cmdResultados[cmdIdx]){ cmdEscolherProduto(cmdResultados[cmdIdx], qtd); return; }
+
+  const sessaoId = cmdAtual.sessao_id;
+  cmdFecharResultados();
+  campo.value = ''; $('cmd-qtd').value = '1'; campo.focus();
+  cmdEnfileirar(async () => {
+    const sq = cmdSeq;
+    if(!cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+    let produto = null;
+    try {
+      produto = await buscarProdutoPorCodigo(texto);             // código de barras ou código interno (busca exata)
+      if(!produto){
+        const lista = await pesquisarProdutosPdv(texto);         // por nome
+        if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+        if(lista.length === 1) produto = lista[0];
+        else if(lista.length > 1){
+          campo.value = texto; $('cmd-qtd').value = String(qtd).replace('.', ',');
+          cmdResultados = lista; cmdIdx = -1; cmdRenderResultados();
+          cmdAvisoLancamento('Vários produtos encontrados: escolha um da lista.', 'error');
+          return;
+        }
+      }
+    } catch(e){
+      if(sq === cmdSeq) cmdAvisoLancamento(msgErroRpc(e, 'Não foi possível buscar o produto. Tente de novo.'), 'error');
+      return;
+    }
+    if(sq !== cmdSeq || !cmdAtual || cmdAtual.sessao_id !== sessaoId) return;
+    if(!produto){ cmdAvisoLancamento(`Produto não encontrado: "${texto}".`, 'error'); beepPdv(); return; }
+    await cmdLancarProduto(sessaoId, produto, qtd);
+  });
+}
+
+const cmdBuscarPorNome = debounce(async (termo) => {
+  if(!cmdAtual) return;
+  if(termo !== $('cmd-prod-busca').value.trim()) return;      // o campo já mudou (Enter/bipe): não abre lista antiga
+  const seq = ++cmdBuscaSeq, sq = cmdSeq;
+  if(termo.length < 2 || /^\d{6,}$/.test(termo)){ cmdResultados = []; cmdIdx = -1; cmdRenderResultados(); return; }   // leitura de código de barras não abre lista
+  try {
+    const lista = await pesquisarProdutosPdv(termo);
+    if(seq !== cmdBuscaSeq || sq !== cmdSeq) return;
+    cmdResultados = lista; cmdIdx = -1; cmdRenderResultados();
+  } catch(e){ console.error('[Comandas] busca:', e); }
+}, 250);
+
+// ---- remover item / cancelar comanda (modal genérico de confirmação) ----
+function cmdConfAbrir({ titulo, corpoHtml, motivo, okTexto, voltarTexto, onOk }){
+  $('cmd-conf-titulo').textContent = titulo;
+  $('cmd-conf-corpo').innerHTML = corpoHtml;
+  $('cmd-conf-motivo-wrap').classList.toggle('hidden', !motivo);
+  $('cmd-conf-motivo').value = '';
+  $('btn-cmd-conf-ok').textContent = okTexto || 'CONFIRMAR';
+  $('btn-cmd-conf-voltar').textContent = voltarTexto || 'VOLTAR';
+  cmdMsg('conf', '');
+  cmdConf = { onOk };
+  cmdMostrar('cmd-modal-conf');
+  setTimeout(() => (motivo ? $('cmd-conf-motivo') : $('btn-cmd-conf-voltar')).focus(), 0);
+}
+function cmdConfFechar(){
+  if(cmdOcupado) return;
+  cmdOcultar('cmd-modal-conf');
+  cmdConf = null;
+  if(cmdVisivel('cmd-modal-comanda') && !cmdVisivel('cmd-modal-fin')) setTimeout(() => $('cmd-prod-busca').focus(), 0);
+}
+
+function cmdPedirRemoverItem(itemId){
+  const c = cmdAtual;
+  const it = c && (c.itens || []).find(i => i.item_id === itemId);
+  if(!it) return;
+  cmdConfAbrir({
+    titulo: 'Remover item',
+    corpoHtml: `<p class="cmd-conf-texto">Remover <b>${escapeHtml(formatarQuantidade(it.quantidade))} × ${escapeHtml(it.produto_nome)}</b> (${brl(it.subtotal)}) da comanda? O produto volta ao estoque.</p>`,
+    motivo: true, okTexto: 'REMOVER ITEM',
+    onOk: async () => {
+      const sq = cmdSeq;
+      const motivo = $('cmd-conf-motivo').value.trim();
+      cmdTrava(true);
+      try {
+        const { error } = await supabase.rpc('pdv_comanda_item_cancelar', { p_item_id: itemId, p_motivo: motivo || null });
+        if(error) throw error;
+        if(sq !== cmdSeq) return;
+        cmdOcultar('cmd-modal-conf'); cmdConf = null;
+        cmdAvisoLancamento('Item removido.', 'success');
+        await cmdRecarregarAtual();
+        if(cmdVisivel('cmd-modal-comanda')) $('cmd-prod-busca').focus();
+      } catch(e){
+        if(sq === cmdSeq){
+          cmdMsg('conf', msgErroRpc(e, 'Não foi possível remover o item. Atualize a tela e tente novamente.'));
+          try { await cmdRecarregarAtual(); } catch(_){ /* mantém a mensagem do erro */ }
+        }
+      } finally { cmdTrava(false); }
+    }
+  });
+}
+
+function cmdPedirCancelarComanda(){
+  const c = cmdAtual;
+  if(!c || cmdOcupado || cmdPend > 0) return;
+  cmdConfAbrir({
+    titulo: 'Cancelar comanda ' + pad2(c.numero),
+    corpoHtml: `<p class="cmd-conf-texto">Cancelar a comanda de <b>${escapeHtml(c.cliente_nome || '')}</b>? Use só se foi aberta por engano. A posição volta a ficar livre.</p>`,
+    motivo: true, okTexto: 'CANCELAR COMANDA', voltarTexto: 'VOLTAR',
+    onOk: async () => {
+      const sq = cmdSeq, sessaoId = c.sessao_id;
+      const motivo = $('cmd-conf-motivo').value.trim();
+      cmdTrava(true);
+      try {
+        const { error } = await supabase.rpc('pdv_comanda_cancelar', { p_sessao_id: sessaoId, p_motivo: motivo || null });
+        if(error) throw error;
+        if(sq !== cmdSeq) return;
+        cmdFecharTelaComanda();
+        cmdMsg('painel', 'Comanda cancelada. A posição está livre.', 'success');
+        cmdCarregarLista();
+      } catch(e){
+        if(sq === cmdSeq) cmdMsg('conf', msgErroRpc(e, 'Não foi possível cancelar a comanda. Atualize a tela e tente novamente.'));
+      } finally { cmdTrava(false); }
+    }
+  });
+}
+
+// ---- finalizar ----
+async function cmdAbrirFinalizar(){
+  if(cmdOcupado || !cmdAtual) return;
+  const sq = cmdSeq;
+  try { await cmdFila; } catch(_){ /* a fila nunca rejeita */ }
+  cmdTrava(true);
+  let c;
+  try { c = await cmdRecarregarAtual(); }                      // total e itens vêm do banco neste instante
+  catch(e){ cmdMsg('com', msgErroRpc(e, 'Não foi possível atualizar a comanda. Tente de novo.')); return; }
+  finally { cmdTrava(false); }
+  if(sq !== cmdSeq || !c) return;
+  if(!(c.itens || []).length){ cmdMsg('com', 'A comanda não tem itens.'); return; }
+  if(centavos(c.total) <= 0){ cmdMsg('com', 'A comanda não tem valor a cobrar.'); return; }
+  cmdFin = { sessaoId: c.sessao_id, nome: c.cliente_nome || '', totalCent: centavos(c.total), forma: null };
+  $('cmd-fin-titulo').textContent = 'FINALIZAR — ' + String(cmdFin.nome).toLocaleUpperCase('pt-BR');
+  $('cmd-fin-total').textContent = brlCent(cmdFin.totalCent);
+  cmdMsg('fin', '');
+  cmdFinMarcarForma(null);
+  cmdMostrar('cmd-modal-fin');
+  setTimeout(() => { const b = $('cmd-formas').querySelector('.cmd-forma'); if(b) b.focus(); }, 0);
+}
+
+function cmdFinMarcarForma(forma){
+  if(cmdFin) cmdFin.forma = forma;
+  $('cmd-formas').querySelectorAll('.cmd-forma').forEach(b => b.classList.toggle('sel', !!forma && b.dataset.forma === forma));
+  $('btn-cmd-fin-ok').disabled = !forma || cmdOcupado;
+}
+
+function cmdVencimentoPrevisto(){                                // SÓ para exibir; o banco calcula e grava o vencimento real
+  try {
+    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });   // YYYY-MM-DD
+    const [a, m] = hoje.split('-').map(Number);
+    const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+    return `${pad2(ultimo)}/${pad2(m)}/${a}`;
+  } catch(e){ return 'último dia do mês'; }
+}
+
+function cmdPedirNotaPrazo(){
+  if(!cmdFin || cmdOcupado) return;
+  cmdConfAbrir({
+    titulo: 'NOTA A PRAZO',
+    corpoHtml: `<div class="cmd-resumo">
+        <div><span>Cliente</span><b>${escapeHtml(cmdFin.nome)}</b></div>
+        <div><span>Total</span><b>${brlCent(cmdFin.totalCent)}</b></div>
+        <div><span>Vencimento</span><b>${escapeHtml(cmdVencimentoPrevisto())}</b></div>
+      </div>
+      <p class="cmd-conf-texto">O valor <b>não é recebido agora</b>: fica em Contas a Receber do cliente e vence no último dia do mês.</p>`,
+    motivo: false, okTexto: 'CONFIRMAR NOTA A PRAZO', voltarTexto: 'VOLTAR',
+    onOk: () => cmdFinalizar(true)
+  });
+}
+
+async function cmdFinalizar(prazo){
+  const f = cmdFin;
+  if(cmdOcupado || !f) return;                                  // um clique só: o segundo é ignorado
+  if(!prazo && !f.forma){ cmdMsg('fin', 'Escolha como deseja receber.'); return; }
+  const sq = cmdSeq;
+  const zona = prazo ? 'conf' : 'fin';
+  const btn = $(prazo ? 'btn-cmd-conf-ok' : 'btn-cmd-fin-ok');
+  const txt = btn.textContent;
+  let chave = cmdChaves.get(f.sessaoId);
+  if(!chave){ chave = novaChaveUuid(); cmdChaves.set(f.sessaoId, chave); }   // mesma tentativa = mesma chave (reenvio não duplica)
+  cmdTrava(true);
+  btn.disabled = true; btn.textContent = 'Finalizando...';
+  $('btn-cmd-fin-voltar').disabled = true; $('btn-cmd-conf-voltar').disabled = true;
+  $('cmd-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = true; });
+  cmdMsg(zona, '');
+  let ok = false;
+  try {
+    const args = { p_sessao_id: f.sessaoId, p_chave_idempotencia: chave, p_nota_prazo: !!prazo };
+    if(!prazo) args.p_pagamentos = [{ forma_pagamento: f.forma, valor: reaisDeCentavos(f.totalCent) }];   // 1 forma = 100% do total
+    const { data, error } = await supabase.rpc('pdv_comanda_finalizar', args);
+    if(error) throw error;
+    if(sq !== cmdSeq) return;
+    ok = true;
+    cmdChaves.delete(f.sessaoId);
+    const r = data || {};
+    cmdFecharTelaComanda();                                     // fecha comanda + finalizar + confirmação
+    if(prazo){
+      cmdMostrarOk('Nota a Prazo registrada.', [
+        ['Venda nº', r.numero_venda != null ? String(r.numero_venda) : '—'],
+        ['Cliente', f.nome],
+        ['Valor', brl(r.total != null ? r.total : reaisDeCentavos(f.totalCent))],
+        ['Vencimento', dataBR(r.vencimento)]
+      ]);
+    } else {
+      cmdMostrarOk('Venda finalizada com sucesso.', [
+        ['Venda nº', r.numero_venda != null ? String(r.numero_venda) : '—'],
+        ['Cliente', f.nome],
+        ['Total', brl(r.total != null ? r.total : reaisDeCentavos(f.totalCent))],
+        ['Recebido em', ({ 'Cartão de Débito': 'Débito', 'Cartão de Crédito': 'Crédito' })[f.forma] || f.forma]
+      ]);
+    }
+    cmdCarregarLista();                                         // a posição aparece Livre
+  } catch(e){
+    if(sq === cmdSeq){
+      const m = String((e && e.message) || '');
+      const rede = !(e && e.code) && (e instanceof TypeError || /failed to fetch|network|load failed|timeout/i.test(m));
+      if(rede){
+        cmdMsg(zona, 'Não foi possível confirmar a finalização (falha de conexão). Toque de novo em finalizar: a mesma tentativa é protegida contra venda duplicada.');
+        console.error('[Comandas] finalizar (resultado desconhecido):', e);
+      } else if(/soma dos pagamentos|n[aã]o est[aá] aberta|j[aá] foi finalizada|foi cancelada/i.test(m)){
+        cmdMsg(zona, msgErroRpc(e));
+        try {                                                   // o total pode ter mudado: mostra o valor atual
+          const c = await cmdRecarregarAtual();
+          if(c && cmdFin){ cmdFin.totalCent = centavos(c.total); $('cmd-fin-total').textContent = brlCent(cmdFin.totalCent); }
+        } catch(_){ /* mantém */ }
+      } else {
+        cmdMsg(zona, msgErroRpc(e, 'Não foi possível finalizar. Atualize a tela e tente novamente.'));
+      }
+    }
+  } finally {
+    if(sq === cmdSeq){
+      btn.textContent = txt;
+      $('btn-cmd-fin-voltar').disabled = false; $('btn-cmd-conf-voltar').disabled = false;
+      $('cmd-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = false; });
+    }
+    cmdOcupado = false;
+    if(!ok && sq === cmdSeq){ cmdAtualizarBotoes(); cmdFinMarcarForma(cmdFin ? cmdFin.forma : null); }
+  }
+}
+
+function cmdMostrarOk(titulo, linhas){
+  $('cmd-ok-titulo').textContent = titulo;
+  $('cmd-ok-corpo').innerHTML = linhas.map(([k, v]) => `<div><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');
+  cmdMostrar('cmd-modal-ok');
+  setTimeout(() => $('btn-cmd-ok').focus(), 0);
+}
+
+// ---- ligações (registradas UMA vez) ----
+$('btn-pdv-comandas').addEventListener('click', cmdAbrirPainel);
+$('btn-cmd-painel-fechar').addEventListener('click', cmdFecharPainel);
+$('btn-cmd-atualizar').addEventListener('click', () => { cmdMsg('painel', ''); cmdCarregarLista(); });
+$('cmd-grid').addEventListener('click', (e) => {
+  const b = e.target.closest('.cmd-card');
+  if(!b || cmdOcupado) return;
+  const id = b.dataset.comanda;
+  const c = cmdLista.find(x => x.comanda_id === id);
+  if(!c) return;
+  if(c.status === 'aberta') cmdAbrirComanda(id); else cmdAbrirModalAbrir(id);
+});
+$('cmd-cli-busca').addEventListener('input', cmdRenderClientesAbrir);
+$('cmd-cli-busca').addEventListener('keydown', (e) => {
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if(cmdAbrirSel && cmdAbrirSel.clienteId){ cmdConfirmarAbrir(); return; }
+  const primeiro = $('cmd-cli-lista').querySelector('.pdx-cliente-item');
+  if(primeiro) cmdSelecionarCliente(primeiro.dataset.cli);
+});
+$('cmd-cli-lista').addEventListener('click', (e) => {
+  const b = e.target.closest('.pdx-cliente-item');
+  if(b) cmdSelecionarCliente(b.dataset.cli);
+});
+$('btn-cmd-abrir-cancelar').addEventListener('click', () => { if(cmdOcupado) return; cmdOcultar('cmd-modal-abrir'); cmdAbrirSel = null; });
+$('btn-cmd-abrir-ok').addEventListener('click', cmdConfirmarAbrir);
+
+$('btn-cmd-comanda-fechar').addEventListener('click', () => {
+  if(cmdOcupado) return;
+  cmdFecharTelaComanda();
+  cmdCarregarLista();
+});
+$('cmd-prod-busca').addEventListener('input', () => cmdBuscarPorNome($('cmd-prod-busca').value.trim()));
+$('cmd-prod-busca').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); cmdProcessarEntrada(); }
+  else if(e.key === 'ArrowDown' && cmdResultados.length){ e.preventDefault(); cmdIdx = Math.min(cmdResultados.length - 1, cmdIdx + 1); cmdRenderResultados(); }
+  else if(e.key === 'ArrowUp' && cmdResultados.length){ e.preventDefault(); cmdIdx = Math.max(0, cmdIdx - 1); cmdRenderResultados(); }
+  else if(e.key === 'Escape' && cmdResultados.length){ e.preventDefault(); e.stopPropagation(); cmdFecharResultados(); }
+});
+$('cmd-qtd').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); if($('cmd-prod-busca').value.trim()) cmdProcessarEntrada(); else $('cmd-prod-busca').focus(); }
+});
+$('cmd-qtd').addEventListener('focus', () => $('cmd-qtd').select());
+$('cmd-prod-res').addEventListener('mousedown', (e) => {
+  const d = e.target.closest('.search-result-item');
+  if(!d) return;
+  e.preventDefault();
+  const p = cmdResultados[Number(d.dataset.idx)];
+  if(!p) return;
+  const qtd = cmdLerQtd();
+  if(!qtd){ cmdAvisoLancamento('Quantidade inválida.', 'error'); return; }
+  cmdEscolherProduto(p, qtd);
+});
+$('cmd-itens').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-item]');
+  if(b && !b.disabled) cmdPedirRemoverItem(b.dataset.item);
+});
+$('btn-cmd-cancelar-comanda').addEventListener('click', cmdPedirCancelarComanda);
+$('btn-cmd-finalizar').addEventListener('click', cmdAbrirFinalizar);
+
+$('cmd-formas').addEventListener('click', (e) => {
+  const b = e.target.closest('.cmd-forma');
+  if(!b || cmdOcupado || !cmdFin) return;
+  if(b.dataset.forma === 'prazo'){ cmdFinMarcarForma(null); cmdPedirNotaPrazo(); return; }
+  cmdMsg('fin', '');
+  cmdFinMarcarForma(b.dataset.forma);
+});
+$('btn-cmd-fin-voltar').addEventListener('click', () => {
+  if(cmdOcupado) return;
+  cmdOcultar('cmd-modal-fin'); cmdFin = null;
+  setTimeout(() => $('cmd-prod-busca').focus(), 0);
+});
+$('btn-cmd-fin-ok').addEventListener('click', () => cmdFinalizar(false));
+$('btn-cmd-conf-voltar').addEventListener('click', cmdConfFechar);
+$('btn-cmd-conf-ok').addEventListener('click', () => { if(cmdConf && !cmdOcupado) cmdConf.onOk(); });
+$('btn-cmd-ok').addEventListener('click', () => { cmdOcultar('cmd-modal-ok'); cmdCarregarLista(); setTimeout(() => { const b = $('cmd-grid').querySelector('.cmd-card'); if(b) b.focus(); }, 0); });
+
+// ESC fecha só a camada de cima (as teclas F do PDV já ficam bloqueadas enquanto há .pdx-modal aberto)
+document.addEventListener('keydown', (e) => {
+  if(e.key !== 'Escape' || $('view-pdv').classList.contains('hidden')) return;
+  const topo = CMD_MODAIS.find(cmdVisivel);
+  if(!topo || cmdOcupado) return;
+  e.preventDefault();
+  if(topo === 'cmd-modal-ok') $('btn-cmd-ok').click();
+  else if(topo === 'cmd-modal-conf') cmdConfFechar();
+  else if(topo === 'cmd-modal-fin') $('btn-cmd-fin-voltar').click();
+  else if(topo === 'cmd-modal-comanda') $('btn-cmd-comanda-fechar').click();
+  else if(topo === 'cmd-modal-abrir') $('btn-cmd-abrir-cancelar').click();
+  else if(topo === 'cmd-painel') cmdFecharPainel();
+});
+
+// Logout / troca de usuário: nada de comanda pode passar para o próximo.
+function cmdReset(){
+  cmdSeq++;
+  cmdLista = []; cmdClientes = null; cmdClientesPromessa = null; cmdAbrirSel = null; cmdAtual = null; cmdFin = null; cmdConf = null;
+  cmdOcupado = false; cmdPend = 0; cmdFila = Promise.resolve(); cmdResultados = []; cmdIdx = -1;
+  cmdChaves.clear();
+  CMD_MODAIS.forEach(cmdOcultar);
+  $('cmd-grid').innerHTML = '';
+  $('cmd-itens').innerHTML = '';
+  $('cmd-prod-busca').value = '';
+  ['cmd-painel-msg', 'cmd-abrir-msg', 'cmd-com-msg', 'cmd-fin-msg', 'cmd-conf-msg'].forEach(id => { $(id).innerHTML = ''; });
+}
+
+// =====================================================================
+// B) FINANCEIRO > CONTAS A RECEBER
+// =====================================================================
+let finAbaAtual = 'resumo';
+let crClientes = [];                 // clientes do resumo (contas_receber_resumo)
+let crClienteAtual = null;           // { cliente_id, cliente_nome }
+let crTitulos = [];                  // títulos em aberto do cliente (contas_receber_listar)
+let crTotalRegistros = 0;
+const crSel = new Set();             // titulo_id selecionados
+const crChaves = new Map();          // assinatura da seleção -> chave de idempotência (reenvio da MESMA seleção não duplica)
+let crOcupado = false;
+let crSeq = 0, crResumoSeq = 0, crTitSeq = 0;
+let crReceber = null;                // { ids, totalCent, forma, chave }
+let crCancelar = null;               // titulo em cancelamento
+let crMsgTimer = null;
+
+function finAbrir(){
+  if(finAbaAtual === 'receber') crRecarregar(); else carregarFinanceiro();
+}
+
+function finSelecionarAba(aba){
+  if(aba !== 'resumo' && aba !== 'receber') return;
+  finAbaAtual = aba;
+  $('fin-aba-resumo').classList.toggle('active', aba === 'resumo');
+  $('fin-aba-receber').classList.toggle('active', aba === 'receber');
+  $('fin-aba-resumo').setAttribute('aria-selected', aba === 'resumo' ? 'true' : 'false');
+  $('fin-aba-receber').setAttribute('aria-selected', aba === 'receber' ? 'true' : 'false');
+  $('fin-pane-resumo').classList.toggle('hidden', aba !== 'resumo');
+  $('fin-pane-receber').classList.toggle('hidden', aba !== 'receber');
+  $('btn-nova-despesa').classList.toggle('hidden', aba !== 'resumo');
+  if(aba === 'receber') crRecarregar(); else carregarFinanceiro();
+}
+
+function crAviso(id, texto, tipo){
+  msgBox(id, texto, tipo);
+  if(id === 'cr-msg-det'){
+    clearTimeout(crMsgTimer);
+    if(tipo === 'success') crMsgTimer = setTimeout(() => msgBox('cr-msg-det', ''), 6000);
+  }
+}
+
+// ---- lista de clientes com títulos em aberto ----
+function crRecarregar(){
+  if(crClienteAtual) crCarregarTitulos();
+  else crCarregarResumo();
+}
+
+async function crCarregarResumo(){
+  const seq = ++crResumoSeq, sq = crSeq;
+  const busca = $('cr-busca').value.trim();
+  try {
+    const { data, error } = await supabase.rpc('contas_receber_resumo', { p_busca: busca || null });
+    if(error) throw error;
+    if(seq !== crResumoSeq || sq !== crSeq) return;
+    crClientes = (data && Array.isArray(data.clientes)) ? data.clientes : [];
+    crRenderClientes(data && data.totais, !!busca);
+  } catch(e){
+    if(seq !== crResumoSeq || sq !== crSeq) return;
+    crAviso('cr-msg', msgErroRpc(e, 'Não foi possível carregar as contas a receber. Tente de novo.'));
+  }
+}
+
+function crRenderClientes(totais, comBusca){
+  msgBox('cr-msg', '');
+  const box = $('cr-clientes');
+  const t = totais || {};
+  $('cr-resumo-linha').textContent = crClientes.length
+    ? `${crClientes.length === 1 ? '1 cliente' : crClientes.length + ' clientes'} com valores em aberto · total ${brl(t.saldo_aberto)}${Number(t.saldo_vencido) > 0 ? ' · vencido ' + brl(t.saldo_vencido) : ''}`
+    : '';
+  if(!crClientes.length){
+    box.innerHTML = `<div class="cr-vazio">${comBusca ? 'Nenhum cliente encontrado com valores em aberto.' : 'Nenhum cliente com valores em aberto. 🎉'}</div>`;
+    return;
+  }
+  box.innerHTML = crClientes.map(c => {
+    const n = Number(c.qtd_titulos) || 0;
+    const tags = (Number(c.saldo_vencido) > 0 ? `<span class="cr-tag venc">Vencido ${brl(c.saldo_vencido)}</span>` : '')
+               + (Number(c.qtd_titulos_venda_cancelada) > 0 ? '<span class="cr-tag aviso">⚠ Venda cancelada</span>' : '');
+    return `<button type="button" class="cr-cliente" data-cliente="${escapeHtml(c.cliente_id)}">
+      <span class="cr-cliente-nome">${escapeHtml(c.cliente_nome)}</span>
+      <span class="cr-cliente-qtd">${n === 1 ? '1 título em aberto' : n + ' títulos em aberto'}</span>
+      <span class="cr-cliente-saldo">${brl(c.saldo_aberto)}</span>
+      ${tags ? `<span>${tags}</span>` : ''}
+    </button>`;
+  }).join('');
+}
+
+function crAbrirCliente(clienteId){
+  const c = crClientes.find(x => x.cliente_id === clienteId);
+  if(!c) return;
+  crClienteAtual = { cliente_id: c.cliente_id, cliente_nome: c.cliente_nome };
+  crSel.clear(); crTitulos = [];
+  msgBox('cr-msg-det', '');
+  $('cr-det-nome').textContent = c.cliente_nome;
+  $('cr-det-sub').textContent = '';
+  $('cr-titulos').innerHTML = '<div class="cr-vazio" style="grid-column:auto;border:none;">Carregando...</div>';
+  $('cr-tela-clientes').classList.add('hidden');
+  $('cr-tela-cliente').classList.remove('hidden');
+  crAtualizarBarra();
+  crCarregarTitulos();
+}
+
+function crVoltarParaClientes(){
+  if(crOcupado) return;
+  crClienteAtual = null; crTitulos = []; crSel.clear();
+  $('cr-tela-cliente').classList.add('hidden');
+  $('cr-tela-clientes').classList.remove('hidden');
+  crCarregarResumo();
+}
+
+async function crCarregarTitulos(){
+  const cli = crClienteAtual;
+  if(!cli) return false;
+  const seq = ++crTitSeq, sq = crSeq;
+  try {
+    const { data, error } = await supabase.rpc('contas_receber_listar',
+      { p_cliente_id: cli.cliente_id, p_status: 'aberto', p_limite: 500, p_offset: 0 });
+    if(error) throw error;
+    if(seq !== crTitSeq || sq !== crSeq || !crClienteAtual || crClienteAtual.cliente_id !== cli.cliente_id) return false;
+    crTitulos = (data && Array.isArray(data.titulos)) ? data.titulos : [];
+    crTotalRegistros = Number(data && data.total_registros) || crTitulos.length;
+    const vivos = new Set(crTitulos.map(t => t.titulo_id));
+    Array.from(crSel).forEach(id => { if(!vivos.has(id)) crSel.delete(id); });      // selecionado que já não está em aberto sai
+    crRenderTitulos();
+    return true;
+  } catch(e){
+    if(seq === crTitSeq && sq === crSeq) crAviso('cr-msg-det', msgErroRpc(e, 'Não foi possível carregar os títulos. Tente de novo.'));
+    return false;
+  }
+}
+
+function crRenderTitulos(){
+  const box = $('cr-titulos');
+  const n = crTitulos.length;
+  $('cr-det-sub').textContent = n === 1 ? '1 título em aberto' : `${n} títulos em aberto`;
+  if(!n){
+    box.innerHTML = '<div class="cr-vazio" style="grid-column:auto;border:none;">Este cliente não tem mais títulos em aberto.</div>';
+    crAtualizarBarra();
+    return;
+  }
+  box.innerHTML = crTitulos.map(t => {
+    const sel = crSel.has(t.titulo_id);
+    const aberto = t.status === 'aberto';                       // só título totalmente em aberto pode ser cancelado
+    return `<div class="cr-tit${sel ? ' sel' : ''}" data-titulo="${escapeHtml(t.titulo_id)}">
+      <input type="checkbox" ${sel ? 'checked' : ''} aria-label="Selecionar título da venda ${escapeHtml(t.numero_venda)}">
+      <span class="cr-tit-venc">${escapeHtml(dataBR(t.vencimento))}${t.vencido ? ' <span class="cr-tag venc">Vencido</span>' : ''}</span>
+      <span class="cr-tit-venda">Venda nº ${escapeHtml(t.numero_venda)}${t.venda_cancelada ? '<small><span class="cr-tag aviso">⚠ Venda de origem cancelada</span></small>' : ''}</span>
+      <span class="cr-tit-valor">${brl(t.saldo_aberto)}</span>
+      ${aberto ? '<button type="button" class="cr-mais" aria-label="Mais ações" title="Mais ações">&#8942;</button>' : '<span></span>'}
+    </div>`;
+  }).join('') + (crTotalRegistros > crTitulos.length ? `<div class="cr-vazio" style="grid-column:auto;border:none;">Mostrando os ${crTitulos.length} primeiros de ${crTotalRegistros} títulos.</div>` : '');
+  crAtualizarBarra();
+}
+
+function crSelCentavos(){
+  return crTitulos.reduce((s, t) => s + (crSel.has(t.titulo_id) ? centavos(t.saldo_aberto) : 0), 0);
+}
+
+function crAtualizarBarra(){
+  const n = crSel.size, c = crSelCentavos();
+  $('cr-sel-qtd').textContent = n === 0 ? 'Nenhum título selecionado' : n === 1 ? '1 título selecionado' : `${n} títulos selecionados`;
+  $('cr-sel-total').textContent = brlCent(c);
+  const b = $('btn-cr-receber');
+  b.disabled = n === 0 || crOcupado;
+  b.textContent = n === 0 ? 'RECEBER' : 'RECEBER ' + brlCent(c);
+  const todos = $('cr-sel-todos');
+  todos.checked = crTitulos.length > 0 && n === crTitulos.length;
+  todos.indeterminate = n > 0 && n < crTitulos.length;
+  todos.disabled = crTitulos.length === 0;
+}
+
+function crAlternar(id, marcar){
+  if(marcar === undefined) marcar = !crSel.has(id);
+  if(marcar) crSel.add(id); else crSel.delete(id);
+  const row = $('cr-titulos').querySelector(`.cr-tit[data-titulo="${CSS.escape(id)}"]`);
+  if(row){ row.classList.toggle('sel', marcar); const cb = row.querySelector('input[type=checkbox]'); if(cb) cb.checked = marcar; }
+  crAtualizarBarra();
+}
+
+function crFecharMenus(){ document.querySelectorAll('.cr-menu').forEach(m => m.remove()); }
+
+// ---- receber títulos selecionados ----
+function crAssinatura(ids){ return ids.slice().sort().join(','); }
+
+async function crAbrirReceber(){
+  if(crOcupado || !crClienteAtual || crSel.size === 0) return;
+  const antes = crAssinatura(Array.from(crSel));
+  crOcupado = true; crAtualizarBarra();
+  let ok;
+  try { ok = await crCarregarTitulos(); }                       // confere no banco antes de abrir
+  finally { crOcupado = false; }
+  if(!ok) { crAtualizarBarra(); return; }
+  const ids = Array.from(crSel);
+  if(!ids.length || crAssinatura(ids) !== antes){
+    crAviso('cr-msg-det', ids.length ? 'Alguns títulos selecionados já não estavam em aberto. Confira a seleção antes de receber.' : 'Os títulos selecionados já foram recebidos ou cancelados. Atualizamos a lista.');
+    crAtualizarBarra();
+    return;
+  }
+  const totalCent = crSelCentavos();
+  const sig = crAssinatura(ids);
+  let chave = crChaves.get(sig);
+  if(!chave){ chave = novaChaveUuid(); crChaves.set(sig, chave); }
+  crReceber = { ids, totalCent, forma: null, chave };
+  $('cr-rec-cliente').textContent = crClienteAtual.cliente_nome;
+  $('cr-rec-qtd').textContent = ids.length === 1 ? '1 título' : `${ids.length} títulos`;
+  $('cr-rec-total').textContent = brlCent(totalCent);
+  msgBox('cr-rec-msg', '');
+  crMarcarForma(null);
+  $('modal-cr-receber').classList.remove('hidden');
+}
+
+function crMarcarForma(forma){
+  if(crReceber) crReceber.forma = forma;
+  $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => b.classList.toggle('sel', !!forma && b.dataset.forma === forma));
+  $('btn-cr-rec-ok').disabled = !forma || crOcupado;
+}
+
+function crFecharReceber(){
+  if(crOcupado) return;
+  $('modal-cr-receber').classList.add('hidden');
+  crReceber = null;
+}
+
+async function crConfirmarReceber(){
+  const r = crReceber;
+  if(crOcupado || !r) return;                                   // duplo clique: ignorado
+  if(!r.forma){ msgBox('cr-rec-msg', 'Escolha a forma de recebimento.'); return; }
+  const sq = crSeq;
+  crOcupado = true;
+  const btn = $('btn-cr-rec-ok'); const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Recebendo...';
+  $('btn-cr-rec-cancelar').disabled = true;
+  $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = true; });
+  msgBox('cr-rec-msg', '');
+  let ok = false;
+  try {
+    const { data, error } = await supabase.rpc('contas_receber_receber', {
+      p_titulos: r.ids,                                          // SÓ os títulos marcados
+      p_pagamentos: [{ forma_pagamento: r.forma, valor: reaisDeCentavos(r.totalCent) }],
+      p_chave_idempotencia: r.chave
+    });
+    if(error) throw error;
+    if(sq !== crSeq) return;
+    ok = true;
+    crChaves.delete(crAssinatura(r.ids));
+    const d = data || {};
+    const n = Number(d.quantidade_titulos) || r.ids.length;
+    const nome = crClienteAtual ? crClienteAtual.cliente_nome : '';
+    $('modal-cr-receber').classList.add('hidden');
+    crReceber = null;
+    $('cr-ok-corpo').innerHTML = [
+      ['Cliente', nome],
+      ['Títulos baixados', String(n)],
+      ['Valor', brl(d.valor_total != null ? d.valor_total : reaisDeCentavos(r.totalCent))],
+      ['Recebido em', ({ 'Cartão de Débito': 'Débito', 'Cartão de Crédito': 'Crédito' })[r.forma] || r.forma]
+    ].map(([k, v]) => `<div><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');
+    crSel.clear();
+    $('modal-cr-ok').classList.remove('hidden');
+    setTimeout(() => $('btn-cr-ok').focus(), 0);
+    crOcupado = false;
+    const tem = await crCarregarTitulos();                       // os baixados saem da lista; os outros continuam
+    if(tem && !crTitulos.length){ /* nenhum em aberto: a tela mostra o aviso; "Voltar" atualiza a lista de clientes */ }
+  } catch(e){
+    if(sq === crSeq){
+      const m = String((e && e.message) || '');
+      const rede = !(e && e.code) && (e instanceof TypeError || /failed to fetch|network|load failed|timeout/i.test(m));
+      if(rede){
+        msgBox('cr-rec-msg', 'Não foi possível confirmar o recebimento (falha de conexão). Toque de novo em CONFIRMAR RECEBIMENTO: a mesma tentativa é protegida contra baixa duplicada.');
+        console.error('[Contas a Receber] receber (resultado desconhecido):', e);
+      } else {
+        msgBox('cr-rec-msg', msgErroRpc(e, 'Não foi possível receber. Atualize a tela e tente novamente.'));
+        crCarregarTitulos();                                     // já pode ter sido recebido por outra pessoa
+      }
+    }
+  } finally {
+    crOcupado = false;
+    if(sq === crSeq){
+      btn.textContent = txt;
+      $('btn-cr-rec-cancelar').disabled = false;
+      $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = false; });
+      if(!ok && crReceber) crMarcarForma(crReceber.forma);
+      crAtualizarBarra();
+    }
+  }
+}
+
+// ---- cancelar título (ação financeira; NÃO cancela a venda) ----
+function crAbrirCancelar(tituloId){
+  const t = crTitulos.find(x => x.titulo_id === tituloId);
+  if(!t || crOcupado) return;
+  crCancelar = t;
+  $('cr-can-cliente').textContent = crClienteAtual ? crClienteAtual.cliente_nome : (t.cliente_nome || '');
+  $('cr-can-info').textContent = `Venda nº ${t.numero_venda} · vence em ${dataBR(t.vencimento)}`;
+  $('cr-can-valor').textContent = brl(t.saldo_aberto);
+  $('cr-can-motivo').value = '';
+  msgBox('cr-can-msg', '');
+  $('modal-cr-cancelar').classList.remove('hidden');
+  setTimeout(() => $('cr-can-motivo').focus(), 0);
+}
+function crFecharCancelar(){
+  if(crOcupado) return;
+  $('modal-cr-cancelar').classList.add('hidden');
+  crCancelar = null;
+}
+async function crConfirmarCancelar(){
+  const t = crCancelar;
+  if(crOcupado || !t) return;
+  const motivo = $('cr-can-motivo').value.trim();
+  if(motivo.length < 3){ msgBox('cr-can-msg', 'Informe o motivo do cancelamento (mínimo 3 letras).'); $('cr-can-motivo').focus(); return; }
+  const sq = crSeq;
+  crOcupado = true;
+  const btn = $('btn-cr-can-ok'); const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Cancelando...';
+  $('btn-cr-can-voltar').disabled = true;
+  try {
+    const { error } = await supabase.rpc('contas_receber_cancelar', { p_titulo_id: t.titulo_id, p_motivo: motivo });
+    if(error) throw error;
+    if(sq !== crSeq) return;
+    $('modal-cr-cancelar').classList.add('hidden');
+    crCancelar = null;
+    crSel.delete(t.titulo_id);
+    crAviso('cr-msg-det', 'Título cancelado. A venda NÃO foi cancelada.', 'success');
+    crOcupado = false;
+    await crCarregarTitulos();
+  } catch(e){
+    if(sq === crSeq){
+      msgBox('cr-can-msg', msgErroRpc(e, 'Não foi possível cancelar o título. Atualize a tela e tente novamente.'));
+      crCarregarTitulos();
+    }
+  } finally {
+    crOcupado = false;
+    btn.disabled = false; btn.textContent = txt;
+    $('btn-cr-can-voltar').disabled = false;
+    if(sq === crSeq) crAtualizarBarra();
+  }
+}
+
+// ---- ligações (registradas UMA vez) ----
+$('fin-aba-resumo').addEventListener('click', () => finSelecionarAba('resumo'));
+$('fin-aba-receber').addEventListener('click', () => finSelecionarAba('receber'));
+$('cr-busca').addEventListener('input', debounce(() => { if(!crClienteAtual) crCarregarResumo(); }, 300));
+$('cr-clientes').addEventListener('click', (e) => {
+  const b = e.target.closest('.cr-cliente');
+  if(b) crAbrirCliente(b.dataset.cliente);
+});
+$('btn-cr-voltar').addEventListener('click', crVoltarParaClientes);
+$('cr-sel-todos').addEventListener('change', (e) => {
+  if(e.target.checked) crTitulos.forEach(t => crSel.add(t.titulo_id)); else crSel.clear();
+  crRenderTitulos();
+});
+$('cr-titulos').addEventListener('click', (e) => {
+  const mais = e.target.closest('.cr-mais');
+  const menuItem = e.target.closest('.cr-menu button');
+  const row = e.target.closest('.cr-tit');
+  if(menuItem && row){ crFecharMenus(); crAbrirCancelar(row.dataset.titulo); return; }
+  if(mais && row){
+    const aberto = row.querySelector('.cr-menu');
+    crFecharMenus();
+    if(!aberto){
+      const m = document.createElement('div');
+      m.className = 'cr-menu';
+      m.innerHTML = '<button type="button">Cancelar título</button>';
+      row.appendChild(m);
+    }
+    e.stopPropagation();
+    return;
+  }
+  crFecharMenus();
+  if(!row) return;
+  if(e.target.matches('input[type=checkbox]')) crAlternar(row.dataset.titulo, e.target.checked);   // a própria caixa já mudou
+  else crAlternar(row.dataset.titulo);                                                              // clicar na linha também marca
+});
+document.addEventListener('click', (e) => { if(!e.target.closest('.cr-mais, .cr-menu')) crFecharMenus(); });
+$('btn-cr-receber').addEventListener('click', crAbrirReceber);
+$('cr-formas').addEventListener('click', (e) => {
+  const b = e.target.closest('.cmd-forma');
+  if(!b || crOcupado || !crReceber) return;
+  msgBox('cr-rec-msg', '');
+  crMarcarForma(b.dataset.forma);
+});
+$('btn-cr-rec-cancelar').addEventListener('click', crFecharReceber);
+$('btn-cr-rec-ok').addEventListener('click', crConfirmarReceber);
+$('modal-cr-receber').addEventListener('click', (e) => { if(e.target.id === 'modal-cr-receber') crFecharReceber(); });
+$('btn-cr-ok').addEventListener('click', () => { $('modal-cr-ok').classList.add('hidden'); });
+$('btn-cr-can-voltar').addEventListener('click', crFecharCancelar);
+$('btn-cr-can-ok').addEventListener('click', crConfirmarCancelar);
+$('cr-can-motivo').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); crConfirmarCancelar(); } });
+$('modal-cr-cancelar').addEventListener('click', (e) => { if(e.target.id === 'modal-cr-cancelar') crFecharCancelar(); });
+document.addEventListener('keydown', (e) => {
+  if(e.key !== 'Escape') return;
+  if(!$('modal-cr-ok').classList.contains('hidden')){ $('btn-cr-ok').click(); }
+  else if(!$('modal-cr-cancelar').classList.contains('hidden')){ crFecharCancelar(); }
+  else if(!$('modal-cr-receber').classList.contains('hidden')){ crFecharReceber(); }
+});
+
+// Logout / troca de usuário
+function crReset(){
+  crSeq++;
+  crClientes = []; crClienteAtual = null; crTitulos = []; crTotalRegistros = 0; crSel.clear(); crChaves.clear();
+  crOcupado = false; crReceber = null; crCancelar = null;
+  ['modal-cr-receber', 'modal-cr-ok', 'modal-cr-cancelar'].forEach(id => $(id).classList.add('hidden'));
+  $('cr-clientes').innerHTML = ''; $('cr-titulos').innerHTML = ''; $('cr-busca').value = '';
+  $('cr-tela-cliente').classList.add('hidden'); $('cr-tela-clientes').classList.remove('hidden');
+  ['cr-msg', 'cr-msg-det', 'cr-rec-msg', 'cr-can-msg'].forEach(id => { $(id).innerHTML = ''; });
+  finAbaAtual = 'resumo';
+  $('fin-aba-resumo').classList.add('active'); $('fin-aba-receber').classList.remove('active');
+  $('fin-pane-resumo').classList.remove('hidden'); $('fin-pane-receber').classList.add('hidden');
+  $('btn-nova-despesa').classList.remove('hidden');
+}
 
 // ---------- Relatórios ----------
 // Central de Relatórios (Correção 3): um catálogo PLANO por seção (sem categorias em cards) —
