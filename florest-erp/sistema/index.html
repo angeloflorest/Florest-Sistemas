@@ -816,6 +816,181 @@
   }
   .btn-accent:hover{ background: var(--florest-yellow-hover); }
 
+
+  /* ---------- MARIA — Assistente Inteligente (chat do ERP + atalho flutuante) ---------- */
+  .maria-chat{
+    background: var(--card, #fff);
+    border:1px solid var(--border);
+    border-radius:12px;
+    display:flex;
+    flex-direction:column;
+    height: calc(100vh - 230px);
+    height: calc(100dvh - 230px);
+    min-height: 420px;
+    overflow:hidden;
+  }
+  .maria-mensagens{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    background: var(--florest-bg);
+  }
+  .maria-msg{
+    max-width:min(720px, 85%);
+    padding:11px 14px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+  .maria-msg.maria{
+    align-self:flex-start;
+    background:#fff;
+    color: var(--ink);
+    border:1px solid var(--border);
+    border-bottom-left-radius:4px;
+  }
+  .maria-msg.usuario{
+    align-self:flex-end;
+    background: var(--florest-navy);
+    color:#fff;
+    border-bottom-right-radius:4px;
+  }
+  .maria-msg.erro{
+    align-self:flex-start;
+    background: var(--danger-soft);
+    color: var(--danger);
+    border:1px solid transparent;
+    border-bottom-left-radius:4px;
+  }
+  .maria-msg.espera{ color: var(--ink-soft); font-style:italic; }
+  .maria-msg.espera::after{
+    content:'';
+    display:inline-block;
+    width:1.2em;
+    text-align:left;
+    animation: maria-pontos 1.2s steps(4, end) infinite;
+  }
+  @keyframes maria-pontos{
+    0%{ content:''; } 25%{ content:'.'; } 50%{ content:'..'; } 75%{ content:'...'; } 100%{ content:''; }
+  }
+  .maria-sugestoes{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:12px 16px 4px;
+    border-top:1px solid var(--border);
+    background:#fff;
+  }
+  .maria-chip{
+    background: var(--florest-blue-light);
+    color: var(--florest-navy);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:12.5px;
+    font-weight:600;
+    font-family: var(--font-body);
+    cursor:pointer;
+  }
+  .maria-chip:hover:not(:disabled){ border-color: var(--florest-yellow); background: var(--accent-soft); }
+  .maria-chip:disabled{ opacity:0.5; cursor:not-allowed; }
+  .maria-form{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+    padding:12px 16px 16px;
+    background:#fff;
+  }
+  .maria-form textarea{
+    flex:1;
+    min-width:0;
+    resize:none;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    line-height:1.4;
+    font-family: var(--font-body);
+    background:#fff;
+    color: var(--ink);
+    max-height:120px;
+  }
+  .maria-form textarea:focus{ outline:2px solid var(--florest-blue-light); border-color: var(--florest-blue); }
+  .maria-form textarea:disabled{ background: var(--florest-bg); }
+
+  /* Atalho flutuante (canto inferior direito). z-index ABAIXO do overlay/drawer do menu mobile (150/200)
+     e dos modais (9000+): qualquer janela do ERP fica por cima dele. */
+  .maria-fab{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:transparent;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    font-family: var(--font-body);
+  }
+  .maria-fab-balao{
+    background:#fff;
+    color: var(--ink);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:8px 12px;
+    font-size:13px;
+    font-weight:600;
+    box-shadow:0 4px 14px rgba(11,42,77,0.14);
+    white-space:nowrap;
+    position:relative;
+  }
+  .maria-fab-balao::after{
+    content:'';
+    position:absolute;
+    right:-6px; top:50%;
+    width:10px; height:10px;
+    background:#fff;
+    border-right:1px solid var(--border);
+    border-top:1px solid var(--border);
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .maria-fab-avatar{
+    width:56px; height:56px;
+    border-radius:50%;
+    background: var(--florest-navy);
+    color: var(--florest-yellow);
+    border:3px solid var(--florest-yellow);
+    box-shadow:0 4px 14px rgba(11,42,77,0.28);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display);
+    font-size:24px;
+    font-weight:700;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .maria-fab-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .maria-fab:hover .maria-fab-avatar{ transform: translateY(-2px); }
+  .maria-fab:focus-visible .maria-fab-avatar{ outline:3px solid var(--florest-blue); outline-offset:2px; }
+  @media (max-width: 760px){
+    .maria-chat{ height: calc(100vh - 190px); height: calc(100dvh - 190px); min-height:380px; }
+    .maria-mensagens{ padding:14px; }
+    .maria-msg{ max-width:92%; }
+    .maria-fab{ right:12px; bottom:12px; }
+    .maria-fab-avatar{ width:48px; height:48px; font-size:20px; }
+    .maria-fab-balao{ font-size:12px; padding:6px 10px; }
+  }
+  @media (max-width: 380px){
+    .maria-fab-balao{ display:none; }
+  }
+
   /* ---------- TABELA ---------- */
   .table-card{
     background: var(--card);
@@ -2405,6 +2580,7 @@
     <div class="nav-item enabled" data-view="relatorios" id="nav-relatorios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span><span class="nav-label">Relatórios</span></div>
     <div class="nav-item enabled" data-view="configuracoes" id="nav-configuracoes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.3-2-3.4-2.2.7a7.8 7.8 0 0 0-1.3-.8L15.4 5h-4l-.4 2.2c-.5.2-.9.5-1.3.8l-2.2-.7-2 3.4L7.4 12c-.1.5-.1 1 0 1.5l-1.9 1.3 2 3.4 2.2-.7c.4.3.8.6 1.3.8l.4 2.2h4l.4-2.2c.5-.2.9-.5 1.3-.8l2.2.7 2-3.4-1.9-1.3Z"/></svg></span><span class="nav-label">Configurações</span></div>
     <div class="nav-item enabled" data-view="usuarios" id="nav-usuarios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c1.9.6 3 2.3 3 4.7"/></svg></span><span class="nav-label">Usuários e Acessos</span></div>
+    <div class="nav-item enabled" data-view="maria" id="nav-maria"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-8Z"/><path d="M9 8.5h6M9 11.5h3.5"/></svg></span><span class="nav-label">MARIA Assistente Inteligente</span></div>
     <div id="secao-modulo-pet" class="hidden">
       <div class="nav-group-label">MÓDULO PET</div>
     <div class="nav-item enabled" data-view="agenda" id="nav-agenda"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.5h3M13.5 16.5h3"/></svg></span><span class="nav-label">Agenda</span></div>
@@ -3017,6 +3193,26 @@
       </div>
     </div>
 
+    <!-- ===== VIEW: MARIA — ASSISTENTE INTELIGENTE =====
+         Recurso do núcleo do ERP (não pertence ao PET nem ao BAR e não tem permissão própria no banco).
+         O chat chama a Edge Function 'maria-chat' com o usuário já autenticado; a empresa é descoberta pelo
+         backend (nenhum empresa_id, chave de IA ou service_role passa por aqui). -->
+    <div id="view-maria" class="hidden">
+      <div class="view-header">
+        <div>
+          <h2>MARIA Assistente Inteligente</h2>
+        </div>
+      </div>
+      <div class="maria-chat">
+        <div class="maria-mensagens" id="maria-mensagens" role="log" aria-live="polite" aria-label="Conversa com a MARIA"></div>
+        <div class="maria-sugestoes" id="maria-sugestoes"></div>
+        <form class="maria-form" id="maria-form" autocomplete="off">
+          <textarea id="maria-texto" rows="1" maxlength="1000" placeholder="Escreva sua pergunta..." aria-label="Pergunta para a MARIA"></textarea>
+          <button type="submit" class="btn-accent" id="maria-enviar">Enviar</button>
+        </form>
+      </div>
+    </div>
+
     <!-- ===== VIEW: USUÁRIOS E ACESSOS ===== -->
     <div id="view-usuarios" class="hidden">
       <div class="view-header">
@@ -3532,6 +3728,12 @@
       </div>
     </div>
   </div>
+
+  <!-- MARIA: atalho flutuante. Só aparece nas telas "normais" do ERP (ver MARIA_FLUTUANTE_OCULTA_EM no script). -->
+  <button type="button" class="maria-fab hidden" id="maria-flutuante" aria-label="Abrir a MARIA, assistente inteligente">
+    <span class="maria-fab-balao">O que quer saber?</span>
+    <span class="maria-fab-avatar" id="maria-fab-avatar"><span id="maria-fab-placeholder">M</span></span>
+  </button>
 </div>
 
 <!-- ===== MODAL: IMPORTAR XML / CONFERÊNCIA DA NOTA DE ENTRADA ===== -->
@@ -6077,6 +6279,9 @@ $('btn-logout').addEventListener('click', async () => {
   pdvCarrinho = [];           // o cupom em andamento não pode passar para o próximo usuário
   pdvPermitirSemEstoque = false;
   renderCarrinho();
+  viewAtual = null;           // MARIA: esconde o atalho flutuante e apaga a conversa
+  atualizarMariaFlutuante();
+  mariaReiniciar();
   appScreen.classList.add('hidden');
   authScreen.classList.remove('hidden');
   $('form-login-erp').reset();
@@ -6093,6 +6298,7 @@ function mostrarApp({ nomeEmpresa, nomeResponsavel, email }){
   const inicial = (nomeEmpresa || '?').trim().charAt(0).toUpperCase() || '?';
   $('sidebar-avatar-inicial').textContent = inicial;
   $('topbar-avatar-inicial').textContent = inicial;
+  mariaReiniciar();   // conversa nova a cada login
   authScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
 }
@@ -6263,6 +6469,8 @@ function irParaTelaInicial(){
   if(!view){
     Object.keys(CARREGADORES_VIEW).forEach(v => $('view-' + v).classList.add('hidden'));
     aviso.classList.remove('hidden');
+    viewAtual = null;
+    atualizarMariaFlutuante();
     return;
   }
   aviso.classList.add('hidden');
@@ -8164,6 +8372,186 @@ $('btn-concluir-com-sessao').addEventListener('click', async () => {
   carregarAgendaView();
 });
 
+// =====================================================================
+// MARIA — ASSISTENTE INTELIGENTE (núcleo do ERP)
+// ---------------------------------------------------------------------
+// Chat que chama a Edge Function EXISTENTE 'maria-chat' com o usuário já autenticado
+// (supabase.functions.invoke envia o JWT da sessão). Body: { mensagem } — NUNCA empresa_id: a empresa é
+// resolvida pelo backend. Nenhuma chave de IA / service_role fica no navegador. Resposta em `resposta`.
+// Sem permissão própria no banco nesta etapa: a view está em VIEWS_SEM_PERMISSAO_PROPRIA (abrirView) e
+// NÃO em MODULOS_ACESSO (que alimenta a tela de permissões de Usuários e Acessos). O que a MARIA pode
+// responder é decidido pela própria Edge Function.
+// =====================================================================
+const MARIA_MSG_INICIAL = 'Olá! Sou a MARIA. O que você quer saber hoje?';
+const MARIA_MSG_ESPERA = 'MARIA está analisando...';
+const MARIA_TIMEOUT_MS = 90000;   // o botão nunca fica travado para sempre se a função não responder
+
+// Imagem definitiva do atalho flutuante: basta informar o caminho/URL aqui (ex.: 'assets/maria.png').
+// Vazio = placeholder simples (inicial "M"). Se a imagem falhar ao carregar, volta ao placeholder.
+const MARIA_AVATAR_URL = '';
+
+// Sugestões rápidas. `preencher: true` apenas escreve o texto no campo (o usuário completa e envia),
+// para perguntas que precisam de um complemento — os demais chips enviam a pergunta direto.
+const MARIA_SUGESTOES = [
+  { rotulo: 'Vendas de hoje' },
+  { rotulo: 'Vendas de ontem' },
+  { rotulo: 'Vendas do mês' },
+  { rotulo: 'Formas de pagamento' },
+  { rotulo: 'Produtos mais vendidos' },
+  { rotulo: 'Estoque baixo' },
+  { rotulo: 'Estoque zerado' },
+  { rotulo: 'Buscar produto', preencher: true },
+  { rotulo: 'Últimas vendas' },
+];
+
+// Telas onde o atalho flutuante NÃO aparece (valores = nome da view, igual a data-view/CARREGADORES_VIEW).
+// Para esconder a MARIA flutuante em um módulo futuro, basta acrescentar o nome da view aqui.
+const MARIA_FLUTUANTE_OCULTA_EM = ['maria', 'pdv', 'agenda', 'pets', 'pacotes', 'bar'];
+
+let viewAtual = null;       // view aberta no momento (null = nenhuma / fora do ERP)
+let mariaEnviando = false;  // trava contra envio duplo
+let mariaSeq = 0;           // muda a cada reinício; descarta respostas que chegam depois de logout/novo login
+
+function atualizarMariaFlutuante(){
+  const esconder = !viewAtual || MARIA_FLUTUANTE_OCULTA_EM.includes(viewAtual);
+  $('maria-flutuante').classList.toggle('hidden', esconder);
+}
+
+function mariaAplicarAvatar(){
+  const box = $('maria-fab-avatar');
+  if(!MARIA_AVATAR_URL) return;
+  const img = document.createElement('img');
+  img.alt = '';
+  img.addEventListener('load', () => { box.innerHTML = ''; box.appendChild(img); });
+  img.addEventListener('error', () => { /* mantém o placeholder */ });
+  img.src = MARIA_AVATAR_URL;
+}
+
+function mariaFormatar(texto){
+  // Escapa tudo primeiro; só depois aplica **negrito** (nunca injeta HTML vindo da resposta).
+  return escapeHtml(texto).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+}
+
+function mariaRolarFim(){
+  const el = $('maria-mensagens');
+  el.scrollTop = el.scrollHeight;
+}
+
+function mariaAdicionar(tipo, texto, comFormato){
+  const div = document.createElement('div');
+  div.className = 'maria-msg ' + tipo;
+  if(comFormato) div.innerHTML = mariaFormatar(texto);
+  else div.textContent = texto;
+  $('maria-mensagens').appendChild(div);
+  mariaRolarFim();
+  return div;
+}
+
+function mariaTravar(travar){
+  $('maria-texto').disabled = travar;
+  $('maria-enviar').disabled = travar;
+  document.querySelectorAll('#maria-sugestoes .maria-chip').forEach(b => { b.disabled = travar; });
+}
+
+// Volta o chat ao estado inicial (carga da página, login e logout): a conversa nunca passa para outro usuário.
+function mariaReiniciar(){
+  mariaSeq++;
+  mariaEnviando = false;
+  $('maria-mensagens').innerHTML = '';
+  mariaAdicionar('maria', MARIA_MSG_INICIAL, false);
+  $('maria-texto').value = '';
+  $('maria-texto').style.height = '';
+  mariaTravar(false);
+}
+
+function mariaMensagemErro(error){
+  // Só mensagens FIXAS e conhecidas: nada do que o backend devolve (erro/error/message/corpo) é exibido.
+  const status = error && error.context && typeof error.context.status === 'number' ? error.context.status : 0;
+  if(status === 401) return 'Sua sessão expirou. Entre novamente no ERP para falar com a MARIA.';
+  if(status === 403) return 'Seu usuário não tem acesso a esta consulta.';
+  return 'A MARIA não conseguiu responder agora. Tente novamente em instantes.';
+}
+
+async function mariaEnviar(textoBruto){
+  if(mariaEnviando) return;                       // evita envio duplo
+  const texto = String(textoBruto == null ? '' : textoBruto).trim();
+  if(!texto) return;
+
+  mariaEnviando = true;
+  const seq = mariaSeq;
+  mariaTravar(true);
+  mariaAdicionar('usuario', texto, false);
+  $('maria-texto').value = '';
+  $('maria-texto').style.height = '';
+  const espera = mariaAdicionar('maria espera', MARIA_MSG_ESPERA, false);
+
+  let resposta = '';
+  let erro = '';
+  let timer = null;
+  try{
+    const chamada = supabase.functions.invoke('maria-chat', { body: { mensagem: texto } });
+    const limite = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('timeout')), MARIA_TIMEOUT_MS); });
+    const { data, error } = await Promise.race([chamada, limite]);
+    if(error) erro = mariaMensagemErro(error);
+    else if(data && typeof data.resposta === 'string' && data.resposta.trim()) resposta = data.resposta;
+    else erro = 'A MARIA não retornou uma resposta. Tente reformular a pergunta.';
+  } catch(e){
+    erro = (e && e.message === 'timeout')
+      ? 'A MARIA está demorando mais que o normal. Tente novamente em instantes.'
+      : 'Não foi possível falar com a MARIA agora. Verifique sua conexão e tente novamente.';
+  } finally {
+    if(timer) clearTimeout(timer);
+  }
+
+  if(seq !== mariaSeq) return;                    // chat reiniciado (logout/login) enquanto aguardava
+  espera.remove();
+  if(resposta) mariaAdicionar('maria', resposta, true);
+  else mariaAdicionar('maria erro', erro, false);
+  mariaEnviando = false;
+  mariaTravar(false);
+  if(window.innerWidth > 760) $('maria-texto').focus();
+}
+
+function mariaAbrir(){
+  mariaRolarFim();
+  if(window.innerWidth > 760 && !mariaEnviando) $('maria-texto').focus();
+}
+
+(function iniciarMaria(){
+  const sug = $('maria-sugestoes');
+  MARIA_SUGESTOES.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'maria-chip';
+    b.textContent = s.rotulo;
+    b.addEventListener('click', () => {
+      if(mariaEnviando) return;
+      if(s.preencher){
+        const campo = $('maria-texto');
+        campo.value = s.rotulo + ': ';
+        campo.focus();
+        campo.dispatchEvent(new Event('input'));
+      } else {
+        mariaEnviar(s.rotulo);
+      }
+    });
+    sug.appendChild(b);
+  });
+
+  const campo = $('maria-texto');
+  $('maria-form').addEventListener('submit', (ev) => { ev.preventDefault(); mariaEnviar(campo.value); });
+  campo.addEventListener('keydown', (ev) => {
+    if(ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing){ ev.preventDefault(); mariaEnviar(campo.value); }
+  });
+  campo.addEventListener('input', () => {              // cresce até ~4 linhas
+    campo.style.height = 'auto';
+    campo.style.height = Math.min(campo.scrollHeight, 120) + 'px';
+  });
+  $('maria-flutuante').addEventListener('click', () => abrirView('maria'));
+  mariaAplicarAvatar();
+  mariaReiniciar();
+})();
+
 // ---------- Navegação entre módulos ----------
 const CARREGADORES_VIEW = {
   'clientes': () => carregarClientes(),
@@ -8177,6 +8565,8 @@ const CARREGADORES_VIEW = {
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
+  // ---- MARIA (núcleo do ERP, sem permissão própria — ver VIEWS_SEM_PERMISSAO_PROPRIA) ----
+  'maria': () => mariaAbrir(),
   // ---- Módulo comercial: PET ----
   'agenda': () => carregarAgendaView(),
   'pets': () => carregarPetsView(),
@@ -8185,8 +8575,13 @@ const CARREGADORES_VIEW = {
   'bar': () => carregarBarView(),
 };
 
+// Views do núcleo do ERP que não dependem de uma permissão de módulo (nem existem em MODULOS_ACESSO).
+const VIEWS_SEM_PERMISSAO_PROPRIA = ['maria'];
+
 function abrirView(view){
-  if(!podeAcessar(view.replace(/-/g, '_'))) return;   // sem permissão: não abre (o banco também recusa os dados)
+  if(!VIEWS_SEM_PERMISSAO_PROPRIA.includes(view) && !podeAcessar(view.replace(/-/g, '_'))) return;   // sem permissão: não abre (o banco também recusa os dados)
+  viewAtual = view;                                   // MARIA flutuante: decide se aparece nesta tela
+  atualizarMariaFlutuante();
   if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
   $('aviso-sem-acesso').classList.add('hidden');
   document.querySelectorAll('.nav-item.enabled').forEach(i => i.classList.toggle('active', i.dataset.view === view));
