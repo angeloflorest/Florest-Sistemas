@@ -2088,6 +2088,45 @@
   .imp-acoes{ display:flex; flex-wrap:wrap; gap:10px; }
   .imp-somente{ font-size:12.5px; color: var(--ink-soft); background:#F1F5F9; border-radius:8px; padding:9px 12px; line-height:1.45; }
 
+  /* ===== Florest Print Agent (Migration 030): vincular computadores/estações à empresa =====
+     Mesmas variáveis/identidade dos cartões de impressoras acima; prefixo pa- (print agent) para não colidir
+     com as classes imp-* da importação de planilhas. */
+  .pa-area{ border:1px solid var(--border); border-radius:10px; background:#fff; padding:16px 18px; margin:14px 0 18px; max-width:1080px; }
+  .pa-cab{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .pa-titulo{ font-size:12px; font-weight:700; letter-spacing:.08em; color: var(--florest-navy); }
+  .pa-sub{ font-size:13px; color: var(--ink-soft); margin-top:2px; }
+  .pa-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; flex:none; }
+  .pa-dot.ok{ background: var(--florest-success); }
+  .pa-dot.off{ background: var(--florest-danger); }
+  .pa-dot.wait{ background: var(--florest-warning); }
+  .pa-vazio{ margin-top:12px; background: var(--florest-bg); border:1px dashed var(--border); border-radius:8px; padding:16px 18px; }
+  .pa-vazio-titulo{ display:flex; align-items:center; font-weight:700; color: var(--florest-navy); font-size:15px; }
+  .pa-vazio p{ margin:6px 0 12px; font-size:13.5px; color: var(--ink-soft); line-height:1.5; }
+  .pa-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; margin-top:12px; }
+  .pa-card{ background: var(--florest-bg); border:1px solid var(--border); border-radius:10px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .pa-card.inativa{ opacity:.85; }
+  .pa-card-topo{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .pa-card-nome{ display:flex; align-items:center; font-weight:700; color: var(--florest-navy); font-size:15px; word-break:break-word; }
+  .pa-badge{ font-size:11.5px; font-weight:700; border-radius:999px; padding:2px 10px; white-space:nowrap; }
+  .pa-badge.ok{ background: var(--teal-soft); color: var(--teal); }
+  .pa-badge.off{ background: var(--danger-soft); color: var(--danger); }
+  .pa-badge.wait{ background: var(--florest-warning-soft); color:#8A5A00; }
+  .pa-acoes{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pa-acoes button{ padding:7px 12px; font-size:13px; }
+  .pa-perigo{ color: var(--danger) !important; }
+  .pa-rodape{ margin-top:12px; }
+  .pa-secao-rotulo{ margin:16px 0 0; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--ink-soft); }
+  .pa-pendente{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; font-size:13px; color: var(--ink-soft);
+    background: var(--florest-blue-light); border:1px solid #CFE3F7; border-radius:8px; padding:8px 12px; }
+  .pa-codigo-rotulo{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-soft); }
+  .pa-codigo{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:34px; font-weight:700; letter-spacing:.12em; color: var(--florest-navy);
+    background: var(--florest-blue-light); border:1px dashed #9CC4EE; border-radius:10px; padding:14px 10px; margin:8px 0 14px; user-select:all; word-break:keep-all; }
+  .pa-aguardando{ font-size:13px; color: var(--ink-soft); margin-top:4px; }
+  @media (max-width:480px){
+    .pa-codigo{ font-size:26px; letter-spacing:.08em; }
+    .pa-grid{ grid-template-columns:1fr; }
+  }
+
   .bar-ticket-impressao{ display:none; }
   @media print{
     body.bar-imprimindo > *{ visibility:hidden; }
@@ -3276,12 +3315,14 @@
           </div>
         </div>
 
-        <!-- Configurações → Impressoras (Fase A — Migration 029). Os campos manuais nome/IP/porta foram
-             REMOVIDOS: a escolha é feita entre as impressoras detectadas pelo Florest Print Agent, lidas por
-             impressao_configuracao_obter() e gravadas por impressao_destino_definir/limpar. Bar e Cozinha são
-             específicos do Módulo Bar; Caixa e Adicional são as MESMAS configurações centrais de ERP →
-             Configurações → Impressoras (mesma linha no banco — nada é copiado para o Bar). Os cartões são
-             desenhados por renderImpressoras() (o mesmo código do ERP). -->
+        <!-- Configurações → Impressoras (Fase A — Migration 029; Print Agent — Migration 030). Os campos manuais
+             nome/IP/porta foram REMOVIDOS: a escolha é feita entre as impressoras detectadas pelo Florest Print
+             Agent (programa Windows já instalado nos computadores da empresa), lidas por impressao_configuracao_obter()
+             e gravadas por impressao_destino_definir/limpar. Bar e Cozinha são específicos do Módulo Bar; Caixa e
+             Adicional são as MESMAS configurações centrais de ERP → Configurações → Impressoras (mesma linha no
+             banco — nada é copiado para o Bar). Os cartões são desenhados por renderImpressoras() (o mesmo código
+             do ERP). Conectar/renomear/desvincular computadores (pareamento) NÃO existe aqui: pertence à
+             configuração central da empresa (ERP → Configurações → Impressoras → Florest Print Agent). -->
         <div id="bar-config-sub-impressoras" class="bar-subview hidden">
           <div class="imp-cab">
             <p class="modal-section-hint" style="margin:0; flex:1; min-width:240px;">Escolha a impressora de cada destino entre as encontradas pelo Florest Print Agent. Caixa e Adicional são configurações centrais da empresa, as mesmas de Configurações → Impressoras.</p>
@@ -3315,15 +3356,31 @@
         </label>
       </div>
 
-      <!-- Impressoras (Fase A — Migration 029): configuração CENTRAL da empresa, independente de ter ou não o
-           Módulo Bar. Os cartões são desenhados por renderImpressoras() a partir de impressao_configuracao_obter();
-           Caixa e Adicional são as MESMAS linhas que o Bar mostra em Bar → Configurações → Impressoras. -->
+      <!-- Impressoras (Fase A — Migration 029; Print Agent — Migration 030): configuração CENTRAL da empresa,
+           independente de ter ou não o Módulo Bar. A área "Florest Print Agent" (#pa-area, desenhada por paRender() a
+           partir de impressao_estacoes_listar()) vincula os computadores com impressoras à EMPRESA LOGADA — a empresa
+           nunca é enviada pelo navegador; as RPCs a derivam do usuário autenticado. Os cartões de destino abaixo são
+           desenhados por renderImpressoras() a partir de impressao_configuracao_obter(); Caixa e Adicional são as
+           MESMAS linhas que o Bar mostra em Bar → Configurações → Impressoras. -->
       <div class="pdv-panel" id="painel-impressoras" style="margin-bottom:20px;">
         <div class="imp-cab">
           <h3>Impressoras</h3>
           <button type="button" class="btn-secondary" id="btn-imp-buscar-erp">Buscar impressoras</button>
         </div>
         <p class="modal-section-hint" style="margin-top:0;">Escolha, entre as impressoras encontradas pelo Florest Print Agent, qual será usada em cada função. Não é preciso digitar nome, IP ou porta.</p>
+
+        <div class="pa-area" id="pa-area">
+          <div class="pa-cab">
+            <div>
+              <div class="pa-titulo">FLOREST PRINT AGENT</div>
+              <div class="pa-sub">Computadores desta empresa que enviam as impressoras instaladas no Windows para o Florest ERP.</div>
+            </div>
+            <button type="button" class="link-btn" id="btn-pa-atualizar" data-pa-acao="atualizar">Atualizar</button>
+          </div>
+          <div id="pa-msg"></div>
+          <div id="pa-estacoes"></div>
+        </div>
+
         <div id="imp-erp-aviso"></div>
         <div id="imp-erp-msg"></div>
         <div class="bar-config-impressoras-grid" id="imp-erp-cards" data-imp-ctx="erp"></div>
@@ -3567,6 +3624,44 @@
     <div id="ne-detalhe-conteudo"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="btn-fechar-detalhe-nota">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAIS: FLOREST PRINT AGENT (Migration 030) =====
+     O código de conexão vem SOMENTE da RPC impressao_pareamento_gerar (nunca é inventado no navegador), fica só
+     na memória/DOM deste modal (nada em localStorage/sessionStorage, console ou URL) e é apagado ao fechar. -->
+<div id="modal-pa-pareamento" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pa-modal-titulo">
+  <div class="modal-card" style="max-width:460px; text-align:center;">
+    <h3 id="pa-modal-titulo">Conectar Florest Print Agent</h3>
+    <div id="pa-modal-msg"></div>
+    <div id="pa-modal-corpo">
+      <div class="pa-codigo-rotulo">Código de conexão</div>
+      <div class="pa-codigo" id="pa-codigo" aria-live="polite">••••-••••</div>
+      <p class="modal-section-hint">Abra o Florest Print Agent neste computador, clique em “Conectar ao Florest ERP” e informe este código.</p>
+      <p class="modal-section-hint">Este código expira em <span id="pa-validade">10</span> minutos e só pode ser usado uma vez. <span id="pa-contagem-wrap">Tempo restante: <strong id="pa-contagem">--:--</strong></span></p>
+      <div class="pa-aguardando" id="pa-aguardando">Aguardando o Florest Print Agent...</div>
+    </div>
+    <div class="modal-actions" style="justify-content:center; flex-wrap:wrap;">
+      <button type="button" class="btn-accent" id="btn-pa-copiar">Copiar código</button>
+      <button type="button" class="btn-secondary" id="btn-pa-cancelar-codigo">Cancelar código</button>
+      <button type="button" class="btn-accent hidden" id="btn-pa-novo">Gerar novo código</button>
+      <button type="button" class="btn-secondary" id="btn-pa-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pa-renomear" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pa-renomear-titulo">
+  <div class="modal-card" style="max-width:420px;">
+    <h3 id="pa-renomear-titulo">Renomear estação</h3>
+    <div id="pa-renomear-msg"></div>
+    <div class="field">
+      <label for="pa-renomear-nome">Nome da estação</label>
+      <input type="text" id="pa-renomear-nome" maxlength="80" autocomplete="off" placeholder="Ex.: Caixa principal">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-pa-renomear-cancelar">Cancelar</button>
+      <button type="button" class="btn-accent" id="btn-pa-renomear-salvar">Salvar</button>
     </div>
   </div>
 </div>
@@ -6453,8 +6548,10 @@ $('cfg-venda-sem-estoque').addEventListener('change', async (e) => {
 // telas: ERP → Configurações → Impressoras (Caixa e Adicional) e Bar → Configurações → Impressoras
 // (Bar, Cozinha, Caixa e Adicional). Caixa e Adicional são a MESMA linha no banco (impressao_destino_impressora
 // por empresa) — o Bar só as exibe; nada é copiado. A empresa nunca é enviada: as RPCs a derivam do usuário.
-// Não existe cadastro manual de nome/IP/porta: só se escolhe entre impressoras detectadas pelo futuro
-// Florest Print Agent. "Buscar impressoras" apenas relê impressao_configuracao_obter().
+// Não existe cadastro manual de nome/IP/porta: só se escolhe entre impressoras detectadas pelo Florest Print
+// Agent (programa Windows; Migration 030 — ver a seção "Florest Print Agent" mais abaixo). O navegador NUNCA varre
+// a rede: "Buscar impressoras" pede ao Agent conectado uma nova sincronização (impressao_varredura_solicitar) e
+// relê impressao_configuracao_obter(); quem não pode administrar o Agent apenas relê o que já foi sincronizado.
 let impConfig = null;      // último retorno de impressao_configuracao_obter() (null = ainda não carregado/erro)
 let impSeq = 0;            // descarta respostas antigas quando há duas leituras em andamento
 let impOcupado = false;    // uma gravação por vez
@@ -6465,7 +6562,7 @@ const IMP_TEXTO_AGENTE = 'Florest Print Agent não está conectado neste estabel
 function impMensagemErro(error){
   const m = (error && error.message) || '';
   if(error && (error.code === 'PGRST202' || error.code === '42883' || /could not find the function|does not exist/i.test(m))){
-    return 'O recurso de impressoras ainda não foi ativado no banco de dados (falta executar a Migration 029).';
+    return 'O recurso de impressoras ainda não foi ativado no banco de dados (faltam as Migrations 029/030).';
   }
   return m || 'Erro inesperado.';
 }
@@ -6544,7 +6641,7 @@ function impAvisoHtml(){
   const qtd = (impConfig.impressoras || []).length;
   if(!impAgenteConectado()){
     return `<div class="imp-aviso"><strong>${IMP_TEXTO_AGENTE}</strong>${qtd === 0
-      ? 'Nenhuma impressora foi detectada ainda. Quando o agente for instalado e conectado, as impressoras encontradas aparecerão aqui para você escolher — não é preciso informar nome, IP ou porta.'
+      ? 'Nenhuma impressora foi detectada ainda. Instale o Florest Print Agent no computador das impressoras e conecte-o em Configurações → Impressoras → Florest Print Agent; as impressoras encontradas aparecerão aqui para você escolher — não é preciso informar nome, IP ou porta.'
       : 'As impressoras listadas foram detectadas anteriormente; o status delas só é confirmado com o agente conectado.'}</div>`;
   }
   if(qtd === 0) return '<div class="imp-aviso info"><strong>Nenhuma impressora encontrada.</strong>O agente está conectado, mas não informou nenhuma impressora disponível.</div>';
@@ -6570,9 +6667,9 @@ function renderImpressoras(){
   });
 }
 
-async function carregarImpressoras(){
+async function carregarImpressoras(manterMensagens){
   const seq = ++impSeq;
-  ['erp', 'bar'].forEach(t => impMsg(t, ''));
+  if(!manterMensagens) ['erp', 'bar'].forEach(t => impMsg(t, ''));
   if(!impConfig){
     ['erp', 'bar'].forEach(t => { const c = $('imp-' + t + '-cards'); if(c) c.innerHTML = '<p class="modal-section-hint">Carregando impressoras...</p>'; });
   }
@@ -6589,8 +6686,12 @@ async function carregarImpressoras(){
   return true;
 }
 
-// "Buscar impressoras": nesta fase só relê o banco (o agente ainda não existe; o navegador nunca varre a rede).
+// "Buscar impressoras" (ERP e Bar). Quem pode administrar o Print Agent (permissão 'configuracoes') pede ao Agent
+// conectado uma nova varredura/sincronização (paBuscar → impressao_varredura_solicitar). Quem só tem
+// 'bar_configurar' não pode chamar as RPCs administrativas do Agent: para esses usuários o botão apenas relê
+// impressao_configuracao_obter() (o que o Agent já sincronizou). O navegador nunca varre a rede.
 async function impBuscar(tela){
+  if(podeAcessar('configuracoes')){ await paBuscar(tela, null); return; }
   const btn = $('btn-imp-buscar-' + tela);
   btn.disabled = true;
   const textoOriginal = btn.textContent;
@@ -6649,6 +6750,462 @@ async function impAgir(tela, card, acao){
     if(card) impAgir(tela, card, btn.dataset.impAcao);
   });
 });
+
+// =====================================================================
+// FLOREST PRINT AGENT (Migration 030) — administração dos computadores/estações da empresa
+// ---------------------------------------------------------------------
+// Tudo aqui usa SOMENTE as RPCs administrativas autenticadas da Migration 030 (permissão 'configuracoes'):
+//   impressao_estacoes_listar, impressao_pareamento_gerar / _consultar / _cancelar,
+//   impressao_estacao_renomear, impressao_estacao_revogar, impressao_varredura_solicitar.
+// A empresa NUNCA é enviada: as RPCs a derivam do usuário autenticado. As rotas /agent/* da Edge Function
+// pertencem exclusivamente ao programa Windows — o navegador não as chama, não conhece token do agente (fpa_),
+// segredo, hash de credencial nem chave de serviço. O status "conectado" vem pronto do banco (heartbeat do
+// Agent); o navegador só apresenta. O código de conexão vem da RPC, vive só no DOM do modal (sem
+// localStorage/sessionStorage, console ou URL) e é apagado ao fechar.
+// Temporizadores: no máximo UM intervalo (contagem do modal de código, 1 s) e esperas curtas e finitas da
+// busca de impressoras; ambos são encerrados ao fechar/cancelar/parear/expirar/sair da tela.
+// =====================================================================
+let paDados = null;          // último retorno de impressao_estacoes_listar() (null = ainda não carregado/erro)
+let paSeq = 0;               // descarta respostas antigas
+let paModal = null;          // { id, expiraEm, ticks, falhas, consultando, estacaoId } enquanto o modal do código está aberto
+let paTimer = null;          // único setInterval do modal do código
+let paBuscando = false;      // uma busca por vez
+let paBuscaSeq = 0;          // invalida uma busca em andamento (tela fechada / nova busca)
+let paRenomearId = null;
+let paOcupado = false;       // gravações administrativas (renomear/desvincular/cancelar código) uma por vez
+const PA_POLL_A_CADA_TICKS = 4;                              // consulta o pareamento a cada 4 s
+const PA_POLL_MAX_FALHAS = 3;                                // 3 falhas seguidas: para de consultar sozinho
+const PA_BUSCA_ESPERAS_MS = [3000, 4000, 5000, 6000, 6000, 6000]; // ~30 s no máximo; depois o usuário tenta de novo
+
+function paFmtData(v){
+  if(!v) return '—';
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return '—';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function paMsg(html){ const el = $('pa-msg'); if(el) el.innerHTML = html || ''; }
+function paMsgOk(texto){ paMsg(`<div class="msg success">${escapeHtml(texto)}</div>`); }
+function paMsgErro(texto){ paMsg(`<div class="msg error">${escapeHtml(texto)}</div>`); }
+function paEsperar(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function paAplicar(dados){
+  paSeq++;
+  paDados = dados || null;
+  paRender();
+}
+
+function paEstadoEstacao(e){
+  if(!e.ativa) return { cls: 'off', texto: 'Desvinculado' };
+  if(e.conectada) return { cls: 'ok', texto: 'Conectado' };
+  return { cls: 'off', texto: 'Desconectado' };
+}
+
+function paCartaoHtml(e){
+  const st = paEstadoEstacao(e);
+  const linhas = [
+    ['Computador', e.nome_computador || '—'],
+    ['Versão', e.versao_agente || '—'],
+    ['Última comunicação', paFmtData(e.ultimo_contato_em)],
+    ['Última sincronização', paFmtData(e.ultima_sincronizacao_em)],
+    ['Impressoras', String(e.impressoras_ativas === null || e.impressoras_ativas === undefined ? 0 : e.impressoras_ativas)],
+  ];
+  if(e.sistema_operacional) linhas.splice(1, 0, ['Sistema', e.sistema_operacional]);
+  const id = escapeHtml(e.id);
+  const desab = (paBuscando || paOcupado) ? ' disabled' : '';
+  let acoes;
+  if(e.ativa){
+    acoes = `<button type="button" class="btn-secondary" data-pa-acao="buscar" data-pa-estacao="${id}"${desab}>Buscar impressoras</button>
+      <button type="button" class="btn-secondary" data-pa-acao="renomear" data-pa-estacao="${id}"${desab}>Renomear estação</button>
+      <button type="button" class="btn-secondary pa-perigo" data-pa-acao="desvincular" data-pa-estacao="${id}"${desab}>Desvincular</button>`;
+  } else {
+    acoes = `<button type="button" class="btn-accent" data-pa-acao="reconectar" data-pa-estacao="${id}"${desab}>Reconectar este computador</button>
+      <button type="button" class="btn-secondary" data-pa-acao="renomear" data-pa-estacao="${id}"${desab}>Renomear estação</button>`;
+  }
+  const aguardando = (e.ativa && e.varredura_pendente)
+    ? '<span class="pa-badge wait">Busca solicitada — aguardando o Agent</span>' : '';
+  return `<div class="pa-card${e.ativa ? '' : ' inativa'}" data-pa-card="${id}">
+      <div class="pa-card-topo">
+        <div class="pa-card-nome"><span class="pa-dot ${st.cls}"></span><span>${escapeHtml(e.nome || 'Estação')}</span></div>
+        <span class="pa-badge ${st.cls}">${escapeHtml(st.texto)}</span>
+      </div>
+      ${aguardando ? `<div>${aguardando}</div>` : ''}
+      <dl class="imp-det">${linhas.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
+      <div class="pa-acoes">${acoes}</div>
+    </div>`;
+}
+
+function paRender(){
+  const area = $('pa-estacoes');
+  const bloco = $('pa-area');
+  if(!area || !bloco) return;
+  const pode = podeAcessar('configuracoes');
+  bloco.classList.toggle('hidden', !pode);
+  if(!pode) return;
+  if(!paDados){ area.innerHTML = ''; return; }
+
+  const estacoes = paDados.estacoes || [];
+  const ativas = estacoes.filter(e => e.ativa);
+  const inativas = estacoes.filter(e => !e.ativa);
+  const pendentes = paDados.pareamentos_pendentes || [];
+  const desab = (paBuscando || paOcupado) ? ' disabled' : '';
+  let html = '';
+
+  if(ativas.length === 0){
+    html += `<div class="pa-vazio">
+        <div class="pa-vazio-titulo"><span class="pa-dot off"></span>Nenhum computador conectado</div>
+        <p>Instale o Florest Print Agent no computador que possui acesso às impressoras deste estabelecimento.</p>
+        <button type="button" class="btn-accent" data-pa-acao="conectar"${desab}>Conectar este computador</button>
+      </div>`;
+  } else {
+    html += `<div class="pa-grid">${ativas.map(paCartaoHtml).join('')}</div>
+      <div class="pa-rodape"><button type="button" class="btn-secondary" data-pa-acao="conectar"${desab}>Conectar outro computador</button></div>`;
+  }
+
+  if(inativas.length){
+    html += `<div class="pa-secao-rotulo">Computadores desvinculados</div>
+      <div class="pa-grid">${inativas.map(paCartaoHtml).join('')}</div>`;
+  }
+
+  if(pendentes.length){
+    html += pendentes.map(p => `<div class="pa-pendente">
+        <span>Há um código de conexão aguardando uso (expira às ${escapeHtml(paFmtData(p.expira_em).slice(11))}).</span>
+        <button type="button" class="link-btn pa-perigo" data-pa-acao="cancelar-pendente" data-pa-pareamento="${escapeHtml(p.pareamento_id)}"${desab}>Cancelar código</button>
+      </div>`).join('');
+  }
+  area.innerHTML = html;
+}
+
+async function paCarregar(){
+  if(!podeAcessar('configuracoes')){ paRender(); return false; }
+  const seq = ++paSeq;
+  if(!paDados){ const a = $('pa-estacoes'); if(a) a.innerHTML = '<p class="modal-section-hint">Carregando estações...</p>'; }
+  const { data, error } = await supabase.rpc('impressao_estacoes_listar');
+  if(seq !== paSeq) return false;     // chegou uma leitura mais nova
+  if(error){
+    paDados = null;
+    paRender();
+    paMsgErro(impMensagemErro(error));
+    return false;
+  }
+  paDados = data || null;
+  paRender();
+  return true;
+}
+
+// ---------- Modal do código de conexão ----------
+function paFormatarTempo(seg){
+  const m = Math.floor(seg / 60), s = seg % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function paPararTimer(){
+  if(paTimer !== null){ clearInterval(paTimer); paTimer = null; }
+}
+
+function paModalEstado(estado){
+  // estado: 'gerando' | 'ativo' | 'expirado' | 'erro'
+  const ativo = estado === 'ativo';
+  $('pa-modal-corpo').classList.toggle('hidden', estado === 'erro' || estado === 'expirado');
+  $('btn-pa-copiar').classList.toggle('hidden', !ativo);
+  $('btn-pa-cancelar-codigo').classList.toggle('hidden', !ativo);
+  $('btn-pa-novo').classList.toggle('hidden', estado !== 'expirado');
+}
+
+function paLimparCodigo(){
+  const el = $('pa-codigo');
+  if(el) el.textContent = '••••-••••';
+}
+
+// Fecha o modal sem falar com o servidor (o código pendente continua válido até expirar ou ser cancelado)
+function paFecharModal(recarregar){
+  paPararTimer();
+  paModal = null;
+  paLimparCodigo();
+  $('pa-modal-msg').innerHTML = '';
+  $('modal-pa-pareamento').classList.add('hidden');
+  if(recarregar) paCarregar();
+}
+
+// Encerra TUDO que a tela do Agent mantém vivo (chamado ao sair da tela de Configurações)
+function paEncerrarTudo(){
+  paBuscaSeq++;
+  if(paModal || paTimer !== null) paFecharModal(false);
+  $('modal-pa-renomear').classList.add('hidden');
+  paRenomearId = null;
+}
+
+async function paAbrirPareamento(estacaoId){
+  if(paOcupado) return;
+  paPararTimer();
+  const m = { id: null, expiraEm: 0, ticks: 0, falhas: 0, consultando: false, estacaoId: estacaoId || null };
+  paModal = m;
+  paLimparCodigo();
+  $('pa-contagem').textContent = '--:--';
+  $('pa-modal-msg').innerHTML = '';
+  paModalEstado('gerando');
+  $('modal-pa-pareamento').classList.remove('hidden');
+
+  const params = estacaoId ? { p_estacao_id: estacaoId } : {};
+  const { data, error } = await supabase.rpc('impressao_pareamento_gerar', params);
+  if(paModal !== m) return;           // modal fechado enquanto a RPC respondia
+  if(error || !data || !data.pareamento_id || !data.codigo){
+    paModalEstado('erro');
+    $('pa-modal-msg').innerHTML = `<div class="msg error">${escapeHtml(error ? impMensagemErro(error) : 'Não foi possível gerar o código de conexão. Tente novamente.')}</div>`;
+    return;
+  }
+
+  m.id = data.pareamento_id;
+  const validade = Number(data.validade_segundos) > 0 ? Number(data.validade_segundos) : 600;
+  const exp = Date.parse(data.expira_em);
+  m.expiraEm = isNaN(exp) ? Date.now() + validade * 1000 : exp;
+  $('pa-codigo').textContent = String(data.codigo);
+  $('pa-validade').textContent = String(Math.max(1, Math.round(validade / 60)));
+  $('pa-contagem').textContent = paFormatarTempo(Math.max(0, Math.round((m.expiraEm - Date.now()) / 1000)));
+  paModalEstado('ativo');
+  paTimer = setInterval(paTick, 1000);
+}
+
+function paTick(){
+  const m = paModal;
+  const view = $('view-configuracoes');
+  // saiu da tela de Configurações (ou o modal sumiu): encerra o intervalo — nunca fica órfão
+  if(!m || !m.id || !view || view.offsetParent === null || $('modal-pa-pareamento').classList.contains('hidden')){
+    paFecharModal(false);
+    return;
+  }
+  const restante = Math.max(0, Math.round((m.expiraEm - Date.now()) / 1000));
+  $('pa-contagem').textContent = paFormatarTempo(restante);
+  if(restante <= 0){ paExpirou(); return; }
+  m.ticks++;
+  if(m.ticks % PA_POLL_A_CADA_TICKS === 0) paConsultar();
+}
+
+function paExpirou(){
+  paPararTimer();
+  paLimparCodigo();
+  paModalEstado('expirado');
+  $('pa-modal-msg').innerHTML = '<div class="msg error">Este código expirou. Gere um novo código para conectar o computador.</div>';
+}
+
+async function paConsultar(){
+  const m = paModal;
+  if(!m || !m.id || m.consultando) return;
+  m.consultando = true;
+  const { data, error } = await supabase.rpc('impressao_pareamento_consultar', { p_pareamento_id: m.id });
+  m.consultando = false;
+  if(paModal !== m) return;           // modal fechado/trocado durante a consulta
+  if(error){
+    m.falhas++;
+    if(m.falhas >= PA_POLL_MAX_FALHAS){
+      paPararTimer();
+      $('pa-modal-msg').innerHTML = '<div class="msg error">Não foi possível confirmar a conexão automaticamente. Se você já informou o código no Agent, feche esta janela e clique em Atualizar.</div>';
+    }
+    return;
+  }
+  m.falhas = 0;
+  const st = data && data.status;
+  if(st === 'usado') paConcluido();
+  else if(st === 'expirado') paExpirou();
+  else if(st === 'cancelado'){
+    paPararTimer();
+    paLimparCodigo();
+    paModalEstado('expirado');
+    $('pa-modal-msg').innerHTML = '<div class="msg error">Este código foi cancelado. Gere um novo código para conectar o computador.</div>';
+  }
+}
+
+async function paConcluido(){
+  if(!paModal) return;                // já tratado
+  paFecharModal(false);
+  paMsgOk('Florest Print Agent conectado com sucesso.');
+  await paCarregar();
+  await carregarImpressoras(true);
+}
+
+async function paCancelarCodigo(){
+  const m = paModal;
+  if(!m || !m.id || paOcupado) return;
+  paOcupado = true;
+  $('btn-pa-cancelar-codigo').disabled = true;
+  const { error } = await supabase.rpc('impressao_pareamento_cancelar', { p_pareamento_id: m.id });
+  paOcupado = false;
+  $('btn-pa-cancelar-codigo').disabled = false;
+  if(error){
+    $('pa-modal-msg').innerHTML = `<div class="msg error">${escapeHtml(impMensagemErro(error))}</div>`;
+    return;
+  }
+  paFecharModal(false);
+  paMsgOk('Código cancelado.');
+  await paCarregar();
+}
+
+async function paCopiarCodigo(){
+  const el = $('pa-codigo');
+  const texto = (el.textContent || '').trim();
+  if(!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(texto)) return;
+  let copiou = false;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(texto);
+      copiou = true;
+    }
+  } catch(e){ copiou = false; }
+  if(!copiou){
+    try{
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      copiou = document.execCommand('copy');
+    } catch(e){ copiou = false; }
+  }
+  $('pa-modal-msg').innerHTML = copiou
+    ? '<div class="msg success">Código copiado.</div>'
+    : '<div class="msg error">Não foi possível copiar automaticamente. Selecione o código e copie manualmente.</div>';
+}
+
+// ---------- Renomear / desvincular / cancelar código pendente ----------
+function paEstacaoPorId(id){
+  return ((paDados && paDados.estacoes) || []).find(e => e.id === id) || null;
+}
+
+function paAbrirRenomear(id){
+  const e = paEstacaoPorId(id);
+  if(!e) return;
+  paRenomearId = id;
+  $('pa-renomear-nome').value = e.nome || '';
+  $('pa-renomear-msg').innerHTML = '';
+  $('modal-pa-renomear').classList.remove('hidden');
+  $('pa-renomear-nome').focus();
+}
+
+async function paSalvarRenomear(){
+  if(paOcupado || !paRenomearId) return;
+  const nome = $('pa-renomear-nome').value.trim();
+  if(!nome){ $('pa-renomear-msg').innerHTML = '<div class="msg error">Informe o nome da estação.</div>'; return; }
+  paOcupado = true;
+  $('btn-pa-renomear-salvar').disabled = true;
+  const { error } = await supabase.rpc('impressao_estacao_renomear', { p_estacao_id: paRenomearId, p_nome: nome });
+  paOcupado = false;
+  $('btn-pa-renomear-salvar').disabled = false;
+  if(error){ $('pa-renomear-msg').innerHTML = `<div class="msg error">${escapeHtml(impMensagemErro(error))}</div>`; return; }
+  $('modal-pa-renomear').classList.add('hidden');
+  paRenomearId = null;
+  paMsgOk('Estação renomeada.');
+  await paCarregar();
+  await carregarImpressoras(true);    // o nome da estação aparece nos cartões/seletores de impressoras
+}
+
+async function paDesvincular(id){
+  if(paOcupado) return;
+  if(!confirm('Desvincular este computador do Florest ERP?\n\nO Print Agent deste computador deixará de sincronizar as impressoras desta empresa.')) return;
+  paOcupado = true;
+  paRender();
+  const { error } = await supabase.rpc('impressao_estacao_revogar', { p_estacao_id: id });
+  paOcupado = false;
+  if(error){ paRender(); paMsgErro(impMensagemErro(error)); return; }
+  paMsgOk('Computador desvinculado. As impressoras e as configurações já feitas foram mantidas.');
+  await paCarregar();
+  await carregarImpressoras(true);
+}
+
+async function paCancelarPendente(pareamentoId){
+  if(paOcupado) return;
+  paOcupado = true;
+  paRender();
+  const { error } = await supabase.rpc('impressao_pareamento_cancelar', { p_pareamento_id: pareamentoId });
+  paOcupado = false;
+  if(error){ paRender(); paMsgErro(impMensagemErro(error)); return; }
+  paMsgOk('Código cancelado.');
+  await paCarregar();
+}
+
+// ---------- "Buscar impressoras": pede ao Agent conectado uma nova varredura/sincronização ----------
+async function paBuscar(tela, estacaoId){
+  if(paBuscando) return;
+  const btn = $('btn-imp-buscar-' + tela);
+  const alvoMsg = (html) => impMsg(tela === 'bar' ? 'bar' : 'erp', html);
+  const textoOriginal = btn ? btn.textContent : '';
+  const visivel = () => !btn || btn.offsetParent !== null;   // saiu da tela: para de esperar
+  paBuscando = true;
+  const seq = ++paBuscaSeq;
+  if(btn){ btn.disabled = true; btn.textContent = 'Solicitando...'; }
+  paRender();
+  alvoMsg('');
+  try{
+    const { data: lista, error: erroLista } = await supabase.rpc('impressao_estacoes_listar');
+    if(seq !== paBuscaSeq) return;
+    if(erroLista){ alvoMsg(`<div class="msg error">${escapeHtml(impMensagemErro(erroLista))}</div>`); return; }
+    paAplicar(lista);
+
+    const ativas = ((lista && lista.estacoes) || []).filter(e => e.ativa && (!estacaoId || e.id === estacaoId));
+    if(ativas.length === 0){
+      alvoMsg('<div class="msg error">Nenhum computador conectado. Use “Conectar este computador” para vincular o Florest Print Agent.</div>');
+      await carregarImpressoras(true);
+      return;
+    }
+    if(!ativas.some(e => e.conectada)){
+      alvoMsg('<div class="msg error">Florest Print Agent está desconectado. Verifique se o computador está ligado e se o Agent está em execução.</div>');
+      await carregarImpressoras(true);
+      return;
+    }
+
+    const params = estacaoId ? { p_estacao_id: estacaoId } : {};
+    const { error: erroSol } = await supabase.rpc('impressao_varredura_solicitar', params);
+    if(seq !== paBuscaSeq) return;
+    if(erroSol){ alvoMsg(`<div class="msg error">${escapeHtml(impMensagemErro(erroSol))}</div>`); return; }
+    alvoMsg('<div class="msg success">Solicitação enviada ao Florest Print Agent.</div>');
+
+    // poucas releituras controladas (~30 s no máximo); o Agent atende no próximo contato com o servidor
+    let respondeu = false;
+    for(const espera of PA_BUSCA_ESPERAS_MS){
+      await paEsperar(espera);
+      if(seq !== paBuscaSeq || !visivel()) return;
+      const { data: l2, error: e2 } = await supabase.rpc('impressao_estacoes_listar');
+      if(seq !== paBuscaSeq) return;
+      if(e2) break;
+      paAplicar(l2);
+      const pendente = ((l2 && l2.estacoes) || []).some(e => e.ativa && e.conectada && (!estacaoId || e.id === estacaoId) && e.varredura_pendente);
+      if(!pendente){ respondeu = true; break; }
+    }
+    if(seq !== paBuscaSeq) return;
+    const okLeitura = await carregarImpressoras(true);
+    if(!okLeitura) return;              // a própria releitura já mostrou o erro
+    const qtd = ((impConfig && impConfig.impressoras) || []).length;
+    alvoMsg(respondeu
+      ? `<div class="msg success">Lista atualizada: ${qtd} impressora${qtd === 1 ? '' : 's'} ${qtd === 1 ? 'disponível' : 'disponíveis'}.</div>`
+      : '<div class="msg success">Solicitação enviada ao Florest Print Agent. Ele ainda não respondeu; a lista é atualizada no próximo contato do Agent (até cerca de 2 minutos). Você pode clicar em Buscar impressoras novamente em instantes.</div>');
+  } finally {
+    paBuscando = false;
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+    paRender();
+  }
+}
+
+// ---------- Eventos da área do Agent ----------
+$('painel-impressoras').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pa-acao]');
+  if(!b || b.disabled) return;
+  const acao = b.dataset.paAcao;
+  const id = b.dataset.paEstacao || null;
+  if(acao === 'conectar') paAbrirPareamento(null);
+  else if(acao === 'reconectar') paAbrirPareamento(id);
+  else if(acao === 'atualizar'){ paMsg(''); paCarregar(); }
+  else if(acao === 'buscar') paBuscar('erp', id);
+  else if(acao === 'renomear') paAbrirRenomear(id);
+  else if(acao === 'desvincular') paDesvincular(id);
+  else if(acao === 'cancelar-pendente') paCancelarPendente(b.dataset.paPareamento);
+});
+$('btn-pa-copiar').addEventListener('click', paCopiarCodigo);
+$('btn-pa-cancelar-codigo').addEventListener('click', paCancelarCodigo);
+$('btn-pa-fechar').addEventListener('click', () => paFecharModal(true));
+$('btn-pa-novo').addEventListener('click', () => { const alvo = paModal && paModal.estacaoId; paAbrirPareamento(alvo || null); });
+$('btn-pa-renomear-cancelar').addEventListener('click', () => { $('modal-pa-renomear').classList.add('hidden'); paRenomearId = null; });
+$('btn-pa-renomear-salvar').addEventListener('click', paSalvarRenomear);
+$('pa-renomear-nome').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); paSalvarRenomear(); } });
 
 // =====================================================================
 // MÓDULO PET (opcional, por empresa) — Agenda / Pets / Pacotes
@@ -7618,7 +8175,7 @@ const CARREGADORES_VIEW = {
   'financeiro': () => carregarFinanceiro(),
   'fiscal': () => carregarFiscal(),
   'relatorios': () => prepararCentralRelatorios(),
-  'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); },
+  'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
   // ---- Módulo comercial: PET ----
   'agenda': () => carregarAgendaView(),
@@ -7630,6 +8187,7 @@ const CARREGADORES_VIEW = {
 
 function abrirView(view){
   if(!podeAcessar(view.replace(/-/g, '_'))) return;   // sem permissão: não abre (o banco também recusa os dados)
+  if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
   $('aviso-sem-acesso').classList.add('hidden');
   document.querySelectorAll('.nav-item.enabled').forEach(i => i.classList.toggle('active', i.dataset.view === view));
   Object.keys(CARREGADORES_VIEW).forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
