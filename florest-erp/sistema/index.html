@@ -7411,7 +7411,8 @@ function impCardHtml(d, tela){
         <div class="rel-secao-titulo">${escapeHtml(d.rotulo)}</div>
         ${central ? '<span class="imp-tag">Configuração central da empresa</span>' : ''}
       </div>
-      <div class="imp-atual"><div class="imp-atual-rotulo">Impressora selecionada</div>${atualHtml}</div>
+      <div class="imp-atual"><div class="imp-atual-rotulo">Impressora selecionada</div>${atualHtml}
+        ${atual ? `<div class="imp-acoes" style="margin-top:8px;"><button type="button" class="btn-secondary" data-imp-acao="teste">Imprimir teste</button></div>` : ''}</div>
       ${corpo}
     </div>`;
 }
@@ -7488,12 +7489,74 @@ async function impBuscar(tela){
 $('btn-imp-buscar-erp').addEventListener('click', () => impBuscar('erp'));
 $('btn-imp-buscar-bar').addEventListener('click', () => impBuscar('bar'));
 
+// Recibo NÃO FISCAL do Caixa (Migration 033): enfileira o papel para a impressora do destino "Caixa". Nunca bloqueia nem
+// avisa erro ao operador: a venda/pagamento já está gravado e, sem impressora configurada, simplesmente não imprime.
+// Não tem relação com NFC-e/NFS-e (o fiscal segue o fluxo próprio).
+function impEnfileirarRecibo(tipo, id){
+  if(!id) return;
+  try {
+    const bar = tipo === 'bar';
+    Promise.resolve(supabase.rpc(bar ? 'impressao_recibo_bar_enfileirar' : 'impressao_recibo_venda_enfileirar',
+      bar ? { p_pagamento_id: id } : { p_venda_id: id })).catch(() => {});
+  } catch(e){ /* sem recibo: segue */ }
+}
+
+// Acompanha o job de teste na fila (somente leitura; o RLS limita à empresa e à permissão de configuração) e mostra o resultado
+// real: aguardando o agente, impresso ou falha com o motivo. Para sozinho ao terminar, ao passar de ~40 s ou ao sair da tela.
+let impAcompanhaSeq = 0;
+async function impAcompanharTeste(tela, rotulo, jobId){
+  const seq = ++impAcompanhaSeq;
+  const inicio = Date.now();
+  const nomes = { pendente: 'aguardando o Florest Print Agent', processando: 'o agente recebeu e está imprimindo', impresso: 'IMPRESSO — o papel deve ter saído', falhou: 'FALHOU', cancelado: 'cancelado' };
+  while(seq === impAcompanhaSeq && Date.now() - inicio < 40000){
+    await new Promise(r => setTimeout(r, 3000));
+    if(seq !== impAcompanhaSeq || !$('imp-' + tela + '-msg')) return;
+    let linha = null;
+    try {
+      const { data } = await supabase.from('impressao_jobs').select('status, tentativas, max_tentativas, erro_mensagem').eq('id', jobId).maybeSingle();
+      linha = data || null;
+    } catch(e){ linha = null; }
+    if(!linha) continue;
+    const final = linha.status === 'impresso' || linha.status === 'falhou' || linha.status === 'cancelado';
+    const ok = linha.status === 'impresso';
+    let texto = `${escapeHtml(rotulo)}: teste ${escapeHtml(nomes[linha.status] || linha.status)}.`;
+    if(linha.status === 'pendente' && linha.erro_mensagem) texto += ` Última tentativa (${Number(linha.tentativas) || 0}/${Number(linha.max_tentativas) || 0}): ${escapeHtml(linha.erro_mensagem)}`;
+    if(linha.status === 'falhou' && linha.erro_mensagem) texto += ` ${escapeHtml(linha.erro_mensagem)}`;
+    impMsg(tela, `<div class="msg ${ok ? 'success' : (final ? 'error' : 'success')}">${texto}</div>`);
+    if(final) return;
+  }
+}
+
 async function impAgir(tela, card, acao){
   if(impOcupado) return;
   const codigo = card.dataset.impDestino;
   const destino = ((impConfig && impConfig.destinos) || []).find(d => d.codigo === codigo);
   if(!destino) return;
   const rotulo = destino.rotulo;
+
+  // "Imprimir teste": enfileira um papel de teste (Migration 033). Quem imprime é o Florest Print Agent do computador da
+  // impressora; o navegador NÃO imprime. Só enfileira — não altera a configuração.
+  if(acao === 'teste'){
+    impOcupado = true;
+    impMsg(tela, '');
+    const btnT = card.querySelector('button[data-imp-acao="teste"]');
+    if(btnT) btnT.disabled = true;
+    const { data: dt, error: et } = await supabase.rpc('impressao_teste_enfileirar', { p_destino: codigo });
+    impOcupado = false;
+    if(btnT) btnT.disabled = false;
+    if(et){
+      const semMig = et.code === 'PGRST202' || et.code === '42883';
+      impMsg(tela, `<div class="msg error">${escapeHtml(semMig ? 'O recurso de impressão de pedidos ainda não foi ativado no banco de dados (falta a Migration 033).' : (et.message || 'Não foi possível enviar o teste.'))}</div>`);
+      return;
+    }
+    if(dt && dt.impressora_configurada === false){
+      impMsg(tela, `<div class="msg error">${escapeHtml(rotulo)}: nenhuma impressora selecionada.</div>`);
+      return;
+    }
+    impMsg(tela, `<div class="msg success">${escapeHtml(rotulo)}: teste enviado. O Florest Print Agent do computador da impressora imprime em alguns segundos. Se o papel não sair, abra o Tray do agente e veja "Última impressão".</div>`);
+    if(dt && dt.job_id) impAcompanharTeste(tela, rotulo, dt.job_id);
+    return;
+  }
 
   let rpc, params, sucesso;
   if(acao === 'salvar'){
@@ -10684,6 +10747,7 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   renderCarrinho();
   $('pdv-busca-produto').focus();
 
+  impEnfileirarRecibo('venda', vendaId);   // recibo não fiscal na impressora do Caixa (se configurada)
   if(vendaId && numeroVenda){
     abrirModalVendaConcluida(vendaId, numeroVenda);
   }
@@ -12753,6 +12817,7 @@ async function cmdFinalizar(prazo){
     ok = true;
     cmdChaves.delete(f.sessaoId);
     const r = data || {};
+    impEnfileirarRecibo('venda', r.venda_id);                   // recibo não fiscal na impressora do Caixa (se configurada)
     cmdFecharTelaComanda();                                     // fecha comanda + finalizar + confirmação
     if(prazo){
       cmdMostrarOk('Nota a Prazo registrada.', [
@@ -16845,6 +16910,7 @@ async function receberPagamentoMesaComForma(forma){
       return;
     }
     const resultado = (data && data[0]) || null;
+    if(resultado) impEnfileirarRecibo('bar', resultado.pagamento_id);   // recibo não fiscal do pagamento (Caixa)
     barMesaAjustesTocados = false;
     $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
       ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado em ${escapeHtml(forma)}. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
