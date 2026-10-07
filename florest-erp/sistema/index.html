@@ -933,6 +933,10 @@
     z-index:100;
     display:flex;
     align-items:center;
+  }
+  .maria-fab-btn{
+    display:flex;
+    align-items:center;
     gap:10px;
     background:transparent;
     border:none;
@@ -940,6 +944,24 @@
     cursor:pointer;
     font-family: var(--font-body);
   }
+  /* "X": fecha só o atalho (por 3 minutos); fica no canto superior direito do avatar */
+  .maria-fab-x{
+    position:absolute;
+    top:18px; right:18px;
+    width:30px; height:30px;
+    border-radius:50%;
+    background:#fff;
+    color: var(--florest-navy);
+    border:1px solid var(--border);
+    box-shadow:0 2px 8px rgba(11,42,77,0.28);
+    font-size:20px; line-height:1; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 0 2px;
+    cursor:pointer;
+    font-family: var(--font-body);
+  }
+  .maria-fab-x:hover{ background: var(--accent-soft); }
+  .maria-fab-x:focus-visible{ outline:3px solid var(--florest-blue); outline-offset:2px; }
   .maria-fab-balao{
     background:#fff;
     color: var(--ink);
@@ -980,18 +1002,83 @@
   }
   .maria-fab-avatar img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:50%; }
   .maria-fab:hover .maria-fab-avatar{ transform: translateY(-2px); }
-  .maria-fab:focus-visible .maria-fab-avatar{ outline:3px solid var(--florest-blue); outline-offset:2px; }
+  .maria-fab-btn:focus-visible .maria-fab-avatar{ outline:3px solid var(--florest-blue); outline-offset:2px; }
   @media (max-width: 760px){
     .maria-chat{ height: calc(100vh - 190px); height: calc(100dvh - 190px); min-height:380px; }
     .maria-mensagens{ padding:14px; }
     .maria-msg{ max-width:92%; }
     .maria-fab{ right:12px; bottom:12px; }
     .maria-fab-avatar{ width:110px; height:110px; min-width:110px; min-height:110px; font-size:46px; }
+    .maria-fab-x{ top:3px; right:3px; width:26px; height:26px; font-size:18px; }
     .maria-fab-balao{ font-size:12px; padding:6px 10px; }
   }
   @media (max-width: 380px){
     .maria-fab-balao{ display:none; }
   }
+
+  /* ---------- CONTROLE DE CAIXA (Migration 032) — Caixa PDV e Caixa do Bar ---------- */
+  .cx-badge{
+    display:inline-block; padding:5px 12px; border-radius:999px; font-size:12px; font-weight:800;
+    letter-spacing:.06em; text-transform:uppercase;
+  }
+  .cx-badge-aberto{ background:var(--teal-soft); color:var(--teal); }
+  .cx-badge-fechado{ background:var(--danger-soft); color:var(--danger); }
+  .cx-painel{ max-width:760px; }
+  .cx-topo{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .cx-sub{ font-size:14px; font-weight:600; color:var(--ink-soft); }
+  .cx-texto{ font-size:14px; color:var(--ink-soft); margin:0 0 14px; }
+  .cx-info{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+  .cx-info div{ background:#F3F4F6; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .cx-info small{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:700; }
+  .cx-info b{ font-size:15px; overflow-wrap:anywhere; }
+  .cx-tabela{ width:100%; border-collapse:collapse; font-size:14px; margin:6px 0 10px; }
+  .cx-tabela th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); padding:6px 8px; border-bottom:2px solid var(--border); }
+  .cx-tabela td{ padding:8px; border-bottom:1px solid var(--border); }
+  .cx-tabela tfoot td{ font-weight:800; font-size:15px; border-top:2px solid var(--florest-navy); border-bottom:none; }
+  .cx-tabela .cx-num{ text-align:right; white-space:nowrap; }
+  .cx-tabela tr.cx-extra td{ color:var(--ink-soft); font-size:13px; font-style:italic; }
+  .cx-saldo-dinheiro{ font-size:13px; color:var(--ink-soft); margin:2px 0 14px; }
+  .cx-saldo-dinheiro b{ color:var(--ink); font-size:15px; margin:0 4px; }
+  .cx-acoes{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  .cx-acoes button{ min-height:44px; }
+  .cx-campo-valor{ max-width:260px; }
+  .cx-campo-valor input{ font-size:18px; font-weight:700; }
+  .cx-msg:empty{ display:none; }
+  .cx-msg{ margin-top:10px; }
+  .cx-hist{ margin-top:22px; }
+  .cx-hist:empty{ display:none; }
+  .cx-hist-titulo{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:0 0 6px; }
+  .cx-vazio{ color:var(--ink-soft); font-size:14px; }
+  .cx-chip{
+    display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:700;
+    border:1px solid var(--border); background:#fff; color:var(--ink); cursor:pointer; font-family:var(--font-body);
+  }
+  .cx-chip.aberto{ background:var(--teal-soft); color:var(--teal); border-color:transparent; }
+  .cx-chip.fechado{ background:var(--danger-soft); color:var(--danger); border-color:transparent; }
+  .cx-aviso{ background:var(--danger-soft); color:var(--danger); border-radius:8px; padding:8px 12px; font-weight:600; font-size:13px; }
+  .cx-comp-aviso{ background:var(--accent-soft); color:var(--florest-navy); border-radius:8px; padding:8px 12px; font-size:13px; margin:0 0 10px; }
+  .cx-det-mov{ max-height:300px; overflow:auto; border:1px solid var(--border); border-radius:8px; }
+  .cx-det-mov .cx-tabela{ margin:0; }
+  .cx-tag-cancel{ color:var(--danger); font-weight:700; font-size:12px; }
+  .cx-confirma-aviso{ font-size:14px; margin:14px 0 4px; font-weight:600; }
+  /* faixa do Caixa PDV (logo abaixo do cabeçalho do PDV) */
+  .cx-faixa{
+    flex:0 0 auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:7px 18px; font-size:14px; font-weight:600; border-bottom:1px solid rgba(0,0,0,.08);
+  }
+  .cx-faixa-fechado{ background:#FDECEA; color:#8A1C14; }
+  .cx-faixa-aberto{ background:#E3F6EC; color:#0E5A36; }
+  .cx-faixa-neutro{ background:#EEF0F3; color:#4A505C; }
+  .cx-faixa-badge{ font-weight:800; letter-spacing:.06em; }
+  .cx-faixa-txt{ flex:1 1 220px; min-width:0; }
+  .cx-faixa .pdx-btn{ padding:8px 16px; font-size:13px; }
+  .pdx-hinfo b.cx-st-aberto{ color:#6EE7A8; }
+  .pdx-hinfo b.cx-st-fechado{ color:#FF9C92; }
+  @media (max-width: 640px){
+    .cx-info{ grid-template-columns:1fr; }
+    .cx-faixa{ padding:7px 10px; }
+  }
+  @media print{ .cx-no-print{ display:none !important; } }
 
   /* ---------- TABELA ---------- */
   .table-card{
@@ -2953,11 +3040,19 @@
         </div>
         <div class="pdx-hinfo">
           <div><small>Operador</small><b id="pdx-operador">—</b></div>
-          <div><small>Caixa</small><b>01</b></div>
+          <div><small>Caixa</small><b id="pdx-caixa-status">—</b></div>
           <div><small>Data / hora</small><b id="pdx-relogio">—</b></div>
         </div>
         <button type="button" class="pdx-btn-sair" id="btn-sair-pdv">&larr; Sair do PDV</button>
       </header>
+
+      <!-- Controle de caixa (Migration 032): faixa do Caixa PDV -->
+      <div class="cx-faixa hidden" id="pdx-caixa-faixa">
+        <span class="cx-faixa-badge" id="pdx-caixa-faixa-badge">CAIXA</span>
+        <span class="cx-faixa-txt" id="pdx-caixa-faixa-txt"></span>
+        <button type="button" class="pdx-btn pdx-btn-amarelo hidden" id="btn-pdx-caixa-abrir">ABRIR CAIXA</button>
+        <button type="button" class="pdx-btn pdx-btn-cinza hidden" id="btn-pdx-caixa-gerenciar">CAIXA</button>
+      </div>
 
       <div class="pdx-atalhos">
         <span class="pdx-atalhos-rot">Atalhos</span>
@@ -3733,6 +3828,7 @@
       </div>
       <div class="bar-subnav" id="bar-subnav">
         <button type="button" class="bar-subnav-item active" data-barview="mesas">Mesas</button>
+        <button type="button" class="bar-subnav-item" data-barview="caixa">Caixa</button>
         <button type="button" class="bar-subnav-item" data-barview="garcons">Garçons</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
         <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
@@ -3743,11 +3839,17 @@
       <!-- ---- SUBVIEW: MESAS ---- -->
       <div id="bar-sub-mesas" class="bar-subview">
         <div class="bar-mesas-acoes">
+          <button type="button" class="cx-chip hidden" id="bar-caixa-chip" title="Abrir a tela do Caixa do Bar"></button>
           <button type="button" class="btn-secondary" id="btn-bar-estornar-busca" style="width:auto;">↩ Estornar pagamento</button>
         </div>
         <div id="bar-mesas-msg"></div>
         <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Clique em "⚙ Configurar mesas" para definir a quantidade.</div>
         <div id="bar-mesas-grid" class="bar-mesas-grid"></div>
+      </div>
+
+      <!-- ---- SUBVIEW: CAIXA DO BAR (Migration 032) ---- -->
+      <div id="bar-sub-caixa" class="bar-subview hidden">
+        <div id="bar-caixa-painel"></div>
       </div>
 
       <!-- ---- SUBVIEW: PRODUTOS COMPOSTOS (ex-"Produtos do Bar") ----
@@ -4104,10 +4206,47 @@
   </div>
 
   <!-- MARIA: atalho flutuante. Só aparece nas telas "normais" do ERP (ver MARIA_FLUTUANTE_OCULTA_EM no script). -->
-  <button type="button" class="maria-fab hidden" id="maria-flutuante" aria-label="Abrir a MARIA, assistente inteligente">
-    <span class="maria-fab-balao">O que quer saber?</span>
-    <span class="maria-fab-avatar" id="maria-fab-avatar"><span id="maria-fab-placeholder">M</span></span>
-  </button>
+  <div class="maria-fab hidden" id="maria-flutuante">
+    <button type="button" class="maria-fab-btn" id="maria-fab-abrir" aria-label="Abrir a MARIA, assistente inteligente">
+      <span class="maria-fab-balao">O que quer saber?</span>
+      <span class="maria-fab-avatar" id="maria-fab-avatar"><span id="maria-fab-placeholder">M</span></span>
+    </button>
+    <button type="button" class="maria-fab-x" id="maria-fab-x" title="Fechar por 3 minutos" aria-label="Fechar o atalho da MARIA por 3 minutos">&times;</button>
+  </div>
+</div>
+
+<!-- ===== MODAIS DO CONTROLE DE CAIXA (Migration 032) ===== -->
+<div id="modal-caixa-pdv" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card modal-card-wide">
+    <div class="cx-topo" style="justify-content:space-between;">
+      <h3 style="margin:0;">Caixa PDV</h3>
+      <button type="button" class="btn-secondary" id="btn-cx-pdv-fechar-janela">Voltar à venda</button>
+    </div>
+    <div id="pdv-caixa-painel"></div>
+  </div>
+</div>
+
+<div id="modal-caixa-fechar" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card modal-card-wide">
+    <h3 id="cx-fechar-titulo" style="margin-top:0;">Fechar caixa</h3>
+    <div id="cx-fechar-corpo"></div>
+    <div id="cx-fechar-msg"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cx-fechar-cancelar">CANCELAR</button>
+      <button type="button" class="btn-perigo" id="btn-cx-fechar-confirmar">CONFIRMAR FECHAMENTO</button>
+      <button type="button" class="btn-accent hidden" id="btn-cx-fechar-ok" style="width:auto;">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-caixa-detalhe" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card modal-card-wide">
+    <h3 id="cx-det-titulo" style="margin-top:0;">Detalhe do caixa</h3>
+    <div id="cx-det-corpo"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-cx-det-fechar">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== MODAL: IMPORTAR XML / CONFERÊNCIA DA NOTA DE ENTRADA ===== -->
@@ -5112,6 +5251,7 @@
 
         <div class="modal-section-label" style="margin-top:0;">Receber pagamento</div>
         <p class="modal-section-hint" id="bar-mesa-pagamento-dica" style="margin-top:-6px;"></p>
+        <p class="cx-aviso hidden" id="bar-mesa-caixa-aviso" style="margin:0 0 10px;"></p>
         <div class="field">
           <label>Valor a receber agora (R$)</label>
           <input type="number" id="bar-mesa-pagamento-valor" min="0.01" step="0.01">
@@ -8844,10 +8984,56 @@ let viewAtual = null;       // view aberta no momento (null = nenhuma / fora do 
 let mariaEnviando = false;  // trava contra envio duplo
 let mariaSeq = 0;           // muda a cada reinício; descarta respostas que chegam depois de logout/novo login
 
-function atualizarMariaFlutuante(){
-  const esconder = !viewAtual || MARIA_FLUTUANTE_OCULTA_EM.includes(viewAtual);
-  $('maria-flutuante').classList.toggle('hidden', esconder);
+// "X" do atalho: esconde o atalho em TODO o ERP por 3 minutos (só o atalho — a tela da MARIA continua no menu).
+// O instante de volta fica em sessionStorage ('maria_oculta_ate', ms desde 1970): sobrevive a F5/troca de módulo,
+// some ao fechar a aba. Se o navegador bloquear o sessionStorage, vale uma variável em memória.
+// Um ÚNICO temporizador reexibe o atalho; ele só reavalia — nunca sobrepõe a regra de tela (MARIA_FLUTUANTE_OCULTA_EM).
+const MARIA_OCULTA_CHAVE = 'maria_oculta_ate';
+const MARIA_OCULTA_MS = 3 * 60 * 1000;
+let mariaOcultaMem = 0;       // reserva, usada só se o sessionStorage não estiver disponível
+let mariaOcultaUsaMem = false;
+let mariaOcultaTimer = null;  // no máximo UM pendente
+
+function mariaOcultaAte(){
+  if(!mariaOcultaUsaMem){
+    try { return Number(sessionStorage.getItem(MARIA_OCULTA_CHAVE)) || 0; }
+    catch(e){ mariaOcultaUsaMem = true; }
+  }
+  return mariaOcultaMem;
 }
+function mariaOcultaGravar(ate){
+  mariaOcultaMem = ate;
+  if(mariaOcultaUsaMem) return;
+  try {
+    if(ate) sessionStorage.setItem(MARIA_OCULTA_CHAVE, String(ate)); else sessionStorage.removeItem(MARIA_OCULTA_CHAVE);
+  } catch(e){ mariaOcultaUsaMem = true; }
+}
+function mariaOcultaAtiva(){
+  const ate = mariaOcultaAte();
+  if(!ate) return false;
+  if(Date.now() >= ate){ mariaOcultaGravar(0); return false; }   // venceu: limpa a chave
+  return true;
+}
+function mariaAgendarReaparecer(){
+  if(mariaOcultaTimer){ clearTimeout(mariaOcultaTimer); mariaOcultaTimer = null; }
+  const resta = mariaOcultaAte() - Date.now();
+  if(!(resta > 0)) return;
+  mariaOcultaTimer = setTimeout(() => { mariaOcultaTimer = null; atualizarMariaFlutuante(); }, resta + 50);
+}
+function atualizarMariaFlutuante(){
+  const porTela = !viewAtual || MARIA_FLUTUANTE_OCULTA_EM.includes(viewAtual);   // regra de tela: sempre vale primeiro
+  const porTempo = mariaOcultaAtiva();
+  if(porTempo){ if(!mariaOcultaTimer) mariaAgendarReaparecer(); }
+  else if(mariaOcultaTimer){ clearTimeout(mariaOcultaTimer); mariaOcultaTimer = null; }
+  $('maria-flutuante').classList.toggle('hidden', porTela || porTempo);
+}
+function mariaOcultarPorTempo(){
+  mariaOcultaGravar(Date.now() + MARIA_OCULTA_MS);
+  mariaAgendarReaparecer();
+  atualizarMariaFlutuante();
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) atualizarMariaFlutuante(); });
+mariaAgendarReaparecer();     // se a aba foi recarregada dentro dos 3 minutos, o temporizador volta a existir
 
 function mariaAplicarAvatar(){
   const box = $('maria-fab-avatar');
@@ -8979,7 +9165,10 @@ function mariaAbrir(){
     campo.style.height = 'auto';
     campo.style.height = Math.min(campo.scrollHeight, 120) + 'px';
   });
-  $('maria-flutuante').addEventListener('click', () => abrirView('maria'));
+  $('maria-flutuante').addEventListener('click', (ev) => {
+    if(ev.target.closest('#maria-fab-x')){ ev.stopPropagation(); mariaOcultarPorTempo(); return; }   // X: só esconde o atalho
+    abrirView('maria');
+  });
   mariaAplicarAvatar();
   mariaReiniciar();
 })();
@@ -9964,6 +10153,12 @@ function pdvValidarEstoque(produto, quantidade){
 }
 
 function adicionarProdutoAoCarrinho(produto, quantidadeAdicionar = 1){
+  if(cxFechadoCerto('PDV')){        // Controle de caixa: sem Caixa PDV aberto não há venda (o banco também recusa)
+    pdvMensagem(escapeHtml(CX_MSG_PDV_FECHADO));
+    beepPdv();
+    cxPdvAtualizar();               // reconfere: se o caixa foi aberto em outro terminal, a próxima tentativa passa
+    return false;
+  }
   pdvMensagem('');
   const disponivel = Number(produto.quantidade_estoque ?? 0);
 
@@ -10464,6 +10659,11 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   atualizarPainelPagamentoPdv(); // reabilita o botão só se os pagamentos ainda estiverem completos
 
   if(error){
+    if(error.code === 'CX001'){     // Controle de caixa: caixa fechado entre o último passo e a finalização
+      pdvMensagem(escapeHtml(error.message));
+      cxPdvAtualizar();
+      return;
+    }
     pdvMensagem('Erro ao registrar venda: ' + escapeHtml(error.message));
     return;
   }
@@ -10644,6 +10844,7 @@ function pdxIniciar(){
   atualizarPainelPagamentoPdv();
   $('btn-pdx-config-atalhos').classList.toggle('hidden', !pdxPodeConfigurar());   // funcionário só usa os atalhos
   pdxAtalhosCarregar().then(pdxRenderAtalhos);
+  cxPdvAtualizar();                                                                // Controle de caixa: faixa/estado do Caixa PDV
 }
 
 // ----- linha compacta de atalhos -----
@@ -11352,6 +11553,7 @@ function msgErroRpc(err, padrao){
   console.error('[Comandas/Contas a Receber] erro de RPC:', err);
   const m = String((err && (err.message || err.msg)) || '');
   const code = err && err.code;
+  if(code === 'CX001' || code === 'CX002' || code === 'CX003') return m;   // Controle de caixa: texto já vem pronto do banco
   const rede = !code && (err instanceof TypeError || /failed to fetch|networkerror|load failed|network request failed|timeout|timed out|fetch/i.test(m));
   if(rede) return 'Sem conexão com o servidor. Verifique a internet e tente de novo.';
   if(typeof pdxRpcInexistente === 'function' && pdxRpcInexistente(err)) return 'Esta função ainda não está disponível no sistema. Avise o suporte.';
@@ -11371,6 +11573,515 @@ function msgErroRpc(err, padrao){
   // exceções de regra de negócio da própria migration (P0001 / 42501 com texto em português) podem ser mostradas
   if((code === 'P0001' || code === '42501') && m && m.length < 220 && !/\bpublic\.|\bprivate\.|SQLSTATE|violates|syntax|relation|constraint/i.test(m)) return m;
   return padrao || 'Não foi possível concluir. Atualize a tela e tente novamente.';
+}
+
+// =====================================================================
+// CONTROLE DE CAIXA (Migration 032) — Caixa PDV e Caixa do Bar, independentes
+// =====================================================================
+// Duas sessões de caixa por empresa, uma de cada tipo (PDV e BAR), que nunca se misturam. A FONTE DA
+// VERDADE É O BANCO: o frontend só consulta (caixa_atual), abre (caixa_abrir), fecha (caixa_fechar) e
+// lê relatórios (caixa_listar/caixa_detalhe). Os totais por forma de pagamento vêm sempre calculados
+// no banco a partir dos movimentos vinculados ao caixa — nada é digitado nem somado aqui.
+//   • PDV: sem Caixa PDV aberto não há venda (balcão, comanda paga ou Nota a Prazo). O PDV avisa na
+//     tela, mas quem realmente barra é o banco (registrar_venda_mista / pdv_comanda_finalizar).
+//   • Bar: abrir mesa, lançar e enviar pedidos NÃO exigem caixa; só RECEBER pagamento exige o Caixa do
+//     Bar aberto (bar_comanda_pagar_valor). A tela "Caixa" fica no próprio Módulo Bar (aba ao lado de
+//     Mesas), sem novo item no menu lateral.
+// Se o banco ainda não tem a Migration 032, o PDV continua funcionando como antes (a faixa avisa).
+const CX_TIPOS = {
+  PDV: { nome: 'Caixa PDV', painel: 'pdv-caixa-painel' },
+  BAR: { nome: 'Caixa do Bar', painel: 'bar-caixa-painel' },
+};
+const CX_MSG_PDV_FECHADO = 'Não existe Caixa PDV aberto. Abra o caixa para continuar.';
+const CX_MSG_BAR_FECHADO = 'O Caixa do Bar está fechado. Abra o caixa para receber este pagamento.';
+const CX_ROTULO_FORMA = { 'Pix': 'PIX' };
+const CX_PERMISSOES_BAR = ['bar_caixa', 'relatorios', 'financeiro', 'dashboard'];   // quem enxerga a aba Caixa do Bar
+const cxEstado = { PDV: null, BAR: null };   // última resposta de caixa_atual(tipo); null = ainda não consultado
+const cxSeq = { PDV: 0, BAR: 0 };            // descarta resposta de consulta antiga que chega depois de uma mais nova
+let cxOcupado = false;                       // trava de abrir/fechar-preparar
+let cxFechando = false;                      // trava do botão CONFIRMAR FECHAMENTO
+let cxFecharTipo = null;
+let cxFecharCaixaId = null;
+
+const cxRotuloForma = (f) => CX_ROTULO_FORMA[f] || f;
+function cxDataHora(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function cxHora(iso){
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+// "1.234,50" / "1234,5" / "1234.50" / "" (vazio = 0) -> número com 2 casas; inválido -> null
+function cxParseValor(txt){
+  let s = String(txt == null ? '' : txt).replace(/R\$/gi, '').replace(/\s/g, '');
+  if(s === '') return 0;
+  if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  if(!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const n = Number(s);
+  if(!isFinite(n) || n < 0 || n > 99999999999.99) return null;
+  return Math.round(n * 100) / 100;
+}
+function cxMsgErro(err, padrao){
+  const code = err && err.code;
+  const m = String((err && err.message) || '');
+  if(code === 'CX001' || code === 'CX002' || code === 'CX003') return m;   // mensagens do próprio banco, já no texto pedido
+  if(typeof pdxRpcInexistente === 'function' && pdxRpcInexistente(err)) return 'O controle de caixa ainda não foi ativado no banco (falta executar a Migration 032).';
+  return msgErroRpc(err, padrao || 'Não foi possível concluir a operação do caixa. Tente novamente.');
+}
+function cxMsg(tipo, texto, tipoMsg){ msgBox('cx-msg-' + tipo, texto, tipoMsg); }
+
+// ---- estado ----
+async function cxCarregar(tipo){
+  const sq = ++cxSeq[tipo];
+  let resp;
+  try { resp = await supabase.rpc('caixa_atual', { p_tipo: tipo }); }
+  catch(e){ resp = { data: null, error: e }; }
+  if(sq !== cxSeq[tipo]) return cxEstado[tipo];              // chegou depois de uma consulta mais nova
+  const { data, error } = resp;
+  if(error){
+    // aberto:null = não sei (sem Migration 032, sem rede, sem permissão): a tela NÃO barra nada sozinha; o banco decide.
+    cxEstado[tipo] = { aberto: null, erro: cxMsgErro(error), indisponivel: !!(typeof pdxRpcInexistente === 'function' && pdxRpcInexistente(error)) };
+    return cxEstado[tipo];
+  }
+  cxEstado[tipo] = {
+    aberto: !!(data && data.aberto),
+    caixa: (data && data.caixa) || null,
+    resumo: (data && data.resumo) || null,
+    pode_operar: !!(data && data.pode_operar),
+  };
+  return cxEstado[tipo];
+}
+const cxFechadoCerto = (tipo) => !!cxEstado[tipo] && cxEstado[tipo].aberto === false;
+
+function cxAposMudanca(tipo){
+  cxRenderPainel(tipo);
+  if(tipo === 'PDV') cxPdvUI(); else cxBarChipRender();
+}
+
+// ---- HTML dos painéis ----
+function cxHtmlResumo(r){
+  const formas = (r && r.por_forma) || [];
+  const linhas = formas.map(f => `<tr><td>${escapeHtml(cxRotuloForma(f.forma))}</td><td class="cx-num">${Number(f.qtd) || 0}</td><td class="cx-num">${brl(f.total)}</td></tr>`).join('');
+  const extras = [];
+  const par = (o) => ({ qtd: Number(o && o.qtd) || 0, total: Number(o && o.total) || 0 });
+  const prazo = par(r.a_prazo), canc = par(r.canceladas), est = par(r.estornos);
+  if(r.tipo_caixa === 'PDV' && prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas a prazo (valor a receber, fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
+  if(r.tipo_caixa === 'PDV' && canc.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas canceladas (fora do total)</td><td class="cx-num">${canc.qtd}</td><td class="cx-num">${brl(canc.total)}</td></tr>`);
+  if(r.tipo_caixa === 'BAR' && est.qtd > 0) extras.push(`<tr class="cx-extra"><td>Pagamentos estornados (fora do total)</td><td class="cx-num">${est.qtd}</td><td class="cx-num">${brl(est.total)}</td></tr>`);
+  const rotuloOper = r.tipo_caixa === 'PDV' ? 'vendas' : 'recebimentos';
+  return `<table class="cx-tabela">
+    <thead><tr><th>Forma de pagamento</th><th class="cx-num">Lanç.</th><th class="cx-num">Valor</th></tr></thead>
+    <tbody>${linhas}${extras.join('')}</tbody>
+    <tfoot><tr><td>Total recebido <small style="font-weight:600;">(${Number(r.qtd_operacoes) || 0} ${rotuloOper})</small></td><td></td><td class="cx-num">${brl(r.total_recebido)}</td></tr></tfoot>
+  </table>`;
+}
+
+function cxHtmlAberto(tipo, est){
+  const c = est.caixa, r = est.resumo;
+  return `<div class="cx-painel">
+    <div class="cx-topo"><span class="cx-badge cx-badge-aberto">CAIXA ABERTO</span><span class="cx-sub">${escapeHtml(CX_TIPOS[tipo].nome)} nº ${Number(c.numero)}</span></div>
+    <div class="cx-info">
+      <div><small>Operador</small><b>${escapeHtml(c.aberto_por_nome || '—')}</b></div>
+      <div><small>Aberto em</small><b>${escapeHtml(cxDataHora(c.aberto_em))}</b></div>
+      <div><small>Valor inicial</small><b>${brl(c.valor_inicial)}</b></div>
+    </div>
+    ${cxHtmlResumo(r)}
+    <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b> (valor inicial + recebido em dinheiro)</div>
+    <div class="cx-msg" id="cx-msg-${tipo}"></div>
+    <div class="cx-acoes">
+      <button type="button" class="btn-secondary" data-cx-acao="atualizar" data-cx-tipo="${tipo}">Atualizar</button>
+      ${est.pode_operar ? `<button type="button" class="btn-perigo" data-cx-acao="fechar" data-cx-tipo="${tipo}">FECHAR CAIXA</button>` : ''}
+    </div>
+    <div class="cx-hist" id="cx-hist-${tipo}"></div>
+  </div>`;
+}
+
+function cxHtmlFechado(tipo, est){
+  const dica = tipo === 'PDV'
+    ? 'Abra o caixa para começar a vender no PDV.'
+    : 'Abra o caixa para receber os pagamentos das mesas. Os garçons continuam lançando pedidos normalmente com o caixa fechado.';
+  const abrir = est.pode_operar
+    ? `<p class="cx-texto">${escapeHtml(dica)}</p>
+       <div class="field cx-campo-valor">
+         <label for="cx-valor-ini-${tipo}">Valor inicial (troco), R$</label>
+         <input type="text" inputmode="decimal" id="cx-valor-ini-${tipo}" value="0,00" maxlength="16" autocomplete="off">
+       </div>
+       <button type="button" class="btn-accent" data-cx-acao="abrir" data-cx-tipo="${tipo}">ABRIR CAIXA</button>`
+    : '<p class="cx-texto">Você não tem permissão para abrir este caixa.</p>';
+  return `<div class="cx-painel">
+    <div class="cx-topo"><span class="cx-badge cx-badge-fechado">CAIXA FECHADO</span><span class="cx-sub">${escapeHtml(CX_TIPOS[tipo].nome)}</span></div>
+    ${abrir}
+    <div class="cx-msg" id="cx-msg-${tipo}"></div>
+    <div class="cx-hist" id="cx-hist-${tipo}"></div>
+  </div>`;
+}
+
+function cxRenderPainel(tipo){
+  const el = $(CX_TIPOS[tipo].painel);
+  if(!el) return;
+  const est = cxEstado[tipo];
+  if(!est){ el.innerHTML = '<p class="cx-vazio">Carregando o caixa...</p>'; return; }
+  if(est.aberto === null){
+    el.innerHTML = `<div class="msg error">${escapeHtml(est.erro || 'Não foi possível consultar o caixa.')}</div>
+      <div class="cx-acoes"><button type="button" class="btn-secondary" data-cx-acao="atualizar" data-cx-tipo="${tipo}">Tentar de novo</button></div>`;
+    return;
+  }
+  el.innerHTML = est.aberto ? cxHtmlAberto(tipo, est) : cxHtmlFechado(tipo, est);
+  cxCarregarHist(tipo);
+}
+
+// Últimos fechamentos (até 5) — só leitura; some em silêncio se o usuário não puder listar.
+async function cxCarregarHist(tipo){
+  const sq = cxSeq[tipo];
+  let resp;
+  try { resp = await supabase.rpc('caixa_listar', { p_tipo: tipo, p_limite: 8 }); } catch(e){ return; }
+  const el = $('cx-hist-' + tipo);
+  if(!el || resp.error || !resp.data) return;
+  const fechados = (resp.data.itens || []).filter(i => i.caixa && i.caixa.status === 'fechado').slice(0, 5);
+  if(!fechados.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<h4 class="cx-hist-titulo">Últimos fechamentos</h4>
+    <table class="cx-tabela"><thead><tr><th>Caixa</th><th>Fechado em</th><th>Operador</th><th class="cx-num">Total</th><th></th></tr></thead><tbody>` +
+    fechados.map(i => `<tr><td>nº ${Number(i.caixa.numero)}</td><td>${escapeHtml(cxDataHora(i.caixa.fechado_em))}</td><td>${escapeHtml(i.caixa.fechado_por_nome || '—')}</td><td class="cx-num">${brl(i.resumo.total_recebido)}</td><td class="cx-num"><button type="button" class="link-btn" data-cx-acao="detalhe" data-cx-id="${escapeHtml(i.caixa.id)}">Detalhes</button></td></tr>`).join('') +
+    '</tbody></table>';
+}
+
+// ---- abrir ----
+async function cxAbrir(tipo){
+  if(cxOcupado) return;
+  const campo = $('cx-valor-ini-' + tipo);
+  const valor = cxParseValor(campo ? campo.value : '0');
+  if(valor === null){ cxMsg(tipo, 'Informe um valor inicial válido (zero ou maior).'); if(campo) campo.focus(); return; }
+  cxOcupado = true;
+  document.querySelectorAll(`[data-cx-acao="abrir"][data-cx-tipo="${tipo}"]`).forEach(b => { b.disabled = true; });
+  try {
+    const { data, error } = await supabase.rpc('caixa_abrir', { p_tipo: tipo, p_valor_inicial: valor });
+    if(error){
+      if(error.code === 'CX002'){                      // alguém abriu antes: mostra o caixa que já está aberto
+        await cxCarregar(tipo); cxAposMudanca(tipo); cxMsg(tipo, error.message, 'error');
+      } else {
+        cxMsg(tipo, cxMsgErro(error));
+        document.querySelectorAll(`[data-cx-acao="abrir"][data-cx-tipo="${tipo}"]`).forEach(b => { b.disabled = false; });
+      }
+      return;
+    }
+    cxEstado[tipo] = { aberto: true, caixa: data.caixa, resumo: data.resumo, pode_operar: true };
+    cxAposMudanca(tipo);
+    cxMsg(tipo, `${CX_TIPOS[tipo].nome} aberto.`, 'success');
+    if(tipo === 'PDV') cxPdvFecharModal();            // abriu: volta direto para a venda
+  } catch(e){
+    cxMsg(tipo, cxMsgErro(e));
+    document.querySelectorAll(`[data-cx-acao="abrir"][data-cx-tipo="${tipo}"]`).forEach(b => { b.disabled = false; });
+  } finally {
+    cxOcupado = false;
+  }
+}
+
+// ---- fechar (resumo + CANCELAR / CONFIRMAR FECHAMENTO) ----
+function cxHtmlConfirmacao(tipo, est){
+  const c = est.caixa;
+  return `<div class="cx-info">
+      <div><small>Operador</small><b>${escapeHtml(c.aberto_por_nome || '—')}</b></div>
+      <div><small>Aberto em</small><b>${escapeHtml(cxDataHora(c.aberto_em))}</b></div>
+      <div><small>Valor inicial</small><b>${brl(c.valor_inicial)}</b></div>
+    </div>
+    ${cxHtmlResumo(est.resumo)}
+    <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(est.resumo.saldo_dinheiro_esperado)}</b></div>
+    <p class="cx-confirma-aviso">Confirma o fechamento do ${escapeHtml(CX_TIPOS[tipo].nome)}? Depois de fechado, ele não recebe mais ${tipo === 'PDV' ? 'vendas' : 'pagamentos'} e não pode ser reaberto.</p>`;
+}
+
+async function cxFecharFluxo(tipo){
+  if(cxOcupado) return;
+  cxOcupado = true;
+  try {
+    const est = await cxCarregar(tipo);                // sempre com os números de agora
+    if(!est || est.aberto !== true){
+      cxAposMudanca(tipo);
+      cxMsg(tipo, est && est.aberto === false ? 'Este caixa já está fechado.' : ((est && est.erro) || 'Não foi possível consultar o caixa.'));
+      return;
+    }
+    cxFecharTipo = tipo; cxFecharCaixaId = est.caixa.id;
+    $('cx-fechar-titulo').textContent = 'Fechar ' + CX_TIPOS[tipo].nome;
+    $('cx-fechar-corpo').innerHTML = cxHtmlConfirmacao(tipo, est);
+    $('cx-fechar-msg').innerHTML = '';
+    $('btn-cx-fechar-cancelar').classList.remove('hidden'); $('btn-cx-fechar-cancelar').disabled = false;
+    $('btn-cx-fechar-confirmar').classList.remove('hidden'); $('btn-cx-fechar-confirmar').disabled = false;
+    $('btn-cx-fechar-ok').classList.add('hidden');
+    $('modal-caixa-fechar').classList.remove('hidden');
+    $('btn-cx-fechar-cancelar').focus();
+  } finally {
+    cxOcupado = false;
+  }
+}
+
+function cxFecharModalFechamento(){
+  if(cxFechando) return;
+  $('modal-caixa-fechar').classList.add('hidden');
+  cxFecharCaixaId = null;
+}
+
+function cxFechamentoConcluido(tipo, data){
+  $('cx-fechar-titulo').textContent = CX_TIPOS[tipo].nome + ' fechado';
+  const c = data && data.caixa;
+  $('cx-fechar-corpo').innerHTML = `<div class="msg success">${escapeHtml(CX_TIPOS[tipo].nome)} fechado${c ? ` por ${escapeHtml(c.fechado_por_nome || '—')} em ${escapeHtml(cxDataHora(c.fechado_em))}` : ''}.</div>
+    ${data && data.resumo ? cxHtmlResumo(data.resumo) : ''}`;
+  $('cx-fechar-msg').innerHTML = '';
+  $('btn-cx-fechar-cancelar').classList.add('hidden');
+  $('btn-cx-fechar-confirmar').classList.add('hidden');
+  $('btn-cx-fechar-ok').classList.remove('hidden');
+  $('btn-cx-fechar-ok').focus();
+}
+
+async function cxConfirmarFechamento(){
+  if(cxFechando || !cxFecharCaixaId) return;
+  const tipo = cxFecharTipo, id = cxFecharCaixaId;
+  const pode = !(cxEstado[tipo] && cxEstado[tipo].pode_operar === false);
+  cxFechando = true;
+  const btn = $('btn-cx-fechar-confirmar');
+  btn.disabled = true; $('btn-cx-fechar-cancelar').disabled = true; btn.textContent = 'Fechando...';
+  try {
+    const { data, error } = await supabase.rpc('caixa_fechar', { p_caixa_id: id });
+    if(error){
+      if(error.code === 'CX003'){                      // já tinha sido fechado (outro operador / clique anterior)
+        await cxCarregar(tipo); cxAposMudanca(tipo);
+        msgBox('cx-fechar-msg', error.message, 'error');
+        btn.classList.add('hidden'); $('btn-cx-fechar-cancelar').classList.add('hidden');
+        $('btn-cx-fechar-ok').classList.remove('hidden');
+      } else {
+        msgBox('cx-fechar-msg', cxMsgErro(error), 'error');
+        btn.disabled = false; $('btn-cx-fechar-cancelar').disabled = false;
+      }
+      return;
+    }
+    cxEstado[tipo] = { aberto: false, caixa: null, resumo: null, pode_operar: pode };
+    cxAposMudanca(tipo);
+    cxFechamentoConcluido(tipo, data);
+    cxFecharCaixaId = null;
+  } catch(e){
+    // resposta desconhecida (queda de rede): confere no banco antes de deixar tentar de novo
+    await cxCarregar(tipo);
+    if(cxFechadoCerto(tipo)){ cxAposMudanca(tipo); cxFechamentoConcluido(tipo, null); cxFecharCaixaId = null; }
+    else {
+      msgBox('cx-fechar-msg', 'Não foi possível confirmar o fechamento (falha de conexão). Confira o caixa e tente de novo.', 'error');
+      btn.disabled = false; $('btn-cx-fechar-cancelar').disabled = false;
+    }
+  } finally {
+    cxFechando = false;
+    btn.textContent = 'CONFIRMAR FECHAMENTO';
+  }
+}
+
+// ---- detalhe de um caixa (relatório / histórico) ----
+async function cxAbrirDetalhe(id){
+  if(!id) return;
+  $('cx-det-titulo').textContent = 'Detalhe do caixa';
+  $('cx-det-corpo').innerHTML = '<p class="cx-vazio">Carregando...</p>';
+  $('modal-caixa-detalhe').classList.remove('hidden');
+  let resp;
+  try { resp = await supabase.rpc('caixa_detalhe', { p_caixa_id: id }); } catch(e){ resp = { data: null, error: e }; }
+  if(resp.error || !resp.data){
+    $('cx-det-corpo').innerHTML = `<div class="msg error">${escapeHtml(cxMsgErro(resp.error || {}, 'Não foi possível carregar o caixa.'))}</div>`;
+    return;
+  }
+  const { caixa: c, resumo: r, resumo_fechamento: snap, movimentos } = resp.data;
+  const tipo = c.tipo_caixa;
+  $('cx-det-titulo').textContent = `${CX_TIPOS[tipo] ? CX_TIPOS[tipo].nome : 'Caixa'} nº ${Number(c.numero)} — ${c.status === 'aberto' ? 'aberto' : 'fechado'}`;
+  const dif = snap && Math.abs(Number(snap.total_recebido) - Number(r.total_recebido)) > 0.004;
+  const mov = (movimentos || []).map(m => {
+    if(m.tipo === 'venda'){
+      const formas = (m.pagamentos || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ') || escapeHtml(m.forma_pagamento || '—');
+      return `<tr><td>Venda nº ${escapeHtml(m.numero)}${m.cancelada ? ' <span class="cx-tag-cancel">CANCELADA</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
+    }
+    const formas = (m.formas || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ');
+    return `<tr><td>Mesa ${m.mesa != null ? escapeHtml(m.mesa) : '—'}${m.estornado ? ' <span class="cx-tag-cancel">ESTORNADO</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
+  }).join('');
+  $('cx-det-corpo').innerHTML = `
+    <div class="cx-info">
+      <div><small>Aberto por</small><b>${escapeHtml(c.aberto_por_nome || '—')}</b><small>${escapeHtml(cxDataHora(c.aberto_em))}</small></div>
+      <div><small>Fechado por</small><b>${escapeHtml(c.fechado_por_nome || '—')}</b><small>${escapeHtml(c.fechado_em ? cxDataHora(c.fechado_em) : 'ainda aberto')}</small></div>
+      <div><small>Valor inicial</small><b>${brl(c.valor_inicial)}</b></div>
+    </div>
+    ${cxHtmlResumo(r)}
+    <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b></div>
+    ${dif ? `<div class="cx-comp-aviso">Total no fechamento: <b>${brl(snap.total_recebido)}</b>. Os valores acima já refletem estornos/cancelamentos feitos depois.</div>` : ''}
+    <h4 class="cx-hist-titulo">${tipo === 'PDV' ? 'Vendas deste caixa' : 'Recebimentos deste caixa'}</h4>
+    ${mov ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}</tbody></table></div>` : '<p class="cx-vazio">Nenhum movimento neste caixa.</p>'}`;
+}
+
+// ---- cliques (um único ouvinte para todos os painéis/relatórios) ----
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cx-acao]');
+  if(b){
+    const tipo = b.dataset.cxTipo;
+    const acao = b.dataset.cxAcao;
+    if(acao === 'abrir') cxAbrir(tipo);
+    else if(acao === 'fechar') cxFecharFluxo(tipo);
+    else if(acao === 'atualizar') cxCarregar(tipo).then(() => cxAposMudanca(tipo));
+    else if(acao === 'detalhe') cxAbrirDetalhe(b.dataset.cxId);
+    return;
+  }
+  const d = e.target.closest('[data-cx-detalhe]');
+  if(d) cxAbrirDetalhe(d.dataset.cxDetalhe);
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && e.target && /^cx-valor-ini-(PDV|BAR)$/.test(e.target.id || '')){
+    e.preventDefault(); cxAbrir(e.target.id.slice(-3));
+  } else if(e.key === 'Escape'){
+    if(!$('modal-caixa-detalhe').classList.contains('hidden')){ $('modal-caixa-detalhe').classList.add('hidden'); e.stopPropagation(); }
+    else if(!$('modal-caixa-fechar').classList.contains('hidden')){ cxFecharModalFechamento(); e.stopPropagation(); }
+    else if(!$('modal-caixa-pdv').classList.contains('hidden')){ cxPdvFecharModal(); e.stopPropagation(); }
+  }
+});
+$('btn-cx-fechar-cancelar').addEventListener('click', cxFecharModalFechamento);
+$('btn-cx-fechar-confirmar').addEventListener('click', cxConfirmarFechamento);
+$('btn-cx-fechar-ok').addEventListener('click', () => { $('modal-caixa-fechar').classList.add('hidden'); if(!$('view-pdv').classList.contains('hidden') && $('modal-caixa-pdv').classList.contains('hidden')) focarCampoPdv(); });
+$('btn-cx-det-fechar').addEventListener('click', () => $('modal-caixa-detalhe').classList.add('hidden'));
+
+// ---- PDV: faixa, cabeçalho, modal ----
+function cxPdvUI(){
+  const est = cxEstado.PDV;
+  const st = $('pdx-caixa-status');
+  const faixa = $('pdx-caixa-faixa');
+  const btnAbrir = $('btn-pdx-caixa-abrir');
+  const btnGer = $('btn-pdx-caixa-gerenciar');
+  st.classList.remove('cx-st-aberto', 'cx-st-fechado');
+  faixa.classList.remove('cx-faixa-aberto', 'cx-faixa-fechado', 'cx-faixa-neutro');
+  if(!est){ st.textContent = '—'; faixa.classList.add('hidden'); return; }
+  faixa.classList.remove('hidden');
+  if(est.aberto === true){
+    const c = est.caixa;
+    st.textContent = 'ABERTO'; st.classList.add('cx-st-aberto');
+    faixa.classList.add('cx-faixa-aberto');
+    $('pdx-caixa-faixa-badge').textContent = 'CAIXA ABERTO';
+    $('pdx-caixa-faixa-txt').textContent = `Operador: ${c.aberto_por_nome || '—'} · aberto às ${cxHora(c.aberto_em)} · valor inicial ${brl(c.valor_inicial)}`;
+    btnAbrir.classList.add('hidden'); btnGer.classList.remove('hidden');
+    // se a venda tinha sido barrada por "caixa fechado" e o caixa foi aberto (aqui ou em outro terminal), limpa o aviso
+    if($('pdv-msg').textContent.includes(CX_MSG_PDV_FECHADO)) pdvMensagem('');
+  } else if(est.aberto === false){
+    st.textContent = 'FECHADO'; st.classList.add('cx-st-fechado');
+    faixa.classList.add('cx-faixa-fechado');
+    $('pdx-caixa-faixa-badge').textContent = 'CAIXA FECHADO';
+    $('pdx-caixa-faixa-txt').textContent = est.pode_operar ? 'Abra o caixa para vender.' : 'Peça a quem tem permissão para abrir o caixa.';
+    btnAbrir.classList.toggle('hidden', !est.pode_operar); btnGer.classList.add('hidden');
+  } else {
+    st.textContent = est.indisponivel ? 'INDISPONÍVEL' : '—';
+    if(est.indisponivel){
+      faixa.classList.add('cx-faixa-neutro');
+      $('pdx-caixa-faixa-badge').textContent = 'CAIXA';
+      $('pdx-caixa-faixa-txt').textContent = 'Controle de caixa indisponível: falta executar a Migration 032 no banco.';
+      btnAbrir.classList.add('hidden'); btnGer.classList.add('hidden');
+    } else {
+      faixa.classList.add('hidden');
+    }
+  }
+}
+async function cxPdvAtualizar(){
+  await cxCarregar('PDV');
+  cxPdvUI();
+  if(!$('modal-caixa-pdv').classList.contains('hidden')) cxRenderPainel('PDV');
+}
+async function cxPdvAbrirModal(){
+  $('modal-caixa-pdv').classList.remove('hidden');
+  cxRenderPainel('PDV');
+  await cxPdvAtualizar();
+  const campo = $('cx-valor-ini-PDV');
+  if(campo){ campo.focus(); campo.select(); }
+}
+function cxPdvFecharModal(){
+  $('modal-caixa-pdv').classList.add('hidden');
+  if(!$('view-pdv').classList.contains('hidden')) focarCampoPdv();
+}
+$('btn-pdx-caixa-abrir').addEventListener('click', cxPdvAbrirModal);
+$('btn-pdx-caixa-gerenciar').addEventListener('click', cxPdvAbrirModal);
+$('btn-cx-pdv-fechar-janela').addEventListener('click', cxPdvFecharModal);
+
+// ---- Bar: aba "Caixa" + indicador nas Mesas + aviso dentro da mesa ----
+const cxBarPodeVer = () => CX_PERMISSOES_BAR.some(p => podeAcessarBar(p));
+async function cxBarAbrirSub(){
+  cxRenderPainel('BAR');
+  await cxCarregar('BAR');
+  cxAposMudanca('BAR');
+}
+async function cxBarChipAtualizar(){
+  if(!cxBarPodeVer()){ cxBarChipRender(); return; }
+  await cxCarregar('BAR');
+  cxBarChipRender();
+}
+function cxBarChipRender(){
+  const chip = $('bar-caixa-chip');
+  const est = cxEstado.BAR;
+  if(chip){
+    chip.classList.remove('aberto', 'fechado');
+    if(!cxBarPodeVer() || !est || est.aberto === null){ chip.classList.add('hidden'); }
+    else {
+      chip.classList.remove('hidden');
+      chip.classList.add(est.aberto ? 'aberto' : 'fechado');
+      chip.textContent = est.aberto ? 'Caixa do Bar: ABERTO' : 'Caixa do Bar: FECHADO' + (est.pode_operar ? ' — abrir' : '');
+    }
+  }
+  cxBarAvisoMesaAtualizar();
+}
+function cxBarAvisoMesaAtualizar(){
+  const el = $('bar-mesa-caixa-aviso');
+  if(!el) return;
+  const mostrar = podeAcessarBar('bar_caixa') && cxFechadoCerto('BAR');
+  el.classList.toggle('hidden', !mostrar);
+  el.textContent = mostrar ? CX_MSG_BAR_FECHADO : '';
+}
+$('bar-caixa-chip').addEventListener('click', () => { if(visivelBarSubview('caixa')) abrirSubViewBar('caixa'); });
+
+// Atualiza o estado quando a aba volta a ficar visível (outro terminal pode ter aberto/fechado o caixa).
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden) return;
+  if(!$('view-pdv').classList.contains('hidden')) cxPdvAtualizar();
+  else if(!$('view-bar').classList.contains('hidden')) {
+    if(barSubViewAtual === 'caixa') cxBarAbrirSub(); else cxBarChipAtualizar();
+  }
+});
+
+// ---- Relatório "Controle de caixa" (Central de Relatórios) ----
+async function relatorioControleCaixa(filtros){
+  const tipo = filtros.tipoCaixa === 'PDV' || filtros.tipoCaixa === 'BAR' ? filtros.tipoCaixa : null;
+  const { data, error } = await supabase.rpc('caixa_listar', { p_tipo: tipo, p_de: filtros.dataInicio, p_ate: filtros.dataFim, p_limite: 500 });
+  if(error) throw new Error(cxMsgErro(error, 'Não foi possível consultar os caixas.'));
+  const itens = (data && data.itens) || [];
+  const porTipo = (data && data.totais && data.totais.por_tipo) || {};
+  // total por forma de pagamento somando só os caixas listados (cada um já calculado no banco)
+  const formas = new Map();
+  itens.forEach(i => (i.resumo.por_forma || []).forEach(f => formas.set(f.forma, (formas.get(f.forma) || 0) + Number(f.total))));
+  const textoFormas = [...formas.entries()].filter(([, v]) => v > 0).map(([k, v]) => `${cxRotuloForma(k)} ${brl(v)}`).join(' · ') || '—';
+  const metricas = [
+    { label: 'Caixas no período', valor: String(itens.length) },
+    { label: 'Total recebido', valor: brl(data && data.totais ? data.totais.total_recebido : 0) },
+  ];
+  if(!tipo){
+    const nCx = (n) => `${n} ${n === 1 ? 'caixa' : 'caixas'}`;
+    metricas.push({ label: 'Caixa PDV', valor: `${brl(porTipo.PDV ? porTipo.PDV.total_recebido : 0)} (${nCx(porTipo.PDV ? porTipo.PDV.caixas : 0)})` });
+    metricas.push({ label: 'Caixa do Bar', valor: `${brl(porTipo.BAR ? porTipo.BAR.total_recebido : 0)} (${nCx(porTipo.BAR ? porTipo.BAR.caixas : 0)})` });
+  }
+  metricas.push({ label: 'Por forma de pagamento', valor: textoFormas });
+  const linhas = itens.map(i => {
+    const c = i.caixa, r = i.resumo;
+    const f = (r.por_forma || []).filter(x => Number(x.total) > 0).map(x => `${escapeHtml(cxRotuloForma(x.forma))} ${brl(x.total)}`).join('<br>') || '—';
+    return [
+      `${escapeHtml(CX_TIPOS[c.tipo_caixa] ? CX_TIPOS[c.tipo_caixa].nome : c.tipo_caixa)} nº ${Number(c.numero)}`,
+      `${escapeHtml(cxDataHora(c.aberto_em))}<br>${escapeHtml(c.aberto_por_nome || '')}`,
+      c.status === 'fechado' ? `${escapeHtml(cxDataHora(c.fechado_em))}<br>${escapeHtml(c.fechado_por_nome || '')}` : 'Aberto',
+      brl(c.valor_inicial),
+      f,
+      `<strong>${brl(r.total_recebido)}</strong>`,
+      `<button type="button" class="link-btn cx-no-print" data-cx-detalhe="${escapeHtml(c.id)}">Detalhes</button>`,
+    ];
+  });
+  return {
+    titulo: 'Controle de caixa',
+    metricas,
+    colunas: ['Caixa', 'Abertura / operador', 'Fechamento / operador', 'Valor inicial', 'Formas de pagamento', 'Total recebido', ''],
+    linhas,
+    totalizadores: ['Total', '', '', '', '', `<strong>${brl(data && data.totais ? data.totais.total_recebido : 0)}</strong>`, ''],
+    rodape: data && data.limitado ? ['Mostrando os 500 caixas mais recentes do período; reduza o período para ver os demais.'] : [],
+  };
 }
 
 // =====================================================================
@@ -12063,7 +12774,10 @@ async function cmdFinalizar(prazo){
     if(sq === cmdSeq){
       const m = String((e && e.message) || '');
       const rede = !(e && e.code) && (e instanceof TypeError || /failed to fetch|network|load failed|timeout/i.test(m));
-      if(rede){
+      if(e && e.code === 'CX001'){                                // Controle de caixa: sem Caixa PDV aberto não finaliza
+        cmdMsg(zona, m || CX_MSG_PDV_FECHADO);
+        cxPdvAtualizar();
+      } else if(rede){
         cmdMsg(zona, 'Não foi possível confirmar a finalização (falha de conexão). Toque de novo em finalizar: a mesma tentativa é protegida contra venda duplicada.');
         console.error('[Comandas] finalizar (resultado desconhecido):', e);
       } else if(/soma dos pagamentos|n[aã]o est[aá] aberta|j[aá] foi finalizada|foi cancelada/i.test(m)){
@@ -12657,6 +13371,12 @@ const SECOES_RELATORIOS = [
     ],
   },
   {
+    titulo: 'Caixa',
+    relatorios: [
+      { id: 'caixa_controle', titulo: 'Controle de caixa', descricao: 'Caixas abertos e fechados no período (PDV e Bar), com operador, abertura, fechamento e total por forma de pagamento.', filtros: ['periodo', 'tipo_caixa'], gerar: relatorioControleCaixa },
+    ],
+  },
+  {
     titulo: 'Fiscal',
     relatorios: [
       { id: 'fiscal_periodo', titulo: 'Documentos fiscais por período', descricao: 'Lista de documentos fiscais emitidos, com venda, cliente e valor.', filtros: ['periodo'], gerar: relatorioFiscalEmitidos },
@@ -12777,6 +13497,14 @@ function abrirFiltrosRelatorio(rel){
     `;
     popularSelectClientesRelatorio();
   }
+  if(rel.filtros.includes('tipo_caixa')){
+    campos.innerHTML += `
+      <div class="field" style="margin-bottom:0; flex:none; min-width:160px;">
+        <label>Caixa</label>
+        <select id="rel-filtro-tipo-caixa"><option value="">Todos</option><option value="PDV">PDV</option>${modulosComerciais.bar ? '<option value="BAR">BAR</option>' : ''}</select>
+      </div>
+    `;
+  }
   if(rel.filtros.length === 0){
     campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
   }
@@ -12856,6 +13584,10 @@ async function gerarRelatorioAtual(){
     filtros.clienteId = selectCliente.value || null;
     filtros.clienteNome = filtros.clienteId ? selectCliente.options[selectCliente.selectedIndex].textContent : null;
   }
+  if(rel.filtros.includes('tipo_caixa')){
+    const selectCaixa = $('rel-filtro-tipo-caixa');
+    filtros.tipoCaixa = selectCaixa && selectCaixa.value ? selectCaixa.value : null;
+  }
 
   const btn = $('btn-rel-gerar');
   btn.disabled = true;
@@ -12888,6 +13620,9 @@ function descreverFiltrosRelatorio(rel, filtros){
   }
   if(rel.filtros.includes('cliente')){
     partes.push(`Cliente: ${filtros.clienteNome || 'Todos'}`);
+  }
+  if(rel.filtros.includes('tipo_caixa')){
+    partes.push(`Caixa: ${filtros.tipoCaixa === 'PDV' ? 'PDV' : (filtros.tipoCaixa === 'BAR' ? 'BAR' : 'Todos')}`);
   }
   return partes.length ? partes.join(' · ') : 'Sem filtros';
 }
@@ -14999,6 +15734,9 @@ function podeAcessarBar(permissao){
 // quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
+  // Caixa do Bar (Migration 032): operar = bar_caixa; ver (somente leitura) = também Relatórios/Financeiro/Dashboard.
+  // O banco repete essa regra em caixa_atual/abrir/fechar/listar/detalhe.
+  caixa: ['bar_caixa','relatorios','financeiro','dashboard'],
   // Garçons (Fase 4 — correção): administrar contas de garçom (cadastrar/editar/excluir/redefinir
   // senha) é restrito EXCLUSIVAMENTE ao proprietário nesta primeira versão — bar_configurar NÃO
   // autoriza (ver bar_garcons_listar/bar_garcom_atualizar/bar_garcom_excluir, Migration 020). Por
@@ -15037,8 +15775,9 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 async function abrirSubViewBar(sub){
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','garcons','produtos','relatorios','configuracoes'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
-  if(sub === 'mesas') await carregarBarMesas();
+  ['mesas','caixa','garcons','produtos','relatorios','configuracoes'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  if(sub === 'mesas'){ cxBarChipAtualizar(); await carregarBarMesas(); }
+  else if(sub === 'caixa') await cxBarAbrirSub();
   else if(sub === 'garcons') await carregarBarGarcons();
   else if(sub === 'produtos') await carregarBarProdutos();
   else if(sub === 'relatorios') carregarBarRelatorios();
@@ -15660,6 +16399,8 @@ async function abrirModalMesa(mesa){
   renderCarrinhoMesa();
   $('bar-mesa-pagamento-valor').value = '';
   $('bar-mesa-pagamento-dica').textContent = '';
+  cxBarAvisoMesaAtualizar();            // Controle de caixa: aviso imediato com o último estado conhecido...
+  cxBarChipAtualizar();                 // ...e reconfere no banco (outro terminal pode ter aberto/fechado)
   $('bar-mesa-pagamento-total-linha').innerHTML = '';
   $('bar-mesa-desconto').value = 0;
   $('bar-mesa-acrescimo').value = 0;
@@ -15732,6 +16473,7 @@ function renderResumoFinanceiroMesa(){
     inputValor.value = saldo > 0 ? saldo.toFixed(2) : '';
   }
   $('bar-mesa-pagamento-dica').textContent = saldo > 0 ? `Saldo em aberto: ${formatarReais(saldo)}` : 'Esta comanda não tem saldo em aberto.';
+  cxBarAvisoMesaAtualizar();
 
   const badge = $('bar-mesa-status-badge');
   badge.textContent = barComandaAtualId ? 'Em aberto' : 'Sem pedidos ainda';
@@ -16099,6 +16841,7 @@ async function receberPagamentoMesaComForma(forma){
     });
     if(error){
       $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+      if(error.code === 'CX001') cxBarChipAtualizar();     // Controle de caixa: Caixa do Bar fechado — reconfere e mostra o aviso
       return;
     }
     const resultado = (data && data[0]) || null;
