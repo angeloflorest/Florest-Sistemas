@@ -2141,6 +2141,7 @@
   .pdx-add-img{ width:150px; margin:0 auto 10px; }
   .pdx-add-nome{ font-size:20px; font-weight:800; line-height:1.25; word-break:break-word; }
   .pdx-add-preco{ font-size:24px; font-weight:800; color:var(--florest-navy); margin:4px 0; }
+  .pdx-add-total{ font-size:20px; font-weight:800; color:var(--florest-navy); margin:8px 0 2px; }
   .pdx-add-estoque{ font-size:12px; color:#6B717D; margin-bottom:12px; }
   .pdx-card-add .pdx-rotulo{ text-align:left; }
   .pdx-add-erro{ color:#B3261E; font-size:13px; font-weight:600; min-height:18px; margin-top:6px; }
@@ -3194,6 +3195,7 @@
           <div class="pdx-add-estoque" id="pdx-add-estoque"></div>
           <label class="pdx-rotulo" for="pdx-add-qtd">Quantidade</label>
           <input type="text" inputmode="decimal" id="pdx-add-qtd" class="pdx-input pdx-input-grande" value="1,000" autocomplete="off">
+          <div class="pdx-add-total hidden" id="pdx-add-total"></div>
           <div class="pdx-add-erro" id="pdx-add-erro"></div>
           <div class="pdx-add-botoes">
             <button type="button" class="pdx-btn pdx-btn-cinza" id="btn-pdx-add-cancelar">Cancelar (ESC)</button>
@@ -4118,16 +4120,17 @@
 
         <div class="pdv-panel" style="margin-top:20px;">
           <h3>NFC-e</h3>
-          <div class="modal-section-hint" style="background:var(--accent-soft); padding:10px 12px; border-radius:8px; margin:-4px 0 14px; color:var(--ink);">
+          <div class="modal-section-hint" id="cf-nfce-aviso-ambiente" style="background:var(--accent-soft); padding:10px 12px; border-radius:8px; margin:-4px 0 14px; color:var(--ink);">
             ⚠️ Ambiente de Homologação — documentos emitidos aqui não têm validade fiscal.
           </div>
           <div class="field-row">
             <div class="field"><label>Série</label><input type="text" id="cf-nfce-serie" placeholder="Ex: 1"></div>
             <div class="field"><label>Ambiente</label>
-              <select id="cf-nfce-ambiente" disabled>
-                <option value="homologacao">Homologação</option>
-                <option value="producao" disabled>Produção (indisponível nesta etapa)</option>
+              <select id="cf-nfce-ambiente">
+                <option value="homologacao">Homologação (testes)</option>
+                <option value="producao">Produção (validade fiscal)</option>
               </select>
+              <div class="modal-section-hint" id="cf-nfce-ambiente-dica" style="margin:6px 0 0;">A troca de ambiente é aplicada na hora, depois da sua confirmação — não depende do botão "Salvar configurações". Vale só para esta empresa.</div>
             </div>
           </div>
           <div class="field-row">
@@ -4195,7 +4198,7 @@
           <div>Dados da empresa: <strong id="status-dados-empresa">Incompleto</strong></div>
           <div>Certificado A1: <strong id="status-certificado">Não configurado</strong></div>
           <div>CSC: <strong id="status-csc">Não configurado</strong></div>
-          <div>Ambiente: <strong>Homologação</strong></div>
+          <div>Ambiente: <strong id="status-ambiente">Homologação</strong></div>
           <div>Usuário na Dados Jah: <strong id="status-usuario-dadosjah">Não criado</strong></div>
           <div>Emitente registrado: <strong id="status-emitente">Não registrado</strong></div>
           <div>Integração NFC-e: <strong id="status-integracao-geral">Incompleta</strong></div>
@@ -4534,6 +4537,13 @@
       </div>
       <div class="modal-section-hint" style="margin-top:-6px;">Estoque não é definido aqui — controle a quantidade em Estoque, por Nota Fiscal de Entrada ou pelas vendas.</div>
 
+      <div id="produto-granel-wrap" class="hidden" style="margin:6px 0 12px;">
+        <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
+          <input type="checkbox" id="produto-venda-granel" style="width:auto; margin:0;"> Vender a granel
+        </label>
+        <div class="modal-section-hint" style="margin:4px 0 0;">Para produtos vendidos por peso ou medida (ex.: ração em KG). O preço de venda continua sendo o de <strong>uma unidade comercial</strong> (ex.: R$ 10,00 por KG); no PDV o operador informa a quantidade (ex.: 0,500) e o total é preço × quantidade. Exige a <strong>Unidade comercial</strong> preenchida (em “Outros dados fiscais”).</div>
+      </div>
+
       <div class="hidden" id="produto-tipo-fiscal-wrap">
         <select id="produto-tipo-fiscal">
           <option value="produto">Produto</option>
@@ -4748,6 +4758,22 @@
 
 <!-- ===== MODAL: NOVO / EDITAR CLIENTE ===== -->
 <!-- ===== MODAL: USUÁRIO (FUNCIONÁRIO) ===== -->
+<div id="modal-ambiente" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="amb-titulo">Alterar ambiente fiscal</h3>
+    <div id="amb-msg"></div>
+    <div id="amb-corpo" class="modal-section-hint" style="margin-top:0; color:var(--ink);"></div>
+    <div class="field" id="amb-confirm-wrap" style="display:none; margin-top:14px;">
+      <label for="amb-confirm-texto">Para confirmar, digite <strong>PRODUCAO</strong></label>
+      <input type="text" id="amb-confirm-texto" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="PRODUCAO">
+    </div>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button type="button" class="btn-secondary" id="btn-amb-cancelar">Cancelar</button>
+      <button type="button" class="btn-primary" id="btn-amb-confirmar" style="width:auto; padding:10px 24px;" disabled>Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-usuario" class="modal-overlay hidden">
   <div class="modal-card modal-card-wide">
     <h3 id="modal-usuario-titulo">Novo funcionário</h3>
@@ -6399,7 +6425,7 @@ const appScreen = $('app-screen');
 
 // ---------- Utilitários compartilhados ----------
 // Recursos opcionais do banco, detectados no login (ver detectarRecursos).
-const recursos = { estoqueMinimo: false, categoria: false };
+const recursos = { estoqueMinimo: false, categoria: false, vendaGranel: false };
 // ---------- Acesso por módulo (funcionários) ----------
 // A tela só ESCONDE o que o usuário não pode usar; quem realmente barra é o banco (RLS + RPCs, Migration 004).
 // Enquanto a Migration 004 não estiver aplicada, tudo continua como antes (todo usuário é tratado como proprietário).
@@ -6519,6 +6545,9 @@ async function detectarRecursos(){
   // produtos.categoria (Migration 004): habilita o campo Categoria na importação
   const cat = await supabase.from('produtos').select('categoria').limit(1);
   recursos.categoria = !cat.error;
+  // produtos.venda_granel (Migration 035): habilita o campo "Vender a granel" no cadastro e o fluxo de peso no PDV
+  const gr = await supabase.from('produtos').select('venda_granel').limit(1);
+  recursos.vendaGranel = !gr.error;
 }
 
 // empresa_id do usuário logado (usado nos inserts, como já era feito antes).
@@ -9549,6 +9578,7 @@ function abrirModalProduto(produto){
     $('produto-cfop').value = '5102';
   }
 
+  $('produto-venda-granel').checked = !!(produto && produto.venda_granel);
   alternarSecaoFiscal();
   $('modal-produto').classList.remove('hidden');
 }
@@ -9557,6 +9587,7 @@ function alternarSecaoFiscal(){
   const ehServico = $('produto-tipo-fiscal').value === 'servico';
   $('produto-fiscal-produto').classList.toggle('hidden', ehServico);
   $('produto-fiscal-servico').classList.toggle('hidden', !ehServico);
+  $('produto-granel-wrap').classList.toggle('hidden', ehServico || !recursos.vendaGranel);
 }
 $('produto-tipo-fiscal').addEventListener('change', alternarSecaoFiscal);
 
@@ -9620,6 +9651,15 @@ $('form-produto').addEventListener('submit', async (e) => {
     municipio_incidencia: $('produto-municipio-incidencia').value.trim() || null,
     iss: $('produto-iss').value ? parseFloat($('produto-iss').value) : null,
   };
+
+  // "Vender a granel" (Migration 035): só é enviado quando o banco já tem a coluna; serviço nunca é granel.
+  if(recursos.vendaGranel){
+    payload.venda_granel = tipoFiscal !== 'servico' && $('produto-venda-granel').checked;
+    if(payload.venda_granel && !payload.unidade_comercial){
+      $('produto-msg').innerHTML = '<div class="msg error">Para vender a granel, selecione a Unidade comercial do produto (ex.: KG) em “Outros dados fiscais”.</div>';
+      return;
+    }
+  }
 
   const btn = $('btn-salvar-produto');
   btn.disabled = true;
@@ -10068,6 +10108,25 @@ function pdvMensagem(html, tipo = 'error'){
   $('pdv-msg').innerHTML = html ? `<div class="msg ${tipo}">${html}</div>` : '';
 }
 
+// ----- Vender a granel (produtos.venda_granel, Migration 035) -----
+// O preço continua POR unidade comercial (R$ 10,00 / KG) e o total é preço × quantidade; a quantidade
+// decimal (até 3 casas) já é aceita pelo banco e pela NFC-e. O flag só decide a interface: produto a
+// granel pede a quantidade/peso antes de entrar no cupom e mostra o preço com a unidade.
+function pdvEhGranel(produto){
+  return !!produto && produto.venda_granel === true;
+}
+function pdvRotuloPreco(produto){
+  const base = formatarReais(produto.preco_venda);
+  return pdvEhGranel(produto) && produto.unidade_comercial ? `${base} / ${produto.unidade_comercial}` : base;
+}
+// Produto normal: adiciona direto, como sempre. Produto a granel: abre o modal de quantidade/peso
+// (o cupom só recebe o item quando o operador confirma). Devolve true só se já adicionou.
+function pdvAdicionarOuPedirGranel(produto, qtd){
+  if(!pdvEhGranel(produto)) return adicionarProdutoAoCarrinho(produto, qtd);
+  pdxAbrirAdicionar(produto, null, qtd);
+  return false;
+}
+
 // ----- localizar produto -----
 function pdvCacheGet(chave){
   const e = pdvCache.get(chave);
@@ -10095,7 +10154,7 @@ async function pdvConsultarProdutos({ ids, gtins, codigo, busca, limite } = {}){
     if(pdvRpcConsulta === true || !pdxRpcInexistente(error)) throw error;
     pdvRpcConsulta = false;
   }
-  let q = supabase.from('produtos').select(PDV_COLUNAS);
+  let q = supabase.from('produtos').select(recursos.vendaGranel ? PDV_COLUNAS + ', venda_granel' : PDV_COLUNAS);
   if(ids){
     q = q.in('id', ids);
   } else {
@@ -10150,7 +10209,7 @@ function renderResultadosPdv(){
     div.className = 'search-result-item' + (idx === pdvIndiceAtivo ? ' active' : '');
     div.innerHTML = `
       <span>${p.codigo ? `<strong>${escapeHtml(p.codigo)}</strong> — ` : ''}${escapeHtml(p.nome)}<br><span class="sr-qtd">${formatarQuantidade(p.quantidade_estoque)} em estoque${p.gtin ? ' · ' + escapeHtml(p.gtin) : ''}</span></span>
-      <span class="sr-preco">${formatarReais(p.preco_venda)}</span>
+      <span class="sr-preco">${pdvRotuloPreco(p)}</span>
     `;
     div.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -10173,7 +10232,7 @@ function atualizarPreviewPdv(produto){
 
   $('pdv-preview-nome').textContent = produto.nome;
   $('pdv-preview-sub').textContent = `${formatarQuantidade(produto.quantidade_estoque)} em estoque${produto.codigo ? ' · código ' + produto.codigo : ''}`;
-  $('pdv-preview-preco').textContent = formatarReais(produto.preco_venda);
+  $('pdv-preview-preco').textContent = pdvRotuloPreco(produto);
 }
 
 // Mostra o último item lido (feedback visual para o operador que só olha o leitor).
@@ -10181,7 +10240,7 @@ function mostrarUltimoLidoPdv(produto){
   const item = pdvCarrinho.find(i => i.produto_id === produto.id);
   $('pdv-preview-nome').textContent = produto.nome;
   $('pdv-preview-sub').textContent = `Adicionado ao cupom · quantidade no cupom: ${item ? formatarQuantidade(item.quantidade) : 1}`;
-  $('pdv-preview-preco').textContent = formatarReais(produto.preco_venda);
+  $('pdv-preview-preco').textContent = pdvRotuloPreco(produto);
   pdvProdutoAtivo = null; // o botão "Adicionar no cupom" só age sobre item escolhido na busca manual
 }
 
@@ -10248,7 +10307,9 @@ function adicionarProdutoAoCarrinho(produto, quantidadeAdicionar = 1){
       gtin: produto.gtin,
       preco_unitario: Number(produto.preco_venda),
       quantidade: nova,
-      estoque_disponivel: disponivel
+      estoque_disponivel: disponivel,
+      granel: pdvEhGranel(produto),
+      unidade: produto.unidade_comercial || ''
     });
   }
   pdvUltimoAdicionado = produto.id;
@@ -10264,7 +10325,7 @@ function limiteQuantidadeItem(item){
 // Escolha manual na lista de resultados (clique ou Enter em item destacado)
 function confirmarAdicaoPdv(produto){
   const qtd = lerQtdPdv();
-  const ok = adicionarProdutoAoCarrinho(produto, qtd);
+  const ok = pdvAdicionarOuPedirGranel(produto, qtd);
   $('pdv-qtd').value = 1;
   limparCampoPdv();
   if(ok) mostrarUltimoLidoPdv(produto);
@@ -10310,7 +10371,7 @@ async function processarFilaPdv(){
 async function resolverEAdicionarPdv(texto, qtd){
   const produto = await buscarProdutoPorCodigo(texto);
   if(produto){
-    if(adicionarProdutoAoCarrinho(produto, qtd)) mostrarUltimoLidoPdv(produto);
+    if(pdvAdicionarOuPedirGranel(produto, qtd)) mostrarUltimoLidoPdv(produto);
     return;
   }
 
@@ -10323,7 +10384,7 @@ async function resolverEAdicionarPdv(texto, qtd){
   // não é código exato: trata como pesquisa por nome
   const lista = await pesquisarProdutosPdv(texto);
   if(lista.length === 1){
-    if(adicionarProdutoAoCarrinho(lista[0], qtd)) mostrarUltimoLidoPdv(lista[0]);
+    if(pdvAdicionarOuPedirGranel(lista[0], qtd)) mostrarUltimoLidoPdv(lista[0]);
   } else if(lista.length === 0){
     pdvMensagem(`Nenhum produto encontrado para “${escapeHtml(texto)}”.`);
     beepPdv();
@@ -10415,8 +10476,9 @@ function alterarQuantidadeCarrinho(idx, delta){
   const item = pdvCarrinho[idx];
   if(!item) return;
 
-  let nova = item.quantidade + delta;
-  if(nova < 1) nova = 1;
+  // a granel os botões − / + andam de 0,100 em 0,100 (3 casas, sem erro de ponto flutuante); demais produtos: de 1 em 1, como sempre
+  let nova = item.granel ? Math.round((item.quantidade + delta * 0.1) * 1000) / 1000 : item.quantidade + delta;
+  if(nova < (item.granel ? 0.001 : 1)) nova = item.granel ? 0.001 : 1;
   if(nova > limiteQuantidadeItem(item)){
     nova = limiteQuantidadeItem(item);
     pdvMensagem(`Quantidade limitada ao estoque disponível de “${escapeHtml(item.nome)}” (${formatarQuantidade(item.estoque_disponivel)}).`);
@@ -10441,13 +10503,13 @@ function renderCarrinho(){
     row.className = 'cart-row' + (item.produto_id === pdvUltimoAdicionado ? ' flash' : '');
 
     row.innerHTML = `
-      <span>${escapeHtml(item.nome)}${item.codigo || item.gtin ? `<br><span class="sr-qtd">${[item.codigo, item.gtin].filter(Boolean).map(escapeHtml).join(' · ')}</span>` : ''}</span>
+      <span>${escapeHtml(item.nome)}${item.codigo || item.gtin ? `<br><span class="sr-qtd">${[item.codigo, item.gtin].filter(Boolean).map(escapeHtml).join(' · ')}</span>` : ''}${item.granel ? `<br><span class="sr-qtd">${item.quantidade.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ${escapeHtml(item.unidade || '')} × ${formatarReais(item.preco_unitario)}</span>` : ''}</span>
       <div class="qty-control">
         <button type="button" class="qty-menos" data-idx="${idx}">−</button>
         <input type="number" min="0.001" step="any" value="${item.quantidade}" data-idx="${idx}">
         <button type="button" class="qty-mais" data-idx="${idx}">+</button>
       </div>
-      <span>${formatarReais(item.preco_unitario)}</span>
+      <span>${pdvRotuloPreco({ preco_venda: item.preco_unitario, venda_granel: item.granel, unidade_comercial: item.unidade })}</span>
       <span>${formatarReais(item.preco_unitario * item.quantidade)}</span>
       <button type="button" class="cart-remove" data-idx="${idx}" title="Remover">×</button>
     `;
@@ -11016,18 +11078,36 @@ function pdxLerNumero(txt){
   return Math.min(999999, Math.round(n * 1000) / 1000);
 }
 
-function pdxAbrirAdicionar(produto, imagem){
+function pdxAbrirAdicionar(produto, imagem, inicial){
   pdxProdAtual = produto;
+  const granel = pdvEhGranel(produto);
   $('pdx-add-img').innerHTML = `<span class="pdx-img-slot">${pdxImgHtml(imagem)}</span>`;
   $('pdx-add-nome').textContent = produto.nome;
-  $('pdx-add-preco').textContent = formatarReais(produto.preco_venda);
+  $('pdx-add-preco').textContent = pdvRotuloPreco(produto);
   $('pdx-add-estoque').textContent = `Estoque disponível: ${formatarQuantidade(produto.quantidade_estoque)}${produto.unidade_comercial ? ' ' + produto.unidade_comercial : ''}`;
   $('pdx-add-erro').textContent = '';
+  document.querySelector('#pdx-modal-add .pdx-card-head h3').textContent = granel ? 'Informar quantidade / peso' : 'Adicionar ao cupom';
+  document.querySelector('#pdx-modal-add label.pdx-rotulo').textContent = granel && produto.unidade_comercial ? `Quantidade (${produto.unidade_comercial})` : 'Quantidade';
   const inp = $('pdx-add-qtd');
-  inp.value = '1,000';
+  // a granel começa vazio (o operador digita o peso); se já havia uma quantidade digitada no PDV (≠ 1), vem preenchida
+  inp.value = granel ? (inicial > 0 && inicial !== 1 ? String(inicial).replace('.', ',') : '') : '1,000';
+  inp.placeholder = granel ? '0,000' : '';
+  pdxAtualizarTotalGranel();
   $('pdx-modal-add').classList.remove('hidden');
   setTimeout(() => { inp.focus(); inp.select(); }, 0);
 }
+
+// Total do item a granel: round(quantidade × preço, 2) em inteiros — o mesmo cálculo do banco (itens_venda.subtotal).
+function pdxAtualizarTotalGranel(){
+  const el = $('pdx-add-total');
+  const p = pdxProdAtual;
+  if(!p || !pdvEhGranel(p)){ el.classList.add('hidden'); el.textContent = ''; return; }
+  const q = pdxLerNumero($('pdx-add-qtd').value);
+  const centavos = Math.floor((Math.round(q * 10000) * Math.round(Number(p.preco_venda) * 100) + 5000) / 10000);
+  el.textContent = 'Total: ' + formatarReais(centavos / 100);
+  el.classList.remove('hidden');
+}
+$('pdx-add-qtd').addEventListener('input', pdxAtualizarTotalGranel);
 
 function pdxConfirmarAdicionar(){
   const p = pdxProdAtual;
@@ -11055,6 +11135,7 @@ $('btn-pdx-add-ok').addEventListener('click', pdxConfirmarAdicionar);
 $('btn-pdx-add-cancelar').addEventListener('click', () => {
   $('pdx-modal-add').classList.add('hidden');
   pdxProdAtual = null;
+  focarCampoPdv();
 });
 $('pdx-add-qtd').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); pdxConfirmarAdicionar(); }
@@ -11349,7 +11430,25 @@ function abrirModalVendaConcluida(vendaId, numeroVenda){
   $('modal-venda-concluida-msg').innerHTML = '';
   $('btn-venda-emitir-sim').disabled = false;
   $('btn-venda-emitir-sim').textContent = 'Sim, emitir nota';
+  $('btn-venda-emitir-nao').textContent = 'Não';
   $('modal-venda-concluida').classList.remove('hidden');
+}
+
+// Depois de autorizada, o PDV continua pronto para a próxima venda: o resultado aparece na mensagem do
+// PDV (com acesso à impressão da NFC-e) em vez de levar o operador para a tela Fiscal. Consulta,
+// reimpressão e cancelamento continuam na tela Fiscal, aberta só quando o operador quiser.
+function pdvMostrarNfceAutorizada(documentoId, resultado){
+  const num = resultado && resultado.numero ? ' Número: ' + escapeHtml(String(resultado.numero)) + '.' : '';
+  pdvMensagem(`NFC-e autorizada com sucesso.${num} <button type="button" class="link-btn" id="btn-pdv-imprimir-nfce">Imprimir NFC-e</button>`, 'success');
+  const b = $('btn-pdv-imprimir-nfce');
+  if(b) b.addEventListener('click', () => pdvImprimirNfce(documentoId));
+}
+
+// Mesmo documento e mesma impressão da tela Fiscal (nfceImprimirDocumento): o operador não sai do PDV.
+async function pdvImprimirNfce(documentoId){
+  const { data, error } = await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id', documentoId).maybeSingle();
+  const r = error || !data ? { ok: false } : nfceImprimirDocumento(data);
+  if(!r.ok) pdvMensagem('O documento desta NFC-e ainda não está disponível para impressão. Consulte pela tela Fiscal.');
 }
 
 $('btn-venda-emitir-nao').addEventListener('click', () => {
@@ -11374,24 +11473,32 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
     return;
   }
 
-  const vendaId = vendaConcluidaAtualId;
   const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
 
+  let resultado = null;
   if(docNfce){
     btn.textContent = 'Emitindo NFC-e...';
-    const resultado = await chamarEmissaoRealNFCe(docNfce.id);
-    $('modal-venda-concluida-msg').innerHTML = mensagemResultadoFiscal(resultado);
+    resultado = await chamarEmissaoRealNFCe(docNfce.id);
   }
 
   btn.disabled = false;
   btn.textContent = 'Sim, emitir nota';
 
-  setTimeout(() => {
+  // Autorizada: fecha o modal e PERMANECE no PDV, pronto para a próxima venda (o cupom já foi limpo).
+  if(docNfce && resultado && resultado.status === 'autorizada'){
     $('modal-venda-concluida').classList.add('hidden');
     vendaConcluidaAtualId = null;
-    $('nav-fiscal').click();
-    abrirVendaFiscalPorId(vendaId);
-  }, 1500);
+    pdvMostrarNfceAutorizada(docNfce.id, resultado);
+    focarCampoPdv();
+    return;
+  }
+
+  // Rejeitada, erro, ainda em processamento ou venda sem item de NFC-e: o motivo fica visível aqui e o
+  // operador escolhe (tentar de novo ou fechar e seguir no PDV; a nota pode ser emitida depois pela tela Fiscal).
+  $('modal-venda-concluida-msg').innerHTML = docNfce
+    ? mensagemResultadoFiscal(resultado)
+    : '<div class="msg error">Esta venda não tem item de mercadoria para gerar NFC-e.</div>';
+  $('btn-venda-emitir-nao').textContent = 'Fechar';
 });
 
 // ---------- Financeiro ----------
@@ -14605,6 +14712,358 @@ async function renderVendaFiscal(venda){
   $('fiscal-venda-resultado').classList.remove('hidden');
 }
 
+// Gerador de QR Code (modo byte, correção de erro nível M, versões 1–40) — implementação própria,
+// sem dependência externa. Devolve a matriz de módulos; o texto codificado é exatamente o recebido.
+function florestQrMatriz(texto){
+  var ECC_POR_BLOCO = [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
+  var NUM_BLOCOS    = [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49];
+  var dados = Array.prototype.slice.call(new TextEncoder().encode(String(texto)));
+
+  function modulosBrutos(v){
+    var r = (16*v + 128)*v + 64;
+    if(v >= 2){ var n = Math.floor(v/7) + 2; r -= (25*n - 10)*n - 55; if(v >= 7) r -= 36; }
+    return r;
+  }
+  function codewordsDeDados(v){ return Math.floor(modulosBrutos(v)/8) - ECC_POR_BLOCO[v]*NUM_BLOCOS[v]; }
+
+  var ver = 1;
+  for(;; ver++){
+    if(ver > 40) throw new Error('Texto grande demais para QR Code.');
+    var bitsCont = ver <= 9 ? 8 : 16;
+    if(4 + bitsCont + 8*dados.length <= codewordsDeDados(ver)*8) break;
+  }
+
+  // ---- fluxo de bits
+  var bits = [];
+  function add(val, len){ for(var i = len-1; i >= 0; i--) bits.push((val >>> i) & 1); }
+  add(4, 4); add(dados.length, ver <= 9 ? 8 : 16);
+  dados.forEach(function(b){ add(b, 8); });
+  var cap = codewordsDeDados(ver)*8;
+  add(0, Math.min(4, cap - bits.length));
+  add(0, (8 - bits.length % 8) % 8);
+  for(var pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) add(pad, 8);
+  var cw = [];
+  for(var i = 0; i < bits.length; i += 8){ var by = 0; for(var k = 0; k < 8; k++) by = (by << 1) | bits[i+k]; cw.push(by); }
+
+  // ---- Reed-Solomon
+  function mul(x, y){ var z = 0; for(var i = 7; i >= 0; i--){ z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z & 255; }
+  function divisor(grau){
+    var r = []; for(var i = 0; i < grau; i++) r.push(0); r[grau-1] = 1; var raiz = 1;
+    for(var i2 = 0; i2 < grau; i2++){ for(var j = 0; j < grau; j++){ r[j] = mul(r[j], raiz); if(j+1 < grau) r[j] ^= r[j+1]; } raiz = mul(raiz, 2); }
+    return r;
+  }
+  function resto(bloco, div){
+    var r = div.map(function(){ return 0; });
+    bloco.forEach(function(b){ var f = b ^ r.shift(); r.push(0); div.forEach(function(c, i){ r[i] ^= mul(c, f); }); });
+    return r;
+  }
+  var nBlocos = NUM_BLOCOS[ver], eccLen = ECC_POR_BLOCO[ver], bruto = Math.floor(modulosBrutos(ver)/8);
+  var blocosCurtos = nBlocos - bruto % nBlocos, tamCurto = Math.floor(bruto / nBlocos);
+  var blocos = [], div = divisor(eccLen);
+  for(var b = 0, p = 0; b < nBlocos; b++){
+    var d = cw.slice(p, p + tamCurto - eccLen + (b < blocosCurtos ? 0 : 1)); p += d.length;
+    var e = resto(d, div);
+    if(b < blocosCurtos) d.push(0);
+    blocos.push(d.concat(e));
+  }
+  var final = [];
+  for(var c = 0; c < blocos[0].length; c++){
+    blocos.forEach(function(bl, idx){ if(c !== tamCurto - eccLen || idx >= blocosCurtos) final.push(bl[c]); });
+  }
+
+  // ---- matriz
+  var N = ver*4 + 17, mod = [], fn = [];
+  for(var y = 0; y < N; y++){ mod.push(new Array(N).fill(false)); fn.push(new Array(N).fill(false)); }
+  function setF(x, y, v){ mod[y][x] = v; fn[y][x] = true; }
+  function bit(x, i){ return ((x >>> i) & 1) !== 0; }
+
+  for(var t = 0; t < N; t++){ setF(6, t, t % 2 === 0); setF(t, 6, t % 2 === 0); }
+  function finder(cx, cy){
+    for(var dy = -4; dy <= 4; dy++) for(var dx = -4; dx <= 4; dx++){
+      var dist = Math.max(Math.abs(dx), Math.abs(dy)), xx = cx + dx, yy = cy + dy;
+      if(xx >= 0 && xx < N && yy >= 0 && yy < N) setF(xx, yy, dist !== 2 && dist !== 4);
+    }
+  }
+  finder(3, 3); finder(N-4, 3); finder(3, N-4);
+  var pos = [];
+  if(ver > 1){
+    var nAl = Math.floor(ver/7) + 2, passo = ver === 32 ? 26 : Math.ceil((ver*4 + 4) / (nAl*2 - 2)) * 2;
+    pos = [6]; for(var q = N - 7; pos.length < nAl; q -= passo) pos.splice(1, 0, q);
+  }
+  pos.forEach(function(ax, i){ pos.forEach(function(ay, j){
+    if((i === 0 && j === 0) || (i === 0 && j === pos.length-1) || (i === pos.length-1 && j === 0)) return;
+    for(var dy = -2; dy <= 2; dy++) for(var dx = -2; dx <= 2; dx++) setF(ax+dx, ay+dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+  }); });
+  function formato(mask){
+    var data = (0 << 3) | mask, rem = data;          // nível M = 00
+    for(var i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+    var bs = ((data << 10) | rem) ^ 0x5412;
+    for(var a = 0; a <= 5; a++) setF(8, a, bit(bs, a));
+    setF(8, 7, bit(bs, 6)); setF(8, 8, bit(bs, 7)); setF(7, 8, bit(bs, 8));
+    for(var c2 = 9; c2 < 15; c2++) setF(14 - c2, 8, bit(bs, c2));
+    for(var d2 = 0; d2 < 8; d2++) setF(N-1-d2, 8, bit(bs, d2));
+    for(var e2 = 8; e2 < 15; e2++) setF(8, N-15+e2, bit(bs, e2));
+    setF(8, N-8, true);
+  }
+  formato(0);
+  if(ver >= 7){
+    var rem2 = ver; for(var i3 = 0; i3 < 12; i3++) rem2 = (rem2 << 1) ^ ((rem2 >>> 11) * 0x1F25);
+    var vb = (ver << 12) | rem2;
+    for(var i4 = 0; i4 < 18; i4++){ var cor = bit(vb, i4), aa = N - 11 + i4 % 3, bb = Math.floor(i4/3); setF(aa, bb, cor); setF(bb, aa, cor); }
+  }
+  var idx = 0;
+  for(var dir = N - 1; dir >= 1; dir -= 2){
+    if(dir === 6) dir = 5;
+    for(var vert = 0; vert < N; vert++) for(var j2 = 0; j2 < 2; j2++){
+      var x = dir - j2, up = ((dir + 1) & 2) === 0, y2 = up ? N - 1 - vert : vert;
+      if(!fn[y2][x] && idx < final.length*8){ mod[y2][x] = bit(final[idx >>> 3], 7 - (idx & 7)); idx++; }
+    }
+  }
+  function mascara(m){
+    for(var y = 0; y < N; y++) for(var x = 0; x < N; x++){
+      var inv;
+      switch(m){
+        case 0: inv = (x + y) % 2 === 0; break;
+        case 1: inv = y % 2 === 0; break;
+        case 2: inv = x % 3 === 0; break;
+        case 3: inv = (x + y) % 3 === 0; break;
+        case 4: inv = (Math.floor(x/3) + Math.floor(y/2)) % 2 === 0; break;
+        case 5: inv = x*y % 2 + x*y % 3 === 0; break;
+        case 6: inv = (x*y % 2 + x*y % 3) % 2 === 0; break;
+        default: inv = ((x + y) % 2 + x*y % 3) % 2 === 0;
+      }
+      if(!fn[y][x] && inv) mod[y][x] = !mod[y][x];
+    }
+  }
+  function penalidade(){
+    var r = 0, x, y, k;
+    function linha(get){
+      var total = 0;
+      for(var a = 0; a < N; a++){
+        var corAtual = false, seq = 0, hist = '';
+        for(var b = 0; b < N; b++){
+          var v = get(a, b);
+          hist += v ? '1' : '0';
+          if(b > 0 && v === corAtual){ seq++; if(seq === 5) total += 3; else if(seq > 5) total++; }
+          else { corAtual = v; seq = 1; }
+        }
+        var m1 = hist.match(/10111010000/g), m2 = hist.match(/00001011101/g);
+        total += 40 * ((m1 ? m1.length : 0) + (m2 ? m2.length : 0));
+      }
+      return total;
+    }
+    r += linha(function(a, b){ return mod[a][b]; });
+    r += linha(function(a, b){ return mod[b][a]; });
+    for(y = 0; y < N-1; y++) for(x = 0; x < N-1; x++){ var c0 = mod[y][x]; if(c0 === mod[y][x+1] && c0 === mod[y+1][x] && c0 === mod[y+1][x+1]) r += 3; }
+    var escuros = 0; for(y = 0; y < N; y++) for(x = 0; x < N; x++) if(mod[y][x]) escuros++;
+    k = Math.ceil(Math.abs(escuros*20 - N*N*10) / (N*N)) - 1; r += k*10;
+    return r;
+  }
+  var melhor = 0, menor = Infinity;
+  for(var m = 0; m < 8; m++){
+    mascara(m); formato(m);
+    var pen = penalidade(); if(pen < menor){ menor = pen; melhor = m; }
+    mascara(m);
+  }
+  mascara(melhor); formato(melhor);
+  return mod;
+}
+
+// SVG do QR Code (módulos escuros em preto sobre fundo branco, com margem de silêncio).
+function florestQrSvg(texto, borda){
+  var m = florestQrMatriz(texto), b = borda == null ? 2 : borda, n = m.length, d = '';
+  for(var y = 0; y < n; y++) for(var x = 0; x < n; x++) if(m[y][x]) d += 'M' + (x+b) + ',' + (y+b) + 'h1v1h-1z';
+  var t = n + b*2;
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + t + ' ' + t + '" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+}
+
+// ---------- DANFE NFC-e (impressão a partir da NFC-e AUTORIZADA) ----------
+// Fonte única de impressão da NFC-e, usada pelo PDV e pela tela Fiscal (mesmo documento nos dois lugares).
+// 'xml_local'    -> monta o DANFE NFC-e (bobina 80 mm) SOMENTE com os dados reais da nota autorizada: o XML
+//                   devolvido pela Dados Jah (emitente, itens, pagamentos, chave, QR Code fiscal da própria
+//                   tag infNFeSupl/qrCode) + protocolo/data de autorização gravados na emissão. Nada é
+//                   inventado: se faltar chave, protocolo ou QR Code no XML, NÃO monta e usa o PDF do provedor.
+// 'pdf_provedor' -> abre sempre o PDF devolvido pela Dados Jah (comportamento anterior).
+const DANFE_NFCE_FONTE = 'xml_local';
+
+const NFCE_TPAG = { '01':'Dinheiro','02':'Cheque','03':'Cartão de Crédito','04':'Cartão de Débito','05':'Crédito Loja','10':'Vale Alimentação','11':'Vale Refeição','12':'Vale Presente','13':'Vale Combustível','15':'Boleto Bancário','16':'Depósito Bancário','17':'PIX','18':'Transferência/Carteira Digital','19':'Programa de Fidelidade','20':'PIX','21':'Crédito em Loja','90':'Sem pagamento','99':'Outros' };
+
+function nfceDecodificarXml(conteudo){
+  if(!conteudo) return null;
+  let s = String(conteudo).trim();
+  if(s.charAt(0) !== '<'){
+    try {
+      const bin = atob(s.replace(/\s+/g, ''));
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      s = new TextDecoder('utf-8').decode(bytes);
+    } catch(e){ return null; }
+  }
+  return s.charAt(0) === '<' || s.charAt(0) === '﻿' ? s.replace(/^﻿/, '') : null;
+}
+
+// Lê só o que existe no XML autorizado. `doc` (linha de documentos_fiscais) completa apenas o que a
+// emissão gravou separadamente (protocolo, data de autorização, número, série, chave).
+function nfceLerDadosDanfe(doc){
+  const xml = nfceDecodificarXml(doc && doc.xml_conteudo);
+  if(!xml) return null;
+  const dom = new DOMParser().parseFromString(xml, 'application/xml');
+  if(dom.getElementsByTagName('parsererror').length) return null;
+  const ns = (raiz, nome) => { const l = raiz ? raiz.getElementsByTagNameNS('*', nome) : []; return l.length ? l[0] : null; };
+  const tx = (raiz, nome) => { const e = ns(raiz, nome); return e ? (e.textContent || '').trim() : ''; };
+  const inf = ns(dom, 'infNFe');
+  if(!inf) return null;
+  const emit = ns(inf, 'emit'), ender = ns(emit, 'enderEmit'), ide = ns(inf, 'ide'), dest = ns(inf, 'dest');
+  const tot = ns(ns(inf, 'total'), 'ICMSTot'), pag = ns(inf, 'pag'), supl = ns(dom, 'infNFeSupl'), prot = ns(dom, 'infProt');
+  const itens = Array.from(inf.getElementsByTagNameNS('*', 'det')).map(det => {
+    const p = ns(det, 'prod');
+    return { n: det.getAttribute('nItem') || '', cod: tx(p, 'cProd'), desc: tx(p, 'xProd'), un: tx(p, 'uCom'), qtd: tx(p, 'qCom'),
+             vun: tx(p, 'vUnCom'), vprod: tx(p, 'vProd'), vdesc: tx(p, 'vDesc'), voutro: tx(p, 'vOutro') };
+  });
+  const pagamentos = pag ? Array.from(pag.getElementsByTagNameNS('*', 'detPag')).map(d => ({ tPag: tx(d, 'tPag'), desc: tx(d, 'xPag'), v: tx(d, 'vPag') })) : [];
+  const idAttr = (inf.getAttribute('Id') || '').replace(/^NFe/, '');
+  return {
+    emit: { cnpj: tx(emit, 'CNPJ'), ie: tx(emit, 'IE'), nome: tx(emit, 'xNome'), fantasia: tx(emit, 'xFant'),
+            end: [tx(ender, 'xLgr'), tx(ender, 'nro'), tx(ender, 'xCpl'), tx(ender, 'xBairro')].filter(Boolean),
+            cidade: tx(ender, 'xMun'), uf: tx(ender, 'UF'), cep: tx(ender, 'CEP'), fone: tx(ender, 'fone') },
+    numero: tx(ide, 'nNF') || (doc && doc.numero) || '',
+    serie: tx(ide, 'serie') || (doc && doc.serie) || '',
+    dhEmi: tx(ide, 'dhEmi') || (doc && doc.dh_emissao) || '',
+    tpAmb: tx(prot, 'tpAmb') || tx(ide, 'tpAmb') || (doc && doc.tp_ambiente) || '',
+    itens, pagamentos,
+    vProd: tx(tot, 'vProd'), vDesc: tx(tot, 'vDesc'), vOutro: tx(tot, 'vOutro'), vNF: tx(tot, 'vNF') || (doc && doc.valor != null ? String(doc.valor) : ''),
+    vTotTrib: tx(tot, 'vTotTrib'), vTroco: tx(pag, 'vTroco'),
+    dest: { cpf: tx(dest, 'CPF'), cnpj: tx(dest, 'CNPJ'), nome: tx(dest, 'xNome') },
+    infCpl: tx(ns(inf, 'infAdic'), 'infCpl'),
+    chave: tx(prot, 'chNFe') || (doc && doc.chave_acesso) || idAttr,
+    protocolo: tx(prot, 'nProt') || (doc && doc.protocolo) || '',
+    dhAut: tx(prot, 'dhRecbto') || (doc && doc.dh_recebimento) || '',
+    qrCode: tx(supl, 'qrCode'), urlChave: tx(supl, 'urlChave'),
+    cancelada: !!(doc && doc.status === 'cancelada')
+  };
+}
+
+function nfceNum(v){ const n = Number(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+function nfceMoeda(v){ return nfceNum(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function nfceQtd(v){
+  const n = nfceNum(v);
+  if(Number.isInteger(n)) return String(n);
+  const s = n.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 });
+  return s;
+}
+function nfceDataHora(s){
+  const m = /(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(String(s || ''));
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}:${m[6]}` : '';
+}
+function nfceCnpjFmt(c){ const d = String(c || '').replace(/\D/g, ''); return d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d; }
+function nfceCpfFmt(c){ const d = String(c || '').replace(/\D/g, ''); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : d; }
+
+// Retorna o HTML completo (80 mm) ou null se a nota não tem o mínimo real exigido para o DANFE NFC-e.
+function nfceMontarDanfeHtml(d, qrSvg){
+  if(!d || !d.chave || !d.protocolo || !d.qrCode || !qrSvg) return null;
+  const e = escapeHtml, linhaVal = (rot, val, forte) => `<div class="lin${forte ? ' forte' : ''}"><span>${e(rot)}</span><span>${e(val)}</span></div>`;
+  const homolog = String(d.tpAmb) === '2';
+  const nomeEmp = d.emit.fantasia && d.emit.fantasia !== d.emit.nome ? d.emit.fantasia : d.emit.nome;
+  const endereco = [d.emit.end.join(', '), [d.emit.cidade, d.emit.uf].filter(Boolean).join(' - '), d.emit.cep ? 'CEP ' + d.emit.cep : ''].filter(Boolean).join(' · ');
+  const itens = d.itens.map(it => {
+    const desconto = nfceNum(it.vdesc) > 0 ? ` (-${nfceMoeda(it.vdesc)})` : '';
+    return `<div class="item"><div class="desc">${e(it.n.padStart(3, '0'))} ${e(it.cod)} ${e(it.desc)}</div>
+      <div class="lin"><span>${e(nfceQtd(it.qtd))} ${e(it.un)} x ${e(nfceMoeda(it.vun))}${e(desconto)}</span><span>${e(nfceMoeda(it.vprod))}</span></div></div>`;
+  }).join('');
+  const pagtos = d.pagamentos.map(p => linhaVal(NFCE_TPAG[p.tPag] || p.desc || 'Outros', nfceMoeda(p.v))).join('');
+  const consumidor = d.dest.cpf ? `CONSUMIDOR - CPF ${nfceCpfFmt(d.dest.cpf)}${d.dest.nome ? ' - ' + d.dest.nome : ''}`
+                   : d.dest.cnpj ? `CONSUMIDOR - CNPJ ${nfceCnpjFmt(d.dest.cnpj)}${d.dest.nome ? ' - ' + d.dest.nome : ''}`
+                   : 'CONSUMIDOR NÃO IDENTIFICADO';
+  const chaveFmt = String(d.chave).replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>DANFE NFC-e ${e(d.numero)}</title><style>
+    @page{ size:80mm auto; margin:3mm; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; width:74mm; font-family:Arial,Helvetica,sans-serif; font-size:10px; line-height:1.25; color:#000; }
+    .c{ text-align:center; } .forte{ font-weight:700; } .peq{ font-size:9px; }
+    .nome{ font-size:12px; font-weight:700; }
+    hr{ border:0; border-top:1px dashed #000; margin:5px 0; }
+    .lin{ display:flex; justify-content:space-between; gap:6px; } .lin span:last-child{ white-space:nowrap; text-align:right; }
+    .item{ margin-bottom:3px; } .desc{ word-break:break-word; }
+    .homolog{ border:1px solid #000; padding:3px; margin:4px 0; font-weight:700; text-align:center; }
+    .qr{ text-align:center; margin:6px 0; } .qr svg{ width:36mm; height:36mm; }
+    .chave{ word-break:break-all; font-weight:700; font-size:9px; }
+  </style></head><body>
+    <div class="c nome">${e(nomeEmp)}</div>
+    ${d.emit.fantasia && d.emit.fantasia !== d.emit.nome ? `<div class="c peq">${e(d.emit.nome)}</div>` : ''}
+    <div class="c peq">CNPJ: ${e(nfceCnpjFmt(d.emit.cnpj))}${d.emit.ie ? ' · IE: ' + e(d.emit.ie) : ''}</div>
+    <div class="c peq">${e(endereco)}${d.emit.fone ? ' · Tel. ' + e(d.emit.fone) : ''}</div>
+    <hr>
+    <div class="c forte">DANFE NFC-e</div>
+    <div class="c peq">Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</div>
+    ${d.cancelada ? '<div class="homolog">NFC-e CANCELADA</div>' : ''}
+    ${homolog ? '<div class="homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br>SEM VALOR FISCAL</div>' : ''}
+    <hr>
+    ${itens}
+    <hr>
+    ${linhaVal('Qtd. total de itens', String(d.itens.length))}
+    ${linhaVal('Valor total R$', nfceMoeda(d.vProd))}
+    ${nfceNum(d.vDesc) > 0 ? linhaVal('Desconto R$', '-' + nfceMoeda(d.vDesc)) : ''}
+    ${nfceNum(d.vOutro) > 0 ? linhaVal('Acréscimos R$', nfceMoeda(d.vOutro)) : ''}
+    ${linhaVal('Valor a pagar R$', nfceMoeda(d.vNF), true)}
+    <hr>
+    <div class="lin forte"><span>Forma de pagamento</span><span>Valor pago R$</span></div>
+    ${pagtos}
+    ${nfceNum(d.vTroco) > 0 ? linhaVal('Troco R$', nfceMoeda(d.vTroco)) : ''}
+    ${nfceNum(d.vTotTrib) > 0 ? `<hr><div class="peq">Tributos totais incidentes (Lei Federal 12.741/2012): R$ ${e(nfceMoeda(d.vTotTrib))}</div>` : ''}
+    ${d.infCpl ? `<hr><div class="peq">${e(d.infCpl)}</div>` : ''}
+    <hr>
+    <div class="c forte">NFC-e nº ${e(d.numero)} Série ${e(d.serie)}</div>
+    <div class="c">Emissão: ${e(nfceDataHora(d.dhEmi))} - Via Consumidor</div>
+    <hr>
+    ${d.urlChave ? `<div class="c peq">Consulte pela Chave de Acesso em<br>${e(d.urlChave)}</div>` : ''}
+    <div class="c chave">${e(chaveFmt)}</div>
+    <div class="c peq">${e(consumidor)}</div>
+    <div class="qr">${qrSvg}</div>
+    <div class="c">Protocolo de autorização: <b>${e(d.protocolo)}</b></div>
+    ${d.dhAut ? `<div class="c">Data de autorização: ${e(nfceDataHora(d.dhAut))}</div>` : ''}
+  </body></html>`;
+}
+
+// Imprime em um iframe oculto: o operador continua na tela em que está (PDV ou Fiscal) e vê só o diálogo
+// de impressão do navegador. O HTML é montado com texto escapado e sem scripts.
+function nfceImprimirHtmlEmIframe(html){
+  const antigo = document.getElementById('nfce-print-frame');
+  if(antigo) antigo.remove();
+  const f = document.createElement('iframe');
+  f.id = 'nfce-print-frame';
+  f.setAttribute('sandbox', 'allow-same-origin allow-modals');
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  f.onload = () => {
+    try { f.contentWindow.focus(); f.contentWindow.print(); }
+    catch(err){ console.error('Falha ao abrir a impressão da NFC-e', err); }
+    setTimeout(() => { if(f.parentNode) f.remove(); }, 120000);
+  };
+  f.srcdoc = html;
+  document.body.appendChild(f);
+}
+
+function nfceAbrirPdfProvedor(doc){
+  if(!doc) return false;
+  if(doc.pdf_conteudo){ abrirBase64EmNovaAba(doc.pdf_conteudo, 'application/pdf'); return true; }
+  if(doc.pdf_url){ window.open(doc.pdf_url, '_blank'); return true; }
+  return false;
+}
+
+const NFCE_COLUNAS_IMPRESSAO = 'id, status, numero, serie, valor, chave_acesso, protocolo, tp_ambiente, dh_emissao, dh_recebimento, xml_conteudo, pdf_conteudo, pdf_url';
+
+// Ponto único de impressão da NFC-e (PDV e Fiscal). Devolve { ok, via } — via = 'danfe_local' | 'pdf_provedor'.
+function nfceImprimirDocumento(doc){
+  if(!doc) return { ok: false };
+  if(DANFE_NFCE_FONTE === 'xml_local'){
+    try {
+      const d = nfceLerDadosDanfe(doc);
+      const html = d && d.qrCode ? nfceMontarDanfeHtml(d, florestQrSvg(d.qrCode, 2)) : null;
+      if(html){ nfceImprimirHtmlEmIframe(html); return { ok: true, via: 'danfe_local' }; }
+    } catch(err){ console.error('DANFE NFC-e local indisponível, usando o PDF do provedor', err); }
+  }
+  return nfceAbrirPdfProvedor(doc) ? { ok: true, via: 'pdf_provedor' } : { ok: false };
+}
+
 function abrirBase64EmNovaAba(base64, mime){
   const janela = window.open('', '_blank');
   if(!janela) return;
@@ -14625,9 +15084,11 @@ function renderDocumentosDaVenda(vendaId, documentos){
     const dependeIntegracao = doc.status === 'nao_emitida';
     const temPdf = !!(doc.pdf_conteudo || doc.pdf_url);
     const temXml = !!(doc.xml_conteudo || doc.xml_url);
+    const temDanfe = temPdf || !!doc.xml_conteudo;
 
     let acoesHtml = '';
-    if(temPdf) acoesHtml += `<button type="button" class="link-btn btn-imprimir-nfce" data-id="${doc.id}" style="margin-right:12px;">Imprimir NFC-e</button>`;
+    if(temDanfe) acoesHtml += `<button type="button" class="link-btn btn-imprimir-nfce" data-id="${doc.id}" style="margin-right:12px;">Imprimir NFC-e</button>`;
+    if(temPdf && doc.xml_conteudo && DANFE_NFCE_FONTE === 'xml_local') acoesHtml += `<button type="button" class="link-btn btn-pdf-provedor" data-id="${doc.id}" style="margin-right:12px;">PDF do provedor</button>`;
     if(temXml) acoesHtml += `<button type="button" class="link-btn btn-baixar-xml" data-id="${doc.id}" style="margin-right:12px;">Baixar XML</button>`;
     // Cancelar NFC-e: só NFC-e AUTORIZADA e só para quem tem o módulo Fiscal (o backend revalida).
     const cancelada = doc.status === 'cancelada';
@@ -14662,9 +15123,11 @@ function renderDocumentosDaVenda(vendaId, documentos){
 
     const btnImprimir = div.querySelector('.btn-imprimir-nfce');
     if(btnImprimir) btnImprimir.addEventListener('click', () => {
-      if(doc.pdf_conteudo) abrirBase64EmNovaAba(doc.pdf_conteudo, 'application/pdf');
-      else if(doc.pdf_url) window.open(doc.pdf_url, '_blank');
+      const r = nfceImprimirDocumento(doc);
+      if(!r.ok) $('fiscal-venda-msg').innerHTML = '<div class="msg error">O documento desta NFC-e não está disponível para impressão.</div>';
     });
+    const btnPdfProv = div.querySelector('.btn-pdf-provedor');
+    if(btnPdfProv) btnPdfProv.addEventListener('click', () => nfceAbrirPdfProvedor(doc));
     const btnXml = div.querySelector('.btn-baixar-xml');
     if(btnXml) btnXml.addEventListener('click', () => {
       if(doc.xml_conteudo){
@@ -14932,6 +15395,7 @@ async function carregarConfiguracoesFiscais(){
   if(!data){
     configuracaoFiscalId = null;
     $('form-config-fiscal').reset();
+    definirAmbienteFiscalNaTela(null);
     $('cert-info').classList.add('hidden');
     atualizarStatusIntegracao(null);
     return;
@@ -14955,7 +15419,7 @@ async function carregarConfiguracoesFiscais(){
   $('cf-complemento').value = data.complemento || '';
   $('cf-bairro').value = data.bairro || '';
   $('cf-nfce-serie').value = data.nfce_serie || '';
-  $('cf-nfce-ambiente').value = 'homologacao';
+  definirAmbienteFiscalNaTela(data.nfce_ambiente);
   $('cf-nfce-csc').value = data.nfce_csc || '';
   $('cf-nfce-idcsc').value = data.nfce_id_csc || '';
   $('cf-nfce-versao-qrcode').value = data.nfce_versao_qrcode || '';
@@ -15050,8 +15514,16 @@ function atualizarStatusIntegracao(data){
   $('status-csc').textContent = cscOk ? 'Configurado' : 'Não configurado';
   $('status-usuario-dadosjah').textContent = usuarioOk ? 'Criado' : 'Não criado';
   $('status-emitente').textContent = emitenteOk ? 'Registrado' : 'Não registrado';
-  $('status-integracao-geral').textContent =
-    (dadosOk && certOk && cscOk && usuarioOk && emitenteOk) ? 'Pronta para teste' : 'Incompleta';
+  integracaoFiscalPronta = !!(dadosOk && certOk && cscOk && usuarioOk && emitenteOk);
+  renderIntegracaoGeral();
+}
+
+// Rótulo do status geral conforme o ambiente (homologação = teste; produção = emissão com validade fiscal).
+let integracaoFiscalPronta = false;
+function renderIntegracaoGeral(){
+  $('status-integracao-geral').textContent = !integracaoFiscalPronta
+    ? 'Incompleta'
+    : (ambienteFiscalAtual === 'producao' ? 'Pronta para emitir (produção)' : 'Pronta para teste');
 }
 
 $('form-config-fiscal').addEventListener('submit', async (e) => {
@@ -15075,7 +15547,6 @@ $('form-config-fiscal').addEventListener('submit', async (e) => {
     complemento: $('cf-complemento').value.trim() || null,
     bairro: $('cf-bairro').value.trim() || null,
     nfce_serie: $('cf-nfce-serie').value.trim() || null,
-    nfce_ambiente: 'homologacao',
     nfce_csc: $('cf-nfce-csc').value.trim() || null,
     nfce_id_csc: $('cf-nfce-idcsc').value.trim() || null,
     nfce_versao_qrcode: $('cf-nfce-versao-qrcode').value.trim() || null,
@@ -15110,6 +15581,159 @@ $('form-config-fiscal').addEventListener('submit', async (e) => {
 
   $('config-fiscal-msg').innerHTML = '<div class="msg success">Configurações fiscais salvas.</div>';
   carregarConfiguracoesFiscais();
+});
+
+// ---------- Ambiente fiscal da NFC-e (Homologação / Produção) ----------
+// configuracoes_fiscais.nfce_ambiente é PROTEGIDO no banco (trigger proteger_config_fiscal): o navegador não
+// consegue gravá-lo. A troca passa pela Edge Function fiscal-definir-ambiente, que confere a permissão, a
+// empresa do usuário, os pré-requisitos fiscais da produção e a confirmação. Homologação = tpAmb 2; Produção = tpAmb 1.
+let ambienteFiscalAtual = 'homologacao';
+
+function definirAmbienteFiscalNaTela(valor){
+  ambienteFiscalAtual = valor === 'producao' ? 'producao' : 'homologacao';
+  const sel = $('cf-nfce-ambiente');
+  sel.value = ambienteFiscalAtual;
+  sel.disabled = !configuracaoFiscalId;
+  const aviso = $('cf-nfce-aviso-ambiente');
+  if(ambienteFiscalAtual === 'producao'){
+    aviso.style.background = 'var(--danger-soft)';
+    aviso.style.color = 'var(--danger)';
+    aviso.textContent = '🔴 Ambiente de PRODUÇÃO — as notas emitidas têm validade fiscal.';
+  } else {
+    aviso.style.background = 'var(--accent-soft)';
+    aviso.style.color = 'var(--ink)';
+    aviso.textContent = '⚠️ Ambiente de Homologação — documentos emitidos aqui não têm validade fiscal.';
+  }
+  $('cf-nfce-ambiente-dica').textContent = configuracaoFiscalId
+    ? 'A troca de ambiente é aplicada na hora, depois da sua confirmação — não depende do botão "Salvar configurações". Vale só para esta empresa.'
+    : 'Salve as configurações fiscais da empresa primeiro para poder alterar o ambiente.';
+  $('status-ambiente').textContent = ambienteFiscalAtual === 'producao' ? 'Produção' : 'Homologação';
+  renderIntegracaoGeral();
+}
+
+async function chamarFiscalAmbiente(corpo){
+  const { data, error } = await supabase.functions.invoke('fiscal-definir-ambiente', { body: corpo });
+  if(!error && data && !data.error) return { ok: true, dados: data };
+  let j = data;
+  try {
+    if(error && error.context && typeof error.context.json === 'function') j = await error.context.json();
+  } catch(e){ /* corpo ilegível: cai na mensagem genérica */ }
+  let erro = (j && j.error) || '';
+  if(!erro){
+    const st = error && error.context && typeof error.context.status === 'number' ? error.context.status : 0;
+    erro = (st === 404 || /failed to send|not found/i.test((error && error.message) || ''))
+      ? 'A função fiscal-definir-ambiente ainda não foi publicada no Supabase.'
+      : 'Não foi possível concluir agora. Tente novamente.';
+  }
+  return { ok: false, erro, codigo: j && j.codigo, pendencias: (j && Array.isArray(j.pendencias)) ? j.pendencias : [] };
+}
+
+let ambienteModalDestino = null;
+const normalizarConfirmacaoAmbiente = (v) =>
+  String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase();
+
+function fecharModalAmbiente(){
+  $('modal-ambiente').classList.add('hidden');
+  ambienteModalDestino = null;
+  $('cf-nfce-ambiente').value = ambienteFiscalAtual; // o select só muda depois de confirmado e gravado
+}
+
+async function abrirModalAmbiente(destino){
+  ambienteModalDestino = destino;
+  const btn = $('btn-amb-confirmar');
+  const campo = $('amb-confirm-wrap');
+  const input = $('amb-confirm-texto');
+  $('amb-msg').innerHTML = '';
+  input.value = '';
+  campo.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Confirmar';
+  $('modal-ambiente').classList.remove('hidden');
+
+  if(destino === 'homologacao'){
+    $('amb-titulo').textContent = 'Voltar para Homologação?';
+    $('amb-corpo').innerHTML = 'As próximas NFC-e desta empresa serão emitidas em <strong>ambiente de testes, sem validade fiscal</strong>. Notas já emitidas em produção continuam válidas. CSC, idCSC e numeração não são alterados.';
+    btn.textContent = 'Voltar para Homologação';
+    btn.disabled = false;
+    return;
+  }
+
+  $('amb-titulo').textContent = 'Ativar o ambiente de PRODUÇÃO?';
+  $('amb-corpo').textContent = 'Verificando os pré-requisitos fiscais...';
+  const r = await chamarFiscalAmbiente({ acao: 'verificar' });
+  if(ambienteModalDestino !== 'producao') return; // o usuário fechou o modal enquanto verificava
+
+  if(!r.ok){
+    $('amb-corpo').innerHTML = '';
+    $('amb-msg').innerHTML = `<div class="msg error">${escapeHtml(r.erro)}</div>`;
+    return;
+  }
+  const pend = r.dados.pendencias_producao || [];
+  if(pend.length > 0){
+    $('amb-corpo').innerHTML = '<strong>A produção ainda não pode ser ativada.</strong> Corrija os itens abaixo, salve as configurações e tente de novo:'
+      + '<ul style="margin:10px 0 0 18px;">' + pend.map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul>';
+    return;
+  }
+  const serie = r.dados.serie ? escapeHtml(r.dados.serie) : '—';
+  const ultimo = Number.isFinite(Number(r.dados.ultimo_numero)) ? Number(r.dados.ultimo_numero) : null;
+  $('amb-corpo').innerHTML =
+    '<p style="margin:0 0 10px;"><strong>A partir da confirmação, as NFC-e desta empresa serão emitidas em PRODUÇÃO, com validade fiscal perante a SEFAZ.</strong> Isso vale só para esta empresa.</p>'
+    + '<ul style="margin:0 0 0 18px;">'
+    + `<li>Série ${serie}${ultimo !== null ? ` — último número já usado no contador: ${ultimo}. A próxima NFC-e sairá com o número <strong>${ultimo + 1}</strong>.` : '.'}</li>`
+    + '<li>O contador de numeração é <strong>único por série e compartilhado</strong> entre Homologação e Produção: o sistema não o separa por ambiente nem o reinicia ao trocar.'
+    + (ultimo !== null && ultimo > 0
+        ? ` Os números gastos nos testes não voltam: a primeira nota de produção será a ${ultimo + 1}, e os números de 1 a ${ultimo} ficarão sem uso em produção. Isso não gera duplicidade nem erro de emissão; se quiser tratar essa falta de sequência, consulte seu contador.`
+        : (ultimo === 0 ? ' Como nenhum número foi usado ainda, a primeira nota de produção será a 1.' : ''))
+    + '</li>'
+    + '<li>O CSC e o idCSC <strong>não são alterados</strong> — confira que os salvos nesta tela são os de <strong>PRODUÇÃO</strong>.</li>'
+    + '<li>A verificação usou os dados já <strong>salvos</strong>; salve as alterações pendentes antes de continuar.</li>'
+    + '</ul>';
+  campo.style.display = '';
+  input.focus();
+}
+
+$('cf-nfce-ambiente').addEventListener('change', (e) => {
+  const novo = e.target.value;
+  if(novo === ambienteFiscalAtual) return;
+  e.target.value = ambienteFiscalAtual;       // volta ao ambiente real até a troca ser confirmada e gravada
+  abrirModalAmbiente(novo);
+});
+
+$('amb-confirm-texto').addEventListener('input', () => {
+  if(ambienteModalDestino === 'producao') $('btn-amb-confirmar').disabled = normalizarConfirmacaoAmbiente($('amb-confirm-texto').value) !== 'PRODUCAO';
+});
+
+$('btn-amb-cancelar').addEventListener('click', fecharModalAmbiente);
+
+$('btn-amb-confirmar').addEventListener('click', async () => {
+  const destino = ambienteModalDestino;
+  if(!destino) return;
+  const btn = $('btn-amb-confirmar');
+  const rotulo = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Aplicando...';
+  $('amb-msg').innerHTML = '';
+
+  const corpo = { acao: 'definir', ambiente: destino };
+  if(destino === 'producao') corpo.confirmacao = $('amb-confirm-texto').value;
+  const r = await chamarFiscalAmbiente(corpo);
+
+  if(!r.ok){
+    btn.textContent = rotulo;
+    btn.disabled = destino === 'producao' && normalizarConfirmacaoAmbiente($('amb-confirm-texto').value) !== 'PRODUCAO';
+    let html = `<div class="msg error">${escapeHtml(r.erro)}</div>`;
+    if(r.pendencias.length) html += '<ul style="margin:0 0 0 18px;">' + r.pendencias.map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul>';
+    $('amb-msg').innerHTML = html;
+    return;
+  }
+
+  const ambienteGravado = r.dados.ambiente === 'producao' ? 'producao' : 'homologacao';
+  ambienteModalDestino = null;
+  $('modal-ambiente').classList.add('hidden');
+  definirAmbienteFiscalNaTela(ambienteGravado);
+  $('config-fiscal-msg').innerHTML = ambienteGravado === 'producao'
+    ? '<div class="msg success">Ambiente alterado para PRODUÇÃO. As próximas NFC-e desta empresa serão emitidas com validade fiscal.</div>'
+    : '<div class="msg success">Ambiente alterado para Homologação. As próximas NFC-e serão emitidas em ambiente de testes.</div>';
 });
 
 // ---------- Certificado A1 (arquivo + senha vão direto para a Edge Function) ----------
