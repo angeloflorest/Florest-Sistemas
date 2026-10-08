@@ -4388,11 +4388,14 @@
 <div id="modal-venda-concluida" class="modal-overlay hidden">
   <div class="modal-card" style="max-width:400px; text-align:center;">
     <h3 id="modal-venda-concluida-titulo">Venda concluída com sucesso</h3>
-    <p class="modal-section-hint" style="margin-top:-6px;">Deseja emitir documento fiscal desta venda?</p>
+    <button type="button" class="btn-secondary" id="btn-venda-imprimir-pedido" style="width:100%; margin-top:6px;">Imprimir pedido</button>
+    <div id="modal-venda-pedido-msg"></div>
+    <hr style="border:0; border-top:1px solid var(--border); margin:16px 0 10px;">
+    <p class="modal-section-hint" style="margin:0 0 4px;">Documento fiscal: deseja emitir a NFC-e desta venda?</p>
     <div id="modal-venda-concluida-msg"></div>
-    <div class="modal-actions" style="justify-content:center; flex-direction:column; gap:10px; margin-top:20px;">
-      <button type="button" class="btn-accent" id="btn-venda-emitir-sim" style="width:100%;">Sim, emitir nota</button>
-      <button type="button" class="btn-secondary" id="btn-venda-emitir-nao" style="width:100%;">Não</button>
+    <div class="modal-actions" style="justify-content:center; flex-direction:column; gap:10px; margin-top:16px;">
+      <button type="button" class="btn-accent" id="btn-venda-emitir-sim" style="width:100%;">Emitir NFC-e</button>
+      <button type="button" class="btn-secondary" id="btn-venda-emitir-nao" style="width:100%;">Finalizar</button>
     </div>
   </div>
 </div>
@@ -10809,9 +10812,10 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   renderCarrinho();
   $('pdv-busca-produto').focus();
 
-  impEnfileirarRecibo('venda', vendaId);   // recibo não fiscal na impressora do Caixa (se configurada)
   if(vendaId && numeroVenda){
-    abrirModalVendaConcluida(vendaId, numeroVenda);
+    abrirModalVendaConcluida(vendaId, numeroVenda);   // o pedido só imprime se o operador clicar em "Imprimir pedido"
+  } else {
+    impEnfileirarRecibo('venda', vendaId);            // sem modal não há botão: mantém o recibo não fiscal como antes
   }
 });
 
@@ -11423,82 +11427,151 @@ $('pdx-cfg-novo-nome').addEventListener('keydown', (e) => { if(e.key === 'Enter'
 
 // ---------- Modal pós-venda: emitir nota fiscal? ----------
 let vendaConcluidaAtualId = null;
+let vendaEmissaoEmAndamento = false;                 // trava contra duplo clique / dupla emissão
+let pedidoImpressao = { vendaId: null, enviados: 0, ocupado: false };
 
 function abrirModalVendaConcluida(vendaId, numeroVenda){
   vendaConcluidaAtualId = vendaId;
+  vendaEmissaoEmAndamento = false;
+  pedidoImpressao = { vendaId, enviados: 0, ocupado: false };
   $('modal-venda-concluida-titulo').textContent = `Venda #${numeroVenda} concluída com sucesso`;
+  $('modal-venda-pedido-msg').innerHTML = '';
   $('modal-venda-concluida-msg').innerHTML = '';
+  $('btn-venda-imprimir-pedido').disabled = false;
+  $('btn-venda-imprimir-pedido').textContent = 'Imprimir pedido';
   $('btn-venda-emitir-sim').disabled = false;
-  $('btn-venda-emitir-sim').textContent = 'Sim, emitir nota';
-  $('btn-venda-emitir-nao').textContent = 'Não';
+  $('btn-venda-emitir-sim').textContent = 'Emitir NFC-e';
+  $('btn-venda-emitir-nao').disabled = false;
+  $('btn-venda-emitir-nao').textContent = 'Finalizar';
   $('modal-venda-concluida').classList.remove('hidden');
 }
 
-// Depois de autorizada, o PDV continua pronto para a próxima venda: o resultado aparece na mensagem do
-// PDV (com acesso à impressão da NFC-e) em vez de levar o operador para a tela Fiscal. Consulta,
-// reimpressão e cancelamento continuam na tela Fiscal, aberta só quando o operador quiser.
-function pdvMostrarNfceAutorizada(documentoId, resultado){
-  const num = resultado && resultado.numero ? ' Número: ' + escapeHtml(String(resultado.numero)) + '.' : '';
-  pdvMensagem(`NFC-e autorizada com sucesso.${num} <button type="button" class="link-btn" id="btn-pdv-imprimir-nfce">Imprimir NFC-e</button>`, 'success');
-  const b = $('btn-pdv-imprimir-nfce');
-  if(b) b.addEventListener('click', () => pdvImprimirNfce(documentoId));
-}
-
-// Mesmo documento e mesma impressão da tela Fiscal (nfceImprimirDocumento): o operador não sai do PDV.
-async function pdvImprimirNfce(documentoId){
-  const { data, error } = await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id', documentoId).maybeSingle();
-  const r = error || !data ? { ok: false } : nfceImprimirDocumento(data);
-  if(!r.ok) pdvMensagem('O documento desta NFC-e ainda não está disponível para impressão. Consulte pela tela Fiscal.');
-}
-
-$('btn-venda-emitir-nao').addEventListener('click', () => {
+function pdvFecharModalVendaConcluida(){
   $('modal-venda-concluida').classList.add('hidden');
   vendaConcluidaAtualId = null;
   focarCampoPdv();
+}
+
+// "Imprimir pedido": enfileira o RECIBO NÃO FISCAL (o mesmo cupom de sempre, impresso pelo Florest Print Agent na
+// impressora do Caixa). Não fecha o modal e não impede a emissão da NFC-e. A 1ª vez cria o recibo; as seguintes
+// pedem uma nova via (p_reimpressao), porque a fila é idempotente por venda.
+$('btn-venda-imprimir-pedido').addEventListener('click', async () => {
+  const vendaId = vendaConcluidaAtualId;
+  if(!vendaId || pedidoImpressao.ocupado) return;
+  pedidoImpressao.ocupado = true;
+  const btn = $('btn-venda-imprimir-pedido');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  let html;
+  try {
+    const args = { p_venda_id: vendaId };
+    if(pedidoImpressao.enviados > 0) args.p_reimpressao = true;
+    const { data, error } = await supabase.rpc('impressao_recibo_venda_enfileirar', args);
+    if(error) throw error;
+    pedidoImpressao.enviados++;
+    html = data && data.impressora_configurada === false
+      ? '<div class="msg error">Pedido registrado na fila, mas não há impressora configurada para o Caixa (Configurações → Impressoras).</div>'
+      : '<div class="msg success">Pedido enviado para a impressora do Caixa.</div>';
+  } catch(err){
+    console.error('Falha ao enviar o pedido para impressão', err);
+    html = '<div class="msg error">Não foi possível enviar o pedido para impressão. A venda continua registrada.</div>';
+  }
+  if(vendaConcluidaAtualId === vendaId){
+    $('modal-venda-pedido-msg').innerHTML = html;
+    btn.disabled = false;
+    btn.textContent = pedidoImpressao.enviados > 0 ? 'Imprimir pedido novamente' : 'Imprimir pedido';
+  }
+  pedidoImpressao.ocupado = false;
+});
+
+// Depois de AUTORIZADA, o PDV continua pronto para a próxima venda: a mensagem fica no PDV e a tela Fiscal só abre
+// se o operador quiser. estado: 'imprimindo' | 'impresso' | 'falha' (o botão serve só para reimprimir).
+function pdvMostrarNfceAutorizada(documentoId, resultado, estado){
+  const num = resultado && resultado.numero ? ' Número: ' + escapeHtml(String(resultado.numero)) + '.' : '';
+  const link = (rot) => ` <button type="button" class="link-btn" id="btn-pdv-imprimir-nfce">${rot}</button>`;
+  const texto = estado === 'imprimindo' ? ' Abrindo impressão...'
+              : estado === 'impresso' ? ' Impressão enviada.' + link('Imprimir novamente')
+              : ' Não foi possível abrir a impressão automaticamente.' + link('Imprimir NFC-e');
+  pdvMensagem(`NFC-e autorizada com sucesso.${num}${texto}`, 'success');
+  const b = $('btn-pdv-imprimir-nfce');
+  if(b) b.addEventListener('click', async () => {
+    if(await pdvImprimirNfce(documentoId) === 'falha') pdvMensagem('Não foi possível abrir a impressão desta NFC-e. Reimprima pela tela Fiscal.');
+  });
+}
+
+// Mesmo documento e mesma impressão da tela Fiscal (nfceImprimirDocumento). SÓ imprime nota com status
+// 'autorizada' lido do banco — nunca por suposição do navegador. Devolve 'ok' | 'indisponivel' | 'falha'.
+async function pdvImprimirNfce(documentoId){
+  const { data, error } = await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id', documentoId).maybeSingle();
+  if(error || !data || data.status !== 'autorizada'){
+    pdvMensagem('O documento desta NFC-e ainda não está disponível para impressão. Consulte pela tela Fiscal.');
+    return 'indisponivel';
+  }
+  return nfceImprimirDocumento(data).ok ? 'ok' : 'falha';
+}
+
+$('btn-venda-emitir-nao').addEventListener('click', () => {
+  if(vendaEmissaoEmAndamento) return;                // não fecha no meio de uma emissão
+  pdvFecharModalVendaConcluida();
 });
 
 $('btn-venda-emitir-sim').addEventListener('click', async () => {
-  if(!vendaConcluidaAtualId) return;
+  if(!vendaConcluidaAtualId || vendaEmissaoEmAndamento) return;   // duplo clique = 1 só emissão
+  vendaEmissaoEmAndamento = true;
 
   const btn = $('btn-venda-emitir-sim');
+  const btnFim = $('btn-venda-emitir-nao');
   btn.disabled = true;
+  btnFim.disabled = true;
   btn.textContent = 'Preparando...';
+  $('modal-venda-concluida-msg').innerHTML = '';
 
-  const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaConcluidaAtualId });
-
-  if(error){
-    $('modal-venda-concluida-msg').innerHTML = `<div class="msg error">Erro ao preparar emissão: ${error.message}</div>`;
-    btn.disabled = false;
-    btn.textContent = 'Sim, emitir nota';
-    return;
+  let autorizadaId = null, resultadoAutorizado = null;
+  try {
+    const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaConcluidaAtualId });
+    if(error){
+      $('modal-venda-concluida-msg').innerHTML = `<div class="msg error">Erro ao preparar emissão: ${error.message}</div>`;
+      return;
+    }
+    const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
+    let resultado = null;
+    if(docNfce){
+      btn.textContent = 'Emitindo NFC-e...';
+      $('modal-venda-concluida-msg').innerHTML = '<div class="msg success">Emitindo NFC-e...</div>';
+      resultado = await chamarEmissaoRealNFCe(docNfce.id);
+    }
+    if(docNfce && resultado && resultado.status === 'autorizada'){
+      autorizadaId = docNfce.id;
+      resultadoAutorizado = resultado;
+      $('modal-venda-concluida-msg').innerHTML = '<div class="msg success">NFC-e autorizada com sucesso.<br>Abrindo impressão...</div>';
+    } else {
+      // Rejeitada, erro, ainda em processamento ou venda sem item de NFC-e: NUNCA imprime; o motivo fica visível e o
+      // operador escolhe (tentar de novo ou finalizar; a nota pode ser emitida depois pela tela Fiscal).
+      $('modal-venda-concluida-msg').innerHTML = docNfce
+        ? mensagemResultadoFiscal(resultado)
+        : '<div class="msg error">Esta venda não tem item de mercadoria para gerar NFC-e.</div>';
+    }
+  } finally {
+    if(!autorizadaId){
+      vendaEmissaoEmAndamento = false;
+      btn.disabled = false;
+      btn.textContent = 'Emitir NFC-e';
+      btnFim.disabled = false;
+    }
   }
 
-  const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
-
-  let resultado = null;
-  if(docNfce){
-    btn.textContent = 'Emitindo NFC-e...';
-    resultado = await chamarEmissaoRealNFCe(docNfce.id);
+  // AUTORIZADA (status confirmado pelo backend): mostra a mensagem, fecha o modal, volta ao PDV pronto para a próxima
+  // venda e abre a impressão do DANFE UMA vez (nenhum outro ouvinte imprime).
+  if(autorizadaId){
+    await new Promise(r => setTimeout(r, 700));
+    pdvFecharModalVendaConcluida();
+    vendaEmissaoEmAndamento = false;
+    pdvMostrarNfceAutorizada(autorizadaId, resultadoAutorizado, 'imprimindo');
+    const impressao = await pdvImprimirNfce(autorizadaId);
+    if(impressao === 'ok') pdvMostrarNfceAutorizada(autorizadaId, resultadoAutorizado, 'impresso');
+    else if(impressao === 'falha') pdvMostrarNfceAutorizada(autorizadaId, resultadoAutorizado, 'falha');
+    setTimeout(focarCampoPdv, 400);
   }
-
-  btn.disabled = false;
-  btn.textContent = 'Sim, emitir nota';
-
-  // Autorizada: fecha o modal e PERMANECE no PDV, pronto para a próxima venda (o cupom já foi limpo).
-  if(docNfce && resultado && resultado.status === 'autorizada'){
-    $('modal-venda-concluida').classList.add('hidden');
-    vendaConcluidaAtualId = null;
-    pdvMostrarNfceAutorizada(docNfce.id, resultado);
-    focarCampoPdv();
-    return;
-  }
-
-  // Rejeitada, erro, ainda em processamento ou venda sem item de NFC-e: o motivo fica visível aqui e o
-  // operador escolhe (tentar de novo ou fechar e seguir no PDV; a nota pode ser emitida depois pela tela Fiscal).
-  $('modal-venda-concluida-msg').innerHTML = docNfce
-    ? mensagemResultadoFiscal(resultado)
-    : '<div class="msg error">Esta venda não tem item de mercadoria para gerar NFC-e.</div>';
-  $('btn-venda-emitir-nao').textContent = 'Fechar';
 });
 
 // ---------- Financeiro ----------
@@ -14876,7 +14949,6 @@ function florestQrSvg(texto, borda){
   var t = n + b*2;
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + t + ' ' + t + '" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
 }
-
 // ---------- DANFE NFC-e (impressão a partir da NFC-e AUTORIZADA) ----------
 // Fonte única de impressão da NFC-e, usada pelo PDV e pela tela Fiscal (mesmo documento nos dois lugares).
 // 'xml_local'    -> monta o DANFE NFC-e (bobina 80 mm) SOMENTE com os dados reais da nota autorizada: o XML
@@ -14885,6 +14957,8 @@ function florestQrSvg(texto, borda){
 //                   inventado: se faltar chave, protocolo ou QR Code no XML, NÃO monta e usa o PDF do provedor.
 // 'pdf_provedor' -> abre sempre o PDF devolvido pela Dados Jah (comportamento anterior).
 const DANFE_NFCE_FONTE = 'xml_local';
+// Largura do cupom em colunas de texto (bobina de 80 mm, fonte monoespaçada de 10 px).
+const DANFE_NFCE_COLS = 44;
 
 const NFCE_TPAG = { '01':'Dinheiro','02':'Cheque','03':'Cartão de Crédito','04':'Cartão de Débito','05':'Crédito Loja','10':'Vale Alimentação','11':'Vale Refeição','12':'Vale Presente','13':'Vale Combustível','15':'Boleto Bancário','16':'Depósito Bancário','17':'PIX','18':'Transferência/Carteira Digital','19':'Programa de Fidelidade','20':'PIX','21':'Crédito em Loja','90':'Sem pagamento','99':'Outros' };
 
@@ -14957,70 +15031,121 @@ function nfceDataHora(s){
 function nfceCnpjFmt(c){ const d = String(c || '').replace(/\D/g, ''); return d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d; }
 function nfceCpfFmt(c){ const d = String(c || '').replace(/\D/g, ''); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : d; }
 
-// Retorna o HTML completo (80 mm) ou null se a nota não tem o mínimo real exigido para o DANFE NFC-e.
+
+// Texto ASCII puro: o cupom térmico não pode depender do code page do driver da impressora (acentos
+// saem trocados quando o driver imprime só texto). Nada de dado fiscal muda: só a grafia do que é impresso.
+function nfceAscii(s){
+  return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/º/g, 'o').replace(/ª/g, 'a').replace(/°/g, 'o').replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+    .replace(/[^\x20-\x7E]/g, '?');
+}
+function nfceQuebrar(texto, n){
+  const palavras = nfceAscii(texto).split(/\s+/).filter(Boolean), linhas = [];
+  let atual = '';
+  palavras.forEach(p => {
+    while(p.length > n){ if(atual){ linhas.push(atual); atual = ''; } linhas.push(p.slice(0, n)); p = p.slice(n); }
+    if(!atual) atual = p;
+    else if((atual + ' ' + p).length <= n) atual += ' ' + p;
+    else { linhas.push(atual); atual = p; }
+  });
+  if(atual) linhas.push(atual);
+  return linhas;
+}
+
+// Quebra uma URL preferindo o fim de um segmento ("/"), para a linha não cortar uma palavra ao meio.
+function nfceQuebrarUrl(url, n){
+  const partes = nfceAscii(url).match(/[^/]*\/?/g).filter(Boolean), linhas = [];
+  let atual = '';
+  partes.forEach(p => {
+    while(p.length > n){ if(atual){ linhas.push(atual); atual = ''; } linhas.push(p.slice(0, n)); p = p.slice(n); }
+    if((atual + p).length <= n) atual += p; else { linhas.push(atual); atual = p; }
+  });
+  if(atual) linhas.push(atual);
+  return linhas;
+}
+
+// Monta o HTML do DANFE NFC-e (bobina 80 mm, texto monoespaçado em colunas fixas, QR Code fiscal do XML).
+// Retorna null se a nota não tem o mínimo real exigido (chave, protocolo e QR Code): nada é inventado.
 function nfceMontarDanfeHtml(d, qrSvg){
   if(!d || !d.chave || !d.protocolo || !d.qrCode || !qrSvg) return null;
-  const e = escapeHtml, linhaVal = (rot, val, forte) => `<div class="lin${forte ? ' forte' : ''}"><span>${e(rot)}</span><span>${e(val)}</span></div>`;
+  const N = DANFE_NFCE_COLS, e = escapeHtml;
+  const blocos = [[]];                         // blocos de linhas; o QR Code fica entre o bloco 0 e o bloco 1
+  const L = (t, b) => blocos[blocos.length - 1].push({ t: String(t), b: !!b });
+  const centro = (t, b) => nfceQuebrar(t, N).forEach(l => L(' '.repeat(Math.floor((N - l.length) / 2)) + l, b));
+  const esq = (t, b) => nfceQuebrar(t, N).forEach(l => L(l, b));
+  const lr = (a, c, b) => { a = nfceAscii(a); c = nfceAscii(c); if(a.length + c.length + 1 > N) a = a.slice(0, Math.max(0, N - c.length - 1)); L(a + ' '.repeat(N - a.length - c.length) + c, b); };
+  const sep = () => L('-'.repeat(N));
+
   const homolog = String(d.tpAmb) === '2';
   const nomeEmp = d.emit.fantasia && d.emit.fantasia !== d.emit.nome ? d.emit.fantasia : d.emit.nome;
-  const endereco = [d.emit.end.join(', '), [d.emit.cidade, d.emit.uf].filter(Boolean).join(' - '), d.emit.cep ? 'CEP ' + d.emit.cep : ''].filter(Boolean).join(' · ');
-  const itens = d.itens.map(it => {
-    const desconto = nfceNum(it.vdesc) > 0 ? ` (-${nfceMoeda(it.vdesc)})` : '';
-    return `<div class="item"><div class="desc">${e(it.n.padStart(3, '0'))} ${e(it.cod)} ${e(it.desc)}</div>
-      <div class="lin"><span>${e(nfceQtd(it.qtd))} ${e(it.un)} x ${e(nfceMoeda(it.vun))}${e(desconto)}</span><span>${e(nfceMoeda(it.vprod))}</span></div></div>`;
-  }).join('');
-  const pagtos = d.pagamentos.map(p => linhaVal(NFCE_TPAG[p.tPag] || p.desc || 'Outros', nfceMoeda(p.v))).join('');
-  const consumidor = d.dest.cpf ? `CONSUMIDOR - CPF ${nfceCpfFmt(d.dest.cpf)}${d.dest.nome ? ' - ' + d.dest.nome : ''}`
-                   : d.dest.cnpj ? `CONSUMIDOR - CNPJ ${nfceCnpjFmt(d.dest.cnpj)}${d.dest.nome ? ' - ' + d.dest.nome : ''}`
-                   : 'CONSUMIDOR NÃO IDENTIFICADO';
-  const chaveFmt = String(d.chave).replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>DANFE NFC-e ${e(d.numero)}</title><style>
-    @page{ size:80mm auto; margin:3mm; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; width:74mm; font-family:Arial,Helvetica,sans-serif; font-size:10px; line-height:1.25; color:#000; }
-    .c{ text-align:center; } .forte{ font-weight:700; } .peq{ font-size:9px; }
-    .nome{ font-size:12px; font-weight:700; }
-    hr{ border:0; border-top:1px dashed #000; margin:5px 0; }
-    .lin{ display:flex; justify-content:space-between; gap:6px; } .lin span:last-child{ white-space:nowrap; text-align:right; }
-    .item{ margin-bottom:3px; } .desc{ word-break:break-word; }
-    .homolog{ border:1px solid #000; padding:3px; margin:4px 0; font-weight:700; text-align:center; }
-    .qr{ text-align:center; margin:6px 0; } .qr svg{ width:36mm; height:36mm; }
-    .chave{ word-break:break-all; font-weight:700; font-size:9px; }
-  </style></head><body>
-    <div class="c nome">${e(nomeEmp)}</div>
-    ${d.emit.fantasia && d.emit.fantasia !== d.emit.nome ? `<div class="c peq">${e(d.emit.nome)}</div>` : ''}
-    <div class="c peq">CNPJ: ${e(nfceCnpjFmt(d.emit.cnpj))}${d.emit.ie ? ' · IE: ' + e(d.emit.ie) : ''}</div>
-    <div class="c peq">${e(endereco)}${d.emit.fone ? ' · Tel. ' + e(d.emit.fone) : ''}</div>
-    <hr>
-    <div class="c forte">DANFE NFC-e</div>
-    <div class="c peq">Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</div>
-    ${d.cancelada ? '<div class="homolog">NFC-e CANCELADA</div>' : ''}
-    ${homolog ? '<div class="homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br>SEM VALOR FISCAL</div>' : ''}
-    <hr>
-    ${itens}
-    <hr>
-    ${linhaVal('Qtd. total de itens', String(d.itens.length))}
-    ${linhaVal('Valor total R$', nfceMoeda(d.vProd))}
-    ${nfceNum(d.vDesc) > 0 ? linhaVal('Desconto R$', '-' + nfceMoeda(d.vDesc)) : ''}
-    ${nfceNum(d.vOutro) > 0 ? linhaVal('Acréscimos R$', nfceMoeda(d.vOutro)) : ''}
-    ${linhaVal('Valor a pagar R$', nfceMoeda(d.vNF), true)}
-    <hr>
-    <div class="lin forte"><span>Forma de pagamento</span><span>Valor pago R$</span></div>
-    ${pagtos}
-    ${nfceNum(d.vTroco) > 0 ? linhaVal('Troco R$', nfceMoeda(d.vTroco)) : ''}
-    ${nfceNum(d.vTotTrib) > 0 ? `<hr><div class="peq">Tributos totais incidentes (Lei Federal 12.741/2012): R$ ${e(nfceMoeda(d.vTotTrib))}</div>` : ''}
-    ${d.infCpl ? `<hr><div class="peq">${e(d.infCpl)}</div>` : ''}
-    <hr>
-    <div class="c forte">NFC-e nº ${e(d.numero)} Série ${e(d.serie)}</div>
-    <div class="c">Emissão: ${e(nfceDataHora(d.dhEmi))} - Via Consumidor</div>
-    <hr>
-    ${d.urlChave ? `<div class="c peq">Consulte pela Chave de Acesso em<br>${e(d.urlChave)}</div>` : ''}
-    <div class="c chave">${e(chaveFmt)}</div>
-    <div class="c peq">${e(consumidor)}</div>
-    <div class="qr">${qrSvg}</div>
-    <div class="c">Protocolo de autorização: <b>${e(d.protocolo)}</b></div>
-    ${d.dhAut ? `<div class="c">Data de autorização: ${e(nfceDataHora(d.dhAut))}</div>` : ''}
-  </body></html>`;
+  centro(nomeEmp, true);
+  if(d.emit.fantasia && d.emit.fantasia !== d.emit.nome) centro(d.emit.nome);
+  centro('CNPJ: ' + nfceCnpjFmt(d.emit.cnpj) + (d.emit.ie ? '  IE: ' + d.emit.ie : ''));
+  centro([d.emit.end.join(', '), [d.emit.cidade, d.emit.uf].filter(Boolean).join(' - '), d.emit.cep ? 'CEP ' + d.emit.cep : ''].filter(Boolean).join(' - '));
+  if(d.emit.fone) centro('Tel. ' + d.emit.fone);
+  sep();
+  centro('DANFE NFC-e', true);
+  centro('Documento Auxiliar da Nota Fiscal de Consumidor Eletronica');
+  if(d.cancelada){ L(''); centro('*** NFC-e CANCELADA ***', true); }
+  if(homolog){ L(''); centro('EMITIDA EM AMBIENTE DE HOMOLOGACAO', true); centro('SEM VALOR FISCAL', true); }
+  sep();
+  d.itens.forEach(it => {
+    esq(String(it.n).padStart(3, '0') + ' ' + [it.cod, it.desc].filter(Boolean).join(' '));
+    const desconto = nfceNum(it.vdesc) > 0 ? ' (desc -' + nfceMoeda(it.vdesc) + ')' : '';
+    lr('  ' + nfceQtd(it.qtd) + ' ' + it.un + ' x ' + nfceMoeda(it.vun) + desconto, nfceMoeda(it.vprod));
+  });
+  sep();
+  lr('Qtd. total de itens', String(d.itens.length));
+  lr('Valor total R$', nfceMoeda(d.vProd));
+  if(nfceNum(d.vDesc) > 0) lr('Desconto R$', '-' + nfceMoeda(d.vDesc));
+  if(nfceNum(d.vOutro) > 0) lr('Acrescimos R$', nfceMoeda(d.vOutro));
+  lr('VALOR A PAGAR R$', nfceMoeda(d.vNF), true);
+  sep();
+  lr('Forma de pagamento', 'Valor pago R$', true);
+  d.pagamentos.forEach(p => lr(NFCE_TPAG[p.tPag] || p.desc || 'Outros', nfceMoeda(p.v)));
+  if(nfceNum(d.vTroco) > 0) lr('Troco R$', nfceMoeda(d.vTroco));
+  if(nfceNum(d.vTotTrib) > 0){ sep(); esq('Tributos totais incidentes (Lei Federal 12.741/2012): R$ ' + nfceMoeda(d.vTotTrib)); }
+  if(d.infCpl){ sep(); esq(d.infCpl); }
+  sep();
+  centro('NFC-e No ' + d.numero + ' Serie ' + d.serie, true);
+  centro('Emissao: ' + nfceDataHora(d.dhEmi));
+  centro('Via Consumidor');
+  sep();
+  if(d.urlChave){ centro('Consulte pela Chave de Acesso em:'); nfceQuebrarUrl(d.urlChave, N).forEach(l => centro(l)); }
+  const grupos = String(d.chave).replace(/\D/g, '').match(/\d{1,4}/g) || [];
+  for(let i = 0; i < grupos.length; i += 6) centro(grupos.slice(i, i + 6).join(' '), true);
+  centro(d.dest.cpf ? 'CONSUMIDOR - CPF ' + nfceCpfFmt(d.dest.cpf) + (d.dest.nome ? ' - ' + d.dest.nome : '')
+        : d.dest.cnpj ? 'CONSUMIDOR - CNPJ ' + nfceCnpjFmt(d.dest.cnpj) + (d.dest.nome ? ' - ' + d.dest.nome : '')
+        : 'CONSUMIDOR NAO IDENTIFICADO');
+  blocos.push([]);                              // ---- QR Code entre os dois blocos
+  centro('Protocolo de autorizacao: ' + d.protocolo, true);
+  if(d.dhAut) centro('Data de autorizacao: ' + nfceDataHora(d.dhAut));
+  const pre = b => '<pre>' + b.map(l => l.b ? '<b>' + e(l.t) + '</b>' : e(l.t)).join('\n') + '</pre>';
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>DANFE NFC-e ${e(nfceAscii(d.numero))}</title><style>
+    @page{ margin:0; }
+    html,body{ margin:0; padding:0; background:#fff; color:#000; }
+    body{ width:80mm; box-sizing:border-box; padding:2mm 4mm 3mm; }
+    pre{ margin:0; font:10px/12px "Courier New",Courier,"Liberation Mono",monospace; white-space:pre; }
+    b{ font-weight:700; }
+    .qr{ text-align:center; margin:2mm 0; }
+    .qr svg{ width:34mm; height:34mm; display:block; margin:0 auto; }
+    @media print{ html,body{ height:auto !important; min-height:0 !important; overflow:visible !important; } }
+  </style></head><body>${pre(blocos[0])}<div class="qr">${qrSvg}</div>${pre(blocos[1])}</body></html>`;
+}
+
+// Altura da página = altura REAL do conteúdo. O navegador usa o papel padrão do driver quando o @page não
+// define o tamanho (e "size: 80mm auto" não é válido em CSS): foi isso que fazia a impressora avançar papel em
+// branco. Aqui medimos o cupom já montado e fixamos @page em 80 mm × (altura do conteúdo + 1 mm).
+function nfceAjustarPaginaAoConteudo(quadro){
+  const doc = quadro.contentDocument;
+  if(!doc || !doc.body) return 0;
+  const px = Math.ceil(doc.body.getBoundingClientRect().height);
+  if(!(px > 0)) return 0;
+  const mm = Math.ceil(px * 25.4 / 96) + 1;
+  const st = doc.createElement('style');
+  st.textContent = '@page{ size:80mm ' + mm + 'mm; margin:0; }';
+  doc.head.appendChild(st);
+  return mm;
 }
 
 // Imprime em um iframe oculto: o operador continua na tela em que está (PDV ou Fiscal) e vê só o diálogo
@@ -15032,36 +15157,49 @@ function nfceImprimirHtmlEmIframe(html){
   f.id = 'nfce-print-frame';
   f.setAttribute('sandbox', 'allow-same-origin allow-modals');
   f.setAttribute('aria-hidden', 'true');
-  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  f.style.cssText = 'position:fixed;left:-9999px;top:0;width:80mm;height:200px;border:0;visibility:hidden;';
   f.onload = () => {
-    try { f.contentWindow.focus(); f.contentWindow.print(); }
-    catch(err){ console.error('Falha ao abrir a impressão da NFC-e', err); }
-    setTimeout(() => { if(f.parentNode) f.remove(); }, 120000);
+    try { nfceAjustarPaginaAoConteudo(f); } catch(err){ console.error('Falha ao ajustar o tamanho da página do DANFE', err); }
+    setTimeout(() => {
+      try { f.contentWindow.focus(); f.contentWindow.print(); }
+      catch(err){ console.error('Falha ao abrir a impressão da NFC-e', err); }
+      setTimeout(() => { if(f.parentNode) f.remove(); }, 120000);
+    }, 80);
   };
   f.srcdoc = html;
   document.body.appendChild(f);
 }
 
+// Abre o PDF devolvido pela Dados Jah. Devolve false se não houver PDF ou se o navegador bloquear a aba.
 function nfceAbrirPdfProvedor(doc){
   if(!doc) return false;
-  if(doc.pdf_conteudo){ abrirBase64EmNovaAba(doc.pdf_conteudo, 'application/pdf'); return true; }
-  if(doc.pdf_url){ window.open(doc.pdf_url, '_blank'); return true; }
+  if(doc.pdf_conteudo){
+    const janela = window.open('', '_blank');
+    if(!janela) return false;
+    janela.document.write(`<iframe src="data:application/pdf;base64,${doc.pdf_conteudo}" style="width:100%;height:100vh;border:none;"></iframe>`);
+    return true;
+  }
+  if(doc.pdf_url){ return !!window.open(doc.pdf_url, '_blank'); }
   return false;
 }
 
 const NFCE_COLUNAS_IMPRESSAO = 'id, status, numero, serie, valor, chave_acesso, protocolo, tp_ambiente, dh_emissao, dh_recebimento, xml_conteudo, pdf_conteudo, pdf_url';
+let nfceUltimaImpressao = { id: null, em: 0 };
 
 // Ponto único de impressão da NFC-e (PDV e Fiscal). Devolve { ok, via } — via = 'danfe_local' | 'pdf_provedor'.
+// Duas chamadas para o mesmo documento em menos de 4 s viram uma só (nunca 2 diálogos de impressão).
 function nfceImprimirDocumento(doc){
   if(!doc) return { ok: false };
+  if(doc.id && nfceUltimaImpressao.id === doc.id && Date.now() - nfceUltimaImpressao.em < 4000) return { ok: true, via: 'duplicada_ignorada' };
   if(DANFE_NFCE_FONTE === 'xml_local'){
     try {
       const d = nfceLerDadosDanfe(doc);
       const html = d && d.qrCode ? nfceMontarDanfeHtml(d, florestQrSvg(d.qrCode, 2)) : null;
-      if(html){ nfceImprimirHtmlEmIframe(html); return { ok: true, via: 'danfe_local' }; }
+      if(html){ nfceUltimaImpressao = { id: doc.id || null, em: Date.now() }; nfceImprimirHtmlEmIframe(html); return { ok: true, via: 'danfe_local' }; }
     } catch(err){ console.error('DANFE NFC-e local indisponível, usando o PDF do provedor', err); }
   }
-  return nfceAbrirPdfProvedor(doc) ? { ok: true, via: 'pdf_provedor' } : { ok: false };
+  if(nfceAbrirPdfProvedor(doc)){ nfceUltimaImpressao = { id: doc.id || null, em: Date.now() }; return { ok: true, via: 'pdf_provedor' }; }
+  return { ok: false };
 }
 
 function abrirBase64EmNovaAba(base64, mime){
