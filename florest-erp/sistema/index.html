@@ -834,6 +834,41 @@
   .fcp-pill{ font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:999px; white-space:nowrap; }
   .fcp-pill-pend{ background:var(--danger-soft); color:var(--danger); }
   .fcp-pill-alt{ background:var(--accent-soft); color:#7A5B00; }
+  /* ===== Contingência offline de NFC-e (Migration 041) ===== */
+  .ctg-faixa{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:8px 16px; background:#B3261E; color:#fff; font-size:13px; font-weight:600; }
+  .ctg-faixa.hidden{ display:none; }
+  .ctg-faixa-badge{ background:#fff; color:#B3261E; font-weight:800; border-radius:6px; padding:2px 8px; letter-spacing:.4px; font-size:12px; }
+  .ctg-faixa small{ font-weight:500; opacity:.95; }
+  .ctg-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin:10px 0 14px; background:#fff; }
+  .ctg-card.ctg-ativa{ border-color:#B3261E; background:#FFF4F3; }
+  .ctg-card.ctg-indisp{ border-color:var(--accent); background:var(--accent-soft); }
+  .ctg-card h3{ margin:0 0 6px; font-size:16px; }
+  .ctg-card p{ margin:4px 0; font-size:13.5px; line-height:1.45; }
+  .ctg-kpis{ display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 4px; }
+  .ctg-kpi{ border:1px solid var(--border); border-radius:10px; padding:8px 12px; min-width:118px; background:#fff; }
+  .ctg-kpi b{ display:block; font-size:20px; line-height:1.1; }
+  .ctg-kpi span{ font-size:12px; color:var(--muted, #5b6b60); }
+  .ctg-kpi.ctg-kpi-alerta b{ color:#B3261E; }
+  .ctg-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .ctg-tabela td .btn-secondary, .ctg-tabela td .btn-accent{ padding:4px 9px; font-size:12px; margin:2px 3px 2px 0; }
+  .ctg-chave{ font-family:"Courier New",monospace; font-size:11.5px; word-break:break-all; }
+  .ctg-lembrete{ font-size:12.5px; color:var(--muted, #5b6b60); line-height:1.5; margin:12px 0; }
+  .ctg-campo{ display:block; margin:10px 0 4px; font-weight:600; font-size:13px; }
+  .ctg-contador{ font-size:12px; color:var(--muted, #5b6b60); }
+  .ctg-hist{ width:100%; font-size:12px; border-collapse:collapse; }
+  .ctg-hist th, .ctg-hist td{ border-bottom:1px solid var(--border); padding:4px 6px; text-align:left; vertical-align:top; }
+  #modal-ctg .modal-card{ max-width:640px; text-align:left; }
+  /* ===== Fiscal › pesquisa de documentos (Migration 042) ===== */
+  .fpq-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; align-items:end; margin:6px 0 4px; }
+  .fpq-grid label{ display:flex; flex-direction:column; gap:4px; font-size:12.5px; font-weight:600; }
+  .fpq-grid input, .fpq-grid select{ width:100%; box-sizing:border-box; }
+  .fpq-botoes{ display:flex; gap:8px; }
+  .fpq-pag{ display:flex; gap:8px; align-items:center; justify-content:flex-end; margin:10px 0 0; }
+  .ctg-sel{ width:16px; height:16px; }
+  .ctg-tag{ display:inline-block; font-size:11.5px; font-weight:700; border-radius:6px; padding:2px 7px; margin-bottom:3px; }
+  .ctg-tag-emitida{ background:#FFF4D6; color:#7A5B00; border:1px solid #E7C65A; }
+  .ctg-tag-aguarda{ background:#EEF1EE; color:#3b4a40; border:1px solid #c9d1cb; }
+  .ctg-erro{ font-size:12.5px; color:#B3261E; max-width:260px; word-break:break-word; }
   .fcp-card{ position:relative; }
   .fcp-scroll{ overflow:auto; max-height:calc(100vh - 380px); min-height:240px; }
   .fcp-tabela{ min-width:980px; }
@@ -3150,6 +3185,12 @@
         <button type="button" class="pdx-btn-sair" id="btn-sair-pdv">&larr; Sair do PDV</button>
       </header>
 
+      <!-- Contingência offline de NFC-e (Migration 041): faixa visível enquanto houver contingência ATIVA nesta empresa/ambiente -->
+      <div class="ctg-faixa hidden" id="ctg-pdv-faixa" role="status" aria-live="polite">
+        <span class="ctg-faixa-badge">CONTINGÊNCIA</span>
+        <span id="ctg-pdv-faixa-txt"></span>
+      </div>
+
       <!-- Controle de caixa (Migration 032): faixa do Caixa PDV -->
       <div class="cx-faixa hidden" id="pdx-caixa-faixa">
         <span class="cx-faixa-badge" id="pdx-caixa-faixa-badge">CAIXA</span>
@@ -3636,33 +3677,46 @@
       <div class="fcp-tabs" role="tablist">
         <button type="button" class="fcp-tab active" id="fiscal-aba-btn-docs" role="tab">Documentos fiscais</button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-corrigir" role="tab">Corrigir Produtos <span class="fcp-tab-badge hidden" id="fcp-tab-badge">0</span></button>
+        <button type="button" class="fcp-tab" id="fiscal-aba-btn-contingencia" role="tab">Notas em contingência <span class="fcp-tab-badge hidden" id="ctg-tab-badge">0</span></button>
       </div>
 
       <div id="fiscal-aba-docs">
-      <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
-        <div class="metric-card">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
-          <span class="num" id="fiscal-resumo-emitidos">0</span>
-          <span class="label">Documentos emitidos</span>
+      <!-- Migration 042: a aba abre VAZIA. Nenhuma nota é carregada antes de "Pesquisar". -->
+      <div class="subsection" style="margin-top:0;">
+        <div class="subsection-header">
+          <div>
+            <h3>Pesquisar documentos fiscais</h3>
+            <p>Preencha um ou mais filtros e clique em Pesquisar. Os filtros funcionam sozinhos ou combinados; nada é listado antes da pesquisa.</p>
+          </div>
         </div>
-        <div class="metric-card c-teal">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
-          <span class="num" id="fiscal-resumo-autorizados">0</span>
-          <span class="label">Autorizados</span>
-        </div>
-        <div class="metric-card c-danger">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4.5"/><path d="M10.3 3.9 2.7 17.3A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><circle cx="12" cy="16.7" r="0.9" fill="currentColor" stroke="none"/></svg></span>
-          <span class="num" id="fiscal-resumo-rejeitados">0</span>
-          <span class="label">Rejeitados</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
-          <span class="num" id="fiscal-resumo-cancelados">0</span>
-          <span class="label">Cancelados</span>
-        </div>
+        <form id="fpq-form" class="fpq-grid" autocomplete="off">
+          <label>Número da nota fiscal<input type="text" id="fpq-nota" inputmode="numeric" placeholder="Ex: 1022" maxlength="12"></label>
+          <label>Número da venda<input type="text" id="fpq-venda" inputmode="numeric" placeholder="Ex: 5310" maxlength="15"></label>
+          <label>Valor da venda<input type="text" id="fpq-valor" inputmode="decimal" placeholder="Ex: 150,00" maxlength="14"></label>
+          <label>Status
+            <select id="fpq-status">
+              <option value="">Todos</option>
+              <option value="autorizada">Autorizada</option>
+              <option value="rejeitada">Rejeitada</option>
+              <option value="processando">Processando / contingência pendente</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="nao_emitida">Não emitida</option>
+            </select>
+          </label>
+          <label>Data inicial<input type="date" id="fpq-ini"></label>
+          <label>Data final<input type="date" id="fpq-fim"></label>
+          <label>Nome do cliente<input type="text" id="fpq-cliente" maxlength="120" placeholder="Parte do nome"></label>
+          <label>CPF informado na nota<input type="text" id="fpq-cpf" inputmode="numeric" maxlength="18" placeholder="Somente números"></label>
+          <div class="fpq-botoes">
+            <button type="submit" class="btn-accent" id="btn-fpq-pesquisar">Pesquisar</button>
+            <button type="button" class="btn-secondary" id="btn-fpq-limpar">Limpar</button>
+          </div>
+        </form>
+        <div id="fpq-msg"></div>
       </div>
 
       <div class="subsection" style="margin-top:8px;">
+        <div class="hidden" aria-hidden="true">
         <div class="subsection-header">
           <div>
             <h3>Buscar venda</h3>
@@ -3672,6 +3726,7 @@
         <div class="search-row">
           <input type="number" id="fiscal-busca-numero" placeholder="Ex: 1022" min="1">
           <button class="btn-accent" id="btn-fiscal-buscar">Buscar venda</button>
+        </div>
         </div>
 
         <div id="fiscal-venda-msg"></div>
@@ -3694,11 +3749,11 @@
         </div>
       </div>
 
-      <div class="subsection">
+      <div class="subsection" id="fpq-resultados">
         <div class="subsection-header">
           <div>
-            <h3>Documentos fiscais</h3>
-            <p>Todos os documentos já gerados para vendas desta empresa.</p>
+            <h3>Resultado da pesquisa</h3>
+            <p id="fpq-resumo">Use os filtros acima e clique em Pesquisar para listar documentos fiscais.</p>
           </div>
         </div>
         <div class="table-card">
@@ -3717,9 +3772,62 @@
             </thead>
             <tbody id="tabela-fiscal-body"></tbody>
           </table>
-          <div id="fiscal-empty" class="empty-state hidden">Nenhum documento fiscal gerado ainda.</div>
+          <div id="fiscal-empty" class="empty-state hidden">Nenhum documento fiscal encontrado para os filtros informados.</div>
+        </div>
+        <div class="fpq-pag hidden" id="fpq-pag">
+          <button type="button" class="btn-secondary" id="btn-fpq-ant">Anterior</button>
+          <button type="button" class="btn-secondary" id="btn-fpq-prox">Próxima</button>
         </div>
       </div>
+      </div>
+
+      <!-- ===== Fiscal › Notas em contingência offline de NFC-e (Migration 041) ===== -->
+      <div id="fiscal-aba-contingencia" class="hidden">
+        <div class="fcp-head">
+          <div>
+            <h3>Notas em contingência</h3>
+            <p>NFC-e modelo 65 emitida em contingência (tpEmis=9) fica <strong>pendente de autorização</strong> até a SEFAZ responder. Este quadro nunca mostra uma nota como autorizada sem o protocolo da SEFAZ.</p>
+          </div>
+        </div>
+        <div id="ctg-msg"></div>
+        <div id="ctg-status-card"></div>
+        <div class="ctg-acoes">
+          <button type="button" class="btn-accent hidden" id="btn-ctg-ativar">Ativar contingência</button>
+          <button type="button" class="btn-secondary hidden" id="btn-ctg-encerrar">Encerrar contingência</button>
+          <button type="button" class="btn-secondary" id="btn-ctg-atualizar">Atualizar</button>
+        </div>
+
+        <div class="subsection" style="margin-top:18px;">
+          <div class="subsection-header">
+            <div><h3>Notas pendentes de autorização</h3><p>Todas as NFC-e desta empresa que a SEFAZ ainda não autorizou. A lista abre sozinha, sem pesquisa. Quando a SEFAZ autoriza, a nota sai daqui (e continua na pesquisa de Documentos fiscais). Quando a conexão volta, o sistema consulta a situação e transmite as pendentes dentro do prazo, sem duplicar notas.</p></div>
+            <div class="ctg-acoes" style="margin:0;">
+              <button type="button" class="btn-accent" id="btn-ctg-transmitir-sel" disabled>Transmitir selecionadas</button>
+            </div>
+          </div>
+          <div id="ctg-lote-msg"></div>
+          <div class="table-card">
+            <table class="ctg-tabela">
+              <thead><tr><th><input type="checkbox" class="ctg-sel" id="ctg-sel-todas" aria-label="Selecionar todas as notas transmissíveis"></th><th>Número / série</th><th>Data e hora</th><th>Venda</th><th>Cliente</th><th>Valor</th><th>Situação</th><th>Erro / motivo</th><th>Ações</th></tr></thead>
+              <tbody id="ctg-tabela-body"></tbody>
+            </table>
+            <div id="ctg-vazio" class="empty-state hidden">Nenhuma NFC-e pendente de autorização.</div>
+          </div>
+          <p class="ctg-contador" id="ctg-sel-resumo"></p>
+        </div>
+
+        <div class="subsection" id="ctg-reconc-secao">
+          <div class="subsection-header">
+            <div><h3>Reconciliação de numeração</h3><p>Pendências para conferir depois da contingência (notas sem retorno, números descartados e lacunas). Esta versão <strong>não</strong> cancela nem inutiliza na SEFAZ: registre aqui a providência já feita, com o protocolo.</p></div>
+          </div>
+          <div class="table-card">
+            <table class="ctg-tabela">
+              <thead><tr><th>Tipo</th><th>Faixa</th><th>Providência sugerida</th><th>Situação</th><th></th></tr></thead>
+              <tbody id="ctg-reconc-body"></tbody>
+            </table>
+            <div id="ctg-reconc-vazio" class="empty-state hidden">Nenhuma pendência de reconciliação.</div>
+          </div>
+        </div>
+        <p class="ctg-lembrete">Regras aplicadas (RICMS-MG, Anexo V, arts. 38 a 44): a contingência só é usada por problema técnico, nunca por rejeição; a NFC-e só é considerada emitida quando o DANFE é impresso; o DANFE fica arquivado até a autorização; a transmissão deve ocorrer logo que o problema cessar e dentro do prazo; em caso de rejeição a nota é regenerada com a mesma numeração; números de notas emitidas em contingência não podem ser inutilizados.</p>
       </div>
 
       <!-- ===== Fiscal › Corrigir Produtos: somente produtos com pendência fiscal, edição em planilha ===== -->
@@ -4576,6 +4684,16 @@
       <button type="button" class="btn-accent" id="btn-venda-emitir-sim" style="width:100%;">Emitir NFC-e</button>
       <button type="button" class="btn-secondary" id="btn-venda-emitir-nao" style="width:100%;">Finalizar</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Contingência offline de NFC-e (conteúdo montado por ctgAbrirModal) ===== -->
+<div id="modal-ctg" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 id="modal-ctg-titulo"></h3>
+    <div id="modal-ctg-corpo"></div>
+    <div id="modal-ctg-msg"></div>
+    <div class="modal-actions" id="modal-ctg-acoes"></div>
   </div>
 </div>
 
@@ -9467,11 +9585,11 @@ const CARREGADORES_VIEW = {
   'clientes': () => carregarClientes(),
   'produtos': () => carregarProdutos(1),
   'estoque': () => carregarEstoque(1),
-  'pdv': () => { cmdFecharTudo(); prepararPdv(); },
+  'pdv': () => { cmdFecharTudo(); prepararPdv(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); },
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => { carregarFiscal(); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); },
+  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -9615,9 +9733,12 @@ function fcpTrocarAba(aba){
   FCP.aba = aba;
   $('fiscal-aba-docs').classList.toggle('hidden', aba !== 'docs');
   $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
+  $('fiscal-aba-contingencia').classList.toggle('hidden', aba !== 'contingencia');
   $('fiscal-aba-btn-docs').classList.toggle('active', aba === 'docs');
   $('fiscal-aba-btn-corrigir').classList.toggle('active', aba === 'corrigir');
+  $('fiscal-aba-btn-contingencia').classList.toggle('active', aba === 'contingencia');
   if(aba === 'corrigir') fcpAbrir();
+  if(aba === 'contingencia') ctgAbrirAba();
 }
 async function fcpAbrir(){
   let emp = null;
@@ -12661,6 +12782,12 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
   btn.textContent = 'Preparando...';
   $('modal-venda-concluida-msg').innerHTML = '';
 
+  // Migration 041: com contingência ATIVA a emissão normal está suspensa; o fluxo vira "emitir em contingência" (pendente de autorização).
+  if(await ctgContingenciaAtiva()){
+    try { await ctgFluxoEmitir(vendaConcluidaAtualId, $('modal-venda-concluida-msg')); }
+    finally { vendaEmissaoEmAndamento = false; btn.disabled = false; btn.textContent = 'Emitir NFC-e'; btnFim.disabled = false; }
+    return;
+  }
   let autorizadaId = null, resultadoAutorizado = null;
   try {
     const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaConcluidaAtualId });
@@ -12685,6 +12812,8 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
       $('modal-venda-concluida-msg').innerHTML = docNfce
         ? mensagemResultadoFiscal(resultado)
         : '<div class="msg error">Esta venda não tem item de mercadoria para gerar NFC-e.</div>';
+      // Migration 042: falha TÉCNICA de comunicação => o servidor decide se pode seguir em contingência (nunca por rejeição).
+      if(docNfce && ctgFalhaTecnicaDoResultado(resultado)) await ctgTentarContingenciaPorFalha(docNfce.id, vendaConcluidaAtualId, $('modal-venda-concluida-msg'));
     }
   } finally {
     if(!autorizadaId){
@@ -15747,6 +15876,8 @@ function fiscalStatusInfo(status, doc){
   // começou e o resultado não foi confirmado, a nota pode ter sido autorizada/denegada. Mostra o estado real.
   const tent = doc && doc.retorno_provedor && doc.retorno_provedor.emissao_tentativa;
   if(status === 'processando' && tent){
+    // Migration 041: NFC-e emitida em CONTINGÊNCIA offline (tpEmis=9) — nunca aparece como "Processando" nem como autorizada.
+    if(tent.modo === 'contingencia') return tent.situacao === 'desconhecida' ? { texto: 'Contingência — resultado desconhecido', classe: 'status-baixo' } : { texto: 'Contingência — pendente de autorização', classe: 'status-aviso2' };
     // P2: a consulta já confirmou algo que exige o suporte fiscal (divergência, nota cancelada na SEFAZ, denegada confirmada).
     if(tent.conciliacao && FISCAL_ESTADOS_SUPORTE.includes(tent.conciliacao.estado)) return { texto: 'Precisa de análise do suporte', classe: 'status-baixo' };
     if(tent.situacao === 'denegada') return { texto: 'Denegada — consultar', classe: 'status-baixo' };
@@ -15771,31 +15902,106 @@ function fiscalTipoLabel(tipo){
   return { nfce: 'NFC-e', nfse: 'NFS-e', nfe: 'NF-e' }[tipo] || tipo;
 }
 
-async function carregarFiscal(){
-  const empresaId = await obterEmpresaId();
-  const { data, error } = await supabase
-    .from('documentos_fiscais')
-    .select('*, vendas(numero_venda, clientes(nome))')
-    .eq('empresa_id', empresaId)
-    .order('created_at', { ascending: false });
-
-  if(error){ console.error(error); return; }
-
-  const lista = data || [];
-  $('fiscal-resumo-emitidos').textContent = lista.filter(d => d.status !== 'nao_emitida').length;
-  $('fiscal-resumo-autorizados').textContent = lista.filter(d => d.status === 'autorizada').length;
-  $('fiscal-resumo-rejeitados').textContent = lista.filter(d => d.status === 'rejeitada').length;
-  $('fiscal-resumo-cancelados').textContent = lista.filter(d => d.status === 'cancelada').length;
-
+// ---------- Fiscal › Documentos fiscais: pesquisa por filtros (Migration 042) ----------
+// A aba abre VAZIA. A lista só aparece depois de "Pesquisar" (8 filtros independentes ou combinados, decididos no banco com RLS/empresa_id).
+// As ações fiscais de cada linha (abrir venda, cancelar NFC-e, status) são as mesmas de antes: só a origem da lista mudou.
+const FPQ = { args: null, pagina: 0, tam: 50, total: 0, indisponivel: false };
+function fpqParseValor(t){
+  let s = String(t || '').replace(/R\$/gi, '').replace(/\s/g, '');
+  if(!s) return { vazio: true };
+  if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  if(!/^\d+(\.\d{1,2})?$/.test(s)) return { erro: true };
+  return { valor: Number(s) };
+}
+function fpqLerFiltros(){
+  const v = (id) => String($(id).value || '').trim();
+  const val = fpqParseValor(v('fpq-valor'));
+  if(val.erro) return { erro: 'Valor da venda inválido. Use, por exemplo, 150,00.' };
+  const a = {
+    p_numero_nota: v('fpq-nota') || null, p_numero_venda: v('fpq-venda') || null, p_valor: val.vazio ? null : val.valor,
+    p_status: v('fpq-status') || null, p_data_ini: v('fpq-ini') || null, p_data_fim: v('fpq-fim') || null,
+    p_cliente: v('fpq-cliente') || null, p_cpf: v('fpq-cpf') || null
+  };
+  if(a.p_data_ini && a.p_data_fim && a.p_data_ini > a.p_data_fim) return { erro: 'A data inicial não pode ser maior que a data final.' };
+  if(Object.values(a).every(x => x === null)) return { erro: 'Informe ao menos um filtro para pesquisar.' };
+  return { args: a };
+}
+function fpqResetar(){
+  ['fpq-nota', 'fpq-venda', 'fpq-valor', 'fpq-status', 'fpq-ini', 'fpq-fim', 'fpq-cliente', 'fpq-cpf'].forEach(id => { $(id).value = ''; });
+  FPQ.args = null; FPQ.pagina = 0; FPQ.total = 0;
+  $('fpq-msg').innerHTML = '';
+  $('tabela-fiscal-body').innerHTML = '';
+  $('fiscal-empty').classList.add('hidden');
+  $('fpq-pag').classList.add('hidden');
+  $('fpq-resumo').textContent = 'Use os filtros acima e clique em Pesquisar para listar documentos fiscais.';
+  $('fiscal-venda-msg').innerHTML = '';
+  $('fiscal-venda-resultado').classList.add('hidden');
+}
+async function fiscalPesquisar(pagina, silencioso){
+  const pag = Math.max(0, Number(pagina) || 0);
+  if(!silencioso){
+    const f = fpqLerFiltros();
+    if(f.erro){ $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(f.erro)}</div>`; return; }
+    FPQ.args = f.args;
+  }
+  if(!FPQ.args) return;
+  $('fpq-msg').innerHTML = '';
+  const btn = $('btn-fpq-pesquisar'); btn.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc('fiscal_documentos_pesquisar', { ...FPQ.args, p_limite: FPQ.tam, p_offset: pag * FPQ.tam });
+    if(error){
+      $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(ctgFuncaoAusente(error) ? 'A pesquisa de documentos fiscais ainda não foi instalada no banco (Migration 042).' : ctgMsgErro(error))}</div>`;
+      return;
+    }
+    const ids = (data && data.ids) || [];
+    const semDoc = (data && data.vendas_sem_documento) || [];
+    FPQ.total = Number((data && data.total) || 0); FPQ.pagina = pag;
+    let lista = [];
+    if(ids.length){
+      const empresaId = await obterEmpresaId();
+      const { data: docs, error: e2 } = await supabase.from('documentos_fiscais').select('*, vendas(numero_venda, clientes(nome))').eq('empresa_id', empresaId).in('id', ids);
+      if(e2){ $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(e2.message)}</div>`; return; }
+      const porId = new Map((docs || []).map(d => [d.id, d]));
+      lista = ids.map(id => porId.get(id)).filter(Boolean);       // mantém a ordem decidida pelo banco (mais recentes primeiro)
+    }
+    fiscalRenderLinhas(lista, pag === 0 ? semDoc : []);
+    const ini = FPQ.total ? pag * FPQ.tam + 1 : 0, fim = pag * FPQ.tam + lista.length;
+    $('fpq-resumo').textContent = FPQ.total || semDoc.length
+      ? `${FPQ.total} documento(s) encontrado(s)${FPQ.total ? ' — exibindo ' + ini + ' a ' + fim : ''}${semDoc.length && pag === 0 ? ' · ' + semDoc.length + ' venda(s) sem documento fiscal' : ''}.`
+      : 'Nenhum documento encontrado.';
+    const temPag = FPQ.total > FPQ.tam;
+    $('fpq-pag').classList.toggle('hidden', !temPag);
+    $('btn-fpq-ant').disabled = pag === 0;
+    $('btn-fpq-prox').disabled = fim >= FPQ.total;
+  } finally { btn.disabled = false; }
+}
+function fiscalRenderLinhas(lista, semDoc){
   const body = $('tabela-fiscal-body');
   const empty = $('fiscal-empty');
   body.innerHTML = '';
 
-  if(lista.length === 0){
+  if(lista.length === 0 && (!semDoc || semDoc.length === 0)){
+    empty.textContent = 'Nenhum documento fiscal encontrado para os filtros informados.';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
+
+  (semDoc || []).forEach(v => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>#${escapeHtml(String(v.numero_venda))}</td>
+      <td>—</td>
+      <td>—</td>
+      <td>${escapeHtml(v.cliente_nome || '—')}</td>
+      <td>${formatarReais(v.total)}</td>
+      <td>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
+      <td><span class="status-badge status-neutro">${v.cancelada ? 'Venda cancelada — sem documento' : 'Sem documento fiscal'}</span></td>
+      <td style="text-align:right;"><button class="link-btn btn-fiscal-abrir-venda">Abrir venda</button></td>
+    `;
+    tr.querySelector('.btn-fiscal-abrir-venda').addEventListener('click', () => fiscalAbrirVendaDaLista(v.numero_venda));
+    body.appendChild(tr);
+  });
 
   lista.forEach(doc => {
     const venda = doc.vendas;
@@ -15819,15 +16025,24 @@ async function carregarFiscal(){
     const btnCancelarNfce = tr.querySelector('.btn-fiscal-cancelar-nfce');
     if(btnCancelarNfce) btnCancelarNfce.addEventListener('click', () => abrirModalCancelarNfce(doc, venda ? venda.numero_venda : null));
     const btnAbrir = tr.querySelector('.btn-fiscal-abrir-venda');
-    if(venda){
-      btnAbrir.addEventListener('click', () => {
-        $('fiscal-busca-numero').value = venda.numero_venda;
-        buscarVendaFiscal();
-      });
-    }
+    if(venda) btnAbrir.addEventListener('click', () => fiscalAbrirVendaDaLista(venda.numero_venda));
     body.appendChild(tr);
   });
 }
+async function fiscalAbrirVendaDaLista(numeroVenda){
+  $('fiscal-busca-numero').value = numeroVenda;
+  await buscarVendaFiscal();
+  const painel = $('fiscal-venda-resultado');
+  if(painel && !painel.classList.contains('hidden')) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// Depois de emitir/cancelar/consultar, as telas chamam carregarFiscal(): refaz SOMENTE a última pesquisa (se houver). Nunca carrega tudo.
+async function carregarFiscal(){
+  if(FPQ.args) await fiscalPesquisar(FPQ.pagina, true);
+}
+$('fpq-form').addEventListener('submit', (ev) => { ev.preventDefault(); fiscalPesquisar(0, false); });
+$('btn-fpq-limpar').addEventListener('click', fpqResetar);
+$('btn-fpq-ant').addEventListener('click', () => fiscalPesquisar(FPQ.pagina - 1, true));
+$('btn-fpq-prox').addEventListener('click', () => fiscalPesquisar(FPQ.pagina + 1, true));
 
 $('btn-fiscal-buscar').addEventListener('click', buscarVendaFiscal);
 $('fiscal-busca-numero').addEventListener('keydown', (e) => {
@@ -16149,6 +16364,7 @@ function nfceLerDadosDanfe(doc){
     emit: { cnpj: tx(emit, 'CNPJ'), ie: tx(emit, 'IE'), nome: tx(emit, 'xNome'), fantasia: tx(emit, 'xFant'),
             end: [tx(ender, 'xLgr'), tx(ender, 'nro'), tx(ender, 'xCpl'), tx(ender, 'xBairro')].filter(Boolean),
             cidade: tx(ender, 'xMun'), uf: tx(ender, 'UF'), cep: tx(ender, 'CEP'), fone: tx(ender, 'fone') },
+    tpEmis: tx(ide, 'tpEmis'),
     numero: tx(ide, 'nNF') || (doc && doc.numero) || '',
     serie: tx(ide, 'serie') || (doc && doc.serie) || '',
     dhEmi: tx(ide, 'dhEmi') || (doc && doc.dh_emissao) || '',
@@ -16217,7 +16433,11 @@ function nfceQuebrarUrl(url, n){
 // Monta o HTML do DANFE NFC-e (bobina 80 mm, texto monoespaçado em colunas fixas, QR Code fiscal do XML).
 // Retorna null se a nota não tem o mínimo real exigido (chave, protocolo e QR Code): nada é inventado.
 function nfceMontarDanfeHtml(d, qrSvg){
-  if(!d || !d.chave || !d.protocolo || !d.qrCode || !qrSvg) return null;
+  if(!d || !d.chave || !d.qrCode || !qrSvg) return null;
+  // Migration 041: NFC-e emitida em CONTINGÊNCIA (tpEmis=9) ainda sem protocolo é impressa com a legenda "Emitida em Contingência -
+  // Pendente de Autorização" e SEM protocolo. Sem protocolo e sem tpEmis=9, continua não montando (nada é inventado).
+  const pendenteCtg = !d.protocolo && String(d.tpEmis) === '9';
+  if(!d.protocolo && !pendenteCtg) return null;
   const N = DANFE_NFCE_COLS, e = escapeHtml;
   const blocos = [[]];                         // blocos de linhas; o QR Code fica entre o bloco 0 e o bloco 1
   const L = (t, b) => blocos[blocos.length - 1].push({ t: String(t), b: !!b });
@@ -16236,6 +16456,7 @@ function nfceMontarDanfeHtml(d, qrSvg){
   sep();
   centro('DANFE NFC-e', true);
   centro('Documento Auxiliar da Nota Fiscal de Consumidor Eletronica');
+  if(pendenteCtg){ L(''); centro('Emitida em Contingencia - Pendente de Autorizacao', true); }
   if(d.cancelada){ L(''); centro('*** NFC-e CANCELADA ***', true); }
   if(homolog){ L(''); centro('EMITIDA EM AMBIENTE DE HOMOLOGACAO', true); centro('SEM VALOR FISCAL', true); }
   sep();
@@ -16268,8 +16489,11 @@ function nfceMontarDanfeHtml(d, qrSvg){
         : d.dest.cnpj ? 'CONSUMIDOR - CNPJ ' + nfceCnpjFmt(d.dest.cnpj) + (d.dest.nome ? ' - ' + d.dest.nome : '')
         : 'CONSUMIDOR NAO IDENTIFICADO');
   blocos.push([]);                              // ---- QR Code entre os dois blocos
-  centro('Protocolo de autorizacao: ' + d.protocolo, true);
-  if(d.dhAut) centro('Data de autorizacao: ' + nfceDataHora(d.dhAut));
+  if(pendenteCtg){ centro('SEM PROTOCOLO DE AUTORIZACAO', true); centro('Emitida em Contingencia - Pendente de Autorizacao', true); centro('Guarde esta via ate a autorizacao pela SEFAZ'); }
+  else {
+    centro('Protocolo de autorizacao: ' + d.protocolo, true);
+    if(d.dhAut) centro('Data de autorizacao: ' + nfceDataHora(d.dhAut));
+  }
   const pre = b => '<pre>' + b.map(l => l.b ? '<b>' + e(l.t) + '</b>' : e(l.t)).join('\n') + '</pre>';
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>DANFE NFC-e ${e(nfceAscii(d.numero))}</title><style>
     @page{ margin:0; }
@@ -16818,6 +17042,12 @@ function mensagemResultadoFiscal(resultado){
 
 async function emitirNotaDaVenda(vendaId){
   $('fiscal-venda-msg').innerHTML = '<div class="msg success">Emitindo NFC-e...</div>';
+  if(await ctgContingenciaAtiva()){      // Migration 041
+    await ctgFluxoEmitir(vendaId, $('fiscal-venda-msg'));
+    await abrirVendaFiscalPorId(vendaId);
+    carregarFiscal();
+    return;
+  }
   const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaId });
   if(error){
     $('fiscal-venda-msg').innerHTML = `<div class="msg error">Erro ao preparar emissão: ${error.message}</div>`;
@@ -16828,11 +17058,817 @@ async function emitirNotaDaVenda(vendaId){
   if(docNfce){
     const resultado = await chamarEmissaoRealNFCe(docNfce.id);
     $('fiscal-venda-msg').innerHTML = mensagemResultadoFiscal(resultado);
+    if(ctgFalhaTecnicaDoResultado(resultado)) await ctgTentarContingenciaPorFalha(docNfce.id, vendaId, $('fiscal-venda-msg'));   // Migration 042
   }
 
   await abrirVendaFiscalPorId(vendaId);
   carregarFiscal();
 }
+
+// =====================================================================
+// CTG:BEGIN — Contingência offline de NFC-e (modelo 65, tpEmis=9) — Migration 041
+// Princípios: (1) o navegador NUNCA guarda certificado, senha ou chave privada e NUNCA é o único armazenamento da nota pendente (o documento,
+// o XML e o histórico ficam no banco); (2) nada aqui declara "autorizada" sem o protocolo gravado pelo banco; (3) nenhuma entrada automática em
+// contingência: o usuário do módulo Fiscal ativa (motivo técnico + justificativa) OU, só se o servidor permitir (Migration 42: chave ligada, motor confirmado,
+// falha técnica comprovada e nenhuma autorização na SEFAZ), a ativação por falha técnica; rejeição/erro cadastral NUNCA aciona; (4) "emitida" = DANFE impresso e confirmado pelo
+// operador (art. 42 §3) — impressão que falha NÃO marca a nota como emitida.
+// =====================================================================
+const CTG_MOTIVOS = {
+  indisponibilidade_sefaz: 'Indisponibilidade da SEFAZ (problema técnico)',
+  falha_internet: 'Falha de internet / comunicação no estabelecimento',
+  falha_comunicacao_provedor: 'Falha de comunicação com o provedor fiscal (Dados Jah)',
+  falha_tecnica_emissor: 'Falha técnica no sistema emissor',
+  outro_tecnico: 'Outro problema técnico (descreva na justificativa)'
+};
+const CTG_ROTULO_STATUS = {
+  preparando: { texto: 'Preparando — sem XML, NÃO emitida', classe: 'status-aviso2' },
+  preparado: { texto: 'Documento preparado — DANFE ainda não impresso', classe: 'status-aviso2' },
+  danfe_impresso: { texto: 'DANFE impresso — pendente de autorização', classe: 'status-aviso2' },
+  transmitindo: { texto: 'Transmitindo...', classe: 'status-aviso2' },
+  resultado_desconhecido: { texto: 'Resultado desconhecido — consultar', classe: 'status-baixo' },
+  rejeitado: { texto: 'Rejeitado pela SEFAZ — regenerar', classe: 'status-baixo' },
+  denegado: { texto: 'Denegado pela SEFAZ', classe: 'status-baixo' },
+  autorizado: { texto: 'Autorizado (protocolo recebido)', classe: 'status-ok' },
+  descartado: { texto: 'Descartado (nunca impresso)', classe: 'status-neutro' }
+};
+const CTG_STATUS_PENDENTES = ['preparando', 'preparado', 'danfe_impresso', 'transmitindo', 'resultado_desconhecido', 'rejeitado', 'denegado'];
+const CTG_ROTULO_RECONC = { nota_sem_retorno: 'Nota enviada sem resposta (antes da contingência)', numero_descartado: 'Número reservado e descartado', lacuna_numeracao: 'Lacuna na numeração' };
+const CTG_ACAO_SUGERIDA = {
+  consultar_e_cancelar_art40: 'Consultar a SEFAZ; se autorizada e a operação não ocorreu, cancelar (art. 40)',
+  inutilizar_art41: 'Inutilizar a faixa na SEFAZ (art. 41)',
+  consultar_art44: 'Consultar a SEFAZ e conciliar (art. 44)'
+};
+const CTG = { status: null, indisponivel: false, itens: [], reconc: [], filtro: 'pendentes', tokenLocal: null, ultimaLeitura: 0, timer: null };
+const CTG_MOTOR_LOCAL_URL = (typeof window !== 'undefined' && window.FLOREST_MOTOR_LOCAL_URL) || 'http://127.0.0.1:47831';
+
+function ctgPodeFiscal(){ return podeAcessar('fiscal'); }
+function ctgFmtDh(iso){
+  if(!iso) return '—';
+  const d = new Date(iso); if(isNaN(d)) return '—';
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function ctgChaveGrupos(c){ return String(c || '').replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').trim(); }
+function ctgMsgErro(err){
+  const m = String((err && err.message) || err || 'Erro desconhecido.');
+  return m.replace(/^[^:]*\b(FISCAL_[A-Z_]+):\s*/, '').replace(/^EVIDÊNCIA INSUFICIENTE:\s*/i, 'Evidência insuficiente: ').slice(0, 400);
+}
+function ctgFuncaoAusente(err){
+  const m = String((err && (err.message || err.details)) || '');
+  return !!err && (err.code === 'PGRST202' || err.code === '42883' || /Could not find the function|does not exist/i.test(m));
+}
+// Espelha private.fiscal_ctg_xjust_valida (SQL) e problemaNaJustificativa (Edge): o banco é quem decide; isto só evita ida e volta.
+function ctgProblemaJustificativa(x){
+  if(typeof x !== 'string') return 'Informe a justificativa.';
+  if(x.length < 15) return 'A justificativa precisa ter pelo menos 15 caracteres.';
+  if(x.length > 256) return 'A justificativa pode ter no máximo 256 caracteres.';
+  if(x !== x.trim()) return 'Remova os espaços no início e no fim da justificativa.';
+  if(/\s{2,}/.test(x)) return 'Remova os espaços duplos da justificativa.';
+  if(/[<>&"']/.test(x)) return 'Não use os símbolos < > & " \' na justificativa.';
+  if(/[^ -~ -ÿ]/.test(x)) return 'Use apenas letras, números e acentos comuns (sem emojis ou símbolos especiais).';
+  return null;
+}
+function ctgStatusInfo(s){ return CTG_ROTULO_STATUS[s] || { texto: String(s || '—'), classe: 'status-neutro' }; }
+function ctgVencido(r){ return !!r && r.vencido === true; }
+
+// ---------- status (RPC) ----------
+async function ctgCarregarStatus(forcar){
+  if(!forcar && Date.now() - CTG.ultimaLeitura < 15000 && CTG.status) return CTG.status;
+  try {
+    const { data, error } = await supabase.rpc('fiscal_contingencia_status');
+    if(error){
+      if(ctgFuncaoAusente(error)){ CTG.indisponivel = true; CTG.status = null; }
+      // sem permissão (nem fiscal nem pdv) ou falha de rede: não derruba nenhuma tela; apenas não há faixa
+      else CTG.status = null;
+    } else { CTG.indisponivel = false; CTG.status = data; CTG.ultimaLeitura = Date.now(); }
+  } catch(_){ CTG.status = null; }
+  ctgAtualizarFaixas();
+  return CTG.status;
+}
+// Usado antes de qualquer emissão: leitura sempre FRESCA. Falha de leitura NÃO bloqueia a emissão normal (o banco também a bloqueia se houver episódio ativo).
+async function ctgContingenciaAtiva(){
+  const st = await ctgCarregarStatus(true);
+  return !!(st && st.ativa === true);
+}
+function ctgAtualizarFaixas(){
+  const st = CTG.status;
+  const faixa = $('ctg-pdv-faixa');
+  if(faixa){
+    if(st && st.ativa && st.contingencia){
+      const pend = Object.entries(st.contagens || {}).filter(([k]) => CTG_STATUS_PENDENTES.includes(k)).reduce((a, [, n]) => a + Number(n || 0), 0);
+      $('ctg-pdv-faixa-txt').innerHTML = '<b>CONTINGÊNCIA OFFLINE DE NFC-e ATIVA</b> — as NFC-e emitidas ficam <b>PENDENTES DE AUTORIZAÇÃO</b> (não valem como autorizadas até a SEFAZ responder). '
+        + '<small>Desde ' + escapeHtml(ctgFmtDh(st.contingencia.dh_inicio)) + ' · ' + escapeHtml(CTG_MOTIVOS[st.contingencia.motivo_codigo] || '') + ' · pendentes: ' + pend + (st.vencidos > 0 ? ' · <u>' + st.vencidos + ' com prazo vencido</u>' : '') + '</small>';
+      faixa.classList.remove('hidden');
+    } else if(st && !st.ativa && ((st.contagens && CTG_STATUS_PENDENTES.some(k => Number(st.contagens[k] || 0) > 0)) || st.reconciliacao_pendente > 0)){
+      // contingência encerrada, mas ainda há notas a transmitir/reconciliar: lembrete discreto, não bloqueia nada
+      const pend = CTG_STATUS_PENDENTES.reduce((a, k) => a + Number((st.contagens || {})[k] || 0), 0);
+      $('ctg-pdv-faixa-txt').innerHTML = '<b>NFC-e em contingência aguardando autorização: ' + pend + '</b> <small>' + (st.vencidos > 0 ? '· ' + st.vencidos + ' com prazo vencido ' : '') + '· abra Fiscal › Notas em contingência</small>';
+      faixa.classList.remove('hidden');
+    } else faixa.classList.add('hidden');
+  }
+  const badge = $('ctg-tab-badge');
+  if(badge){
+    const n = st ? CTG_STATUS_PENDENTES.reduce((a, k) => a + Number((st.contagens || {})[k] || 0), 0) : 0;
+    badge.textContent = String(n); badge.classList.toggle('hidden', !(n > 0 || (st && st.ativa)));
+    if(st && st.ativa && n === 0) badge.textContent = '!';
+  }
+}
+function ctgIniciarAtualizacaoPeriodica(){
+  if(CTG.timer) return;
+  CTG.timer = setInterval(() => {
+    const pdvAberto = !$('view-pdv').classList.contains('hidden');
+    const fiscalAberto = !$('view-fiscal').classList.contains('hidden');
+    if(!pdvAberto && !fiscalAberto) return;
+    ctgCarregarStatus(true).then(() => { if(fiscalAberto && FCP.aba === 'contingencia') ctgRenderStatus(); });
+  }, 60000);
+}
+
+// ---------- aba Fiscal › Notas em contingência ----------
+async function ctgAbrirAba(){
+  $('ctg-msg').innerHTML = ''; ctgMsgLote('');
+  $('btn-ctg-ativar').classList.add('hidden'); $('btn-ctg-encerrar').classList.add('hidden');
+  const st = await ctgCarregarStatus(true);
+  if(CTG.indisponivel){
+    $('ctg-status-card').innerHTML = '<div class="ctg-card ctg-indisp"><h3>Contingência ainda não instalada no banco</h3><p>A Migration 041 não foi aplicada neste projeto. Nada muda na emissão normal de NFC-e.</p></div>';
+    $('ctg-tabela-body').innerHTML = ''; $('ctg-vazio').classList.remove('hidden'); $('ctg-reconc-body').innerHTML = ''; $('ctg-reconc-vazio').classList.remove('hidden');
+    return;
+  }
+  if(!st){ $('ctg-msg').innerHTML = '<div class="msg error">Não foi possível ler a situação da contingência. Verifique a conexão e permissão do usuário (Fiscal ou PDV).</div>'; return; }
+  ctgRenderStatus();
+  await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]);
+  ctgRegularizarAutomatico('aba');
+}
+function ctgRenderStatus(){
+  const st = CTG.status; if(!st) return;
+  const card = $('ctg-status-card');
+  const c = st.contagens || {};
+  const n = (k) => Number(c[k] || 0);
+  const pend = CTG_STATUS_PENDENTES.reduce((a, k) => a + n(k), 0);
+  const kpis = '<div class="ctg-kpis">'
+    + `<div class="ctg-kpi"><b>${pend}</b><span>pendentes de autorização</span></div>`
+    + `<div class="ctg-kpi"><b>${n('preparando') + n('preparado')}</b><span>preparadas, sem DANFE impresso</span></div>`
+    + `<div class="ctg-kpi"><b>${n('danfe_impresso')}</b><span>DANFE impresso, a transmitir</span></div>`
+    + `<div class="ctg-kpi ${n('resultado_desconhecido') ? 'ctg-kpi-alerta' : ''}"><b>${n('resultado_desconhecido')}</b><span>resultado desconhecido</span></div>`
+    + `<div class="ctg-kpi ${n('rejeitado') + n('denegado') ? 'ctg-kpi-alerta' : ''}"><b>${n('rejeitado') + n('denegado')}</b><span>rejeitadas / denegadas</span></div>`
+    + `<div class="ctg-kpi ${st.vencidos ? 'ctg-kpi-alerta' : ''}"><b>${Number(st.vencidos || 0)}</b><span>com prazo vencido</span></div>`
+    + `<div class="ctg-kpi"><b>${Number(st.reconciliacao_pendente || 0)}</b><span>pendências de reconciliação</span></div></div>`;
+  const amb = st.tp_amb === '1' ? 'Produção' : 'Homologação';
+  const prox = st.proximo_prazo ? `<p>Próximo prazo de transmissão: <b>${escapeHtml(ctgFmtDh(st.proximo_prazo))}</b>.</p>` : '';
+  let html;
+  if(st.ativa && st.contingencia){
+    html = `<div class="ctg-card ctg-ativa"><h3>Contingência ATIVA — ${escapeHtml(amb)}</h3>`
+      + `<p>Desde <b>${escapeHtml(ctgFmtDh(st.contingencia.dh_inicio))}</b> · Motivo: ${escapeHtml(CTG_MOTIVOS[st.contingencia.motivo_codigo] || st.contingencia.motivo_codigo)}.</p>`
+      + `<p>Justificativa (vai no XML): <i>${escapeHtml(st.contingencia.justificativa || '')}</i></p>`
+      + `<p>A emissão normal de NFC-e está <b>suspensa</b> neste ambiente enquanto a contingência estiver ativa. No PDV, as vendas passam a gerar NFC-e em contingência, que ficam <b>pendentes de autorização</b>.</p>${prox}${kpis}</div>`;
+  } else if(!st.motor_apto){
+    html = `<div class="ctg-card ctg-indisp"><h3>Emissão em contingência INDISPONÍVEL</h3>`
+      + `<p>O motor que gera e assina a NFC-e tpEmis=9 <b>ainda não foi confirmado</b> neste sistema (motor atual: <b>${escapeHtml(st.motor_ativo || 'nenhum')}</b>). Por isso a contingência não pode ser ativada e <b>a emissão normal continua funcionando como sempre</b>.</p>`
+      + `<p>Para habilitar é preciso confirmar, por escrito, a capacidade do motor (Dados Jah ou serviço local assinado). Veja a documentação de publicação.</p>${prox}${kpis}</div>`;
+  } else if(!st.uf_habilitada){
+    html = `<div class="ctg-card ctg-indisp"><h3>Contingência não habilitada para esta UF</h3><p>Esta versão foi validada apenas para Minas Gerais. UF da empresa: <b>${escapeHtml(st.uf || '—')}</b>.</p>${prox}${kpis}</div>`;
+  } else {
+    html = `<div class="ctg-card"><h3>Contingência inativa — ${escapeHtml(amb)}</h3><p>A emissão normal de NFC-e está em uso. Ative a contingência <b>somente</b> se houver problema técnico (internet, SEFAZ, provedor ou emissor). Rejeição de dados fiscais <b>não</b> é motivo.</p>${prox}${kpis}</div>`;
+  }
+  card.innerHTML = html;
+  const podeF = ctgPodeFiscal();
+  $('btn-ctg-ativar').classList.toggle('hidden', !(podeF && !st.ativa && st.motor_apto && st.uf_habilitada));
+  $('btn-ctg-encerrar').classList.toggle('hidden', !(podeF && st.ativa));
+}
+// ---------- Notas em contingência: pendências da empresa (Migration 042) ----------
+// A aba abre carregando TODAS as pendências, sem pesquisa. "Emitida" = DANFE impresso em contingência; "aguardando emissão fiscal" = venda
+// salva cuja NFC-e NÃO foi emitida (nada fiscalmente válido existe ainda). Só sai da lista quando a SEFAZ autoriza.
+CTG.sel = new Set();
+CTG.pendentesIndisponivel = false;
+CTG.paramsLista = { motor_apto: false, ativacao_automatica: false };
+function ctgChaveLinha(r){ return r.origem === 'emissao_normal_pendente' ? r.documento_fiscal_id : r.id; }
+function ctgSelecionavel(r){
+  return ctgPodeFiscal() && r.origem !== 'emissao_normal_pendente' && (r.transmissivel === true || (r.exige_consulta === true && r.acao !== 'aguardar'));
+}
+async function ctgCarregarLista(){
+  const { data, error } = await supabase.rpc('fiscal_contingencia_pendentes_listar', { p_limite: 500 });
+  if(error){
+    if(ctgFuncaoAusente(error)){
+      CTG.pendentesIndisponivel = true; CTG.itens = [];
+      $('ctg-msg').innerHTML = '<div class="msg error">A lista de notas pendentes ainda não foi instalada no banco (Migration 042).</div>';
+    } else $('ctg-msg').innerHTML = `<div class="msg error">${escapeHtml(ctgMsgErro(error))}</div>`;
+    ctgRenderLista(); return;
+  }
+  CTG.pendentesIndisponivel = false;
+  CTG.itens = (data && data.itens) || [];
+  CTG.paramsLista = { motor_apto: !!(data && data.motor_apto), ativacao_automatica: !!(data && data.ativacao_automatica) };
+  const vivos = new Set(CTG.itens.map(ctgChaveLinha));
+  CTG.sel.forEach(k => { if(!vivos.has(k)) CTG.sel.delete(k); });          // saiu da lista (autorizada/descartada): sai da seleção
+  ctgRenderLista();
+}
+function ctgAcoesDaLinha(r){
+  const podeF = ctgPodeFiscal(); const b = [];
+  const btn = (acao, txt, cls, idv) => `<button type="button" class="${cls || 'btn-secondary'}" data-ctg-acao="${acao}" data-ctg-id="${escapeHtml(idv || r.id)}">${txt}</button>`;
+  if(r.origem === 'emissao_normal_pendente'){
+    if(podeF){ b.push(btn('consultar', 'Consultar situação', 'btn-secondary', r.documento_fiscal_id)); b.push(btn('ativarfalha', 'Verificar contingência', 'btn-secondary', r.documento_fiscal_id)); }
+    return b.join('');
+  }
+  if(r.status === 'preparando') b.push(btn('preparar', 'Preparar XML', 'btn-accent'), btn('descartar', 'Descartar'));
+  else if(r.status === 'preparado') b.push(btn('imprimir', 'Imprimir DANFE', 'btn-accent'), btn('descartar', 'Descartar'));
+  else if(r.status === 'danfe_impresso'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('transmitir', 'Transmitir à SEFAZ', 'btn-accent')); }
+  else if(r.status === 'resultado_desconhecido'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('consultar', 'Consultar situação')); }
+  else if(r.status === 'transmitindo'){ if(r.acao === 'consultar' && podeF) b.push(btn('consultar', 'Consultar situação')); }
+  else if(r.status === 'rejeitado'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('regenerar', 'Regenerar', 'btn-accent')); }
+  b.push(btn('detalhes', 'Detalhes'));
+  return b.join('');
+}
+function ctgRenderLista(){
+  const body = $('ctg-tabela-body'); body.innerHTML = '';
+  $('ctg-vazio').classList.toggle('hidden', CTG.itens.length > 0);
+  CTG.itens.forEach(r => {
+    const normal = r.origem === 'emissao_normal_pendente';
+    const st = normal ? { texto: 'Aguardando emissão fiscal', classe: 'status-neutro' } : ctgStatusInfo(r.status);
+    const tag = r.emitida
+      ? '<span class="ctg-tag ctg-tag-emitida">NFC-e emitida em contingência</span>'
+      : '<span class="ctg-tag ctg-tag-aguarda">' + (normal ? 'Venda aguardando emissão fiscal — NFC-e NÃO emitida' : 'Aguardando emissão fiscal — DANFE não impresso') + '</span>';
+    const sel = ctgSelecionavel(r);
+    const chave = ctgChaveLinha(r);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${sel ? `<input type="checkbox" class="ctg-sel" data-ctg-sel="${escapeHtml(chave)}" ${CTG.sel.has(chave) ? 'checked' : ''} aria-label="Selecionar nota ${escapeHtml(String(r.numero || ''))}">` : ''}</td>`
+      + `<td>${r.numero ? '<b>' + escapeHtml(String(r.numero)) + '</b> / ' + escapeHtml(String(r.serie || '')) : '—'}${normal && r.numero ? '<div class="ctg-contador">número reservado</div>' : ''}${r.chave_acesso ? '<div class="ctg-chave">' + escapeHtml(ctgChaveGrupos(r.chave_acesso)) + '</div>' : ''}</td>`
+      + `<td>${escapeHtml(ctgFmtDh(r.data_hora))}</td>`
+      + `<td>${r.numero_venda ? '#' + escapeHtml(String(r.numero_venda)) : '—'}</td>`
+      + `<td>${escapeHtml(r.cliente_nome || '—')}${r.cpf_nota ? '<div class="ctg-contador">CPF na nota: ' + escapeHtml(r.cpf_nota) + '</div>' : ''}</td>`
+      + `<td>${escapeHtml(formatarReais(r.valor))}</td>`
+      + `<td>${tag}<br><span class="status-badge ${st.classe}">${escapeHtml(st.texto)}</span>`
+        + (normal ? '' : `<div class="ctg-contador">transmissões: ${Number(r.tentativas_transmissao || 0)}${r.ultima_tentativa_em ? ' · última ' + escapeHtml(ctgFmtDh(r.ultima_tentativa_em)) : ''}</div>`
+        + `<div class="ctg-contador">prazo: ${escapeHtml(ctgFmtDh(r.prazo_transmissao))}${ctgVencido(r) ? ' <span class="status-badge status-baixo">VENCIDO</span>' : ''}</div>`
+        + (r.reimpressao_pendente ? '<div class="ctg-contador">reimpressão do DANFE pendente</div>' : '')) + `</td>`
+      + `<td>${r.erro ? '<div class="ctg-erro">' + escapeHtml(String(r.erro).slice(0, 300)) + '</div>' : '—'}</td>`
+      + `<td>${ctgAcoesDaLinha(r)}</td>`;
+    body.appendChild(tr);
+  });
+  ctgAtualizarSelecao();
+}
+function ctgAtualizarSelecao(){
+  const selecionaveis = CTG.itens.filter(ctgSelecionavel);
+  const n = CTG.sel.size;
+  const bt = $('btn-ctg-transmitir-sel'); if(bt){ bt.disabled = n === 0; bt.textContent = n ? 'Transmitir selecionadas (' + n + ')' : 'Transmitir selecionadas'; }
+  const todas = $('ctg-sel-todas');
+  if(todas){ todas.disabled = selecionaveis.length === 0; todas.checked = selecionaveis.length > 0 && n === selecionaveis.length; todas.indeterminate = n > 0 && n < selecionaveis.length; }
+  const r = $('ctg-sel-resumo'); if(r) r.textContent = selecionaveis.length ? selecionaveis.length + ' nota(s) podem ser transmitidas agora ou precisam de consulta antes do reenvio. Notas rejeitadas, denegadas ou ainda não impressas não entram na transmissão em lote.' : '';
+}
+async function ctgCarregarReconc(){
+  if(!ctgPodeFiscal()){ $('ctg-reconc-secao').classList.add('hidden'); return; }
+  $('ctg-reconc-secao').classList.remove('hidden');
+  const { data, error } = await supabase.rpc('fiscal_contingencia_reconciliacao_listar', { p_contingencia_id: null, p_situacao: 'pendente' });
+  if(error){ CTG.reconc = []; } else CTG.reconc = Array.isArray(data) ? data : [];
+  const body = $('ctg-reconc-body'); body.innerHTML = '';
+  $('ctg-reconc-vazio').classList.toggle('hidden', CTG.reconc.length > 0);
+  CTG.reconc.forEach(r => {
+    const faixa = r.numero_ini === r.numero_fim || r.numero_fim == null ? String(r.numero_ini ?? '—') : `${r.numero_ini} a ${r.numero_fim}`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(CTG_ROTULO_RECONC[r.tipo] || r.tipo)}</td><td>série ${escapeHtml(String(r.serie || '—'))}, nº ${escapeHtml(faixa)}</td>`
+      + `<td>${escapeHtml(CTG_ACAO_SUGERIDA[r.acao_sugerida] || r.acao_sugerida || '—')}</td><td><span class="status-badge status-aviso2">Pendente</span></td>`
+      + `<td><button type="button" class="btn-secondary" data-ctg-acao="resolver" data-ctg-id="${escapeHtml(r.id)}">Registrar providência</button></td>`;
+    body.appendChild(tr);
+  });
+}
+
+// ---------- modal genérico ----------
+let ctgModalFecharAoClicarFora = true;
+let ctgModalAoFechar = null;     // chamado quando o modal é fechado SEM passar por um botão de conclusão (Esc, clique fora, "Voltar")
+function ctgAbrirModal({ titulo, corpo, acoes, aoFechar }){
+  ctgModalAoFechar = aoFechar || null;
+  $('modal-ctg-titulo').textContent = titulo;
+  $('modal-ctg-corpo').innerHTML = corpo || '';
+  $('modal-ctg-msg').innerHTML = '';
+  const el = $('modal-ctg-acoes'); el.innerHTML = '';
+  (acoes || []).forEach(a => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = a.classe || 'btn-secondary'; b.textContent = a.texto;
+    if(a.id) b.id = a.id;
+    b.addEventListener('click', async () => {
+      if(a.fecha){ ctgFecharModal(); if(a.fn) a.fn(); return; }
+      b.disabled = true;
+      try { await a.fn(b); } finally { b.disabled = false; }
+    });
+    el.appendChild(b);
+  });
+  $('modal-ctg').classList.remove('hidden');
+}
+function ctgFecharModal(){
+  const f = ctgModalAoFechar; ctgModalAoFechar = null;
+  $('modal-ctg').classList.add('hidden');
+  if(f) f();
+}
+function ctgFecharModalConcluido(){ ctgModalAoFechar = null; $('modal-ctg').classList.add('hidden'); }
+function ctgMsgModal(html, tipo){ $('modal-ctg-msg').innerHTML = html ? `<div class="msg ${tipo || 'error'}" style="margin-top:12px;">${html}</div>` : ''; }
+function ctgMsgPagina(html, tipo){ $('ctg-msg').innerHTML = html ? `<div class="msg ${tipo || 'success'}">${html}</div>` : ''; }
+
+// ---------- ativar / encerrar ----------
+function ctgAbrirAtivacao(){
+  const st = CTG.status; if(!st || !st.motor_apto) return;
+  const agora = new Date(); agora.setSeconds(0, 0);
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  ctgAbrirModal({
+    titulo: 'Ativar contingência offline de NFC-e',
+    corpo: '<p class="modal-section-hint" style="margin-top:0;">Use somente quando houver <b>problema técnico</b>. Rejeição de dados fiscais, cStat 999 ou erro de cadastro <b>não</b> justificam contingência. A justificativa e o horário vão no XML (dhCont e xJust).</p>'
+      + '<label class="ctg-campo" for="ctg-ativ-motivo">Motivo técnico</label><select id="ctg-ativ-motivo" style="width:100%;">'
+      + Object.entries(CTG_MOTIVOS).map(([k, v]) => `<option value="${k}">${escapeHtml(v)}</option>`).join('') + '</select>'
+      + '<label class="ctg-campo" for="ctg-ativ-just">Justificativa (15 a 256 caracteres)</label><textarea id="ctg-ativ-just" rows="3" style="width:100%;" maxlength="256" placeholder="Ex.: Falha de comunicação com a SEFAZ"></textarea><div class="ctg-contador" id="ctg-ativ-cont">0/256</div>'
+      + `<label class="ctg-campo" for="ctg-ativ-inicio">Início real do problema</label><input type="datetime-local" id="ctg-ativ-inicio" value="${local}" max="${local}" style="width:100%;">`
+      + '<label class="ctg-campo" for="ctg-ativ-cenario">Cenário</label><select id="ctg-ativ-cenario" style="width:100%;"><option value="A">A — internet funciona, SEFAZ/provedor indisponível</option><option value="B" disabled>B — sem internet (exige serviço fiscal local — não habilitado)</option></select>',
+    acoes: [
+      { texto: 'Cancelar', fecha: true },
+      { texto: 'Ativar contingência', classe: 'btn-accent', id: 'btn-ctg-ativar-confirmar', fn: async () => {
+        const just = $('ctg-ativ-just').value; const prob = ctgProblemaJustificativa(just);
+        if(prob){ ctgMsgModal(escapeHtml(prob)); return; }
+        const ini = $('ctg-ativ-inicio').value;
+        const args = { p_motivo_codigo: $('ctg-ativ-motivo').value, p_justificativa: just, p_cenario: $('ctg-ativ-cenario').value };
+        if(ini){ const d = new Date(ini); if(!isNaN(d)) args.p_dh_inicio = d.toISOString(); }
+        const { data, error } = await supabase.rpc('fiscal_contingencia_ativar', args);
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModal(); await ctgAbrirAba();
+        ctgMsgPagina('Contingência ATIVADA. A emissão normal de NFC-e está suspensa neste ambiente. ' + escapeHtml((data && data.aviso) || ''), 'success');
+      } }
+    ]
+  });
+  $('ctg-ativ-just').addEventListener('input', () => { $('ctg-ativ-cont').textContent = $('ctg-ativ-just').value.length + '/256'; });
+}
+function ctgAbrirEncerramento(){
+  const st = CTG.status; if(!st || !st.ativa) return;
+  ctgAbrirModal({
+    titulo: 'Encerrar contingência',
+    corpo: '<p class="modal-section-hint" style="margin-top:0;">Encerre quando o problema técnico cessar. As notas já impressas continuam <b>pendentes de transmissão</b> dentro do prazo; o sistema gera as pendências de reconciliação (arts. 40, 41 e 44). Documentos preparados e ainda não impressos precisam ser impressos ou descartados antes.</p>'
+      + '<label class="ctg-campo" for="ctg-enc-obs">Observação (opcional)</label><textarea id="ctg-enc-obs" rows="2" style="width:100%;" maxlength="500"></textarea>',
+    acoes: [
+      { texto: 'Voltar', fecha: true },
+      { texto: 'Encerrar contingência', classe: 'btn-accent', fn: async () => {
+        const { data, error } = await supabase.rpc('fiscal_contingencia_encerrar', { p_contingencia_id: st.contingencia.id, p_observacao: $('ctg-enc-obs').value || null });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModal(); await ctgAbrirAba();
+        ctgMsgPagina('Contingência encerrada. Pendências de reconciliação geradas: ' + Number((data && data.pendencias_reconciliacao) || 0) + '. ' + escapeHtml((data && data.aviso) || ''), 'success');
+      } }
+    ]
+  });
+}
+
+// ---------- DANFE em contingência: imprimir e CONFIRMAR ----------
+function ctgMontarDanfePendente(xml, meta){
+  const d = nfceLerDadosDanfe({ xml_conteudo: xml, numero: meta.numero, serie: meta.serie, chave_acesso: meta.chave_acesso, dh_emissao: meta.dh_emissao, tp_ambiente: meta.tp_amb, valor: meta.valor_total });
+  if(!d || !d.qrCode) return { ok: false, motivo: 'O XML emitido não traz o QR Code (infNFeSupl/qrCode); o DANFE não pode ser montado.' };
+  if(String(d.tpEmis) !== '9') return { ok: false, motivo: 'O XML não é de emissão em contingência (tpEmis diferente de 9).' };
+  const html = nfceMontarDanfeHtml(d, florestQrSvg(d.qrCode, 2));
+  if(!html) return { ok: false, motivo: 'Faltam dados mínimos para montar o DANFE (chave ou QR Code).' };
+  return { ok: true, html };
+}
+// Abre a impressão do DANFE (pendente ou já autorizado). NÃO marca nada: quem confirma é o operador.
+async function ctgImprimir(ctgId, linha){
+  const { data: x, error } = await supabase.rpc('fiscal_contingencia_obter_xml', { p_ctg_documento_id: ctgId });
+  if(error) return { ok: false, motivo: ctgMsgErro(error) };
+  if(x.status === 'autorizado' && x.xml_autorizado){
+    const { data: doc } = await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id', linha.documento_fiscal_id).maybeSingle();
+    if(doc && doc.status === 'autorizada' && nfceImprimirDocumento(doc).ok) return { ok: true, autorizado: true };
+    return { ok: false, motivo: 'O DANFE da nota autorizada não pôde ser aberto (XML autorizado indisponível). O DANFE de contingência pendente não é reimpresso depois da autorização.' };
+  }
+  if(!x.xml_emitido) return { ok: false, motivo: 'Este documento ainda não tem XML emitido (não foi preparado).' };
+  const m = ctgMontarDanfePendente(x.xml_emitido, linha);
+  if(!m.ok) return m;
+  nfceImprimirHtmlEmIframe(m.html);
+  const fr = document.getElementById('nfce-print-frame');
+  if(fr) fr.addEventListener('load', () => { try { fr.contentWindow.addEventListener('keydown', ctgEscapeGlobal); } catch(_){ /* sem acesso ao iframe: o Esc continua valendo quando o foco está na página */ } });
+  return { ok: true, autorizado: false };
+}
+// Pergunta ao operador se o DANFE saiu corretamente. Só então o banco marca "emitida" (status danfe_impresso).
+function ctgConfirmarImpressao(ctgId, linha, aoConcluir){
+  const primeira = linha.status === 'preparado';
+  ctgAbrirModal({
+    titulo: 'O DANFE foi impresso corretamente?',
+    corpo: '<p class="modal-section-hint" style="margin-top:0;">A NFC-e em contingência só é considerada <b>emitida</b> quando o DANFE é impresso (art. 42 §3). O navegador não sabe se a impressora realmente imprimiu — confirme olhando o papel.</p>'
+      + (primeira ? '<label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;"><input type="checkbox" id="ctg-conf-via" style="margin-top:3px;"> <span>Uma via do DANFE ficará <b>arquivada neste estabelecimento</b> até a autorização da NFC-e (obrigatório).</span></label>' : '<input type="hidden" id="ctg-conf-via" value="1">')
+      + '<div id="ctg-conf-falha" class="hidden"><label class="ctg-campo" for="ctg-conf-motivo">O que aconteceu?</label><input type="text" id="ctg-conf-motivo" maxlength="300" style="width:100%;" placeholder="Ex.: impressora sem papel"></div>',
+    acoes: [
+      { texto: 'Ainda não decidi', fecha: true },
+      { texto: 'Não saiu / saiu errado', fn: async (b) => {
+        const f = $('ctg-conf-falha');
+        if(f.classList.contains('hidden')){ f.classList.remove('hidden'); b.textContent = 'Registrar falha de impressão'; $('ctg-conf-motivo').focus(); return; }
+        const { error } = await supabase.rpc('fiscal_contingencia_registrar_falha_impressao', { p_ctg_documento_id: ctgId, p_motivo: $('ctg-conf-motivo').value || 'falha de impressão', p_dispositivo: null, p_origem: 'navegador' });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModalConcluido(); if(aoConcluir) aoConcluir({ falha: true });
+      } },
+      { texto: 'Sim, saiu corretamente', classe: 'btn-accent', id: 'btn-ctg-conf-sim', fn: async () => {
+        const via = $('ctg-conf-via');
+        if(primeira && !(via && via.checked)){ ctgMsgModal('Confirme que uma via do DANFE ficará arquivada no estabelecimento.'); return; }
+        const { data, error } = await supabase.rpc('fiscal_contingencia_marcar_danfe_impresso', { p_ctg_documento_id: ctgId, p_via_arquivada: true, p_dispositivo: null, p_origem: 'navegador' });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModalConcluido(); if(aoConcluir) aoConcluir({ marcado: true, dados: data });
+      } }
+    ],
+    aoFechar: () => { if(aoConcluir) aoConcluir({}); }
+  });
+}
+async function ctgImprimirEConfirmar(ctgId, linha, aoConcluir){
+  const r = await ctgImprimir(ctgId, linha);
+  if(!r.ok){ if(aoConcluir) aoConcluir({ erro: r.motivo }); return r; }
+  // documento já autorizado só pede confirmação quando a reimpressão está pendente; os demais sempre pedem
+  if(linha.status === 'autorizado' && !linha.reimpressao_pendente){ if(aoConcluir) aoConcluir({ reimpresso: true }); return r; }
+  ctgConfirmarImpressao(ctgId, linha, aoConcluir);
+  return r;
+}
+
+// ---------- chamadas ao motor local e às Edge Functions ----------
+async function ctgInvocarEdge(corpo){
+  try {
+    const { data, error } = await supabase.functions.invoke('fiscal-contingencia', { body: corpo });
+    let r = data;
+    if(!r && error && error.context && typeof error.context.json === 'function'){ try { r = await error.context.json(); } catch(_){ r = null; } }
+    if(r && r.error) return { status: 'erro', mensagem: r.error };
+    if(r && r.status) return r;
+    return { status: 'erro', mensagem: 'Resposta inesperada da função de contingência. O documento continua guardado; nada foi alterado.' };
+  } catch(_){ return { status: 'erro', mensagem: 'Não foi possível falar com a função de contingência. O documento continua guardado; tente novamente.' }; }
+}
+async function ctgPedirTokenLocal(){
+  if(CTG.tokenLocal) return CTG.tokenLocal;
+  return await new Promise(resolve => {
+    ctgAbrirModal({
+      titulo: 'Serviço fiscal local',
+      corpo: '<p class="modal-section-hint" style="margin-top:0;">Informe o código de acesso do serviço fiscal local desta máquina. Ele fica apenas na memória desta aba (nunca é gravado no navegador) e não é um certificado nem uma senha fiscal.</p><input type="password" id="ctg-token-local" autocomplete="off" style="width:100%;">',
+      acoes: [
+        { texto: 'Cancelar', fecha: true },
+        { texto: 'Usar', classe: 'btn-accent', fn: async () => { const v = $('ctg-token-local').value.trim(); if(!v){ ctgMsgModal('Informe o código.'); return; } CTG.tokenLocal = v; ctgFecharModalConcluido(); resolve(v); } }
+      ],
+      aoFechar: () => resolve(null)
+    });
+  });
+}
+// Pede ao serviço LOCAL (motor) o XML tpEmis=9 assinado. O navegador só repassa: não assina, não guarda certificado.
+async function ctgPedirXmlAoMotorLocal(identidade, vendaId){
+  const token = await ctgPedirTokenLocal();
+  if(!token) return { ok: false, motivo: 'Código de acesso do serviço local não informado.' };
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const resp = await fetch(CTG_MOTOR_LOCAL_URL + '/v1/contingencia/preparar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Florest-Token': token },
+      body: JSON.stringify({ identidade, venda_id: vendaId }), signal: ctl.signal
+    });
+    const j = await resp.json().catch(() => null);
+    if(resp.status === 401 || resp.status === 403){ CTG.tokenLocal = null; return { ok: false, motivo: 'O serviço local recusou o código de acesso.' }; }
+    if(!resp.ok || !j || !j.xml){ return { ok: false, motivo: (j && j.mensagem) || ('O serviço local não preparou o XML (HTTP ' + resp.status + ').') }; }
+    return { ok: true, xml: j.xml, qr_url: j.qr_url || '', identidade: j.identidade || {} };
+  } catch(_){
+    return { ok: false, motivo: 'Serviço fiscal local indisponível nesta máquina. Nada foi gravado; o número continua reservado e o documento fica em "preparando".' };
+  } finally { clearTimeout(timer); }
+}
+// Prepara o documento: motor local gera/assina o XML; a Edge confere as invariantes e grava. Devolve { ok, mensagem }.
+async function ctgPrepararDocumento(ctgId, vendaId){
+  const { data: ident, error } = await supabase.rpc('fiscal_contingencia_obter', { p_ctg_documento_id: ctgId });
+  if(error) return { ok: false, mensagem: ctgMsgErro(error) };
+  if(ident.status !== 'preparando') return { ok: false, mensagem: 'O documento está "' + ident.status + '" e não precisa de preparo.' };
+  if(ident.motor !== 'local') return { ok: false, mensagem: 'A preparação pelo motor "' + ident.motor + '" não está disponível nesta versão: o contrato de emissão tpEmis=9 da Dados Jah não foi confirmado. O número continua reservado e o documento fica pendente.' };
+  const m = await ctgPedirXmlAoMotorLocal(ident, vendaId || null);
+  if(!m.ok) return { ok: false, mensagem: m.motivo };
+  const r = await ctgInvocarEdge({ acao: 'registrar_preparo', ctg_documento_id: ctgId, xml: m.xml, qr_url: m.qr_url, identidade: m.identidade });
+  if(r.status !== 'preparado') return { ok: false, mensagem: (r.mensagem || 'O XML não foi aceito.') + (r.divergencias ? ' (' + r.divergencias.slice(0, 4).join(', ') + ')' : '') };
+  return { ok: true, mensagem: r.mensagem };
+}
+
+// ---------- ações da tabela ----------
+async function ctgAcaoLinha(acao, id){
+  const linha = CTG.itens.find(x => x.id === id || (x.origem === 'emissao_normal_pendente' && x.documento_fiscal_id === id)) || CTG.reconc.find(x => x.id === id);
+  if(!linha) return;
+  ctgMsgPagina('');
+  const recarregar = async () => { await ctgCarregarStatus(true); ctgRenderStatus(); await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]); };
+  if(acao === 'detalhes') return ctgAbrirDetalhes(id);
+  if(acao === 'preparar'){
+    ctgMsgPagina('Preparando o XML pelo serviço local...', 'success');
+    const r = await ctgPrepararDocumento(id, linha.venda_id);
+    ctgMsgPagina(escapeHtml(r.mensagem || ''), r.ok ? 'success' : 'error');
+    return recarregar();
+  }
+  if(acao === 'imprimir'){
+    const r = await ctgImprimirEConfirmar(id, linha, async (res) => {
+      if(res && res.erro) ctgMsgPagina(escapeHtml(res.erro), 'error');
+      else if(res && res.marcado) ctgMsgPagina('DANFE impresso e confirmado. A NFC-e está <b>emitida em contingência e PENDENTE DE AUTORIZAÇÃO</b> — guarde a via impressa até a autorização.', 'success');
+      else if(res && res.falha) ctgMsgPagina('Falha de impressão registrada. A NFC-e <b>NÃO</b> foi marcada como emitida: reimprima o DANFE.', 'error');
+      await recarregar();
+    });
+    if(!r.ok) ctgMsgPagina(escapeHtml(r.motivo || 'Não foi possível imprimir.'), 'error');
+    return;
+  }
+  if(acao === 'transmitir'){
+    ctgMsgPagina('Transmitindo... não feche esta tela. (Se houver dúvida sobre o resultado, o sistema bloqueia o reenvio.)', 'success');
+    const r = await ctgInvocarEdge({ acao: 'transmitir', ctg_documento_id: id });
+    const ok = r.status === 'autorizado';
+    ctgMsgPagina(escapeHtml(r.mensagem || r.status) + (r.xMotivo ? ' (' + escapeHtml((r.cStat ? r.cStat + ' — ' : '') + r.xMotivo) + ')' : '') + (r.fora_de_prazo ? ' Autorizada FORA DO PRAZO.' : ''), ok ? 'success' : 'error');
+    return recarregar();
+  }
+  if(acao === 'ativarfalha'){
+    ctgMsgPagina('Verificando se a venda pode entrar em contingência...', 'success');
+    const r = await ctgAtivarPorFalha(linha.documento_fiscal_id);
+    const msgs = { contingencia: 'Contingência aberta para esta venda. Prepare o XML e imprima o DANFE.', consulta_necessaria: 'Antes de entrar em contingência é preciso consultar a situação na SEFAZ. Use "Consultar situação".',
+      autorizada_encontrada: 'A SEFAZ já tem esta NFC-e autorizada: nenhuma contingência é necessária.', aguardando_evidencia: 'Ainda não há evidência suficiente de que a SEFAZ não recebeu a nota. Consulte novamente em alguns minutos.' };
+    ctgMsgPagina(escapeHtml(msgs[r.resultado] || r.mensagem || 'Não foi possível verificar.'), r.resultado === 'contingencia' || r.resultado === 'autorizada_encontrada' ? 'success' : 'error');
+    return recarregar();
+  }
+  if(acao === 'consultar'){
+    ctgMsgPagina('Consultando a situação pela chave (pode gerar cobrança da Dados Jah)...', 'success');
+    const res = await chamarConsultaFiscal(linha.documento_fiscal_id, 'consultar');
+    $('ctg-msg').innerHTML = `<div class="msg ${res && res.status === 'consultado' ? 'success' : 'error'}">${mensagemConsultaFiscalHtml(res)}</div>`;
+    return recarregar();
+  }
+  if(acao === 'regenerar'){
+    ctgAbrirModal({
+      titulo: 'Regenerar NFC-e rejeitada',
+      corpo: '<p class="modal-section-hint" style="margin-top:0;">A NFC-e será corrigida com a <b>mesma numeração, série, datas, valores e partes</b> (art. 43, parágrafo único). Depois de regenerada: preparar o XML, transmitir e, após a autorização, <b>reimprimir o DANFE</b>.</p><label class="ctg-campo" for="ctg-reg-obs">Observação (o que foi corrigido)</label><textarea id="ctg-reg-obs" rows="2" style="width:100%;" maxlength="500"></textarea>',
+      acoes: [{ texto: 'Voltar', fecha: true }, { texto: 'Regenerar', classe: 'btn-accent', fn: async () => {
+        const { error } = await supabase.rpc('fiscal_contingencia_regenerar', { p_ctg_documento_id: id, p_observacao: $('ctg-reg-obs').value || null });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModal(); ctgMsgPagina('Documento regenerado com a mesma numeração. Próximo passo: "Preparar XML".', 'success'); await recarregar();
+      } }]
+    });
+    return;
+  }
+  if(acao === 'descartar'){
+    ctgAbrirModal({
+      titulo: 'Descartar documento nunca impresso',
+      corpo: '<p class="modal-section-hint" style="margin-top:0;">Só é possível descartar documento cujo DANFE <b>nunca foi impresso</b>. O número fica registrado para inutilização (art. 41). Informe o motivo (mínimo 10 caracteres).</p><input type="text" id="ctg-desc-motivo" maxlength="300" style="width:100%;">',
+      acoes: [{ texto: 'Voltar', fecha: true }, { texto: 'Descartar', classe: 'btn-accent', fn: async () => {
+        const { error } = await supabase.rpc('fiscal_contingencia_descartar', { p_ctg_documento_id: id, p_motivo: $('ctg-desc-motivo').value });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModal(); ctgMsgPagina('Documento descartado. O número foi registrado para reconciliação.', 'success'); await recarregar();
+      } }]
+    });
+    return;
+  }
+  if(acao === 'resolver'){
+    ctgAbrirModal({
+      titulo: 'Registrar providência de reconciliação',
+      corpo: '<p class="modal-section-hint" style="margin-top:0;">Este sistema <b>não</b> cancela nem inutiliza na SEFAZ. Faça a providência no portal da SEFAZ (ou no provedor) e registre aqui, com o protocolo quando houver.</p>'
+        + '<label class="ctg-campo" for="ctg-res-tipo">Providência realizada</label><select id="ctg-res-tipo" style="width:100%;"><option value="autorizada">A nota foi autorizada (conciliada no ERP)</option><option value="cancelada">A nota foi cancelada (art. 40)</option><option value="inutilizada">A numeração foi inutilizada (art. 41)</option><option value="sem_acao">Nenhuma ação necessária (justifique)</option></select>'
+        + '<label class="ctg-campo" for="ctg-res-prot">Protocolo (obrigatório na inutilização)</label><input type="text" id="ctg-res-prot" inputmode="numeric" style="width:100%;">'
+        + '<label class="ctg-campo" for="ctg-res-obs">Observação</label><textarea id="ctg-res-obs" rows="2" style="width:100%;" maxlength="500"></textarea>',
+      acoes: [{ texto: 'Voltar', fecha: true }, { texto: 'Registrar', classe: 'btn-accent', fn: async () => {
+        const { error } = await supabase.rpc('fiscal_contingencia_reconciliacao_resolver', { p_id: id, p_resolucao: $('ctg-res-tipo').value, p_observacao: $('ctg-res-obs').value || null, p_protocolo: $('ctg-res-prot').value.trim() || null });
+        if(error){ ctgMsgModal(escapeHtml(ctgMsgErro(error))); return; }
+        ctgFecharModal(); ctgMsgPagina('Providência registrada.', 'success'); await recarregar();
+      } }]
+    });
+  }
+}
+async function ctgAbrirDetalhes(id){
+  const { data, error } = await supabase.rpc('fiscal_contingencia_obter', { p_ctg_documento_id: id });
+  if(error){ ctgMsgPagina(escapeHtml(ctgMsgErro(error)), 'error'); return; }
+  const st = ctgStatusInfo(data.status);
+  const linhas = (data.tentativas || []).map(t => `<tr><td>${escapeHtml(ctgFmtDh(t.dh))}</td><td>${escapeHtml(t.tipo)}</td><td>${escapeHtml(t.resultado)}</td><td>${escapeHtml([t.http_status, t.c_stat, t.x_motivo].filter(Boolean).join(' · '))}</td><td>${escapeHtml(t.motor || '')}</td></tr>`).join('');
+  ctgAbrirModal({
+    titulo: 'NFC-e ' + data.nNF + ' / série ' + data.serie + ' — contingência',
+    corpo: `<p><span class="status-badge ${st.classe}">${escapeHtml(st.texto)}</span></p>`
+      + `<p class="ctg-chave">${escapeHtml(ctgChaveGrupos(data.chave_acesso))}</p>`
+      + `<p>Emissão (dhEmi): <b>${escapeHtml(data.dhEmi)}</b><br>Entrada em contingência (dhCont): <b>${escapeHtml(data.dhCont)}</b><br>Justificativa (xJust): <i>${escapeHtml(data.xJust)}</i><br>Prazo de transmissão: <b>${escapeHtml(ctgFmtDh(data.prazo_transmissao))}</b><br>Motor: ${escapeHtml(data.motor)} · regenerações: ${Number(data.regeneracoes || 0)} · impressões do DANFE: ${Number(data.danfe_impressoes || 0)} · transmissões: ${Number(data.tentativas_transmissao || 0)}`
+      + (data.protocolo ? `<br>Protocolo: <b>${escapeHtml(data.protocolo)}</b> (cStat ${escapeHtml(data.c_stat || '')})${data.fora_de_prazo ? ' — fora do prazo' : ''}` : '<br>Protocolo: <b>nenhum — ainda não autorizada</b>')
+      + (data.descarte_motivo ? `<br>Motivo do descarte: ${escapeHtml(data.descarte_motivo)}` : '') + '</p>'
+      + '<div style="max-height:230px;overflow:auto;"><table class="ctg-hist"><thead><tr><th>Quando</th><th>Evento</th><th>Resultado</th><th>Detalhe</th><th>Motor</th></tr></thead><tbody>' + (linhas || '<tr><td colspan="5">Sem registros.</td></tr>') + '</tbody></table></div>',
+    acoes: [{ texto: 'Fechar', fecha: true }]
+  });
+}
+
+// ---------- emissão em contingência a partir de uma venda (PDV / Fiscal / Bar) ----------
+// Reserva o número, pede o XML ao motor, imprime o DANFE e pede a confirmação. Escreve o andamento em `el`. Nunca afirma "autorizada".
+async function ctgFluxoEmitir(vendaId, el){
+  const say = (html, tipo) => { el.innerHTML = html ? `<div class="msg ${tipo || 'success'}">${html}</div>` : ''; };
+  say('Contingência ATIVA: reservando a numeração da NFC-e...');
+  const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaId });
+  if(error){ say('Erro ao preparar o documento fiscal: ' + escapeHtml(error.message), 'error'); return { ok: false }; }
+  const docNfce = nfceDocParaEmitir(docs);
+  if(!docNfce){ say('Esta venda não tem item de mercadoria para gerar NFC-e.', 'error'); return { ok: false }; }
+  if(docNfce.status === 'autorizada'){ say('Esta venda já tem NFC-e autorizada.', 'success'); return { ok: true, jaAutorizada: true }; }
+  const { data: ident, error: e2 } = await supabase.rpc('fiscal_contingencia_iniciar_documento', { p_documento_fiscal_id: docNfce.id });
+  if(e2){ say(escapeHtml(ctgMsgErro(e2)) + ' Nenhuma NFC-e foi emitida e nenhum número foi consumido por esta tentativa.', 'error'); return { ok: false }; }
+  const rotulo = `NFC-e nº ${escapeHtml(String(ident.nNF))} série ${escapeHtml(String(ident.serie))}`;
+  // Repetir o clique é seguro: o banco devolve o MESMO documento (nenhum número novo). Cada estágio segue de onde parou.
+  if(['danfe_impresso', 'transmitindo', 'resultado_desconhecido', 'rejeitado', 'denegado'].includes(ident.status)){
+    say(`${rotulo} já foi emitida em contingência: <b>${escapeHtml(ctgStatusInfo(ident.status).texto)}</b>. Acompanhe e transmita em Fiscal › Notas em contingência.`, 'success');
+    return { ok: true, ctgId: ident.ctg_documento_id, jaEmitida: true };
+  }
+  if(ident.status === 'autorizado'){ say(`${rotulo} já está autorizada (protocolo recebido).`, 'success'); return { ok: true, jaAutorizada: true }; }
+  if(ident.status === 'descartado'){ say(`${rotulo} foi descartada. Acione o suporte fiscal.`, 'error'); return { ok: false }; }
+  if(ident.status === 'preparando'){
+    say(`Venda registrada. Número reservado: ${rotulo} (<b>ainda NÃO emitida</b>). Preparando o XML em contingência...`);
+    const prep = await ctgPrepararDocumento(ident.ctg_documento_id, vendaId);
+    if(!prep.ok){
+      say(`${rotulo} reservada, <b>mas o XML NÃO foi preparado</b>: ${escapeHtml(prep.mensagem)}<br>O documento ficou pendente em <b>Fiscal › Notas em contingência</b>. Não emita esta venda pelo caminho normal.`, 'error');
+      return { ok: false, ctgId: ident.ctg_documento_id, preparado: false };
+    }
+  }
+  say(`Documento preparado (${rotulo}). Abrindo a impressão do DANFE — a nota só será considerada <b>emitida</b> depois que você confirmar a impressão.`);
+  const linha = { id: ident.ctg_documento_id, documento_fiscal_id: docNfce.id, venda_id: vendaId, status: 'preparado', numero: ident.nNF, serie: ident.serie, chave_acesso: ident.chave_acesso, dh_emissao: ident.dhEmi, tp_amb: ident.tpAmb, valor_total: ident.vNF };
+  return await new Promise(resolve => {
+    ctgImprimirEConfirmar(ident.ctg_documento_id, linha, (res) => {
+      if(res && res.erro) say(`${rotulo}: documento preparado, <b>DANFE NÃO impresso</b> — ${escapeHtml(res.erro)} Reimprima em Fiscal › Notas em contingência.`, 'error');
+      else if(res && res.marcado) say(`<b>${rotulo} emitida em CONTINGÊNCIA — PENDENTE DE AUTORIZAÇÃO.</b> Guarde a via impressa do DANFE até a autorização. A transmissão à SEFAZ é feita em Fiscal › Notas em contingência.`, 'success');
+      else if(res && res.falha) say(`Falha de impressão registrada. ${rotulo} <b>não</b> foi emitida: reimprima o DANFE em Fiscal › Notas em contingência.`, 'error');
+      else say(`${rotulo}: documento preparado, DANFE <b>ainda não confirmado</b>. Conclua em Fiscal › Notas em contingência.`, 'error');
+      ctgCarregarStatus(true);
+      resolve({ ok: !!(res && res.marcado), ctgId: ident.ctg_documento_id, emitida: !!(res && res.marcado) });
+    });
+  });
+}
+
+
+// ---------- Transmissão (lote manual e regularização automática) — Migration 042 ----------
+// Regras: (1) NUNCA reenvia sem consultar a situação quando há dúvida (transmitindo vencido / resultado desconhecido): consulta primeiro e só
+// transmite se o BANCO liberou o reenvio com evidência; (2) o documento transmitido é sempre o MESMO já emitido (mesma identidade);
+// (3) rejeitada/denegada nunca é reenviada automaticamente (precisa de correção/regeneração); (4) falha de comunicação tem espera crescente.
+const CTG_REG = { rodando: false, indisponivel: false, pausaAte: 0, tent: {}, LOTE: 5, MAX_FALHAS: 6, INTERVALO_MS: 5 * 60 * 1000, ultimo: 0 };
+function ctgEsperaMs(n){ return Math.min(60, 5 * Math.pow(2, Math.max(0, n - 1))) * 60000; }
+async function ctgRelerPendentes(){
+  const { data, error } = await supabase.rpc('fiscal_contingencia_pendentes_listar', { p_limite: 500 });
+  if(error && ctgFuncaoAusente(error)) CTG_REG.indisponivel = true;           // Migration 042 não instalada: a regularização automática se desliga
+  return error ? null : data;
+}
+// Processa UMA nota pendente de contingência. Devolve { resultado, mensagem }.
+//   resultado: autorizado | conciliada | rejeitado | denegado | desconhecido | consultada | falha_comunicacao | indisponivel | ignorada
+async function ctgProcessarLinha(r){
+  let atual = r;
+  if(!atual.transmissivel && atual.exige_consulta && atual.acao !== 'aguardar'){
+    const c = await chamarConsultaFiscal(atual.documento_fiscal_id, 'consultar');
+    if(!(c && c.status === 'consultado')) return { resultado: 'falha_comunicacao', mensagem: (c && c.mensagem) || 'Não foi possível consultar a situação.' };
+    const d = await ctgRelerPendentes();
+    atual = d ? (d.itens || []).find(x => x.id === r.id) : null;
+    if(d && !atual) return { resultado: 'conciliada', mensagem: 'A consulta mostrou a nota na SEFAZ: ela saiu da lista de pendentes.' };
+    if(!atual) return { resultado: 'falha_comunicacao', mensagem: 'Não foi possível reler a lista após a consulta.' };
+    if(!atual.transmissivel) return { resultado: 'consultada', mensagem: 'Situação consultada. O reenvio continua bloqueado até haver evidência suficiente de que a SEFAZ não recebeu a nota.' };
+  }
+  if(!atual.transmissivel) return { resultado: 'ignorada', mensagem: 'A nota não está em condição de transmissão.' };
+  const e = await ctgInvocarEdge({ acao: 'transmitir', ctg_documento_id: atual.id });
+  switch(e.status){
+    case 'autorizado': return { resultado: 'autorizado', mensagem: e.mensagem };
+    case 'rejeitado': return { resultado: 'rejeitado', mensagem: (e.cStat ? e.cStat + ' — ' : '') + (e.xMotivo || e.mensagem || '') };
+    case 'denegado': return { resultado: 'denegado', mensagem: e.mensagem };
+    case 'resultado_desconhecido': return { resultado: 'desconhecido', mensagem: e.mensagem };
+    case 'integracao_pendente': case 'capacidade_nao_confirmada': return { resultado: 'indisponivel', mensagem: e.mensagem };
+    default: return { resultado: 'falha_comunicacao', mensagem: e.mensagem || 'Falha na transmissão.' };
+  }
+}
+// Venda cuja emissão normal falhou por motivo técnico: consulta a SEFAZ (pode encontrar a nota já autorizada) e, se o banco permitir, ativa a contingência.
+async function ctgProcessarEmissaoNormal(r, params){
+  const c = await chamarConsultaFiscal(r.documento_fiscal_id, 'consultar');
+  if(!(c && c.status === 'consultado')) return { resultado: 'falha_comunicacao', mensagem: (c && c.mensagem) || 'Não foi possível consultar a situação.' };
+  if(!params.ativacao_automatica || !params.motor_apto) return { resultado: 'consultada', mensagem: 'Situação consultada.' };
+  const a = await ctgAtivarPorFalha(r.documento_fiscal_id);
+  if(a.resultado === 'contingencia') return { resultado: 'contingencia', mensagem: 'Contingência aberta para a venda. Prepare e imprima o DANFE na aba Notas em contingência.' };
+  if(a.resultado === 'autorizada_encontrada') return { resultado: 'conciliada', mensagem: a.mensagem };
+  return { resultado: 'consultada', mensagem: a.mensagem || 'Aguardando evidência suficiente.' };
+}
+function ctgRegistrarResultado(chave, res, manual){
+  const t = CTG_REG.tent[chave] || { n: 0, proxima: 0, parado: false };
+  if(['autorizado', 'conciliada', 'contingencia'].includes(res.resultado)) { delete CTG_REG.tent[chave]; return; }
+  if(['rejeitado', 'denegado', 'desconhecido'].includes(res.resultado)) { t.parado = true; }          // nunca reenviar sozinho
+  else { t.n += 1; t.proxima = Date.now() + ctgEsperaMs(t.n); if(t.n >= CTG_REG.MAX_FALHAS) t.parado = true; }
+  if(manual) t.parado = false;
+  CTG_REG.tent[chave] = t;
+}
+async function ctgRegularizarAutomatico(motivo){
+  if(CTG_REG.rodando || CTG_REG.indisponivel || Date.now() < CTG_REG.pausaAte) return;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  if(typeof ctgPodeFiscal !== 'function' || !ctgPodeFiscal()) return;
+  CTG_REG.rodando = true;
+  let alterou = false; const resumo = [];
+  try {
+    const dados = await ctgRelerPendentes();
+    if(!dados){ return; }
+    const params = { motor_apto: !!dados.motor_apto, ativacao_automatica: !!dados.ativacao_automatica };
+    const agora = Date.now();
+    const fila = (dados.itens || []).filter(r => {
+      const t = CTG_REG.tent[ctgChaveLinha(r)];
+      if(t && (t.parado || t.proxima > agora)) return false;
+      if(r.ultima_tentativa_em && agora - new Date(r.ultima_tentativa_em).getTime() < 5 * 60000) return false;   // tentativa recente (qualquer máquina)
+      if(r.origem === 'emissao_normal_pendente') return true;
+      return r.transmissivel === true || (r.exige_consulta === true && r.acao !== 'aguardar');
+    }).sort((a, b) => String(a.prazo_transmissao || '9999').localeCompare(String(b.prazo_transmissao || '9999'))).slice(0, CTG_REG.LOTE);
+    for(const r of fila){
+      if(typeof navigator !== 'undefined' && navigator.onLine === false) break;
+      const chave = ctgChaveLinha(r);
+      const res = r.origem === 'emissao_normal_pendente' ? await ctgProcessarEmissaoNormal(r, params) : await ctgProcessarLinha(r);
+      if(res.resultado === 'indisponivel'){ CTG_REG.pausaAte = Date.now() + 30 * 60000; break; }      // motor/contrato não confirmado: para por 30 min, sem insistir (a Edge nem chama a Dados Jah)
+      ctgRegistrarResultado(chave, res, false);
+      if(['autorizado', 'conciliada', 'contingencia', 'rejeitado', 'denegado', 'desconhecido'].includes(res.resultado)){ alterou = true; resumo.push(res.resultado); }
+    }
+  } catch(_){ /* a regularização automática nunca derruba a tela */ }
+  finally { CTG_REG.rodando = false; CTG_REG.ultimo = Date.now(); }
+  if(alterou){
+    await ctgCarregarStatus(true);
+    const aberta = !$('view-fiscal').classList.contains('hidden') && typeof FCP !== 'undefined' && FCP.aba === 'contingencia';
+    if(aberta){
+      await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]); ctgRenderStatus();
+      const n = (k) => resumo.filter(x => x === k).length;
+      ctgMsgLote('Regularização automática: ' + n('autorizado') + ' autorizada(s) pela SEFAZ' + (n('conciliada') ? ', ' + n('conciliada') + ' conciliada(s) por consulta' : '')
+        + (n('rejeitado') + n('denegado') ? ', ' + (n('rejeitado') + n('denegado')) + ' rejeitada(s)/denegada(s) (corrigir antes de reenviar)' : '') + (n('desconhecido') ? ', ' + n('desconhecido') + ' com resultado desconhecido (consultar)' : '')
+        + (n('contingencia') ? ', ' + n('contingencia') + ' venda(s) em contingência (preparar/imprimir o DANFE)' : '') + '.', n('rejeitado') + n('denegado') + n('desconhecido') ? 'error' : 'success');
+    }
+  }
+}
+function ctgMsgLote(html, tipo){ $('ctg-lote-msg').innerHTML = html ? `<div class="msg ${tipo || 'success'}">${html}</div>` : ''; }
+function ctgIniciarRegularizacao(){
+  window.addEventListener('online', () => setTimeout(() => ctgRegularizarAutomatico('conexao_restabelecida'), 3000));
+  document.addEventListener('visibilitychange', () => { if(!document.hidden && Date.now() - CTG_REG.ultimo > CTG_REG.INTERVALO_MS) ctgRegularizarAutomatico('retorno_a_tela'); });
+  setInterval(() => { if(!document.hidden) ctgRegularizarAutomatico('periodico'); }, CTG_REG.INTERVALO_MS);
+}
+// Lote manual: "Transmitir selecionadas". Sequencial, uma nota por vez, cada uma revalidada pelo banco.
+function ctgConfirmarTransmitirSelecionadas(){
+  const linhas = [...CTG.sel].map(k => CTG.itens.find(x => ctgChaveLinha(x) === k)).filter(Boolean);
+  if(!linhas.length) return;
+  ctgAbrirModal({
+    titulo: 'Transmitir NFC-e selecionadas',
+    corpo: `<p class="modal-section-hint" style="margin-top:0;">Serão processadas <b>${linhas.length}</b> NFC-e, uma por vez. Antes de qualquer reenvio em caso de dúvida o sistema <b>consulta a situação na SEFAZ</b>; notas rejeitadas ou com resultado desconhecido não são reenviadas sem a verificação.</p>`,
+    acoes: [{ texto: 'Voltar', fecha: true }, { texto: 'Transmitir', classe: 'btn-accent', fn: async () => { ctgFecharModalConcluido(); await ctgTransmitirSelecionadas(linhas); } }]
+  });
+}
+async function ctgTransmitirSelecionadas(linhas){
+  if(CTG_REG.rodando){ ctgMsgLote('Já existe uma regularização em andamento. Aguarde alguns segundos e tente novamente.', 'error'); return; }
+  CTG_REG.rodando = true;
+  const cont = { autorizado: 0, conciliada: 0, rejeitado: 0, denegado: 0, desconhecido: 0, consultada: 0, falha_comunicacao: 0, indisponivel: 0, ignorada: 0 };
+  const erros = [];
+  $('btn-ctg-transmitir-sel').disabled = true;
+  try {
+    for(let i = 0; i < linhas.length; i++){
+      const r = linhas[i];
+      ctgMsgLote(`Transmitindo ${i + 1} de ${linhas.length} (NFC-e nº ${escapeHtml(String(r.numero || ''))})... não feche esta tela.`, 'success');
+      const res = await ctgProcessarLinha(r);
+      cont[res.resultado] = (cont[res.resultado] || 0) + 1;
+      ctgRegistrarResultado(ctgChaveLinha(r), res, true);
+      if(res.resultado !== 'autorizado' && res.resultado !== 'conciliada') erros.push('NFC-e ' + (r.numero || '') + ': ' + (res.mensagem || res.resultado));
+      if(res.resultado === 'indisponivel') break;
+    }
+  } finally { CTG_REG.rodando = false; CTG.sel.clear(); }
+  const partes = [];
+  if(cont.autorizado) partes.push(cont.autorizado + ' autorizada(s) pela SEFAZ');
+  if(cont.conciliada) partes.push(cont.conciliada + ' conciliada(s) por consulta');
+  if(cont.rejeitado) partes.push(cont.rejeitado + ' rejeitada(s)');
+  if(cont.denegado) partes.push(cont.denegado + ' denegada(s)');
+  if(cont.desconhecido) partes.push(cont.desconhecido + ' com resultado desconhecido');
+  if(cont.consultada) partes.push(cont.consultada + ' consultada(s), reenvio ainda bloqueado');
+  if(cont.falha_comunicacao) partes.push(cont.falha_comunicacao + ' sem comunicação (tente de novo mais tarde)');
+  if(cont.indisponivel) partes.push('transmissão indisponível: contrato/motor não confirmado');
+  ctgMsgLote('Transmissão concluída: ' + (partes.join('; ') || 'nada processado') + '.' + (erros.length ? '<br><small>' + erros.slice(0, 6).map(escapeHtml).join('<br>') + '</small>' : ''), erros.length ? 'error' : 'success');
+  await ctgCarregarStatus(true); ctgRenderStatus(); await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]);
+}
+
+// ---------- Entrada em contingência por FALHA TÉCNICA (decisão do servidor) — Migration 042 ----------
+// O front só pergunta: o servidor decide se pode (falha técnica comprovada + nenhuma autorização na SEFAZ + motor confirmado + chave ligada).
+// Rejeição, denegação, erro cadastral/validação/autenticação NUNCA chegam aqui. Sem a chave ligada ou sem motor, nada muda na emissão normal.
+const CTG_FALHAS_TECNICAS = ['falha_transporte', 'falha_http', 'servico'];
+function ctgFalhaTecnicaDoResultado(res){ return !!res && res.status === 'situacao_desconhecida' && CTG_FALHAS_TECNICAS.includes(res.categoria); }
+async function ctgAtivarPorFalha(docId){
+  try {
+    const { data, error } = await supabase.rpc('fiscal_contingencia_ativar_por_falha', { p_documento_fiscal_id: docId });
+    if(error){
+      if(ctgFuncaoAusente(error)) return { resultado: 'indisponivel', silencioso: true, mensagem: 'Entrada automática em contingência não instalada (Migration 042).' };
+      const cod = (String(error.message || '').match(/FISCAL_CTG_[A-Z_]+/) || [''])[0];
+      return { resultado: 'recusada', codigo: cod, silencioso: ['FISCAL_CTG_AUTOMATICA_DESLIGADA', 'FISCAL_CTG_MOTOR_NAO_CONFIRMADO', 'FISCAL_CTG_UF_NAO_HABILITADA'].includes(cod), mensagem: ctgMsgErro(error) };
+    }
+    return data || { resultado: 'recusada', mensagem: 'Resposta inesperada.' };
+  } catch(_){ return { resultado: 'recusada', silencioso: true, mensagem: 'Não foi possível verificar a contingência agora.' }; }
+}
+// Devolve { acionada, ... }. Se acionada, a emissão em contingência segue em `el` (preparo, impressão e confirmação do DANFE).
+// Se não, só ACRESCENTA um aviso em `el` (a mensagem da emissão normal é preservada) — nada é inventado nem simulado.
+async function ctgTentarContingenciaPorFalha(docId, vendaId, el){
+  if(!docId) return { acionada: false };
+  let r = await ctgAtivarPorFalha(docId);
+  if(r.resultado === 'consulta_necessaria'){
+    const c = await chamarConsultaFiscal(docId, 'consultar');
+    if(c && c.status === 'consultado') r = await ctgAtivarPorFalha(docId);
+    else { r = { resultado: 'aguardando_evidencia', mensagem: 'Não foi possível consultar a SEFAZ agora.' }; }
+  }
+  const nota = (html, tipo) => { if(el) el.insertAdjacentHTML('beforeend', `<div class="msg ${tipo || 'error'}" style="margin-top:8px;">${html}</div>`); };
+  if(r.resultado === 'contingencia'){
+    if(!el) return { acionada: true };
+    await ctgFluxoEmitir(vendaId, el);
+    return { acionada: true };
+  }
+  if(r.resultado === 'autorizada_encontrada'){ nota('A SEFAZ já tem esta NFC-e <b>autorizada</b>: nenhuma contingência é necessária. Confira em Fiscal › Documentos fiscais.', 'success'); return { acionada: false, resultado: r.resultado }; }
+  if(r.resultado === 'aguardando_evidencia'){ nota('<b>Venda aguardando emissão fiscal</b> (nenhuma NFC-e foi emitida). Para evitar nota duplicada o sistema ainda precisa de novas consultas à SEFAZ antes de entrar em contingência. Acompanhe em <b>Fiscal › Notas em contingência</b>.'); return { acionada: false, resultado: r.resultado }; }
+  if(r.silencioso) return { acionada: false, resultado: r.resultado };
+  nota('Contingência não acionada: ' + escapeHtml(r.mensagem || ''));
+  return { acionada: false, resultado: r.resultado };
+}
+
+// ---------- eventos ----------
+$('fiscal-aba-btn-contingencia').addEventListener('click', () => fcpTrocarAba('contingencia'));
+$('btn-ctg-ativar').addEventListener('click', ctgAbrirAtivacao);
+$('btn-ctg-encerrar').addEventListener('click', ctgAbrirEncerramento);
+$('btn-ctg-atualizar').addEventListener('click', () => ctgAbrirAba());
+$('btn-ctg-transmitir-sel').addEventListener('click', ctgConfirmarTransmitirSelecionadas);
+$('fiscal-aba-contingencia').addEventListener('change', (ev) => {
+  const t = ev.target; if(!(t instanceof HTMLInputElement)) return;
+  if(t.id === 'ctg-sel-todas'){ CTG.sel.clear(); if(t.checked) CTG.itens.filter(ctgSelecionavel).forEach(r => CTG.sel.add(ctgChaveLinha(r))); ctgRenderLista(); return; }
+  const k = t.getAttribute('data-ctg-sel');
+  if(k){ if(t.checked) CTG.sel.add(k); else CTG.sel.delete(k); ctgAtualizarSelecao(); }
+});
+$('fiscal-aba-contingencia').addEventListener('click', (ev) => {
+  const b = ev.target instanceof Element ? ev.target.closest('[data-ctg-acao]') : null;
+  if(b && !b.disabled) ctgAcaoLinha(b.getAttribute('data-ctg-acao'), b.getAttribute('data-ctg-id'));
+});
+$('modal-ctg').addEventListener('click', (ev) => { if(ev.target === $('modal-ctg') && ctgModalFecharAoClicarFora) ctgFecharModal(); });
+// Esc fecha o diálogo mesmo quando o foco do teclado está no iframe oculto da impressão (a função de impressão existente dá o foco a ele).
+function ctgEscapeGlobal(ev){ if(ev.key === 'Escape' && !$('modal-ctg').classList.contains('hidden')) ctgFecharModal(); }
+document.addEventListener('keydown', ctgEscapeGlobal);
+ctgIniciarAtualizacaoPeriodica();
+ctgIniciarRegularizacao();
+// CTG:END
 
 // ---------- Configurações Fiscais ----------
 let configuracaoFiscalId = null;
@@ -19263,6 +20299,11 @@ $('btn-bar-pagamento-emitir-sim').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Emitindo...';
 
+  if(await ctgContingenciaAtiva()){      // Migration 041: o modal fica aberto para o operador acompanhar a impressão/confirmação
+    try { await ctgFluxoEmitir(barFiscalVendaIdAtual, $('bar-pagamento-concluido-msg')); }
+    finally { btn.disabled = false; btn.textContent = 'Sim, emitir nota'; }
+    return;
+  }
   let mensagem = '';
   let demoraFecharMs = 1800;
   const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: barFiscalVendaIdAtual });
@@ -19275,6 +20316,12 @@ $('btn-bar-pagamento-emitir-sim').addEventListener('click', async () => {
       mensagem = mensagemResultadoFiscal(resultado);
       // P1: a orientação de consulta precisa ficar visível (não some em 1,8 s).
       if(resultado && resultado.status === 'situacao_desconhecida') demoraFecharMs = 20000;
+      if(ctgFalhaTecnicaDoResultado(resultado)){      // Migration 042: o modal fica aberto se a contingência seguir
+        $('bar-pagamento-concluido-msg').innerHTML = mensagem;
+        const ctgR = await ctgTentarContingenciaPorFalha(docNfce.id, barFiscalVendaIdAtual, $('bar-pagamento-concluido-msg'));
+        if(ctgR.acionada){ btn.disabled = false; btn.textContent = 'Sim, emitir nota'; return; }
+        mensagem = $('bar-pagamento-concluido-msg').innerHTML;
+      }
     }
   }
   $('bar-pagamento-concluido-msg').innerHTML = mensagem;
