@@ -1990,6 +1990,26 @@
   @media (max-width: 760px){
     #view-pdv #pdv-resultados .search-result-item{ padding:8px 10px; }
   }
+  /* Janela "Pesquisa de produtos" (F9): centralizada no PDV, lista compacta com rolagem própria */
+  .pdx-card-pesq{ max-width:780px; display:flex; flex-direction:column; overflow:hidden; }
+  .pdx-card-pesq .pdx-card-head{ flex:none; }
+  #pdx-pesq-busca{ flex:none; }
+  .pdx-pesq-lista{
+    position:relative; margin-top:10px; height:min(56vh, 480px); overflow-y:auto; overscroll-behavior:contain;
+    border:1px solid #CBCFD6; border-radius:9px; background:#fff;
+  }
+  .pdx-pesq-lista .search-result-item{ padding:3px 10px; font-size:12.5px; line-height:1.25; gap:10px; }
+  .pdx-pesq-lista .search-result-item .sr-nome{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+  .pdx-pesq-lista .search-result-item .sr-qtd{ flex:none; font-size:11px; white-space:nowrap; }
+  .pdx-pesq-lista .search-result-item .sr-preco{ flex:none; min-width:64px; text-align:right; font-size:12px; font-weight:600; white-space:nowrap; }
+  .pdx-pesq-vazio{ padding:26px 14px; text-align:center; font-size:13px; color:#6B717D; }
+  .pdx-pesq-rodape{
+    position:sticky; bottom:0; padding:3px 10px; font-size:11px; text-align:center;
+    color:var(--ink-soft); background:#F3F4F6; border-top:1px solid var(--border);
+  }
+  @media (max-width: 760px){
+    .pdx-pesq-lista .search-result-item{ padding:8px 10px; }
+  }
   .pdx-produto-box{ background:#F3F4F6; border-radius:9px; padding:10px 12px; margin-bottom:12px; }
   .pdx-produto-nome{ font-size:17px; font-weight:700; line-height:1.25; min-height:22px; word-break:break-word; }
   .pdx-produto-sub{ font-size:12px; color:#6B717D; margin-top:3px; }
@@ -3227,6 +3247,18 @@
           </div>
           <input type="text" id="pdx-cliente-busca" class="pdx-input" placeholder="Pesquisar cliente pelo nome..." autocomplete="off">
           <div class="pdx-cliente-lista" id="pdx-cliente-lista"></div>
+        </div>
+      </div>
+
+      <!-- Modal: Pesquisa de produtos (F9) — busca paginada; ao escolher, adiciona ao cupom e fecha -->
+      <div id="pdx-modal-pesq" class="pdx-modal pdx-modal-alto hidden">
+        <div class="pdx-card pdx-card-pesq" role="dialog" aria-modal="true" aria-labelledby="pdx-pesq-titulo">
+          <div class="pdx-card-head">
+            <h3 id="pdx-pesq-titulo">Pesquisa de produtos</h3>
+            <button type="button" class="pdx-btn-mini" id="btn-pdx-pesq-fechar" title="Fechar (ESC)" aria-label="Fechar">&#10005;</button>
+          </div>
+          <input type="text" id="pdx-pesq-busca" class="pdx-input" placeholder="Nome, código interno ou código de barras..." autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="pdx-pesq-lista" id="pdx-pesq-lista"></div>
         </div>
       </div>
 
@@ -11488,20 +11520,276 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// F9 = pesquisar produto: leva o cursor ao campo "Código de barras" (o mesmo da leitura e da busca por nome), seleciona o
-// texto atual e, se houver texto, mostra de novo os resultados. Ouvinte próprio na fase de captura da janela: roda antes de
-// qualquer outro tratamento de teclado e reconhece a tecla por key, code ou keyCode. Mesmas travas das demais teclas F
-// (só com o PDV aberto e sem painel/modal por cima).
+// F9 = abre a janela "Pesquisa de produtos" (modal no centro do PDV). Ouvinte próprio na fase de captura da janela: roda antes
+// de qualquer outro tratamento de teclado e reconhece a tecla por key, code ou keyCode. Mesmas travas das demais teclas F
+// (só com o PDV aberto e sem painel/modal por cima). O campo CÓDIGO DE BARRAS e a lista dele não são tocados.
 window.addEventListener('keydown', (e) => {
   if(!(e.key === 'F9' || e.code === 'F9' || e.keyCode === 120)) return;
   if(e.ctrlKey || e.altKey || e.metaKey) return;
   if($('view-pdv').classList.contains('hidden')) return;
   if(document.querySelector('.modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
   e.preventDefault();
-  const c = $('pdv-busca-produto');
-  c.focus(); c.select();
-  pdvMostrarResultadosDoCampo();
+  pdxPesqAbrir();
 }, true);
+
+// ----- janela "Pesquisa de produtos" (F9) -----
+// Reaproveita a busca paginada (pdvBuscarPagina → RPC pdv_produtos_buscar, Migration 039), o desenho do item da lista
+// (pdvCriarItemResultado) e a adição ao cupom (pdvAdicionarOuPedirGranel). Estado próprio: não mexe na lista do campo de barras.
+let pesqItens = [];            // produtos já carregados (as páginas são acrescentadas ao fim)
+let pesqIdx = -1;              // item selecionado
+let pesqTermo = '';            // termo a que a lista se refere
+let pesqTotal = 0, pesqOffset = 0;
+let pesqTemMais = false, pesqLimitada = false, pesqErroMais = false;
+let pesqBuscando = false;      // primeira página em andamento
+let pesqCarregandoRef = null, pesqPromessa = null;
+let pesqSeq = 0;               // invalida respostas de buscas antigas
+let pesqRenderRef = null, pesqRenderQtd = 0;
+let pesqTimer = null;
+
+const pesqAberta = () => !$('pdx-modal-pesq').classList.contains('hidden');
+
+function pdxPesqAbrir(){
+  pesqSeq++;
+  pesqItens = []; pesqIdx = -1; pesqTermo = ''; pesqTotal = 0; pesqOffset = 0;
+  pesqTemMais = false; pesqLimitada = false; pesqErroMais = false; pesqBuscando = false; pesqCarregandoRef = null; pesqPromessa = null;
+  pesqRenderRef = null; pesqRenderQtd = 0;
+  clearTimeout(pesqTimer);
+  $('pdx-pesq-busca').value = '';
+  pdxPesqRender();
+  $('pdx-modal-pesq').classList.remove('hidden');
+  setTimeout(() => $('pdx-pesq-busca').focus(), 0);
+}
+
+function pdxPesqFechar(){
+  if(!pesqAberta()) return;
+  pesqSeq++;                       // respostas que ainda cheguem são descartadas
+  clearTimeout(pesqTimer);
+  $('pdx-modal-pesq').classList.add('hidden');
+  focarCampoPdv();
+}
+
+function pesqTextoRodape(){
+  const n = pesqItens.length;
+  if(pesqErroMais) return 'Não foi possível carregar mais produtos. Role a lista para tentar de novo.';
+  if(pesqCarregandoRef === pesqItens) return `Carregando… (${n} de ${pesqTotal})`;
+  if(pesqTemMais) return `${n} de ${pesqTotal} produtos — role para carregar mais`;
+  if(pesqLimitada) return `Primeiros ${n} produtos — digite mais letras para refinar`;
+  return `${n} produto${n === 1 ? '' : 's'}`;
+}
+
+function pdxPesqRender(){
+  const lista = $('pdx-pesq-lista');
+  const itens = pesqItens;
+  if(itens.length === 0){
+    const termo = $('pdx-pesq-busca').value.trim();
+    let msg = 'Digite o nome, o código interno ou o código de barras do produto.';
+    if(termo) msg = pesqBuscando || pesqTermo !== termo ? 'Buscando…' : `Nenhum produto encontrado para “${termo}”.`;
+    lista.innerHTML = `<div class="pdx-pesq-vazio">${escapeHtml(msg)}</div>`;
+    pesqRenderRef = null; pesqRenderQtd = 0;
+    return;
+  }
+
+  // Lista nova → desenha do zero. Mesma lista com itens a mais (próxima página) → só acrescenta os novos.
+  let rodape = lista.querySelector('.pdx-pesq-rodape');
+  if(pesqRenderRef !== itens || !rodape){
+    lista.innerHTML = '';
+    rodape = document.createElement('div');
+    rodape.className = 'pdx-pesq-rodape';
+    lista.appendChild(rodape);
+    pesqRenderRef = itens; pesqRenderQtd = 0;
+    lista.scrollTop = 0;
+  }
+  if(pesqRenderQtd < itens.length){
+    const frag = document.createDocumentFragment();
+    for(; pesqRenderQtd < itens.length; pesqRenderQtd++) frag.appendChild(pdvCriarItemResultado(itens[pesqRenderQtd], pesqRenderQtd));
+    lista.insertBefore(frag, rodape);
+  }
+  const atual = lista.querySelector('.search-result-item.active');
+  const novo = pesqIdx >= 0 ? lista.children[pesqIdx] : null;
+  const novoItem = novo && novo.classList.contains('search-result-item') ? novo : null;
+  if(atual && atual !== novoItem) atual.classList.remove('active');
+  if(novoItem) novoItem.classList.add('active');
+  rodape.textContent = pesqTextoRodape();
+
+  // se a página não encheu a caixa (sem barra de rolagem), já busca a próxima
+  if(pesqTemMais && !pesqErroMais && pesqCarregandoRef !== itens){
+    requestAnimationFrame(() => {
+      if(itens === pesqItens && pesqAberta() && lista.clientHeight > 0 && lista.scrollHeight <= lista.clientHeight + 2) pdxPesqCarregarMais();
+    });
+  }
+}
+
+function pesqRolarParaAtivo(){
+  const c = $('pdx-pesq-lista');
+  const el = pesqIdx >= 0 ? c.children[pesqIdx] : null;
+  if(!el || !el.classList.contains('search-result-item')) return;
+  const rodape = c.querySelector('.pdx-pesq-rodape');
+  const hRodape = rodape ? rodape.offsetHeight : 0;
+  if(el.offsetTop < c.scrollTop) c.scrollTop = el.offsetTop;
+  else if(el.offsetTop + el.offsetHeight > c.scrollTop + c.clientHeight - hRodape) c.scrollTop = el.offsetTop + el.offsetHeight - c.clientHeight + hRodape;
+}
+
+// Primeira página de um termo (as seguintes vêm por pdxPesqCarregarMais).
+async function pdxPesqBuscar(termo){
+  const seq = ++pesqSeq;
+  pesqBuscando = true;
+  if(pesqItens.length === 0) pdxPesqRender();
+  try {
+    const res = await pdvBuscarPagina(termo, 0);
+    if(seq !== pesqSeq) return null;
+    pesqTermo = termo;
+    pesqItens = res.itens;
+    pesqTotal = res.total;
+    pesqOffset = res.itens.length;
+    pesqLimitada = !!res.limitada;
+    pesqErroMais = false;
+    pesqTemMais = !res.limitada && res.itens.length > 0 && res.itens.length < res.total;
+    pesqIdx = res.itens.length ? 0 : -1;
+    pesqBuscando = false;
+    pdxPesqRender();
+    return res;
+  } catch(err){
+    console.error(err);
+    if(seq === pesqSeq){
+      pesqBuscando = false;
+      pesqItens = []; pesqIdx = -1; pesqTermo = termo;
+      $('pdx-pesq-lista').innerHTML = '<div class="pdx-pesq-vazio">Não foi possível pesquisar agora. Tente de novo.</div>';
+      pesqRenderRef = null; pesqRenderQtd = 0;
+    }
+    return null;
+  }
+}
+
+function pdxPesqCarregarMais(){
+  const ref = pesqItens;
+  if(pesqCarregandoRef === ref && pesqPromessa) return pesqPromessa;
+  if(!pesqTemMais || ref.length === 0) return Promise.resolve(false);
+  const seq = pesqSeq, termo = pesqTermo;
+  pesqCarregandoRef = ref;
+  pesqErroMais = false;
+  pdxPesqRender();
+  const p = (async () => {
+    try {
+      const res = await pdvBuscarPagina(termo, pesqOffset);
+      if(seq !== pesqSeq || ref !== pesqItens) return false;
+      const vistos = new Set(ref.map(x => x.id));
+      res.itens.forEach(x => { if(!vistos.has(x.id)) ref.push(x); });
+      pesqOffset += res.itens.length;
+      if(res.total) pesqTotal = res.total;
+      pesqTemMais = res.itens.length > 0 && pesqOffset < pesqTotal;
+      return true;
+    } catch(err){
+      console.error(err);
+      if(seq === pesqSeq && ref === pesqItens) pesqErroMais = true;
+      return false;
+    } finally {
+      if(pesqCarregandoRef === ref){ pesqCarregandoRef = null; pesqPromessa = null; }
+      if(ref === pesqItens && pesqAberta()) pdxPesqRender();
+    }
+  })();
+  pesqPromessa = p;
+  return p;
+}
+
+// Escolheu um produto (mouse ou Enter): fecha a janela e adiciona ao cupom pela função existente (a granel pede o peso).
+function pdxPesqSelecionar(produto){
+  if(!produto) return;
+  pesqSeq++;
+  clearTimeout(pesqTimer);
+  $('pdx-modal-pesq').classList.add('hidden');
+  const qtd = lerQtdPdv();
+  const ok = pdvAdicionarOuPedirGranel(produto, qtd);
+  $('pdv-qtd').value = 1;
+  if(ok) mostrarUltimoLidoPdv(produto);
+  focarCampoPdv();
+}
+
+function pesqMover(novo){
+  if(novo < 0 || novo >= pesqItens.length) return;
+  pesqIdx = novo;
+  pdxPesqRender();
+  pesqRolarParaAtivo();
+  if(pesqTemMais && pesqItens.length - novo <= 5) pdxPesqCarregarMais();   // adianta a próxima página
+}
+
+async function pesqEnter(){
+  const termo = $('pdx-pesq-busca').value.trim();
+  if(!termo) return;
+  if(pesqTermo !== termo || pesqBuscando){
+    // Enter antes da lista chegar: busca agora; só adiciona sozinho se houver UM único produto
+    clearTimeout(pesqTimer);
+    const res = await pdxPesqBuscar(termo);
+    if(res && res.itens.length === 1 && pesqAberta()) pdxPesqSelecionar(res.itens[0]);
+    return;
+  }
+  const alvo = pesqItens[pesqIdx] || pesqItens[0];
+  if(alvo) pdxPesqSelecionar(alvo);
+}
+
+$('pdx-pesq-busca').addEventListener('input', (e) => {
+  const termo = e.target.value.trim();
+  clearTimeout(pesqTimer);
+  if(!termo){
+    pesqSeq++;                     // descarta busca em andamento
+    pesqItens = []; pesqIdx = -1; pesqTermo = ''; pesqTotal = 0; pesqOffset = 0; pesqTemMais = false; pesqLimitada = false; pesqErroMais = false; pesqBuscando = false;
+    pdxPesqRender();
+    return;
+  }
+  if(pesqItens.length === 0) pdxPesqRender();   // mostra "Buscando…"
+  pesqTimer = setTimeout(() => pdxPesqBuscar(termo), 180);
+});
+
+// Teclado da janela (fase de captura: vale com o foco em qualquer ponto da janela e impede os atalhos gerais do PDV):
+// ESC fecha sem adicionar; setas/PageUp/PageDown navegam; Enter escolhe; F2/F3/F5/F9 ficam sem efeito enquanto ela está aberta.
+window.addEventListener('keydown', (e) => {
+  if(!pesqAberta()) return;
+  const k = e.key;
+  if(k === 'Escape'){ e.preventDefault(); e.stopPropagation(); pdxPesqFechar(); return; }
+  if(k === 'F2' || k === 'F3' || k === 'F5' || k === 'F9'){ e.preventDefault(); e.stopPropagation(); return; }
+  if(e.target && e.target.tagName === 'BUTTON') return;   // Enter/espaço num botão (X) agem sobre o botão
+  if(k === 'ArrowDown' || k === 'ArrowUp' || k === 'PageDown' || k === 'PageUp'){
+    e.preventDefault(); e.stopPropagation();
+    if(!pesqItens.length) return;
+    const passo = (k === 'PageDown' || k === 'PageUp') ? 8 : 1;
+    const dir = (k === 'ArrowDown' || k === 'PageDown') ? 1 : -1;
+    let novo = (pesqIdx < 0 ? 0 : pesqIdx) + dir * (pesqIdx < 0 ? 0 : passo);
+    if(dir > 0 && novo >= pesqItens.length){
+      if(pesqTemMais){
+        const ref = pesqItens, alvo = pesqIdx + passo;
+        pdxPesqCarregarMais().then((ok) => {
+          if(ref === pesqItens && pesqAberta()) pesqMover(Math.min(ok ? alvo : pesqItens.length - 1, pesqItens.length - 1));
+        });
+        return;
+      }
+      novo = pesqItens.length - 1;
+    }
+    pesqMover(Math.max(0, novo));
+    return;
+  }
+  if(k === 'Enter'){ e.preventDefault(); e.stopPropagation(); pesqEnter(); }
+}, true);
+
+// Mouse: escolher produto, rolar para carregar mais, fechar no X ou clicando fora da janela.
+$('pdx-pesq-lista').addEventListener('mousedown', (e) => {
+  const el = e.target.closest ? e.target.closest('.search-result-item') : null;
+  if(el){
+    e.preventDefault();
+    pdxPesqSelecionar(pesqItens[Number(el.dataset.idx)]);
+  }
+});
+$('pdx-pesq-lista').addEventListener('scroll', () => {
+  const c = $('pdx-pesq-lista');
+  if(pesqTemMais && c.scrollTop + c.clientHeight >= c.scrollHeight - 120) pdxPesqCarregarMais();
+});
+$('btn-pdx-pesq-fechar').addEventListener('click', pdxPesqFechar);
+$('pdx-modal-pesq').addEventListener('mousedown', (e) => {
+  if(e.target === $('pdx-modal-pesq')){ e.preventDefault(); pdxPesqFechar(); }   // clique no fundo escuro, fora da janela
+});
+// clicar em áreas sem campo dentro da janela não tira o foco do campo de pesquisa (a barra de rolagem da lista continua normal)
+document.querySelector('#pdx-modal-pesq .pdx-card-pesq').addEventListener('mousedown', (e) => {
+  if(e.target.closest('input, button') || e.target === $('pdx-pesq-lista')) return;
+  e.preventDefault();
+});
 
 // ----- configurar atalhos (provisório) -----
 function pdxCfgAbrir(){
