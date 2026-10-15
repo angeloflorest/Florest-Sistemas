@@ -816,6 +816,74 @@
   }
   .btn-accent:hover{ background: var(--florest-yellow-hover); }
 
+  /* ---------- FISCAL › CORRIGIR PRODUTOS (Migration 038) ---------- */
+  .fcp-tabs{ display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
+  .fcp-tab{
+    background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-1px;
+    padding:10px 16px; font-family:var(--font-body); font-size:14px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer;
+  }
+  .fcp-tab:hover{ color:var(--florest-navy); }
+  .fcp-tab.active{ color:var(--florest-navy); border-bottom-color:var(--accent); }
+  .fcp-tab-badge{ background:var(--danger); color:#fff; border-radius:10px; font-size:11px; font-weight:700; padding:1px 7px; margin-left:6px; }
+  .fcp-head{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .fcp-head h3{ margin:0; font-family:var(--font-display); font-weight:500; font-size:20px; color:var(--florest-navy); }
+  .fcp-head p{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); }
+  .fcp-pills{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .fcp-pill{ font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:999px; white-space:nowrap; }
+  .fcp-pill-pend{ background:var(--danger-soft); color:var(--danger); }
+  .fcp-pill-alt{ background:var(--accent-soft); color:#7A5B00; }
+  .fcp-card{ position:relative; }
+  .fcp-scroll{ overflow:auto; max-height:calc(100vh - 380px); min-height:240px; }
+  .fcp-tabela{ min-width:980px; }
+  .fcp-tabela thead th{ position:sticky; top:0; z-index:2; }
+  .fcp-tabela tbody td{ padding:5px 6px; font-size:13.5px; }
+  .fcp-tabela tbody td.fcp-ro{ padding:5px 12px; }
+  .fcp-cod{ color:var(--ink-soft); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fcp-nome{ font-weight:600; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fcp-in{
+    width:100%; border:1px solid transparent; background:transparent; padding:7px 8px; border-radius:6px;
+    font-family:var(--font-body); font-size:13.5px; color:var(--ink);
+  }
+  .fcp-in:focus{ outline:none; border-color:var(--florest-blue); background:#fff; box-shadow:0 0 0 2px var(--florest-blue-light); }
+  .fcp-in[readonly]{ cursor:default; }
+  .fcp-cel-pend .fcp-in{ background:#FDEDEC; }
+  .fcp-cel-alt .fcp-in{ background:var(--florest-blue-light); }
+  .fcp-cel-pend .fcp-in:focus, .fcp-cel-alt .fcp-in:focus{ background:#fff; }
+  .fcp-in.fcp-erro{ border-color:var(--danger); background:var(--danger-soft); }
+  .fcp-in.fcp-sens{ border-bottom:2px dotted var(--florest-warning); }
+  .fcp-w-cod{ width:96px; } .fcp-w-ncm{ width:120px; } .fcp-w-cfop{ width:92px; }
+  .fcp-w-cst{ width:96px; } .fcp-w-ori{ width:84px; } .fcp-w-uni{ width:96px; } .fcp-w-sit{ width:230px; }
+  .fcp-sit{ font-size:12.5px; font-weight:600; }
+  .fcp-sit-pend{ color:var(--danger); }
+  .fcp-sit-alt{ color:#7A5B00; }
+  .fcp-sit-erro{ color:var(--danger); }
+  .fcp-rodape{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:12px 16px; border-top:1px solid var(--border); background:#fff; font-size:13px; color:var(--ink-soft);
+  }
+  .fcp-rodape .fcp-pag{ display:flex; align-items:center; gap:8px; }
+  .fcp-rodape .fcp-pag button{
+    background:#fff; border:1px solid var(--border); border-radius:8px; padding:6px 12px;
+    font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; font-family:var(--font-body);
+  }
+  .fcp-rodape .fcp-pag button:disabled{ opacity:.45; cursor:default; }
+  .fcp-rodape .fcp-acoes{ display:flex; align-items:center; gap:10px; }
+  .fcp-rodape .btn-accent:disabled, .fcp-rodape .btn-secondary:disabled{ opacity:.45; cursor:default; }
+  .fcp-lista{
+    position:fixed; z-index:9400; background:#fff; border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 8px 24px rgba(11,42,77,.18); max-height:260px; overflow-y:auto; min-width:260px; font-size:13px;
+  }
+  .fcp-opc{ display:flex; justify-content:space-between; gap:12px; padding:8px 12px; cursor:pointer; }
+  .fcp-opc.ativa, .fcp-opc:hover{ background:var(--florest-blue-light); }
+  .fcp-opc small{ color:var(--ink-soft); white-space:nowrap; }
+  .fcp-lista-nota{ padding:7px 12px; font-size:11.5px; color:var(--ink-soft); border-top:1px solid var(--border); background:var(--florest-bg); position:sticky; bottom:0; }
+  .fcp-avisos{ background:var(--florest-warning-soft); color:#7A5B00; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:13px; line-height:1.5; }
+  .fcp-avisos ul{ margin:6px 0 0; padding-left:18px; }
+  .fcp-conf-lista{ margin:10px 0; padding:0; list-style:none; max-height:260px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
+  .fcp-conf-lista li{ padding:8px 12px; border-bottom:1px solid var(--border); font-size:13px; }
+  .fcp-conf-lista li:last-child{ border-bottom:none; }
+
 
   /* ---------- MARIA — Assistente Inteligente (chat do ERP + atalho flutuante) ---------- */
   .maria-chat{
@@ -3518,6 +3586,12 @@
         </div>
       </div>
 
+      <div class="fcp-tabs" role="tablist">
+        <button type="button" class="fcp-tab active" id="fiscal-aba-btn-docs" role="tab">Documentos fiscais</button>
+        <button type="button" class="fcp-tab" id="fiscal-aba-btn-corrigir" role="tab">Corrigir Produtos <span class="fcp-tab-badge hidden" id="fcp-tab-badge">0</span></button>
+      </div>
+
+      <div id="fiscal-aba-docs">
       <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
         <div class="metric-card">
           <span class="metric-card-icon"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span>
@@ -3597,6 +3671,61 @@
             <tbody id="tabela-fiscal-body"></tbody>
           </table>
           <div id="fiscal-empty" class="empty-state hidden">Nenhum documento fiscal gerado ainda.</div>
+        </div>
+      </div>
+      </div>
+
+      <!-- ===== Fiscal › Corrigir Produtos: somente produtos com pendência fiscal, edição em planilha ===== -->
+      <div id="fiscal-aba-corrigir" class="hidden">
+        <div class="fcp-head">
+          <div>
+            <h3>Corrigir Produtos</h3>
+            <p id="fcp-sub">Produtos com NCM, CFOP, CST/CSOSN, origem ou unidade pendentes ou inválidos. Corrija direto na planilha e salve.</p>
+          </div>
+          <div class="fcp-pills">
+            <span class="fcp-pill fcp-pill-pend" id="fcp-pill-pend">—</span>
+            <span class="fcp-pill fcp-pill-alt hidden" id="fcp-pill-alt"></span>
+          </div>
+        </div>
+        <div id="fcp-msg"></div>
+        <div id="fcp-avisos"></div>
+        <div id="fcp-bloqueio"></div>
+        <div id="fcp-corpo">
+          <div class="search-row">
+            <input type="text" id="fcp-busca" placeholder="Buscar por nome, código interno ou GTIN..." autocomplete="off">
+          </div>
+          <div class="table-card fcp-card">
+            <div class="fcp-scroll" id="fcp-scroll">
+              <table class="fcp-tabela">
+                <thead>
+                  <tr>
+                    <th class="fcp-w-cod">Código</th>
+                    <th>Produto</th>
+                    <th class="fcp-w-ncm">NCM</th>
+                    <th class="fcp-w-cfop">CFOP</th>
+                    <th class="fcp-w-cst" id="fcp-th-cst">CST/CSOSN</th>
+                    <th class="fcp-w-ori">Origem</th>
+                    <th class="fcp-w-uni">Unidade</th>
+                    <th class="fcp-w-sit">Situação</th>
+                  </tr>
+                </thead>
+                <tbody id="fcp-body"></tbody>
+              </table>
+              <div id="fcp-vazio" class="empty-state hidden"></div>
+            </div>
+            <div class="fcp-rodape">
+              <div class="fcp-pag">
+                <button type="button" id="fcp-ant">&larr; Anterior</button>
+                <span id="fcp-pag-info">—</span>
+                <button type="button" id="fcp-prox">Próxima &rarr;</button>
+              </div>
+              <span id="fcp-rod-alt">Nenhum produto alterado</span>
+              <div class="fcp-acoes">
+                <button type="button" class="btn-secondary" id="fcp-descartar" disabled>Descartar alterações</button>
+                <button type="button" class="btn-accent" id="fcp-salvar" disabled>Salvar alterações</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -4139,7 +4268,10 @@
           </div>
           <div class="field">
             <label>Versão do QR Code da NFC-e</label>
-            <input type="text" id="cf-nfce-versao-qrcode" placeholder="Ex: 2">
+            <input type="text" id="cf-nfce-versao-qrcode" placeholder="Conforme o cadastro do CSC na SEFAZ" inputmode="numeric">
+            <div class="modal-section-hint" style="margin:6px 0 0;">Obrigatória para produção — o sistema <strong>não assume</strong> uma versão. CSC, idCSC e versão valem para o <strong>ambiente atual</strong>: ao trocar entre homologação e produção, informe os do novo ambiente. A Dados Jah recebe esses três dados no <em>cadastro da empresa</em> (não a cada nota); editar aqui <strong>não</strong> atualiza a Dados Jah sozinho.</div>
+            <div style="margin-top:8px;"><button type="button" class="btn-secondary" id="btn-conferir-qrcode">Conferir CSC/idCSC/versão na Dados Jah</button></div>
+            <div id="conferir-qrcode-msg"></div>
           </div>
 
           <div class="modal-section-label">Numeração da NFC-e</div>
@@ -4197,7 +4329,7 @@
         <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
           <div>Dados da empresa: <strong id="status-dados-empresa">Incompleto</strong></div>
           <div>Certificado A1: <strong id="status-certificado">Não configurado</strong></div>
-          <div>CSC: <strong id="status-csc">Não configurado</strong></div>
+          <div>CSC / idCSC / versão do QR Code: <strong id="status-csc">Não configurado</strong></div>
           <div>Ambiente: <strong id="status-ambiente">Homologação</strong></div>
           <div>Usuário na Dados Jah: <strong id="status-usuario-dadosjah">Não criado</strong></div>
           <div>Emitente registrado: <strong id="status-emitente">Não registrado</strong></div>
@@ -5318,6 +5450,21 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: confirmar troca de unidade (Fiscal › Corrigir Produtos) -->
+<div id="modal-fcp-unidade" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:560px;">
+    <h3>Confirmar troca de unidade</h3>
+    <div class="msg error" style="margin:12px 0;">
+      <strong>Confira o estoque antes de continuar.</strong> Trocar a unidade não converte quantidades: o estoque continua com o mesmo número, agora na nova unidade. Isso também vale para pacotes e receitas do Bar que usem o produto.
+    </div>
+    <ul class="fcp-conf-lista" id="fcp-conf-lista"></ul>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-fcp-conf-voltar">Voltar</button>
+      <button type="button" class="btn-accent" id="btn-fcp-conf-ok">Confirmar e salvar</button>
     </div>
   </div>
 </div>
@@ -9277,7 +9424,7 @@ const CARREGADORES_VIEW = {
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => carregarFiscal(),
+  'fiscal': () => { carregarFiscal(); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -9352,6 +9499,469 @@ function renderClientes(lista){
     body.appendChild(tr);
   });
 }
+
+// ===================================================================================
+// FISCAL › CORRIGIR PRODUTOS (Migration 038)
+// Planilha de correção: lista SOMENTE produtos com pendência fiscal (a regra é calculada no banco,
+// a cada abertura — não existe "flag" manual). Só mexe em NCM, CFOP, CST/CSOSN, origem e unidade.
+// Toda leitura/gravação passa por 3 RPCs (listar / sugestoes / salvar); o banco valida de novo,
+// isola por empresa, exige permissões Fiscal + Produtos para salvar e grava histórico.
+// Não toca em preço, estoque, GTIN, código interno, emissão fiscal, Dados Jah nem importação de XML.
+// ===================================================================================
+const FCP_CAMPOS = ['ncm', 'cfop', 'cst_csosn', 'origem', 'unidade'];
+const FCP_ROTULO = { ncm: 'NCM', cfop: 'CFOP', cst_csosn: 'CST/CSOSN', origem: 'Origem', unidade: 'Unidade' };
+const FCP_CSOSN = ['101','102','103','201','202','203','300','400','500','900'];
+const FCP_CST = ['00','10','20','30','40','41','50','51','60','70','90'];
+const FCP = {
+  aba: 'docs', empresa: null, regime: null, bloqueado: false,
+  limite: 100, offset: 0, busca: '', totalPend: null, filtrado: 0, itens: [],
+  edits: new Map(),        // id -> { id, codigo, nome, estoque, sensivel, orig:{campo:valor}, novo:{campo:valor} }
+  erros: new Map(),        // id -> [{campo, mensagem}]
+  avisos: [],              // [{nome, codigo, mensagem}]
+  seq: 0, salvando: false, carregando: false,
+  sug: new Map(),          // "campo|busca" -> opções
+  lista: { input: null, opcoes: [], idx: -1, seq: 0 },
+};
+
+function fcpPodeSalvar(){ return podeAcessar('fiscal') && podeAcessar('produtos'); }
+
+function fcpNorm(campo, v){
+  v = String(v == null ? '' : v).trim();
+  if(campo === 'ncm' || campo === 'cfop' || campo === 'cst_csosn') return v.replace(/[^0-9]/g, '');
+  if(campo === 'origem') return /^[0-8]/.test(v) ? v.charAt(0) : v;
+  return v.toUpperCase();                                   // unidade
+}
+
+// Só FORMATO/domínio do código (o banco confere de novo). Se a classificação tributária está correta
+// para aquele produto é decisão do contador — por isso "valor já usado" nunca é tratado como correto.
+function fcpCampoOk(campo, v){
+  v = String(v == null ? '' : v).trim();
+  if(campo === 'ncm'){ const c = v.substr(0, 2); return /^[0-9]{8}$/.test(v) && v !== '00000000' && c >= '01' && c <= '97' && c !== '77'; }
+  if(campo === 'cfop') return /^5[1-9][0-9]{2}$/.test(v);
+  if(campo === 'cst_csosn') return (FCP.regime === 'csosn' ? FCP_CSOSN : FCP.regime === 'cst' ? FCP_CST : []).includes(v);
+  if(campo === 'origem') return /^[0-8]$/.test(v);
+  return /^\S{1,6}$/.test(v);                               // unidade
+}
+function fcpMsgCampo(campo, v){
+  if(String(v || '').trim() === '') return 'Preencha este campo.';
+  if(campo === 'ncm') return 'NCM deve ter 8 dígitos válidos.';
+  if(campo === 'cfop') return 'Use um CFOP de venda 5.xxx (4 dígitos).';
+  if(campo === 'cst_csosn') return FCP.regime === 'csosn' ? 'Use um CSOSN de 3 dígitos (ex.: 102, 500).' : 'Use um CST de 2 dígitos (ex.: 00, 60).';
+  if(campo === 'origem') return 'Origem é um dígito de 0 a 8.';
+  return 'Informe a unidade (até 6 caracteres, sem espaços).';
+}
+
+function fcpValor(it, campo){
+  const e = FCP.edits.get(it.id);
+  if(e && Object.prototype.hasOwnProperty.call(e.novo, campo)) return e.novo[campo];
+  return String(it[campo] == null ? '' : it[campo]).trim();
+}
+function fcpErroCampo(id, campo){
+  const l = FCP.erros.get(id);
+  if(!l) return null;
+  const x = l.find(z => z.campo === campo || (campo === 'unidade' && z.campo === 'unidade_comercial') || (campo === 'origem' && z.campo === 'origem_mercadoria'));
+  return x ? x.mensagem : null;
+}
+
+// ---------- abas ----------
+function fcpTrocarAba(aba){
+  FCP.aba = aba;
+  $('fiscal-aba-docs').classList.toggle('hidden', aba !== 'docs');
+  $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
+  $('fiscal-aba-btn-docs').classList.toggle('active', aba === 'docs');
+  $('fiscal-aba-btn-corrigir').classList.toggle('active', aba === 'corrigir');
+  if(aba === 'corrigir') fcpAbrir();
+}
+async function fcpAbrir(){
+  let emp = null;
+  try { emp = await obterEmpresaId(); } catch(_){ /* segue sem checar */ }
+  if(emp && FCP.empresa && FCP.empresa !== emp){        // trocou de empresa/usuário: nada de edição pendente de outra empresa
+    FCP.edits.clear(); FCP.erros.clear(); FCP.avisos = []; FCP.sug.clear(); FCP.offset = 0; FCP.busca = ''; $('fcp-busca').value = '';
+  }
+  FCP.empresa = emp || FCP.empresa;
+  await fcpCarregar();
+}
+
+// ---------- carregar a página atual ----------
+async function fcpCarregar(){
+  const seq = ++FCP.seq;
+  FCP.carregando = true;
+  $('fcp-pag-info').textContent = 'Carregando...';
+  const { data, error } = await supabase.rpc('fiscal_corrigir_produtos_listar',
+    { p_busca: FCP.busca || null, p_limite: FCP.limite, p_offset: FCP.offset });
+  if(seq !== FCP.seq) return;                               // resposta velha: ignora
+  FCP.carregando = false;
+  if(error){
+    $('fcp-msg').innerHTML = `<div class="msg error">${escapeHtml(traduzErro(error.message))}</div>`;
+    $('fcp-pag-info').textContent = '—';
+    return;
+  }
+  $('fcp-msg').innerHTML = '';
+  FCP.bloqueado = !!data.bloqueado;
+  FCP.regime = data.regime || null;
+  FCP.totalPend = data.total_pendentes;
+  FCP.filtrado = data.total_filtrado || 0;
+  FCP.itens = data.itens || [];
+
+  if(FCP.bloqueado){
+    const irCfg = podeAcessar('configuracoes') ? ' <a href="#" class="link-btn" id="fcp-ir-cfg">Abrir Configurações</a>' : '';
+    $('fcp-bloqueio').innerHTML = `<div class="msg error">${escapeHtml(data.mensagem || 'Corrigir Produtos indisponível para esta empresa.')}${irCfg}</div>`;
+    $('fcp-corpo').classList.add('hidden');
+    const a = $('fcp-ir-cfg'); if(a) a.addEventListener('click', ev => { ev.preventDefault(); abrirView('configuracoes'); });
+    fcpAtualizarCabecalho();
+    return;
+  }
+  $('fcp-bloqueio').innerHTML = fcpPodeSalvar() ? '' :
+    '<div class="msg error">Você pode consultar as pendências, mas para salvar correções precisa das permissões Fiscal e Produtos.</div>';
+  $('fcp-corpo').classList.remove('hidden');
+
+  // página vazia depois de salvar na última página: volta para a última página que existe
+  if(FCP.itens.length === 0 && FCP.offset > 0 && FCP.filtrado > 0){
+    FCP.offset = Math.floor((FCP.filtrado - 1) / FCP.limite) * FCP.limite;
+    return fcpCarregar();
+  }
+  $('fcp-th-cst').textContent = FCP.regime === 'cst' ? 'CST' : 'CSOSN';
+  fcpRenderLinhas();
+  fcpAtualizarCabecalho();
+}
+
+// ---------- desenho ----------
+function fcpCelula(it, campo, cls){
+  const v = fcpValor(it, campo);
+  const e = FCP.edits.get(it.id);
+  const alterado = !!(e && Object.prototype.hasOwnProperty.call(e.novo, campo));
+  const erroMsg = fcpErroCampo(it.id, campo);
+  const invalido = !fcpCampoOk(campo, v);
+  const readonly = fcpPodeSalvar() ? '' : ' readonly';
+  const sens = campo === 'unidade' && it.unidade_sensivel;
+  return `<td class="${invalido ? 'fcp-cel-pend' : (alterado ? 'fcp-cel-alt' : '')}">`
+    + `<input class="fcp-in ${cls}${erroMsg ? ' fcp-erro' : ''}${sens ? ' fcp-sens' : ''}" data-id="${escapeHtml(it.id)}" data-campo="${campo}"`
+    + ` value="${escapeHtml(v)}" autocomplete="off" spellcheck="false" maxlength="12"${readonly}`
+    + ` title="${escapeHtml(erroMsg || (sens ? 'Produto em pacote, venda a granel ou receita do Bar: trocar a unidade exige confirmação.' : ''))}"></td>`;
+}
+function fcpSituacao(it){
+  const erros = FCP.erros.get(it.id);
+  if(erros && erros.length) return `<span class="fcp-sit fcp-sit-erro" title="${escapeHtml(erros.map(x => x.mensagem).join(' | '))}">${escapeHtml(erros[0].mensagem)}</span>`;
+  if(FCP.edits.has(it.id)) return '<span class="fcp-sit fcp-sit-alt">Alterado — não salvo</span>';
+  const falta = (it.pendencias || []).map(c => FCP_ROTULO[c] || c);
+  return `<span class="fcp-sit fcp-sit-pend">Falta: ${escapeHtml(falta.join(', ') || '—')}</span>`;
+}
+function fcpLinhaHtml(it){
+  return `<tr data-id="${escapeHtml(it.id)}">`
+    + `<td class="fcp-ro fcp-cod">${escapeHtml(it.codigo || '')}</td>`
+    + `<td class="fcp-ro fcp-nome" title="${escapeHtml(it.nome || '')}">${escapeHtml(it.nome || '')}</td>`
+    + fcpCelula(it, 'ncm', '') + fcpCelula(it, 'cfop', '') + fcpCelula(it, 'cst_csosn', '')
+    + fcpCelula(it, 'origem', '') + fcpCelula(it, 'unidade', '')
+    + `<td class="fcp-ro">${fcpSituacao(it)}</td></tr>`;
+}
+function fcpRenderLinhas(){
+  const body = $('fcp-body');
+  fcpFecharLista();
+  body.innerHTML = FCP.itens.map(fcpLinhaHtml).join('');
+  const vazio = $('fcp-vazio');
+  if(FCP.itens.length === 0){
+    vazio.textContent = FCP.busca ? 'Nenhum produto pendente encontrado para esta busca.' : 'Nenhum produto com pendência fiscal. Tudo em dia.';
+    vazio.classList.remove('hidden');
+  } else vazio.classList.add('hidden');
+}
+function fcpAtualizarLinha(id){
+  const tr = $('fcp-body').querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+  const it = FCP.itens.find(x => x.id === id);
+  if(!tr || !it) return;
+  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement : null;
+  tr.querySelectorAll('input.fcp-in').forEach(inp => {
+    const campo = inp.dataset.campo, v = fcpValor(it, campo);
+    const e = FCP.edits.get(id), alterado = !!(e && Object.prototype.hasOwnProperty.call(e.novo, campo));
+    const erroMsg = fcpErroCampo(id, campo);
+    inp.parentElement.className = !fcpCampoOk(campo, v) ? 'fcp-cel-pend' : (alterado ? 'fcp-cel-alt' : '');
+    inp.classList.toggle('fcp-erro', !!erroMsg);
+    if(erroMsg) inp.title = erroMsg;
+    if(inp !== foco) inp.value = v;
+  });
+  tr.lastElementChild.innerHTML = fcpSituacao(it);
+}
+function fcpAtualizarCabecalho(){
+  const n = FCP.edits.size;
+  const pend = FCP.totalPend;
+  $('fcp-pill-pend').textContent = FCP.bloqueado ? 'Indisponível' : (pend == null ? '—' : (pend === 1 ? '1 produto com pendência' : pend.toLocaleString('pt-BR') + ' produtos com pendência'));
+  const alt = $('fcp-pill-alt');
+  alt.classList.toggle('hidden', n === 0);
+  alt.textContent = n === 1 ? '1 alteração não salva' : n + ' alterações não salvas';
+  const badge = $('fcp-tab-badge');
+  if(pend) { badge.textContent = pend > 999 ? '999+' : pend; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+  $('fcp-rod-alt').textContent = n === 0 ? 'Nenhum produto alterado' : (n === 1 ? '1 produto alterado' : n + ' produtos alterados');
+  const total = FCP.filtrado, ini = total === 0 ? 0 : FCP.offset + 1, fim = Math.min(FCP.offset + FCP.limite, total);
+  $('fcp-pag-info').textContent = total === 0 ? '0 produtos' : `${ini}–${fim} de ${total.toLocaleString('pt-BR')}`;
+  $('fcp-ant').disabled = FCP.offset <= 0 || FCP.carregando;
+  $('fcp-prox').disabled = FCP.offset + FCP.limite >= total || FCP.carregando;
+  $('fcp-salvar').disabled = n === 0 || FCP.salvando || !fcpPodeSalvar();
+  $('fcp-descartar').disabled = n === 0 || FCP.salvando;
+  $('fcp-salvar').textContent = FCP.salvando ? 'Salvando...' : 'Salvar alterações';
+  $('fcp-avisos').innerHTML = FCP.avisos.length
+    ? `<div class="fcp-avisos"><strong>Confira com o contador (não impede o salvamento):</strong><ul>${FCP.avisos.slice(0, 30).map(a => `<li>${escapeHtml(a.nome)}${a.codigo ? ' (' + escapeHtml(a.codigo) + ')' : ''}: ${escapeHtml(a.mensagem)}</li>`).join('')}</ul>`
+      + `<a href="#" class="link-btn" id="fcp-fechar-avisos">Fechar avisos</a></div>` : '';
+  const fa = $('fcp-fechar-avisos'); if(fa) fa.addEventListener('click', ev => { ev.preventDefault(); FCP.avisos = []; fcpAtualizarCabecalho(); });
+}
+
+// ---------- registrar uma edição ----------
+function fcpAplicar(inp, mostrar){
+  const id = inp.dataset.id, campo = inp.dataset.campo;
+  const it = FCP.itens.find(x => x.id === id);
+  if(!it) return;
+  const v = fcpNorm(campo, inp.value);
+  if(mostrar) inp.value = v;                                // confirmou (Enter/setas/Tab): mostra o valor já normalizado
+  const orig = String(it[campo] == null ? '' : it[campo]).trim();
+  let e = FCP.edits.get(id);
+  if(v === orig){
+    if(e){ delete e.novo[campo]; if(!Object.keys(e.novo).length) FCP.edits.delete(id); }
+  } else {
+    if(!e){
+      e = { id, codigo: it.codigo, nome: it.nome, estoque: it.estoque, sensivel: !!it.unidade_sensivel,
+            orig: { ncm: it.ncm, cfop: it.cfop, cst_csosn: it.cst_csosn, origem: it.origem, unidade: it.unidade }, novo: {} };
+      FCP.edits.set(id, e);
+    }
+    e.novo[campo] = v;
+  }
+  const l = FCP.erros.get(id);                              // editou de novo: o erro antigo deste campo deixa de valer
+  if(l){ const r = l.filter(x => x.campo !== campo); if(r.length) FCP.erros.set(id, r); else FCP.erros.delete(id); }
+  fcpAtualizarLinha(id);
+  fcpAtualizarCabecalho();
+}
+
+// ---------- sugestões (lista suspensa) ----------
+const FCP_FALLBACK = {
+  origem: [['0','0 - Nacional'],['1','1 - Estrangeira, importação direta'],['2','2 - Estrangeira, mercado interno']],
+};
+async function fcpBuscarSugestoes(campo, busca){
+  const chave = campo + '|' + busca;
+  if(FCP.sug.has(chave)) return FCP.sug.get(chave);
+  const { data, error } = await supabase.rpc('fiscal_corrigir_produtos_sugestoes', { p_campo: campo, p_busca: busca || null, p_limite: 30 });
+  if(error || !data) return [];
+  const itens = data.itens || [];
+  FCP.sug.set(chave, itens);
+  return itens;
+}
+function fcpFecharLista(){
+  const el = $('fcp-lista');
+  if(el) el.remove();
+  FCP.lista.input = null; FCP.lista.opcoes = []; FCP.lista.idx = -1;
+}
+function fcpDesenharLista(){
+  const inp = FCP.lista.input;
+  if(!inp) return;
+  let el = $('fcp-lista');
+  if(!el){ el = document.createElement('div'); el.id = 'fcp-lista'; el.className = 'fcp-lista'; document.body.appendChild(el); }
+  const r = inp.getBoundingClientRect();
+  el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 300)) + 'px';
+  const abaixo = window.innerHeight - r.bottom > 220;
+  el.style.top = abaixo ? (r.bottom + 2) + 'px' : 'auto';
+  el.style.bottom = abaixo ? 'auto' : (window.innerHeight - r.top + 2) + 'px';
+  el.innerHTML = (FCP.lista.opcoes.length ? FCP.lista.opcoes.map((o, i) =>
+      `<div class="fcp-opc${i === FCP.lista.idx ? ' ativa' : ''}" data-i="${i}"><span>${escapeHtml(o.descricao || o.valor)}</span>`
+      + `<small>${o.fonte === 'usado_em_produtos' ? 'usado em ' + o.qtd + (o.qtd === 1 ? ' produto' : ' produtos') : 'padrão'}</small></div>`).join('')
+    : '<div class="fcp-opc" style="cursor:default;color:var(--ink-soft)">Nenhuma sugestão. Digite o valor.</div>')
+    + '<div class="fcp-lista-nota">“Usado” só mostra que outro produto seu já tem esse código — não garante que está certo para este produto. Na dúvida, confirme com o contador.</div>';
+  const ativa = el.querySelector('.fcp-opc.ativa'); if(ativa) ativa.scrollIntoView({ block: 'nearest' });
+}
+async function fcpAbrirLista(inp){
+  if(inp.readOnly) return;
+  const campo = inp.dataset.campo;
+  const mySeq = ++FCP.lista.seq;
+  FCP.lista.input = inp; FCP.lista.idx = -1;
+  const consulta = fcpNorm(campo, inp.value);
+  const base = await fcpBuscarSugestoes(campo, '');
+  if(mySeq !== FCP.lista.seq || FCP.lista.input !== inp) return;
+  const q = consulta.toLowerCase();
+  FCP.lista.opcoes = q ? base.filter(o => String(o.valor).toLowerCase().includes(q) || String(o.descricao || '').toLowerCase().includes(q)) : base;
+  fcpDesenharLista();
+  if(q){                                                    // lista local pode estar incompleta: consulta o banco com o que foi digitado
+    const rem = await fcpBuscarSugestoes(campo, consulta);
+    if(mySeq !== FCP.lista.seq || FCP.lista.input !== inp) return;
+    FCP.lista.opcoes = rem; FCP.lista.idx = -1;
+    fcpDesenharLista();
+  }
+}
+const fcpAbrirListaDeb = debounce(inp => { if(document.activeElement === inp) fcpAbrirLista(inp); }, 180);
+function fcpEscolher(i){
+  const o = FCP.lista.opcoes[i], inp = FCP.lista.input;
+  if(!o || !inp) return false;
+  inp.value = o.valor;
+  fcpFecharLista();
+  fcpAplicar(inp);
+  return true;
+}
+
+// ---------- teclado / navegação ----------
+function fcpMover(inp, dRow){
+  const tr = inp.closest('tr'), alvo = dRow > 0 ? tr.nextElementSibling : tr.previousElementSibling;
+  if(!alvo) return false;
+  const n = alvo.querySelector(`input[data-campo="${inp.dataset.campo}"]`);
+  if(n){ n.focus(); n.select(); return true; }
+  return false;
+}
+function fcpTecla(ev){
+  const inp = ev.target;
+  if(!(inp instanceof HTMLInputElement) || !inp.classList.contains('fcp-in')) return;
+  const aberta = !!$('fcp-lista') && FCP.lista.input === inp;
+  if(ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
+    ev.preventDefault();
+    const d = ev.key === 'ArrowDown' ? 1 : -1;
+    if(aberta && FCP.lista.opcoes.length){
+      FCP.lista.idx = Math.max(0, Math.min(FCP.lista.opcoes.length - 1, FCP.lista.idx + d));
+      fcpDesenharLista();
+    } else { fcpAplicar(inp, true); fcpMover(inp, d); }
+  } else if(ev.key === 'Enter'){
+    ev.preventDefault();
+    if(aberta && FCP.lista.idx >= 0) fcpEscolher(FCP.lista.idx); else { fcpAplicar(inp, true); fcpFecharLista(); }
+    fcpMover(inp, 1);
+  } else if(ev.key === 'Escape'){
+    if(aberta){ ev.preventDefault(); fcpFecharLista(); }
+  } else if((ev.ctrlKey || ev.metaKey) && (ev.key === 'd' || ev.key === 'D')){   // repete o valor da linha de cima
+    ev.preventDefault();
+    const acima = inp.closest('tr').previousElementSibling;
+    const o = acima && acima.querySelector(`input[data-campo="${inp.dataset.campo}"]`);
+    if(o && !inp.readOnly){ inp.value = o.value; fcpAplicar(inp); fcpFecharLista(); }
+  }
+}
+
+// ---------- salvar ----------
+function fcpMontarLote(){
+  const envio = [], invalidos = [];
+  FCP.edits.forEach(e => {
+    const campos = Object.keys(e.novo);
+    const ruins = campos.filter(c => !fcpCampoOk(c, e.novo[c]));
+    if(ruins.length){
+      FCP.erros.set(e.id, ruins.map(c => ({ campo: c, mensagem: fcpMsgCampo(c, e.novo[c]) })));
+      invalidos.push(e.id);
+      return;
+    }
+    const antes = {};
+    campos.forEach(c => { antes[c] = (e.orig[c] == null || String(e.orig[c]).trim() === '') ? null : String(e.orig[c]).trim(); });
+    const item = { id: e.id, antes, novo: Object.assign({}, e.novo) };
+    if(e.novo.unidade !== undefined && (e.sensivel || antes.unidade !== null)) item._confirmar = true;   // marca local, vira confirmar_unidade depois da confirmação
+    envio.push(item);
+  });
+  return { envio, invalidos };
+}
+function fcpConfirmarUnidades(itens){
+  return new Promise(resolve => {
+    const lista = $('fcp-conf-lista');
+    lista.innerHTML = itens.map(i => {
+      const e = FCP.edits.get(i.id);
+      return `<li><strong>${escapeHtml(e.nome)}</strong> ${e.codigo ? '(' + escapeHtml(e.codigo) + ')' : ''}<br>`
+        + `Unidade: <b>${escapeHtml(i.antes.unidade || 'vazia')}</b> → <b>${escapeHtml(i.novo.unidade)}</b> · Estoque atual: ${escapeHtml(String(e.estoque == null ? '—' : e.estoque))}`
+        + `${e.sensivel ? '<br><span style="color:var(--danger)">Participa de pacote, venda a granel ou receita do Bar.</span>' : ''}</li>`;
+    }).join('');
+    const m = $('modal-fcp-unidade');
+    const fim = ok => { m.classList.add('hidden'); $('btn-fcp-conf-ok').onclick = null; $('btn-fcp-conf-voltar').onclick = null; resolve(ok); };
+    $('btn-fcp-conf-ok').onclick = () => fim(true);
+    $('btn-fcp-conf-voltar').onclick = () => fim(false);
+    m.classList.remove('hidden');
+  });
+}
+async function fcpSalvar(){
+  if(FCP.salvando || !fcpPodeSalvar() || FCP.edits.size === 0) return;
+  if(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('fcp-in')) fcpAplicar(document.activeElement);
+  fcpFecharLista();
+  const { envio, invalidos } = fcpMontarLote();
+  if(invalidos.length){
+    invalidos.forEach(id => fcpAtualizarLinha(id));
+    $('fcp-msg').innerHTML = `<div class="msg error">${invalidos.length === 1 ? '1 produto tem' : invalidos.length + ' produtos têm'} valores inválidos e não foi enviado. Corrija os campos em vermelho.</div>`;
+  }
+  if(!envio.length){ fcpAtualizarCabecalho(); return; }
+  const precisaConf = envio.filter(i => i._confirmar);
+  if(precisaConf.length && !(await fcpConfirmarUnidades(precisaConf))) return;
+
+  FCP.salvando = true; fcpAtualizarCabecalho();
+  let salvos = 0, completos = 0, comErro = 0, falhaGeral = null;
+  const avisos = [];
+  try {
+    for(let i = 0; i < envio.length; i += 200){
+      const fatia = envio.slice(i, i + 200).map(it => {
+        const o = { id: it.id, antes: it.antes, novo: it.novo };
+        if(it._confirmar) o.confirmar_unidade = true;
+        return o;
+      });
+      const { data, error } = await supabase.rpc('fiscal_corrigir_produtos_salvar', { p_alteracoes: fatia });
+      if(error){ falhaGeral = traduzErro(error.message); break; }
+      (data.resultados || []).forEach(r => {
+        const e = FCP.edits.get(r.id);
+        if(r.ok){
+          salvos++; if(r.completo) completos++;
+          FCP.edits.delete(r.id); FCP.erros.delete(r.id);
+          (r.avisos || []).forEach(a => avisos.push({ nome: e ? e.nome : '', codigo: e ? e.codigo : '', mensagem: a.mensagem }));
+        } else {
+          comErro++;
+          const erros = r.erros || [];
+          if(erros.some(x => /alterado por outra pessoa/i.test(x.mensagem))){
+            FCP.edits.delete(r.id);                         // valores da tela ficaram velhos: descarta e recarrega o produto
+            FCP.erros.set(r.id, [{ campo: 'produto', mensagem: 'Alterado por outra pessoa. Valores atualizados — confira e corrija de novo.' }]);
+          } else FCP.erros.set(r.id, erros);
+        }
+      });
+    }
+  } catch(err){
+    falhaGeral = (err && err.message) ? err.message : 'Falha de conexão ao salvar.';
+  }
+  FCP.salvando = false;
+  if(avisos.length) FCP.avisos = avisos.concat(FCP.avisos).slice(0, 50);
+  let txt = '';
+  if(salvos) txt += `${salvos} ${salvos === 1 ? 'produto salvo' : 'produtos salvos'}` + (completos ? ` (${completos} ${completos === 1 ? 'ficou completo' : 'ficaram completos'})` : '') + '. ';
+  if(comErro) txt += `${comErro} ${comErro === 1 ? 'produto com erro' : 'produtos com erro'} — veja a coluna Situação. `;
+  if(falhaGeral) txt += `Não foi possível concluir: ${falhaGeral} As alterações não salvas continuam na planilha.`;
+  $('fcp-msg').innerHTML = txt ? `<div class="msg ${(comErro || falhaGeral) ? 'error' : 'success'}">${escapeHtml(txt.trim())}</div>` : '';
+  FCP.sug.clear();                                          // "usado em N produtos" mudou
+  await fcpCarregar();                                      // quem ficou completo some da lista; quem ainda tem pendência continua
+}
+
+// ---------- eventos ----------
+$('fiscal-aba-btn-docs').addEventListener('click', () => fcpTrocarAba('docs'));
+$('fiscal-aba-btn-corrigir').addEventListener('click', () => fcpTrocarAba('corrigir'));
+$('fcp-busca').addEventListener('input', debounce(() => { FCP.busca = $('fcp-busca').value.trim(); FCP.offset = 0; fcpCarregar(); }, 350));
+$('fcp-ant').addEventListener('click', () => { FCP.offset = Math.max(0, FCP.offset - FCP.limite); fcpCarregar(); });
+$('fcp-prox').addEventListener('click', () => { FCP.offset += FCP.limite; fcpCarregar(); });
+$('fcp-salvar').addEventListener('click', fcpSalvar);
+let fcpDescarteTimer = null;
+$('fcp-descartar').addEventListener('click', () => {
+  const b = $('fcp-descartar');
+  if(b.dataset.armado !== '1'){
+    b.dataset.armado = '1'; b.textContent = 'Confirmar descarte?';
+    fcpDescarteTimer = setTimeout(() => { b.dataset.armado = ''; b.textContent = 'Descartar alterações'; }, 4000);
+    return;
+  }
+  clearTimeout(fcpDescarteTimer); b.dataset.armado = ''; b.textContent = 'Descartar alterações';
+  FCP.edits.clear(); FCP.erros.clear();
+  $('fcp-msg').innerHTML = '';
+  fcpRenderLinhas(); fcpAtualizarCabecalho();
+});
+const fcpBody = $('fcp-body');
+fcpBody.addEventListener('input', ev => {
+  const inp = ev.target;
+  if(!(inp instanceof HTMLInputElement) || !inp.classList.contains('fcp-in')) return;
+  fcpAplicar(inp);
+  fcpAbrirListaDeb(inp);
+});
+fcpBody.addEventListener('focusin', ev => {
+  const inp = ev.target;
+  if(inp instanceof HTMLInputElement && inp.classList.contains('fcp-in')){ inp.select(); fcpAbrirLista(inp); }
+});
+fcpBody.addEventListener('focusout', ev => {
+  const inp = ev.target;
+  if(!(inp instanceof HTMLInputElement) || !inp.classList.contains('fcp-in')) return;
+  fcpAplicar(inp);
+  const it = FCP.itens.find(x => x.id === inp.dataset.id);
+  if(it) inp.value = fcpValor(it, inp.dataset.campo);       // mostra o valor já normalizado (ex.: 2202.10.00 → 22021000)
+  setTimeout(() => { if(!document.activeElement || document.activeElement.id !== 'fcp-lista') { if(FCP.lista.input === inp) fcpFecharLista(); } }, 0);
+});
+fcpBody.addEventListener('keydown', fcpTecla);
+document.addEventListener('mousedown', ev => {
+  const op = ev.target.closest && ev.target.closest('.fcp-opc[data-i]');
+  if(op){ ev.preventDefault(); fcpEscolher(Number(op.dataset.i)); }
+  else if($('fcp-lista') && !(ev.target.closest && ev.target.closest('.fcp-lista'))) { if(!(ev.target instanceof HTMLInputElement)) fcpFecharLista(); }
+});
+$('fcp-scroll').addEventListener('scroll', fcpFecharLista);
+window.addEventListener('resize', fcpFecharLista);
+window.addEventListener('beforeunload', ev => { if(FCP.edits.size > 0){ ev.preventDefault(); ev.returnValue = ''; } });
 
 function escapeHtml(str){
   if(str === null || str === undefined) return '';
@@ -11533,7 +12143,7 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
       $('modal-venda-concluida-msg').innerHTML = `<div class="msg error">Erro ao preparar emissão: ${error.message}</div>`;
       return;
     }
-    const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
+    const docNfce = nfceDocParaEmitir(docs);
     let resultado = null;
     if(docNfce){
       btn.textContent = 'Emitindo NFC-e...';
@@ -14607,7 +15217,22 @@ $('form-fornecedor').addEventListener('submit', async (e) => {
 });
 
 // ---------- Fiscal ----------
-function fiscalStatusInfo(status){
+function fiscalStatusInfo(status, doc){
+  // P1: "processando" com tentativa marcada pela Edge NÃO é necessariamente "em andamento": se o envio já
+  // começou e o resultado não foi confirmado, a nota pode ter sido autorizada/denegada. Mostra o estado real.
+  const tent = doc && doc.retorno_provedor && doc.retorno_provedor.emissao_tentativa;
+  if(status === 'processando' && tent){
+    // P2: a consulta já confirmou algo que exige o suporte fiscal (divergência, nota cancelada na SEFAZ, denegada confirmada).
+    if(tent.conciliacao && FISCAL_ESTADOS_SUPORTE.includes(tent.conciliacao.estado)) return { texto: 'Precisa de análise do suporte', classe: 'status-baixo' };
+    if(tent.situacao === 'denegada') return { texto: 'Denegada — consultar', classe: 'status-baixo' };
+    if(tent.situacao === 'desconhecida') return { texto: 'Situação desconhecida', classe: 'status-baixo' };
+    // "enviando": recente = envio em curso (a Edge espera até 60 s); parado = a Edge foi interrompida durante o envio.
+    if(tent.situacao === 'enviando'){
+      const idadeMs = doc.atualizado_em ? Date.now() - new Date(doc.atualizado_em).getTime() : Infinity;
+      if(idadeMs > 2 * 60 * 1000) return { texto: 'Situação desconhecida', classe: 'status-baixo' };
+    }
+  }
+  if(status === 'autorizada' && doc && doc.tipo_documento === 'nfce' && !doc.xml_conteudo && !doc.xml_url) return { texto: 'Autorizada — XML pendente', classe: 'status-ok' };
   const mapa = {
     nao_emitida: { texto: 'Não emitida', classe: 'status-neutro' },
     processando: { texto: 'Processando', classe: 'status-aviso2' },
@@ -14649,7 +15274,7 @@ async function carregarFiscal(){
 
   lista.forEach(doc => {
     const venda = doc.vendas;
-    const status = fiscalStatusInfo(doc.status);
+    const status = fiscalStatusInfo(doc.status, doc);
     const tr = document.createElement('tr');
     if(doc.status === 'cancelada') tr.className = 'fiscal-linha-cancelada';
     const podeCancelarNfce = docPodeCancelarNfce(doc);
@@ -15218,7 +15843,7 @@ function renderDocumentosDaVenda(vendaId, documentos){
 
   container.innerHTML = '<div class="modal-section-label">Documentos desta venda</div>';
   documentos.forEach(doc => {
-    const status = fiscalStatusInfo(doc.status);
+    const status = fiscalStatusInfo(doc.status, doc);
     const dependeIntegracao = doc.status === 'nao_emitida';
     const temPdf = !!(doc.pdf_conteudo || doc.pdf_url);
     const temXml = !!(doc.xml_conteudo || doc.xml_url);
@@ -15231,12 +15856,20 @@ function renderDocumentosDaVenda(vendaId, documentos){
     // Cancelar NFC-e: só NFC-e AUTORIZADA e só para quem tem o módulo Fiscal (o backend revalida).
     const cancelada = doc.status === 'cancelada';
     if(docPodeCancelarNfce(doc)) acoesHtml += '<button type="button" class="link-btn link-btn-perigo btn-cancelar-nfce">Cancelar NFC-e</button>';
+    // P2: consulta da situação (histórico, XML pendente) e verificação da liberação do reenvio. A emissão NUNCA é chamada daqui.
+    if(docPodeConsultar(doc)) acoesHtml += '<button type="button" class="link-btn btn-consultar-nfce" style="margin-right:12px;">Consultar situação na SEFAZ</button>';
+    if(docAguardaXml(doc)) acoesHtml += '<button type="button" class="link-btn btn-recuperar-xml" style="margin-right:12px;">Recuperar XML</button>';
+    if(docTemHistoricoConsulta(doc)) acoesHtml += '<button type="button" class="link-btn btn-historico-consultas" style="margin-right:12px;">Histórico de consultas</button>';
+    if(docPodeLiberarTentativa(doc)) acoesHtml += '<button type="button" class="link-btn btn-liberar-tentativa">Verificar liberação do reenvio</button>';
 
     let subtexto;
     if(dependeIntegracao){
       subtexto = 'Aguardando emissão.';
     } else if(doc.status === 'rejeitada'){
       subtexto = escapeHtml(doc.mensagem_rejeicao || 'Rejeitada pela SEFAZ.');
+    } else if(doc.status === 'processando' && doc.mensagem_rejeicao && (status.texto === 'Situação desconhecida' || status.texto === 'Denegada — consultar' || status.texto === 'Precisa de análise do suporte')){
+      // P1: orientação de consulta gravada pela Edge (documento bloqueado para reemissão).
+      subtexto = escapeHtml(doc.mensagem_rejeicao);
     } else if(doc.numero){
       subtexto = 'Número: ' + escapeHtml(doc.numero) + (doc.chave_acesso ? ' · Chave: ' + escapeHtml(doc.chave_acesso) : '');
     } else {
@@ -15258,6 +15891,72 @@ function renderDocumentosDaVenda(vendaId, documentos){
 
     const btnCancelarNfce = div.querySelector('.btn-cancelar-nfce');
     if(btnCancelarNfce) btnCancelarNfce.addEventListener('click', () => abrirModalCancelarNfce(doc, null));
+
+    // P2: reenvio bloqueado — visual e funcional (não existe botão de emitir/reenviar para este documento; o banco também recusa).
+    if(docBloqueadoParaReenvio(doc)){
+      const aviso = document.createElement('div');
+      aviso.className = 'reenvio-bloqueado-aviso';
+      aviso.style.cssText = 'margin-top:6px; padding:8px 10px; border:1px solid #c0392b; border-radius:8px; background:#fdecea; font-size:13px;';
+      aviso.innerHTML = '<strong>Reenvio bloqueado.</strong> Esta NFC-e pode já ter sido autorizada pela SEFAZ. <strong>Não emita novamente.</strong> Consulte a situação'
+        + (docPrecisaSuporte(doc) ? ' — a consulta já indicou que o caso <strong>precisa de análise do suporte fiscal</strong>.' : '; só um novo envio com o MESMO número é possível, e apenas depois de a consulta comprovar que a nota não existe.');
+      div.querySelector('.lista-info').appendChild(aviso);
+    }
+    const infoBox = () => {
+      let b = div.querySelector('.consulta-box');
+      if(!b){ b = document.createElement('div'); b.className = 'consulta-box'; b.style.cssText = 'margin-top:8px; padding:10px; border:1px solid #cfd8dc; border-radius:8px; background:#f7f9fa; font-size:13px;'; div.querySelector('.lista-info').appendChild(b); }
+      return b;
+    };
+    const recarregar = async () => { try { await carregarFiscal(); if(vendaId && vendaId === fiscalVendaAbertaId) await abrirVendaFiscalPorId(vendaId); } catch(_){ /* a tela se atualiza na próxima abertura */ } };
+
+    const rodarConsulta = async (btn, acao) => {
+      if(fiscalConsultasEmAndamento.has(doc.id)) return;     // clique duplo: uma consulta por vez por documento
+      fiscalConsultasEmAndamento.add(doc.id); btn.disabled = true;
+      const box = infoBox(); box.innerHTML = 'Consultando... (cada consulta pode gerar cobrança da Dados Jah; aguarde)';
+      let res;
+      try { res = await chamarConsultaFiscal(doc.id, acao); } finally { fiscalConsultasEmAndamento.delete(doc.id); btn.disabled = false; }
+      box.innerHTML = mensagemConsultaFiscalHtml(res);
+      if(res && res.status === 'consultado') await recarregar();
+    };
+    const btnConsultar = div.querySelector('.btn-consultar-nfce');
+    if(btnConsultar) btnConsultar.addEventListener('click', () => rodarConsulta(btnConsultar, 'consultar'));
+    const btnRecXml = div.querySelector('.btn-recuperar-xml');
+    if(btnRecXml) btnRecXml.addEventListener('click', () => rodarConsulta(btnRecXml, 'recuperar_xml'));
+
+    const btnHist = div.querySelector('.btn-historico-consultas');
+    if(btnHist) btnHist.addEventListener('click', async () => {
+      const box = infoBox(); box.innerHTML = 'Carregando histórico...';
+      const empresaId = await obterEmpresaId();
+      const { data, error } = await supabase.from('fiscal_consultas_documento')
+        .select('id, origem, classe, c_stat, x_motivo, motivo, http_status, identidade_ok, tem_xml, fora_de_prazo, dh_consulta')
+        .eq('empresa_id', empresaId).eq('documento_fiscal_id', doc.id).order('dh_consulta', { ascending: false }).limit(50);
+      box.innerHTML = error ? '<span style="color:#c0392b;">Não foi possível carregar o histórico.</span>' : historicoConsultasHtml(data || []);
+    });
+
+    const btnLiberar = div.querySelector('.btn-liberar-tentativa');
+    if(btnLiberar) btnLiberar.addEventListener('click', async () => {
+      const box = infoBox(); box.innerHTML = 'Verificando se o reenvio pode ser liberado...';
+      const { data: el, error: elErr } = await supabase.rpc('fiscal_liberacao_elegibilidade', { p_documento_fiscal_id: doc.id });
+      if(elErr || !el){ box.innerHTML = '<span style="color:#c0392b;">Não foi possível verificar a liberação agora. O reenvio continua bloqueado.</span>'; return; }
+      if(el.elegivel !== true){ box.innerHTML = elegibilidadeBloqueadaHtml(el); return; }
+      box.innerHTML = `
+        <div style="margin-bottom:6px;">As consultas diretas à SEFAZ exigidas confirmaram que a NFC-e nº <strong>${escapeHtml(doc.numero || '?')}</strong> (série ${escapeHtml(doc.serie || '?')}) <strong>não consta</strong>. O reenvio usará o MESMO número. Se houver qualquer dúvida, não libere — acione o suporte.</div>
+        <textarea class="liberar-obs" rows="2" style="width:100%;" placeholder="Justificativa (mín. ${LIBERACAO_OBS_MIN} caracteres). Ela NÃO substitui a evidência das consultas."></textarea>
+        <div style="margin-top:6px;"><button type="button" class="btn-accent liberar-enviar" disabled>Liberar reenvio</button> <button type="button" class="link-btn liberar-cancelar">Cancelar</button> <span class="liberar-msg"></span></div>`;
+      const obs = box.querySelector('.liberar-obs'), enviar = box.querySelector('.liberar-enviar'), msg = box.querySelector('.liberar-msg');
+      const atualiza = () => { enviar.disabled = String(obs.value || '').replace(/\s+/g, ' ').trim().length < LIBERACAO_OBS_MIN; };
+      obs.addEventListener('input', atualiza);
+      box.querySelector('.liberar-cancelar').addEventListener('click', () => box.remove());
+      enviar.addEventListener('click', async () => {
+        enviar.disabled = true; msg.textContent = 'Registrando...';
+        const { error } = await supabase.rpc('fiscal_liberar_tentativa', {
+          p_documento_fiscal_id: doc.id,
+          p_observacao: String(obs.value || '').replace(/\s+/g, ' ').trim()
+        });
+        if(error){ msg.textContent = 'Não foi possível liberar: ' + (error.message || 'erro'); atualiza(); return; }
+        msg.textContent = 'Liberação registrada. A NFC-e poderá ser reenviada com o mesmo número.';
+        await recarregar();   // quem manda é o status gravado pelo banco
+      });
+    });
 
     const btnImprimir = div.querySelector('.btn-imprimir-nfce');
     if(btnImprimir) btnImprimir.addEventListener('click', () => {
@@ -15303,6 +16002,88 @@ let fiscalVendaAbertaId = null;          // venda atualmente aberta no painel "B
 
 function normalizarJustificativaNfce(v){
   return String(v || '').replace(/\s+/g, ' ').trim();
+}
+// P2: consulta e conciliação de NFC-e. Quem decide é SEMPRE o backend (Edge fiscal-consultar-documento + Migration 037):
+// aqui só se pede a consulta, se mostra o resultado/histórico e se coleta a justificativa da liberação. Nenhum botão
+// desta tela emite ou reemite NFC-e a partir de um documento bloqueado.
+const LIBERACAO_OBS_MIN = 20;
+const FISCAL_ESTADOS_SUPORTE = ['divergente_requer_suporte', 'cancelada_na_sefaz_requer_suporte', 'denegada_confirmada'];
+const fiscalConsultasEmAndamento = new Set();
+function docMarcador(doc){ return doc && doc.retorno_provedor && doc.retorno_provedor.emissao_tentativa || null; }
+function docBloqueadoParaReenvio(doc){
+  const t = docMarcador(doc);
+  return !!doc && doc.tipo_documento === 'nfce' && doc.status === 'processando' && !!t && ['enviando', 'desconhecida', 'denegada'].includes(t.situacao);
+}
+function docPrecisaSuporte(doc){
+  const t = docMarcador(doc);
+  return !!t && !!t.conciliacao && FISCAL_ESTADOS_SUPORTE.includes(t.conciliacao.estado);
+}
+function docPodeConsultar(doc){ return docBloqueadoParaReenvio(doc) && podeAcessar('fiscal'); }
+function docAguardaXml(doc){
+  return !!doc && doc.tipo_documento === 'nfce' && doc.status === 'autorizada' && !doc.xml_conteudo && !doc.xml_url && podeAcessar('fiscal');
+}
+function docTemHistoricoConsulta(doc){
+  const t = docMarcador(doc);
+  return !!doc && doc.tipo_documento === 'nfce' && podeAcessar('fiscal') && (docBloqueadoParaReenvio(doc) || (!!t && !!t.conciliacao));
+}
+function docPodeLiberarTentativa(doc){
+  const t = docMarcador(doc);
+  return !!doc && doc.tipo_documento === 'nfce' && doc.status === 'processando' && !!t
+    && (t.situacao === 'desconhecida' || t.situacao === 'enviando') && !docPrecisaSuporte(doc) && podeAcessar('fiscal');
+}
+const FISCAL_MOTIVOS_BLOQUEIO = {
+  documento_nao_esta_bloqueado: 'o documento não está bloqueado aguardando consulta',
+  denegada_nunca_libera: 'a nota foi denegada: a numeração foi consumida e nunca é liberada',
+  situacao_do_marcador_nao_liberavel: 'a situação registrada da tentativa não permite liberação',
+  documento_tem_chave_protocolo_ou_id_dfe: 'o documento já tem chave, protocolo ou identificador do provedor (a nota pode existir)',
+  chave_prevista_nao_validada_com_a_dados_jah: 'a chave de acesso prevista ainda não foi validada com a Dados Jah (pendência técnica) — sem isso a ausência da nota não pode ser comprovada',
+  tentativa_sem_chave_prevista_registrada: 'a tentativa não registrou a chave prevista (emitida antes desta versão): só o suporte pode analisar',
+  envio_sem_chave_prevista_valida: 'um envio não tem chave prevista válida',
+  consulta_encontrou_a_nota: 'uma consulta encontrou a nota na SEFAZ',
+  consulta_indica_processamento_em_andamento: 'a SEFAZ indica processamento em andamento',
+  sem_data_de_envio: 'não há registro de quando o envio ocorreu',
+  janela_minima_nao_decorrida: 'ainda não passou o tempo mínimo desde o envio',
+  consultas_negativas_insuficientes: 'faltam consultas diretas à SEFAZ (espaçadas) confirmando que a nota não consta',
+  documento_nao_encontrado: 'documento não encontrado'
+};
+function elegibilidadeBloqueadaHtml(el){
+  const itens = (el && Array.isArray(el.motivos) ? el.motivos : []).map(m => '<li>' + escapeHtml(FISCAL_MOTIVOS_BLOQUEIO[m] || String(m)) + '</li>').join('');
+  const ate = el && el.aguardar_ate ? '<div>Aguarde até ' + escapeHtml(new Date(el.aguardar_ate).toLocaleString('pt-BR')) + ' para consultar de novo.</div>' : '';
+  return '<strong>Reenvio NÃO liberado.</strong> Motivos:<ul style="margin:4px 0 4px 18px;">' + itens + '</ul>' + ate
+    + '<div>Use "Consultar situação na SEFAZ". Se o caso persistir, acione o suporte fiscal. <strong>Não emita novamente.</strong></div>';
+}
+const FISCAL_ROTULOS_CLASSE = {
+  autorizada: 'Autorizada', cancelada: 'Cancelada na SEFAZ', denegada: 'Denegada', rejeitada: 'Rejeitada', nao_encontrada: 'Não consta (SEFAZ)',
+  em_processamento: 'Em processamento', inconclusiva: 'Inconclusiva', erro_integracao: 'Falha de comunicação'
+};
+const FISCAL_ROTULOS_ORIGEM = { sefaz_direta: 'SEFAZ (consulta direta)', dadosjah_idexternal: 'Dados Jah (idExternal)' };
+function historicoConsultasHtml(linhas){
+  if(!linhas.length) return 'Nenhuma consulta registrada para este documento.';
+  const trs = linhas.map(c => '<tr><td>' + escapeHtml(new Date(c.dh_consulta).toLocaleString('pt-BR')) + '</td><td>' + escapeHtml(FISCAL_ROTULOS_ORIGEM[c.origem] || c.origem)
+    + '</td><td>' + escapeHtml(FISCAL_ROTULOS_CLASSE[c.classe] || c.classe) + '</td><td>' + escapeHtml(c.c_stat || '—') + '</td><td>' + escapeHtml(c.x_motivo || c.motivo || '') + '</td></tr>').join('');
+  return '<strong>Histórico de consultas</strong> (somente leitura)<table style="width:100%; margin-top:4px; font-size:12px;"><thead><tr><th align="left">Quando</th><th align="left">Origem</th><th align="left">Resultado</th><th align="left">cStat</th><th align="left">Motivo</th></tr></thead><tbody>' + trs + '</tbody></table>';
+}
+async function chamarConsultaFiscal(documentoFiscalId, acao){
+  try {
+    const { data, error } = await supabase.functions.invoke('fiscal-consultar-documento', { body: { documento_fiscal_id: documentoFiscalId, acao } });
+    let corpo = data;
+    if(!corpo && error && error.context && typeof error.context.json === 'function'){ try { corpo = await error.context.json(); } catch(_){ corpo = null; } }
+    if(corpo && corpo.error) return { status: 'erro', mensagem: corpo.error };
+    if(corpo && corpo.status) return corpo;
+    return { status: 'erro', mensagem: 'Não foi possível concluir a consulta. O documento continua bloqueado — tente novamente em instantes.' };
+  } catch(err){
+    return { status: 'erro', mensagem: 'Não foi possível concluir a consulta. O documento continua bloqueado — tente novamente em instantes.' };
+  }
+}
+function mensagemConsultaFiscalHtml(res){
+  if(!res) return '<span style="color:#c0392b;">Resposta inesperada. O documento continua bloqueado.</span>';
+  const bom = ['autorizada_conciliada', 'xml_recuperado', 'ja_conciliada', 'autorizada_xml_pendente'];
+  const cor = res.status === 'consultado' ? (bom.includes(res.resultado) ? '#1e7e34' : '#8a6d00') : '#c0392b';
+  let html = '<div style="color:' + cor + ';"><strong>' + escapeHtml(res.mensagem || 'Consulta concluída.') + '</strong></div>';
+  if(res.status === 'consultado' && res.elegibilidade && res.elegibilidade.elegivel !== true && ['nao_encontrada', 'inconclusiva', 'erro_integracao', 'em_processamento'].includes(res.resultado)){
+    html += '<div style="margin-top:4px;">Reenvio ainda <strong>bloqueado</strong>. Use "Verificar liberação do reenvio" para ver o que falta.</div>';
+  }
+  return html;
 }
 function docPodeCancelarNfce(doc){
   return !!doc && doc.tipo_documento === 'nfce' && doc.status === 'autorizada' && podeAcessar('fiscal');
@@ -15466,6 +16247,15 @@ $('btn-fiscal-cancelar-confirmar').addEventListener('click', confirmarCancelamen
 // mensagem "Esta comanda ainda possui saldo pendente e não pode emitir documento fiscal." e também
 // a mensagem — já existente — de venda cancelada/estornada, que nunca chegava a aparecer para o
 // usuário). Corrigido checando `data?.error` primeiro.
+// P1: fiscal_emitir_nota devolve TODOS os documentos da venda (do mais antigo ao mais novo). Uma NFC-e antiga
+// REJEITADA não pode ser a escolhida quando já existe uma ativa (nao_emitida/processando/autorizada): o índice
+// único do banco só admite UMA NFC-e ativa por venda, e é nela que a Edge informa o estado real (inclusive
+// "situação desconhecida"). Sem nenhuma ativa, usa a mais recente.
+function nfceDocParaEmitir(docs){
+  const nfces = (docs || []).filter(d => d.tipo_documento === 'nfce');
+  return nfces.find(d => d.status !== 'rejeitada' && d.status !== 'cancelada') || nfces[nfces.length - 1] || undefined;
+}
+
 async function chamarEmissaoRealNFCe(documentoFiscalId){
   try {
     const { data, error } = await supabase.functions.invoke('fiscal-emitir-documento', {
@@ -15493,6 +16283,11 @@ function mensagemResultadoFiscal(resultado){
   if(resultado.status === 'processando'){
     return '<div class="msg error">Emissão ainda em processamento. Consulte novamente em instantes.</div>';
   }
+  if(resultado.status === 'situacao_desconhecida'){
+    // P1: a Edge não sabe se a SEFAZ autorizou. Não oferece "tentar de novo": orienta a consulta.
+    const titulo = resultado.categoria === 'denegacao' ? 'NFC-e denegada pela SEFAZ.' : 'Situação da NFC-e desconhecida.';
+    return `<div class="msg error"><strong>${titulo}</strong> ${escapeHtml(resultado.mensagem || 'Não emita novamente; consulte a situação da nota antes de qualquer nova tentativa.')}</div>`;
+  }
   return `<div class="msg error">${escapeHtml(resultado.mensagem || 'Não foi possível concluir a emissão. Tente novamente ou verifique a configuração fiscal.')}</div>`;
 }
 
@@ -15504,7 +16299,7 @@ async function emitirNotaDaVenda(vendaId){
     return;
   }
 
-  const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
+  const docNfce = nfceDocParaEmitir(docs);
   if(docNfce){
     const resultado = await chamarEmissaoRealNFCe(docNfce.id);
     $('fiscal-venda-msg').innerHTML = mensagemResultadoFiscal(resultado);
@@ -15643,7 +16438,7 @@ $('btn-atualizar-numeracao-nfce').addEventListener('click', async () => {
 function atualizarStatusIntegracao(data){
   const dadosOk = !!(data && data.razao_social && data.cnpj && data.cep && data.endereco && data.numero && data.bairro && data.municipio && data.uf && data.codigo_ibge);
   const certOk = !!(data && data.certificado_status === 'ativo');
-  const cscOk = !!(data && data.nfce_csc && data.nfce_id_csc);
+  const cscOk = !!(data && data.nfce_csc && data.nfce_id_csc && String(data.nfce_versao_qrcode || '').trim());
   const usuarioOk = !!(data && data.dadosjah_usuario_criado);
   const emitenteOk = !!(data && data.emitente_registrado);
 
@@ -15823,7 +16618,7 @@ async function abrirModalAmbiente(destino){
         ? ` Os números gastos nos testes não voltam: a primeira nota de produção será a ${ultimo + 1}, e os números de 1 a ${ultimo} ficarão sem uso em produção. Isso não gera duplicidade nem erro de emissão; se quiser tratar essa falta de sequência, consulte seu contador.`
         : (ultimo === 0 ? ' Como nenhum número foi usado ainda, a primeira nota de produção será a 1.' : ''))
     + '</li>'
-    + '<li>O CSC e o idCSC <strong>não são alterados</strong> — confira que os salvos nesta tela são os de <strong>PRODUÇÃO</strong>.</li>'
+    + '<li>O CSC, o idCSC e a versão do QR Code <strong>não são alterados</strong> — confira que os salvos nesta tela são os de <strong>PRODUÇÃO</strong> e use "Conferir CSC/idCSC/versão na Dados Jah" para ver se o cadastro da empresa lá tem os mesmos valores (a Dados Jah guarda um único conjunto por empresa).</li>'
     + '<li>A verificação usou os dados já <strong>salvos</strong>; salve as alterações pendentes antes de continuar.</li>'
     + '</ul>';
   campo.style.display = '';
@@ -15921,6 +16716,29 @@ $('btn-enviar-certificado').addEventListener('click', async () => {
 
   btn.disabled = false;
   btn.textContent = 'Enviar certificado';
+});
+
+// ---------- Conferência SOMENTE LEITURA de CSC / idCSC / versão do QR Code (ERP × Dados Jah) ----------
+// Chama fiscal-verificar-qrcode. Não altera nada, não mostra o CSC. "Coincide" não prova que o CSC é o do ambiente atual.
+const ROTULO_SITUACAO_QR = {
+  igual: 'igual', diferente: 'DIFERENTE', ausente_na_dadosjah: 'ausente na Dados Jah', ausente_no_erp: 'ausente no ERP', ambos_ausentes: 'ausente nos dois',
+};
+$('btn-conferir-qrcode').addEventListener('click', async () => {
+  const msg = $('conferir-qrcode-msg'); msg.innerHTML = '';
+  const btn = $('btn-conferir-qrcode'); btn.disabled = true; btn.textContent = 'Conferindo...';
+  const { data, error } = await supabase.functions.invoke('fiscal-verificar-qrcode', { body: {} });
+  btn.disabled = false; btn.textContent = 'Conferir CSC/idCSC/versão na Dados Jah';
+  if(error || data?.error){ msg.innerHTML = `<div class="msg error">${escapeHtml((data && data.error) || (error && error.message) || 'Falha ao conferir.')}</div>`; return; }
+  if(data.estado === 'usuario_nao_criado' || data.estado === 'indisponivel' || data.estado === 'inconclusivo'){
+    msg.innerHTML = `<div class="msg error">${escapeHtml(data.mensagem || 'Conferência inconclusiva.')}</div>`; return;
+  }
+  const linhas = [
+    `CSC: ${ROTULO_SITUACAO_QR[data.csc.situacao] || data.csc.situacao}`,
+    `idCSC: ${ROTULO_SITUACAO_QR[data.idCsc.situacao] || data.idCsc.situacao} (ERP ${escapeHtml(data.idCsc.erp || '—')} · Dados Jah ${escapeHtml(data.idCsc.dadosjah || '—')})`,
+    `Versão do QR Code: ${ROTULO_SITUACAO_QR[data.versao.situacao] || data.versao.situacao} (ERP ${escapeHtml(data.versao.erp || '—')} · Dados Jah ${escapeHtml(data.versao.dadosjah || '—')})`,
+  ];
+  if(Array.isArray(data.faltando_no_erp) && data.faltando_no_erp.length) linhas.push(`Faltando no ERP: ${escapeHtml(data.faltando_no_erp.join(', '))}`);
+  msg.innerHTML = `<div class="msg ${data.coincide ? 'success' : 'error'}">${data.coincide ? 'O ERP e a Dados Jah guardam os mesmos valores.' : 'Há diferença entre o ERP e a Dados Jah.'}<br>${linhas.join('<br>')}<br><small>${escapeHtml(data.aviso || '')}</small></div>`;
 });
 
 // ---------- Registrar empresa (usuário + emitente) na Dados Jah ----------
@@ -17921,14 +18739,17 @@ $('btn-bar-pagamento-emitir-sim').addEventListener('click', async () => {
   btn.textContent = 'Emitindo...';
 
   let mensagem = '';
+  let demoraFecharMs = 1800;
   const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: barFiscalVendaIdAtual });
   if(error){
     mensagem = `<div class="msg error">Erro ao preparar emissão: ${error.message}</div>`;
   } else {
-    const docNfce = (docs || []).find(d => d.tipo_documento === 'nfce');
+    const docNfce = nfceDocParaEmitir(docs);
     if(docNfce){
       const resultado = await chamarEmissaoRealNFCe(docNfce.id);
       mensagem = mensagemResultadoFiscal(resultado);
+      // P1: a orientação de consulta precisa ficar visível (não some em 1,8 s).
+      if(resultado && resultado.status === 'situacao_desconhecida') demoraFecharMs = 20000;
     }
   }
   $('bar-pagamento-concluido-msg').innerHTML = mensagem;
@@ -17939,7 +18760,7 @@ $('btn-bar-pagamento-emitir-sim').addEventListener('click', async () => {
     $('modal-bar-pagamento-concluido').classList.add('hidden');
     barFiscalComandaAtual = null;
     barFiscalVendaIdAtual = null;
-  }, 1800);
+  }, demoraFecharMs);
 });
 
 // ---------- Destino dos Produtos (Bar/Cozinha em massa — requisito #2) ----------
