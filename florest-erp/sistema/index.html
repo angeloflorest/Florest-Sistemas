@@ -10028,6 +10028,7 @@ let pdvBuscaCarregandoRef = null; // lista (array) para a qual há uma página s
 let pdvBuscaPromessa = null;
 let pdvRenderRef = null;          // array já desenhado na tela
 let pdvRenderQtd = 0;             // quantos itens desse array já estão no DOM
+let pdvListaFechada = false;      // lista escondida por clique fora (o texto e os resultados continuam guardados)
 let pdvUltimoAdicionado = null;
 let pdvAudio = null;
 const pdvClientesCpf = new Map(); // id do cliente -> cpf (somente dígitos), para autopreencher "CPF na nota"
@@ -10327,6 +10328,9 @@ function renderResultadosPdv(){
     return;
   }
 
+  // Fechada por clique fora: mantém escondida (e não reabre sozinha quando uma busca/página chega depois do clique)
+  if(pdvListaFechada){ resultados.classList.add('hidden'); return; }
+
   // Lista nova → desenha do zero. Mesma lista com itens a mais (próxima página) → só acrescenta os novos.
   let rodape = resultados.querySelector('.pdx-res-rodape');
   if(pdvRenderRef !== lista || !rodape){
@@ -10391,6 +10395,31 @@ $('pdv-resultados').addEventListener('scroll', () => {
   if(pdvBuscaTemMais && c.scrollTop + c.clientHeight >= c.scrollHeight - 120) pdvCarregarMaisBusca();
 });
 
+// Mostra de novo os resultados do texto que está no campo (clique no campo, F9, setas). Reaproveita a lista já
+// carregada quando ela é do mesmo texto; senão refaz a busca. Só é chamada por ação do operador — foco
+// automático do sistema (depois de fechar um painel, por exemplo) NÃO reabre a lista.
+function pdvMostrarResultadosDoCampo(){
+  const termo = $('pdv-busca-produto').value.trim();
+  pdvListaFechada = false;
+  if(!termo || pdvEhCodigoDeBarras(termo)) return;
+  if(pdvResultadosAtuais.length && pdvBuscaTermo === termo){ renderResultadosPdv(); return; }
+  executarBuscaPdv(termo, ++pdvBuscaSeq);
+}
+
+// Clique/toque FORA do campo e da lista fecha a lista (sem apagar o texto digitado).
+document.addEventListener('pointerdown', (e) => {
+  if($('view-pdv').classList.contains('hidden')) return;
+  const alvo = e.target;
+  if(alvo && alvo.closest && alvo.closest('#pdv-busca-produto, #pdv-resultados')) return;
+  pdvListaFechada = true;   // vale também para busca ainda em andamento: o resultado que chegar depois não reabre a lista
+  $('pdv-resultados').classList.add('hidden');
+}, true);
+
+// Voltar a clicar no campo reabre os resultados do texto digitado.
+$('pdv-busca-produto').addEventListener('click', () => {
+  if(pdvListaFechada || (pdvResultadosAtuais.length === 0 && $('pdv-busca-produto').value.trim())) pdvMostrarResultadosDoCampo();
+});
+
 function atualizarPreviewPdv(produto){
   pdvProdutoAtivo = produto || null;
 
@@ -10416,6 +10445,7 @@ function mostrarUltimoLidoPdv(produto){
 function limparCampoPdv(){
   $('pdv-busca-produto').value = '';
   pdvBuscaSeq++; // descarta buscas que ainda estejam em andamento
+  pdvListaFechada = false;
   pdvResultadosAtuais = [];
   pdvIndiceAtivo = -1;
   renderResultadosPdv();
@@ -10506,8 +10536,10 @@ function tratarEnterPdv(){
   const texto = $('pdv-busca-produto').value.trim();
   if(!texto) return;
   const qtd = lerQtdPdv();
+  const listaEscondida = pdvListaFechada;   // Enter é ação do operador: se a lista foi aberta por busca, ela volta a valer
+  pdvListaFechada = false;
 
-  if(!pdvEhCodigoDeBarras(texto)){
+  if(!pdvEhCodigoDeBarras(texto) && !listaEscondida){
     // digitação manual: prefere o item com código exato; senão o destacado na lista
     const exato = pdvResultadosAtuais.find(p => p.codigo && p.codigo.toLowerCase() === texto.toLowerCase());
     const escolhido = exato || pdvResultadosAtuais[pdvIndiceAtivo] || pdvResultadosAtuais[0];
@@ -10583,6 +10615,7 @@ const executarBuscaPdvComAtraso = debounce(executarBuscaPdv, 180);
 
 $('pdv-busca-produto').addEventListener('input', (e) => {
   const termo = e.target.value.trim();
+  pdvListaFechada = false;   // digitar de novo = o operador quer ver os resultados
   pdvIndiceAtivo = -1;
   const seq = ++pdvBuscaSeq;
 
@@ -10606,6 +10639,7 @@ $('pdv-busca-produto').addEventListener('keydown', (e) => {
     tratarEnterPdv();
     return;
   }
+  if(pdvListaFechada && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); pdvMostrarResultadosDoCampo(); return; }
   if(pdvResultadosAtuais.length === 0) return;
 
   if(e.key === 'ArrowDown'){
@@ -11452,13 +11486,22 @@ document.addEventListener('keydown', (e) => {
     const d = $('pdv-desconto');
     if(!d.disabled){ d.focus(); d.select(); }
   }
-  else if(e.key === 'F9'){
-    // pesquisa de produtos: leva o cursor ao campo "Código de barras" (o mesmo da leitura e da busca por nome)
-    e.preventDefault();
-    const c = $('pdv-busca-produto');
-    c.focus(); c.select();
-  }
 });
+
+// F9 = pesquisar produto: leva o cursor ao campo "Código de barras" (o mesmo da leitura e da busca por nome), seleciona o
+// texto atual e, se houver texto, mostra de novo os resultados. Ouvinte próprio na fase de captura da janela: roda antes de
+// qualquer outro tratamento de teclado e reconhece a tecla por key, code ou keyCode. Mesmas travas das demais teclas F
+// (só com o PDV aberto e sem painel/modal por cima).
+window.addEventListener('keydown', (e) => {
+  if(!(e.key === 'F9' || e.code === 'F9' || e.keyCode === 120)) return;
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  if($('view-pdv').classList.contains('hidden')) return;
+  if(document.querySelector('.modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
+  e.preventDefault();
+  const c = $('pdv-busca-produto');
+  c.focus(); c.select();
+  pdvMostrarResultadosDoCampo();
+}, true);
 
 // ----- configurar atalhos (provisório) -----
 function pdxCfgAbrir(){
