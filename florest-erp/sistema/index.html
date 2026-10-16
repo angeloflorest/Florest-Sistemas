@@ -3730,6 +3730,7 @@
         </div>
 
         <div id="fiscal-venda-msg"></div>
+        <div id="fiscal-venda-teste-ctg" class="hidden"></div>
         <div id="fiscal-venda-resultado" class="hidden">
           <div class="table-card" style="padding:20px;">
             <div class="view-header" style="margin-bottom:14px;">
@@ -16146,6 +16147,8 @@ async function renderVendaFiscal(venda){
     btn.addEventListener('click', () => emitirNotaDaVenda(venda.id));
     acoes.appendChild(btn);
   }
+  await ctgTesteMontarBotao(venda, documentos || [], acoes);     // "Testar contingência (homologação)": só Fiscal + homologação
+  ctgTesteRenderUltimo(venda.id);
 
   $('fiscal-venda-resultado').classList.remove('hidden');
 }
@@ -17066,6 +17069,142 @@ async function emitirNotaDaVenda(vendaId){
 }
 
 // =====================================================================
+// TESTE-CTG:BEGIN — "Testar contingência (homologação)" (teste CONTROLADO; não é a contingência real nem automática)
+// Só aparece para quem tem o módulo Fiscal e quando a configuração fiscal da empresa é EXATAMENTE "homologacao" (lida do banco, nunca de variável
+// da tela). A trava de verdade está no backend (Edge fiscal-emitir-documento: secret FISCAL_CTG_TESTE_HOMOLOG, ambiente, permissão). Reaproveita
+// fiscal_emitir_nota (cria/localiza o documento sem duplicar) e a mesma Edge da emissão normal com o pedido de teste. NUNCA marca autorizada sem
+// cStat 100/150 + protocolo + chave vindos da SEFAZ; nunca reenvia nota de situação desconhecida; não aciona a contingência real.
+// =====================================================================
+let ctgTesteUltimo = null;      // { vendaId, resposta } — último diagnóstico mostrado
+function ctgTesteTentativaDe(doc){
+  const t = doc && doc.retorno_provedor && doc.retorno_provedor.emissao_tentativa;
+  return t && typeof t === 'object' ? t : {};
+}
+// O teste só roda em venda SEM NFC-e, com NFC-e ainda "nao_emitida", ou "rejeitada" por um teste anterior (a SEFAZ não recebeu nada).
+function ctgTesteDocElegivel(docs){
+  const nfces = (docs || []).filter(d => d.tipo_documento === 'nfce');
+  if(nfces.length === 0) return true;
+  const ativo = nfceDocParaEmitir(nfces);
+  if(!ativo) return false;
+  if(ativo.status === 'nao_emitida') return true;
+  if(ativo.status === 'rejeitada'){
+    const envios = ctgTesteTentativaDe(ativo).envios;
+    const ult = Array.isArray(envios) ? envios[envios.length - 1] : null;
+    return !!(ult && ult.modo === 'teste_contingencia_homologacao');
+  }
+  return false;
+}
+async function ctgTesteAmbienteHomologacao(){
+  try {
+    const empresaId = await obterEmpresaId();
+    const { data, error } = await supabase.from('configuracoes_fiscais').select('nfce_ambiente').eq('empresa_id', empresaId).maybeSingle();
+    return !error && !!data && data.nfce_ambiente === 'homologacao';
+  } catch(_){ return false; }
+}
+async function ctgTesteMontarBotao(venda, documentos, acoes){
+  try {
+    if(venda.cancelada_em || !podeAcessar('fiscal') || !ctgTesteDocElegivel(documentos)) return;
+    if(!(await ctgTesteAmbienteHomologacao())) return;
+    if(fiscalVendaAbertaId !== venda.id || acoes.querySelector('#btn-fiscal-testar-ctg')) return;     // outra venda foi aberta enquanto isto carregava
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn-secondary'; btn.id = 'btn-fiscal-testar-ctg'; btn.style.marginLeft = '8px';
+    btn.textContent = 'Testar contingência (homologação)';
+    btn.title = 'Teste controlado em HOMOLOGAÇÃO: envia uma NFC-e de teste com tpEmis=9 à Dados Jah. Não é a contingência real.';
+    btn.addEventListener('click', () => ctgTesteConfirmar(venda.id));
+    acoes.appendChild(btn);
+  } catch(_){ /* sem botão: a emissão normal não é afetada */ }
+}
+function ctgTesteConfirmar(vendaId){
+  ctgAbrirModal({
+    titulo: 'Testar contingência (homologação)',
+    corpo: '<p class="modal-section-hint" style="margin-top:0;">Este é um <b>teste controlado em homologação</b>, não a contingência real. Ao confirmar:</p>'
+      + '<p class="modal-section-hint">1. É enviada <b>uma</b> NFC-e de teste à Dados Jah com <b>tpEmis=9</b>, <b>dhCont</b> e <b>xJust</b>, usando o documento fiscal desta venda (nenhum documento duplicado).</p>'
+      + '<p class="modal-section-hint">2. É consumido o <b>próximo número</b> da série; o contador nunca volta atrás. A nota <b>não tem validade fiscal</b>.</p>'
+      + '<p class="modal-section-hint">3. HTTP 200/201 ou "processed" <b>não</b> é autorização. Se não vier cStat 100/150 com protocolo e chave, o documento fica <b>bloqueado em "processando"</b>: não reenvie, consulte a situação.</p>'
+      + '<p class="modal-section-hint">4. Notas já autorizadas não são alteradas nem reenviadas.</p>',
+    acoes: [
+      { texto: 'Cancelar', fecha: true },
+      { texto: 'Enviar teste', classe: 'btn-accent', id: 'btn-ctg-teste-confirmar', fn: async () => { ctgFecharModalConcluido(); await ctgTesteExecutar(vendaId); } }
+    ]
+  });
+}
+async function ctgTesteChamarEdge(documentoFiscalId){
+  const falha = { status: 'erro', mensagem: 'Não foi possível concluir o teste. Se o envio chegou a sair, o documento fica bloqueado: consulte a situação antes de qualquer nova ação.' };
+  try {
+    const { data, error } = await supabase.functions.invoke('fiscal-emitir-documento', { body: { documento_fiscal_id: documentoFiscalId, teste_contingencia_homologacao: true } });
+    let r = data;
+    if(!r && error && error.context && typeof error.context.json === 'function'){ try { r = await error.context.json(); } catch(_){ r = null; } }
+    return (r && typeof r === 'object') ? r : falha;
+  } catch(_){ return falha; }
+}
+async function ctgTesteExecutar(vendaId){
+  const msg = $('fiscal-venda-msg');
+  if(!podeAcessar('fiscal') || !(await ctgTesteAmbienteHomologacao())){
+    msg.innerHTML = '<div class="msg error">O teste de contingência só está disponível em HOMOLOGAÇÃO, para usuários do módulo Fiscal. Nada foi enviado.</div>';
+    return;
+  }
+  msg.innerHTML = '<div class="msg success">Preparando o documento fiscal da venda...</div>';
+  const { data: docs, error } = await supabase.rpc('fiscal_emitir_nota', { p_venda_id: vendaId });
+  if(error){ msg.innerHTML = `<div class="msg error">Erro ao preparar o teste: ${escapeHtml(error.message || '')}. Nada foi enviado.</div>`; return; }
+  const doc = nfceDocParaEmitir(docs);
+  if(!doc){ msg.innerHTML = '<div class="msg error">Esta venda não tem item de mercadoria para gerar NFC-e. Nada foi enviado.</div>'; return; }
+  if(!ctgTesteDocElegivel([doc])){
+    msg.innerHTML = `<div class="msg error">Esta venda já tem NFC-e na situação "${escapeHtml(String(doc.status))}". O teste só roda em documento ainda não emitido. Nada foi enviado.</div>`;
+    await abrirVendaFiscalPorId(vendaId);
+    return;
+  }
+  msg.innerHTML = '<div class="msg success">Enviando o teste de contingência à Dados Jah (homologação)... não feche esta tela.</div>';
+  const r = await ctgTesteChamarEdge(doc.id);
+  ctgTesteUltimo = { vendaId, resposta: r };
+  if(r.status === 'teste_contingencia_recusado' || r.status === 'teste_contingencia_abortado') msg.innerHTML = `<div class="msg error">${escapeHtml(r.mensagem || 'Teste recusado.')} Nada foi autorizado.</div>`;
+  else if(r.error) msg.innerHTML = `<div class="msg error">${escapeHtml(String(r.error))}</div>`;
+  else msg.innerHTML = mensagemResultadoFiscal(r);
+  await abrirVendaFiscalPorId(vendaId);
+  carregarFiscal();
+}
+const ctgTesteSN = (v) => v === true ? '<b>Sim</b>' : v === false ? '<b>Não</b>' : '—';
+const ctgTesteTxt = (v) => (v === null || v === undefined || v === '') ? '—' : escapeHtml(String(v));
+function ctgTesteRenderUltimo(vendaId){
+  const box = $('fiscal-venda-teste-ctg'); if(!box) return;
+  const u = ctgTesteUltimo;
+  const d = u && u.vendaId === vendaId && u.resposta ? u.resposta.teste_contingencia : null;
+  if(!d){ box.innerHTML = ''; box.classList.add('hidden'); return; }
+  const l = (rot, val) => `<tr><td style="padding:3px 12px 3px 0;color:var(--ink-soft,#666);">${rot}</td><td style="padding:3px 0;">${val}</td></tr>`;
+  const ide = d.payload_ide_enviado || {};
+  const x = d.xml || {}; const dn = d.danfe || {};
+  const chaveEnv = d.chDfe ? ctgChaveGrupos(d.chDfe) : '—';
+  const chavePrev = d.chave_prevista ? ctgChaveGrupos(d.chave_prevista) : '—';
+  const classe = d.classificacao_do_erp;
+  const classeTxt = classe === 'autorizada' ? 'Autorizada pela SEFAZ' : classe === 'rejeitada' ? 'Rejeitada pela SEFAZ' : classe === 'denegada' ? 'Denegada' : 'Desconhecida (NÃO é autorização)';
+  box.innerHTML = '<div class="ctg-card" id="ctg-teste-diag"><h3>Teste de contingência (homologação) — diagnóstico</h3>'
+    + `<p><b>${escapeHtml(d.leitura || '')}</b></p>`
+    + `<p style="font-size:12px;">${escapeHtml(d.aviso || '')}</p>`
+    + '<h4 style="margin:12px 0 4px;">O que o ERP enviou (grupo ide)</h4><table>'
+    + l('tpEmis', ctgTesteTxt(ide.tpEmis)) + l('tpAmb', ctgTesteTxt(ide.tpAmb)) + l('dhEmi', ctgTesteTxt(ide.dhEmi)) + l('dhCont', ctgTesteTxt(ide.dhCont)) + l('xJust', ctgTesteTxt(ide.xJust))
+    + l('Série / nº / cNF', `${ctgTesteTxt(ide.serie)} / ${ctgTesteTxt(ide.nNF)} / ${ctgTesteTxt(ide.cNF)}`)
+    + l('Payload tem tpEmis=9, dhCont e xJust', ctgTesteSN(d.payload_tem_tpEmis_dhCont_xJust))
+    + l('Chave prevista pelo ERP', `${escapeHtml(chavePrev)} (DV válido: ${ctgTesteSN(d.chave_prevista_valida)}; tpEmis na chave: <b>${ctgTesteTxt(d.chave_prevista_tpEmis)}</b>)`)
+    + '</table>'
+    + '<h4 style="margin:12px 0 4px;">Resposta da API</h4><table>'
+    + l('Resposta recebida', ctgTesteSN(d.resposta_recebida)) + l('HTTP', ctgTesteTxt(d.http_status)) + l('cStat', ctgTesteTxt(d.cStat)) + l('xMotivo', ctgTesteTxt(d.xMotivo))
+    + l('situation / situationDfe', `${ctgTesteTxt(d.situation)} / ${ctgTesteTxt(d.situationDfe)}`) + l('Protocolo de autorização', ctgTesteSN(d.tem_protocolo))
+    + l('Classificação do ERP', escapeHtml(classeTxt))
+    + l('Chave devolvida', `${escapeHtml(chaveEnv)} (DV válido: ${ctgTesteSN(d.chDfe_dv_valido)}; tpEmis: <b>${ctgTesteTxt(d.chDfe_tpEmis)}</b>; igual à prevista: ${ctgTesteSN(d.chDfe_igual_a_prevista)})`)
+    + (d.corpo_http_erro ? l('Corpo do erro (sem credenciais)', escapeHtml(d.corpo_http_erro)) : '')
+    + '</table>'
+    + '<h4 style="margin:12px 0 4px;">XML devolvido (conteúdo não exibido)</h4><table>'
+    + l('XML presente', `${ctgTesteSN(x.presente)}${x.tamanho ? ' (' + escapeHtml(String(x.tamanho)) + ' caracteres)' : ''}${x.via_link ? ' · via link' : ''}`)
+    + l('tpEmis = 9', ctgTesteSN(x.tem_tpEmis_9)) + l('dhCont (igual ao enviado)', `${ctgTesteSN(x.tem_dhCont)} (${ctgTesteSN(x.dhCont_igual_ao_enviado)})`) + l('xJust (igual ao enviado)', `${ctgTesteSN(x.tem_xJust)} (${ctgTesteSN(x.xJust_igual_ao_enviado)})`)
+    + l('Assinatura (Signature)', ctgTesteSN(x.tem_assinatura)) + l('QR Code (infNFeSupl)', ctgTesteSN(x.tem_infNFeSupl && x.tem_qrCode)) + l('Protocolo no XML (protNFe)', ctgTesteSN(x.tem_protNFe))
+    + '</table>'
+    + '<h4 style="margin:12px 0 4px;">DANFE</h4><table>' + l('PDF presente', ctgTesteSN(dn.pdf_presente)) + l('Link do PDF presente', ctgTesteSN(dn.pdf_link_presente)) + '</table>'
+    + '<h4 style="margin:12px 0 4px;">Conferir manualmente</h4>'
+    + '<ul style="margin:4px 0 0 18px;">' + (Array.isArray(d.conferir_manualmente) ? d.conferir_manualmente.map(c => `<li>${escapeHtml(String(c))}</li>`).join('') : '') + '</ul></div>';
+  box.classList.remove('hidden');
+}
+// TESTE-CTG:END
+
+// =====================================================================
 // CTG:BEGIN — Contingência offline de NFC-e (modelo 65, tpEmis=9) — Migration 041
 // Princípios: (1) o navegador NUNCA guarda certificado, senha ou chave privada e NUNCA é o único armazenamento da nota pendente (o documento,
 // o XML e o histórico ficam no banco); (2) nada aqui declara "autorizada" sem o protocolo gravado pelo banco; (3) nenhuma entrada automática em
@@ -17098,8 +17237,7 @@ const CTG_ACAO_SUGERIDA = {
   inutilizar_art41: 'Inutilizar a faixa na SEFAZ (art. 41)',
   consultar_art44: 'Consultar a SEFAZ e conciliar (art. 44)'
 };
-const CTG = { status: null, indisponivel: false, itens: [], reconc: [], filtro: 'pendentes', tokenLocal: null, ultimaLeitura: 0, timer: null };
-const CTG_MOTOR_LOCAL_URL = (typeof window !== 'undefined' && window.FLOREST_MOTOR_LOCAL_URL) || 'http://127.0.0.1:47831';
+const CTG = { status: null, indisponivel: false, itens: [], reconc: [], filtro: 'pendentes', ultimaLeitura: 0, timer: null };
 
 function ctgPodeFiscal(){ return podeAcessar('fiscal'); }
 function ctgFmtDh(iso){
@@ -17221,8 +17359,8 @@ function ctgRenderStatus(){
       + `<p>A emissão normal de NFC-e está <b>suspensa</b> neste ambiente enquanto a contingência estiver ativa. No PDV, as vendas passam a gerar NFC-e em contingência, que ficam <b>pendentes de autorização</b>.</p>${prox}${kpis}</div>`;
   } else if(!st.motor_apto){
     html = `<div class="ctg-card ctg-indisp"><h3>Emissão em contingência INDISPONÍVEL</h3>`
-      + `<p>O motor que gera e assina a NFC-e tpEmis=9 <b>ainda não foi confirmado</b> neste sistema (motor atual: <b>${escapeHtml(st.motor_ativo || 'nenhum')}</b>). Por isso a contingência não pode ser ativada e <b>a emissão normal continua funcionando como sempre</b>.</p>`
-      + `<p>Para habilitar é preciso confirmar, por escrito, a capacidade do motor (Dados Jah ou serviço local assinado). Veja a documentação de publicação.</p>${prox}${kpis}</div>`;
+      + `<p>O serviço em nuvem que gera e assina a NFC-e tpEmis=9 <b>ainda não foi confirmado</b> neste sistema (motor atual: <b>${escapeHtml(st.motor_ativo || 'nenhum')}</b>). Por isso a contingência não pode ser ativada e <b>a emissão normal continua funcionando como sempre</b>.</p>`
+      + `<p>Para habilitar é preciso confirmar, por escrito, a capacidade do serviço em nuvem que gera e assina a NFC-e (Dados Jah ou serviço seguro próprio). Veja a documentação de publicação.</p>${prox}${kpis}</div>`;
   } else if(!st.uf_habilitada){
     html = `<div class="ctg-card ctg-indisp"><h3>Contingência não habilitada para esta UF</h3><p>Esta versão foi validada apenas para Minas Gerais. UF da empresa: <b>${escapeHtml(st.uf || '—')}</b>.</p>${prox}${kpis}</div>`;
   } else {
@@ -17469,7 +17607,7 @@ async function ctgImprimirEConfirmar(ctgId, linha, aoConcluir){
   return r;
 }
 
-// ---------- chamadas ao motor local e às Edge Functions ----------
+// ---------- chamadas às Edge Functions ----------
 async function ctgInvocarEdge(corpo){
   try {
     const { data, error } = await supabase.functions.invoke('fiscal-contingencia', { body: corpo });
@@ -17480,48 +17618,16 @@ async function ctgInvocarEdge(corpo){
     return { status: 'erro', mensagem: 'Resposta inesperada da função de contingência. O documento continua guardado; nada foi alterado.' };
   } catch(_){ return { status: 'erro', mensagem: 'Não foi possível falar com a função de contingência. O documento continua guardado; tente novamente.' }; }
 }
-async function ctgPedirTokenLocal(){
-  if(CTG.tokenLocal) return CTG.tokenLocal;
-  return await new Promise(resolve => {
-    ctgAbrirModal({
-      titulo: 'Serviço fiscal local',
-      corpo: '<p class="modal-section-hint" style="margin-top:0;">Informe o código de acesso do serviço fiscal local desta máquina. Ele fica apenas na memória desta aba (nunca é gravado no navegador) e não é um certificado nem uma senha fiscal.</p><input type="password" id="ctg-token-local" autocomplete="off" style="width:100%;">',
-      acoes: [
-        { texto: 'Cancelar', fecha: true },
-        { texto: 'Usar', classe: 'btn-accent', fn: async () => { const v = $('ctg-token-local').value.trim(); if(!v){ ctgMsgModal('Informe o código.'); return; } CTG.tokenLocal = v; ctgFecharModalConcluido(); resolve(v); } }
-      ],
-      aoFechar: () => resolve(null)
-    });
-  });
-}
-// Pede ao serviço LOCAL (motor) o XML tpEmis=9 assinado. O navegador só repassa: não assina, não guarda certificado.
-async function ctgPedirXmlAoMotorLocal(identidade, vendaId){
-  const token = await ctgPedirTokenLocal();
-  if(!token) return { ok: false, motivo: 'Código de acesso do serviço local não informado.' };
-  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 20000);
-  try {
-    const resp = await fetch(CTG_MOTOR_LOCAL_URL + '/v1/contingencia/preparar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Florest-Token': token },
-      body: JSON.stringify({ identidade, venda_id: vendaId }), signal: ctl.signal
-    });
-    const j = await resp.json().catch(() => null);
-    if(resp.status === 401 || resp.status === 403){ CTG.tokenLocal = null; return { ok: false, motivo: 'O serviço local recusou o código de acesso.' }; }
-    if(!resp.ok || !j || !j.xml){ return { ok: false, motivo: (j && j.mensagem) || ('O serviço local não preparou o XML (HTTP ' + resp.status + ').') }; }
-    return { ok: true, xml: j.xml, qr_url: j.qr_url || '', identidade: j.identidade || {} };
-  } catch(_){
-    return { ok: false, motivo: 'Serviço fiscal local indisponível nesta máquina. Nada foi gravado; o número continua reservado e o documento fica em "preparando".' };
-  } finally { clearTimeout(timer); }
-}
-// Prepara o documento: motor local gera/assina o XML; a Edge confere as invariantes e grava. Devolve { ok, mensagem }.
+// Prepara o documento: pede à Edge "preparar" (serviço em nuvem que gera e assina o XML tpEmis=9). Sem serviço confirmado/homologado a Edge
+// responde "integracao_pendente" SEM gerar nada: o número continua reservado e o documento fica "preparando". O navegador não assina nem guarda certificado.
 async function ctgPrepararDocumento(ctgId, vendaId){
   const { data: ident, error } = await supabase.rpc('fiscal_contingencia_obter', { p_ctg_documento_id: ctgId });
   if(error) return { ok: false, mensagem: ctgMsgErro(error) };
   if(ident.status !== 'preparando') return { ok: false, mensagem: 'O documento está "' + ident.status + '" e não precisa de preparo.' };
-  if(ident.motor !== 'local') return { ok: false, mensagem: 'A preparação pelo motor "' + ident.motor + '" não está disponível nesta versão: o contrato de emissão tpEmis=9 da Dados Jah não foi confirmado. O número continua reservado e o documento fica pendente.' };
-  const m = await ctgPedirXmlAoMotorLocal(ident, vendaId || null);
-  if(!m.ok) return { ok: false, mensagem: m.motivo };
-  const r = await ctgInvocarEdge({ acao: 'registrar_preparo', ctg_documento_id: ctgId, xml: m.xml, qr_url: m.qr_url, identidade: m.identidade });
-  if(r.status !== 'preparado') return { ok: false, mensagem: (r.mensagem || 'O XML não foi aceito.') + (r.divergencias ? ' (' + r.divergencias.slice(0, 4).join(', ') + ')' : '') };
+  const r = await ctgInvocarEdge({ acao: 'preparar', ctg_documento_id: ctgId, venda_id: vendaId || null });
+  if(r.status !== 'preparado'){
+    return { ok: false, mensagem: (r.mensagem || 'O preparo não foi concluído.') + ' O número continua reservado e o documento fica pendente em Fiscal › Notas em contingência.' };
+  }
   return { ok: true, mensagem: r.mensagem };
 }
 
@@ -17533,7 +17639,7 @@ async function ctgAcaoLinha(acao, id){
   const recarregar = async () => { await ctgCarregarStatus(true); ctgRenderStatus(); await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]); };
   if(acao === 'detalhes') return ctgAbrirDetalhes(id);
   if(acao === 'preparar'){
-    ctgMsgPagina('Preparando o XML pelo serviço local...', 'success');
+    ctgMsgPagina('Solicitando o preparo do XML ao serviço em nuvem...', 'success');
     const r = await ctgPrepararDocumento(id, linha.venda_id);
     ctgMsgPagina(escapeHtml(r.mensagem || ''), r.ok ? 'success' : 'error');
     return recarregar();
