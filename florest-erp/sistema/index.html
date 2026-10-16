@@ -5555,6 +5555,7 @@
         <span class="bar-mesa-status-badge" id="bar-mesa-status-badge">Em aberto</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+        <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-relatorio" style="width:auto;" title="Imprime a conta de conferência da mesa aberta no Caixa. Não registra pagamento nem é documento fiscal.">Imprimir relatório da mesa</button>
         <button type="button" class="btn-perigo hidden" id="btn-bar-mesa-cancelar" style="width:auto;">Cancelar mesa</button>
         <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
       </div>
@@ -19937,6 +19938,7 @@ async function abrirModalMesa(mesa){
   barMesaQtdItensValidos = 0;
   barMesaQtdPagamentos = 0;
   atualizarBotaoCancelarMesa();
+  atualizarBotaoRelatorioMesa();
   $('bar-mesa-msg').innerHTML = '';
   $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
   $('bar-mesa-busca-produto').value = '';
@@ -19982,6 +19984,7 @@ async function atualizarSaldoEItensMesa(){
     barMesaQtdItensValidos = 0;
     barMesaQtdPagamentos = 0;
     atualizarBotaoCancelarMesa();
+    atualizarBotaoRelatorioMesa();
     return;
   }
   // Fase 4: pedido_id + bar_pedidos(criado_por) entram só para resolver "Lançado por X" — a
@@ -20008,6 +20011,7 @@ async function atualizarSaldoEItensMesa(){
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
   await carregarHistoricoPagamentosMesa();
   atualizarBotaoCancelarMesa();
+  atualizarBotaoRelatorioMesa();
 }
 
 // "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
@@ -20332,6 +20336,88 @@ function atualizarBotaoCancelarMesa(){
   if(!btn) return;
   btn.classList.toggle('hidden', !(barComandaAtualId && barMesaAtual && podeAcessarBar('bar_cancelar_pedido')));
 }
+
+// ---------- "Imprimir relatório da mesa" (Migration 047) ----------
+// Conta de CONFERÊNCIA da mesa ainda ABERTA, impressa pelo Florest Print Agent na impressora do destino "Caixa" (mesmo fluxo da fila
+// de impressão do cupom da cozinha e do recibo). NÃO registra pagamento, NÃO fecha a mesa, NÃO emite nota e NÃO mexe em estoque/caixa:
+// o banco só lê a comanda e enfileira o papel (impressao_relatorio_mesa_enfileirar). Itens cancelados ficam de fora.
+let barRelatorioMesaOcupado = false;
+let barRelatorioAcompanhaSeq = 0;
+
+function atualizarBotaoRelatorioMesa(){
+  const btn = $('btn-bar-mesa-relatorio');
+  if(!btn) return;
+  const podeVer = ['bar_mesas', 'bar_pedidos', 'bar_caixa', 'bar_configurar'].some(p => podeAcessarBar(p));
+  const mostrar = !!(barComandaAtualId && barMesaAtual && barMesaQtdItensValidos > 0 && podeVer);
+  btn.classList.toggle('hidden', !mostrar);
+}
+
+// Acompanha o papel na fila por até ~45 s (somente leitura). Quem não pode ler impressao_jobs (RLS) simplesmente não vê o andamento:
+// a mensagem de "enviado" já foi mostrada e nada falha.
+async function barRelatorioMesaAcompanhar(jobId, numeroMesa){
+  const seq = ++barRelatorioAcompanhaSeq;
+  const inicio = Date.now();
+  const marcador = `data-rel-mesa="${jobId}"`;
+  while(seq === barRelatorioAcompanhaSeq && Date.now() - inicio < 45000){
+    await new Promise(r => setTimeout(r, 3000));
+    const msg = $('bar-mesa-msg');
+    if(seq !== barRelatorioAcompanhaSeq || !msg || msg.innerHTML.indexOf(marcador) < 0) return;   // outra mensagem/outra mesa: para
+    let linha = null;
+    try {
+      const { data } = await supabase.from('impressao_jobs').select('status, erro_mensagem').eq('id', jobId).maybeSingle();
+      linha = data || null;
+    } catch(e){ linha = null; }
+    if(!linha) continue;
+    if(linha.status === 'impresso'){
+      msg.innerHTML = `<div class="msg success" ${marcador}>Relatório da Mesa ${escapeHtml(String(numeroMesa))} impresso.</div>`;
+      return;
+    }
+    if(linha.status === 'falhou' || linha.status === 'cancelado'){
+      msg.innerHTML = `<div class="msg error" ${marcador}>O relatório da Mesa ${escapeHtml(String(numeroMesa))} não foi impresso. ${escapeHtml(linha.erro_mensagem || 'Veja o Florest Print Agent do computador da impressora do Caixa.')}</div>`;
+      return;
+    }
+  }
+}
+
+$('btn-bar-mesa-relatorio').addEventListener('click', async () => {
+  if(barRelatorioMesaOcupado || !barComandaAtualId || !barMesaAtual) return;
+  const btn = $('btn-bar-mesa-relatorio');
+  const comanda = barComandaAtualId;
+  const numeroMesa = barMesaAtual.numero;
+  barRelatorioMesaOcupado = true;
+  btn.disabled = true;
+  $('bar-mesa-msg').innerHTML = '';
+  barRelatorioAcompanhaSeq++;   // interrompe o acompanhamento de um relatório anterior
+  // Ajustes da conta (desconto/acréscimo/taxa) digitados na tela e ainda não gravados entram no relatório; sem mexer neles, o banco usa o que já está salvo.
+  const args = { p_comanda_id: comanda };
+  if(barMesaAjustesTocados && podeAcessarBar('bar_caixa')){
+    const valor = (id) => { const v = parseFloat($(id).value); return isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0; };
+    args.p_desconto = valor('bar-mesa-desconto');
+    args.p_acrescimo = valor('bar-mesa-acrescimo');
+    args.p_taxa_servico = valor('bar-mesa-taxa');
+  }
+  try {
+    const { data, error } = await supabase.rpc('impressao_relatorio_mesa_enfileirar', args);
+    if(error){
+      const semMig = error.code === 'PGRST202' || error.code === '42883' || /could not find the function|does not exist/i.test(error.message || '');
+      $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(semMig ? 'O relatório da mesa ainda não foi ativado no banco de dados (falta a Migration 047).' : mensagemBancoAcesso(error))}</div>`;
+      return;
+    }
+    if(!data || data.ok !== true){
+      const texto = (data && data.mensagem) || 'Não foi possível enviar o relatório da mesa para impressão.';
+      $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(texto)}</div>`;
+      return;
+    }
+    const marcador = `data-rel-mesa="${escapeHtml(String(data.job_id))}"`;
+    $('bar-mesa-msg').innerHTML = `<div class="msg success" ${marcador}>Relatório da Mesa ${escapeHtml(String(numeroMesa))} enviado para a impressora do Caixa. O Florest Print Agent imprime em alguns segundos. Não é documento fiscal e não registra pagamento.</div>`;
+    barRelatorioMesaAcompanhar(data.job_id, numeroMesa);
+  } catch(e){
+    $('bar-mesa-msg').innerHTML = '<div class="msg error">Não foi possível enviar o relatório da mesa agora. Tente novamente.</div>';
+  } finally {
+    // pequena trava contra cliques repetidos (o banco também deduplica o mesmo conteúdo em 15 s)
+    setTimeout(() => { barRelatorioMesaOcupado = false; btn.disabled = false; }, 2500);
+  }
+});
 
 $('btn-bar-mesa-cancelar').addEventListener('click', () => {
   if(!barComandaAtualId || !barMesaAtual) return;
