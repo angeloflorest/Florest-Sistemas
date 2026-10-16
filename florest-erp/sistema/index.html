@@ -17392,7 +17392,7 @@ async function ctgCarregarLista(){
   }
   CTG.pendentesIndisponivel = false;
   CTG.itens = (data && data.itens) || [];
-  CTG.paramsLista = { motor_apto: !!(data && data.motor_apto), ativacao_automatica: !!(data && data.ativacao_automatica) };
+  CTG.paramsLista = { motor_apto: !!(data && data.motor_apto), ativacao_automatica: !!(data && data.ativacao_automatica), retransmissao_automatica: !!(data && data.retransmissao_automatica), modo_post: !!(data && data.modo_post) };
   const vivos = new Set(CTG.itens.map(ctgChaveLinha));
   CTG.sel.forEach(k => { if(!vivos.has(k)) CTG.sel.delete(k); });          // saiu da lista (autorizada/descartada): sai da seleção
   ctgRenderLista();
@@ -17404,12 +17404,12 @@ function ctgAcoesDaLinha(r){
     if(podeF){ b.push(btn('consultar', 'Consultar situação', 'btn-secondary', r.documento_fiscal_id)); b.push(btn('ativarfalha', 'Verificar contingência', 'btn-secondary', r.documento_fiscal_id)); }
     return b.join('');
   }
-  if(r.status === 'preparando') b.push(btn('preparar', 'Preparar XML', 'btn-accent'), btn('descartar', 'Descartar'));
+  if(r.status === 'preparando') b.push(btn('preparar', CTG.paramsLista.modo_post ? 'Tentar enviar agora' : 'Preparar XML', 'btn-accent'), btn('descartar', 'Descartar'));
   else if(r.status === 'preparado') b.push(btn('imprimir', 'Imprimir DANFE', 'btn-accent'), btn('descartar', 'Descartar'));
   else if(r.status === 'danfe_impresso'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('transmitir', 'Transmitir à SEFAZ', 'btn-accent')); }
-  else if(r.status === 'resultado_desconhecido'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('consultar', 'Consultar situação')); }
+  else if(r.status === 'resultado_desconhecido'){ if(r.emitida || !CTG.paramsLista.modo_post) b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('consultar', 'Consultar situação')); }
   else if(r.status === 'transmitindo'){ if(r.acao === 'consultar' && podeF) b.push(btn('consultar', 'Consultar situação')); }
-  else if(r.status === 'rejeitado'){ b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('regenerar', 'Regenerar', 'btn-accent')); }
+  else if(r.status === 'rejeitado'){ if(r.emitida || !CTG.paramsLista.modo_post) b.push(btn('imprimir', 'Reimprimir DANFE')); if(podeF) b.push(btn('regenerar', 'Regenerar', 'btn-accent')); }
   b.push(btn('detalhes', 'Detalhes'));
   return b.join('');
 }
@@ -17418,10 +17418,12 @@ function ctgRenderLista(){
   $('ctg-vazio').classList.toggle('hidden', CTG.itens.length > 0);
   CTG.itens.forEach(r => {
     const normal = r.origem === 'emissao_normal_pendente';
-    const st = normal ? { texto: 'Aguardando emissão fiscal', classe: 'status-neutro' } : ctgStatusInfo(r.status);
+    const post = !normal && CTG.paramsLista.modo_post && !r.emitida;      // Migration 44: sem DANFE fiscal antes da autorização
+    let st = normal ? { texto: 'Aguardando emissão fiscal', classe: 'status-neutro' } : ctgStatusInfo(r.status);
+    if(post && r.status === 'preparando') st = { texto: 'Pendente de autorização — NÃO autorizada (aguardando a SEFAZ)', classe: 'status-aviso2' };
     const tag = r.emitida
       ? '<span class="ctg-tag ctg-tag-emitida">NFC-e emitida em contingência</span>'
-      : '<span class="ctg-tag ctg-tag-aguarda">' + (normal ? 'Venda aguardando emissão fiscal — NFC-e NÃO emitida' : 'Aguardando emissão fiscal — DANFE não impresso') + '</span>';
+      : '<span class="ctg-tag ctg-tag-aguarda">' + (normal ? 'Venda aguardando emissão fiscal — NFC-e NÃO emitida' : (post ? 'Pendente de autorização — sem DANFE fiscal até a SEFAZ autorizar' : 'Aguardando emissão fiscal — DANFE não impresso')) + '</span>';
     const sel = ctgSelecionavel(r);
     const chave = ctgChaveLinha(r);
     const tr = document.createElement('tr');
@@ -17434,6 +17436,7 @@ function ctgRenderLista(){
       + `<td>${tag}<br><span class="status-badge ${st.classe}">${escapeHtml(st.texto)}</span>`
         + (normal ? '' : `<div class="ctg-contador">transmissões: ${Number(r.tentativas_transmissao || 0)}${r.ultima_tentativa_em ? ' · última ' + escapeHtml(ctgFmtDh(r.ultima_tentativa_em)) : ''}</div>`
         + `<div class="ctg-contador">prazo: ${escapeHtml(ctgFmtDh(r.prazo_transmissao))}${ctgVencido(r) ? ' <span class="status-badge status-baixo">VENCIDO</span>' : ''}</div>`
+        + (post && CTG.paramsLista.retransmissao_automatica ? `<div class="ctg-contador">tentativas automáticas: ${Number(r.tentativas_auto || 0)}${r.proxima_tentativa_em && r.status === 'preparando' ? ' · próxima ' + escapeHtml(ctgFmtDh(r.proxima_tentativa_em)) : ''}</div>` : '')
         + (r.reimpressao_pendente ? '<div class="ctg-contador">reimpressão do DANFE pendente</div>' : '')) + `</td>`
       + `<td>${r.erro ? '<div class="ctg-erro">' + escapeHtml(String(r.erro).slice(0, 300)) + '</div>' : '—'}</td>`
       + `<td>${ctgAcoesDaLinha(r)}</td>`;
@@ -17625,10 +17628,14 @@ async function ctgPrepararDocumento(ctgId, vendaId){
   if(error) return { ok: false, mensagem: ctgMsgErro(error) };
   if(ident.status !== 'preparando') return { ok: false, mensagem: 'O documento está "' + ident.status + '" e não precisa de preparo.' };
   const r = await ctgInvocarEdge({ acao: 'preparar', ctg_documento_id: ctgId, venda_id: vendaId || null });
-  if(r.status !== 'preparado'){
-    return { ok: false, mensagem: (r.mensagem || 'O preparo não foi concluído.') + ' O número continua reservado e o documento fica pendente em Fiscal › Notas em contingência.' };
+  if(r.status === 'preparado') return { ok: true, mensagem: r.mensagem };
+  // Migration 44 (modo "re-envio tpEmis=9 pela Dados Jah"): a Edge envia a MESMA requisição, com o mesmo número, e devolve o desfecho.
+  // Só 'autorizado' (cStat 100 + protocolo + chave conferidos pelo servidor) é autorização; todo o resto é PENDENTE (nunca apresentado como autorizado).
+  if(r.status === 'autorizado') return { ok: true, autorizada: true, status: r.status, mensagem: r.mensagem };
+  if(['sefaz_indisponivel', 'nao_enviado', 'resultado_desconhecido', 'rejeitado', 'denegado', 'sem_requisicao', 'limite_de_tentativas', 'automatica_desligada', 'em_andamento', 'conciliacao_pendente'].includes(r.status)){
+    return { ok: false, pendente: true, status: r.status, mensagem: escapeHtml(r.mensagem || 'A NFC-e continua pendente.') + ' A NFC-e continua <b>PENDENTE (NÃO autorizada)</b>, com o mesmo número, e fica em Fiscal › Notas em contingência.' };   // mensagem já em HTML seguro
   }
-  return { ok: true, mensagem: r.mensagem };
+  return { ok: false, status: r.status, mensagem: (r.mensagem || 'O preparo não foi concluído.') + ' O número continua reservado e o documento fica pendente em Fiscal › Notas em contingência.' };
 }
 
 // ---------- ações da tabela ----------
@@ -17639,9 +17646,9 @@ async function ctgAcaoLinha(acao, id){
   const recarregar = async () => { await ctgCarregarStatus(true); ctgRenderStatus(); await Promise.all([ctgCarregarLista(), ctgCarregarReconc()]); };
   if(acao === 'detalhes') return ctgAbrirDetalhes(id);
   if(acao === 'preparar'){
-    ctgMsgPagina('Solicitando o preparo do XML ao serviço em nuvem...', 'success');
+    ctgMsgPagina('Enviando a NFC-e em contingência... não feche esta tela. (Se houver dúvida sobre o resultado, o sistema bloqueia o reenvio.)', 'success');
     const r = await ctgPrepararDocumento(id, linha.venda_id);
-    ctgMsgPagina(escapeHtml(r.mensagem || ''), r.ok ? 'success' : 'error');
+    ctgMsgPagina(r.pendente ? r.mensagem : escapeHtml(r.mensagem || ''), r.ok ? 'success' : 'error');
     return recarregar();
   }
   if(acao === 'imprimir'){
@@ -17745,15 +17752,30 @@ async function ctgFluxoEmitir(vendaId, el){
   if(e2){ say(escapeHtml(ctgMsgErro(e2)) + ' Nenhuma NFC-e foi emitida e nenhum número foi consumido por esta tentativa.', 'error'); return { ok: false }; }
   const rotulo = `NFC-e nº ${escapeHtml(String(ident.nNF))} série ${escapeHtml(String(ident.serie))}`;
   // Repetir o clique é seguro: o banco devolve o MESMO documento (nenhum número novo). Cada estágio segue de onde parou.
-  if(['danfe_impresso', 'transmitindo', 'resultado_desconhecido', 'rejeitado', 'denegado'].includes(ident.status)){
+  if(['danfe_impresso', 'transmitindo'].includes(ident.status)){
     say(`${rotulo} já foi emitida em contingência: <b>${escapeHtml(ctgStatusInfo(ident.status).texto)}</b>. Acompanhe e transmita em Fiscal › Notas em contingência.`, 'success');
     return { ok: true, ctgId: ident.ctg_documento_id, jaEmitida: true };
+  }
+  if(['resultado_desconhecido', 'rejeitado', 'denegado'].includes(ident.status)){
+    say(`${rotulo} <b>NÃO está autorizada</b>: <b>${escapeHtml(ctgStatusInfo(ident.status).texto)}</b>. Não emita novamente. Acompanhe em Fiscal › Notas em contingência.`, 'error');
+    return { ok: false, ctgId: ident.ctg_documento_id, pendente: true };
   }
   if(ident.status === 'autorizado'){ say(`${rotulo} já está autorizada (protocolo recebido).`, 'success'); return { ok: true, jaAutorizada: true }; }
   if(ident.status === 'descartado'){ say(`${rotulo} foi descartada. Acione o suporte fiscal.`, 'error'); return { ok: false }; }
   if(ident.status === 'preparando'){
-    say(`Venda registrada. Número reservado: ${rotulo} (<b>ainda NÃO emitida</b>). Preparando o XML em contingência...`);
+    say(`Venda registrada. Número reservado: ${rotulo} (<b>ainda NÃO autorizada</b>). Enviando em contingência...`);
     const prep = await ctgPrepararDocumento(ident.ctg_documento_id, vendaId);
+    if(prep.autorizada){
+      say(`<b>${rotulo} AUTORIZADA pela SEFAZ</b> (protocolo e chave conferidos). Imprima o DANFE autorizado em <b>Fiscal › Notas em contingência</b> (Reimprimir).`, 'success');
+      ctgCarregarStatus(true);
+      return { ok: true, ctgId: ident.ctg_documento_id, jaAutorizada: true, autorizada: true };
+    }
+    if(prep.pendente){
+      // NFC-e pendente de autorização: NÃO há DANFE fiscal a imprimir (a Dados Jah assina e transmite no mesmo envio). Nunca apresentada como autorizada.
+      say(`<b>${rotulo} PENDENTE DE AUTORIZAÇÃO — NÃO autorizada.</b> ${prep.mensagem} <b>Nenhum DANFE fiscal pode ser impresso antes da autorização.</b> Não emita esta venda de novo.`, 'error');
+      ctgCarregarStatus(true);
+      return { ok: false, ctgId: ident.ctg_documento_id, pendente: true, status: prep.status };
+    }
     if(!prep.ok){
       say(`${rotulo} reservada, <b>mas o XML NÃO foi preparado</b>: ${escapeHtml(prep.mensagem)}<br>O documento ficou pendente em <b>Fiscal › Notas em contingência</b>. Não emita esta venda pelo caminho normal.`, 'error');
       return { ok: false, ctgId: ident.ctg_documento_id, preparado: false };
@@ -17839,6 +17861,9 @@ async function ctgRegularizarAutomatico(motivo){
     const params = { motor_apto: !!dados.motor_apto, ativacao_automatica: !!dados.ativacao_automatica };
     const agora = Date.now();
     const fila = (dados.itens || []).filter(r => {
+      // Migration 44: com a retransmissão automática do servidor ligada (cron), o navegador NÃO envia nem consulta notas de contingência
+      // (evita tentativas em dobro e respeita a espera crescente); continua tratando só as vendas "aguardando emissão fiscal".
+      if(dados.retransmissao_automatica && dados.modo_post && r.origem !== 'emissao_normal_pendente') return false;
       const t = CTG_REG.tent[ctgChaveLinha(r)];
       if(t && (t.parado || t.proxima > agora)) return false;
       if(r.ultima_tentativa_em && agora - new Date(r.ultima_tentativa_em).getTime() < 5 * 60000) return false;   // tentativa recente (qualquer máquina)
