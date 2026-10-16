@@ -1240,6 +1240,12 @@
   .status-baixo{ background: var(--danger-soft); color: var(--danger); }
   .status-ok{ background: var(--teal-soft); color: var(--teal); }
   .status-neutro{ background: var(--border); color: var(--ink-soft); }
+  /* Produtos inativos (Migration 046): linha esmaecida na lista, o selo "Inativo" identifica */
+  tr.produto-inativo td{ opacity:0.62; }
+  tr.produto-inativo td:last-child{ opacity:1; }
+  .search-row select{ padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family: var(--font-body); background:#fff; min-width:150px; }
+  #produto-situacao-impactos ul{ margin:6px 0 0 18px; padding:0; font-size:13px; color: var(--ink); }
+  #produto-situacao-info{ margin-top:10px; }
   .status-aviso2{ background: var(--accent-soft); color:var(--florest-navy); }
   /* Badges do "Destino dos Produtos" do Módulo Bar (BAR / COZINHA / NÃO DEFINIDO) */
   .status-destino-bar{ background: var(--florest-blue-light); color: var(--florest-blue); }
@@ -3105,8 +3111,14 @@
         </div>
       </div>
 
+      <div id="produtos-msg"></div>
       <div class="search-row">
         <input type="text" id="busca-produto" placeholder="Buscar por nome, código ou código de barras..." autocomplete="off">
+        <select id="filtro-produto-situacao" class="hidden" title="Situação do produto">
+          <option value="ativos">Ativos</option>
+          <option value="inativos">Inativos</option>
+          <option value="todos">Todos</option>
+        </select>
       </div>
 
       <div class="table-card">
@@ -3142,6 +3154,11 @@
 
       <div class="search-row" style="align-items:center;">
         <input type="text" id="busca-estoque" placeholder="Buscar por nome, código ou código de barras..." autocomplete="off">
+        <select id="filtro-estoque-situacao" class="hidden" title="Situação do produto">
+          <option value="ativos">Ativos</option>
+          <option value="inativos">Inativos</option>
+          <option value="todos">Todos</option>
+        </select>
         <label class="checkbox-inline" style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; margin:0;">
           <input type="checkbox" id="estoque-so-baixo" style="width:auto;"> Somente estoque baixo
         </label>
@@ -4975,12 +4992,32 @@
       </div>
 
       <div class="modal-section-hint">Campos fiscais são opcionais por enquanto — usados futuramente para emissão de nota fiscal.</div>
+      <div id="produto-situacao-info" class="modal-section-hint hidden"></div>
 
       <div class="modal-actions">
+        <button type="button" class="btn-perigo hidden" id="btn-produto-situacao" style="width:auto; margin-right:auto;">Inativar produto</button>
         <button type="button" class="btn-secondary" id="btn-cancelar-produto">Cancelar</button>
         <button type="submit" class="btn-primary" id="btn-salvar-produto" style="width:auto; padding:10px 20px;">Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== MODAL: INATIVAR / REATIVAR PRODUTO (Migration 046) ===== -->
+<div id="modal-produto-situacao" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card" style="max-width:470px;">
+    <h3 id="produto-situacao-titulo">Inativar produto?</h3>
+    <div id="produto-situacao-texto" class="modal-section-hint" style="margin-top:-6px;"></div>
+    <div id="produto-situacao-impactos" class="modal-section-hint"></div>
+    <div id="produto-situacao-msg"></div>
+    <div class="field" id="produto-situacao-motivo-campo">
+      <label>Motivo (opcional)</label>
+      <input type="text" id="produto-situacao-motivo" maxlength="300" placeholder="Ex: fora de linha, fornecedor descontinuou." autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-produto-situacao-voltar">Voltar</button>
+      <button type="button" class="btn-perigo" id="btn-produto-situacao-confirmar" style="width:auto;">Sim, inativar produto</button>
+    </div>
   </div>
 </div>
 
@@ -6762,7 +6799,7 @@ const appScreen = $('app-screen');
 
 // ---------- Utilitários compartilhados ----------
 // Recursos opcionais do banco, detectados no login (ver detectarRecursos).
-const recursos = { estoqueMinimo: false, categoria: false, vendaGranel: false };
+const recursos = { estoqueMinimo: false, categoria: false, vendaGranel: false, produtoAtivo: false };
 // ---------- Acesso por módulo (funcionários) ----------
 // A tela só ESCONDE o que o usuário não pode usar; quem realmente barra é o banco (RLS + RPCs, Migration 004).
 // Enquanto a Migration 004 não estiver aplicada, tudo continua como antes (todo usuário é tratado como proprietário).
@@ -6885,6 +6922,9 @@ async function detectarRecursos(){
   // produtos.venda_granel (Migration 035): habilita o campo "Vender a granel" no cadastro e o fluxo de peso no PDV
   const gr = await supabase.from('produtos').select('venda_granel').limit(1);
   recursos.vendaGranel = !gr.error;
+  // produtos.ativo (Migration 046): habilita Inativar/Reativar produto e os filtros Ativos | Inativos | Todos
+  const pa = await supabase.from('produtos').select('ativo').limit(1);
+  recursos.produtoAtivo = !pa.error;
 }
 
 // empresa_id do usuário logado (usado nos inserts, como já era feito antes).
@@ -10278,6 +10318,16 @@ const PRODUTOS_POR_PAGINA = 50;
 let produtosPagina = 1;
 let produtosTermo = '';
 let produtosReq = 0;
+let produtosSituacao = 'ativos';   // ativos | inativos | todos  (padrão: só ativos)
+
+// Filtro de situação do produto (Migration 046). Sem a coluna no banco, não filtra (comportamento anterior).
+function aplicarFiltroSituacao(q, valor){
+  if(!recursos.produtoAtivo) return q;
+  if(valor === 'ativos') return q.eq('ativo', true);
+  if(valor === 'inativos') return q.eq('ativo', false);
+  return q;
+}
+function podeGerenciarSituacaoProduto(){ return recursos.produtoAtivo && podeAcessar('produtos'); }
 
 function formatarReais(valor){
   if(valor === null || valor === undefined || valor === '') return '—';
@@ -10290,6 +10340,11 @@ function renderProdutos(lista){
   body.innerHTML = '';
 
   if(lista.length === 0){
+    empty.textContent = produtosTermo.trim()
+      ? 'Nenhum produto encontrado para esta busca e filtro.'
+      : (recursos.produtoAtivo && produtosSituacao === 'inativos'
+          ? 'Nenhum produto inativo.'
+          : 'Nenhum produto encontrado. Clique em "+ Novo produto" ou "Importar produtos" para começar.');
     empty.classList.remove('hidden');
     return;
   }
@@ -10297,17 +10352,21 @@ function renderProdutos(lista){
 
   lista.forEach(p => {
     const tr = document.createElement('tr');
+    const inativo = recursos.produtoAtivo && p.ativo === false;
+    if(inativo) tr.className = 'produto-inativo';
     tr.innerHTML = `
       <td>${escapeHtml(p.codigo || '—')}</td>
-      <td><div class="cliente-nome">${escapeHtml(p.nome)}</div></td>
+      <td><div class="cliente-nome">${escapeHtml(p.nome)}${inativo ? ' <span class="status-badge status-neutro">Inativo</span>' : ''}</div></td>
       <td>${escapeHtml(p.gtin || '—')}</td>
       <td>${escapeHtml(p.unidade_comercial || '—')}</td>
       <td>${formatarReais(p.preco_venda)}</td>
       <td>${formatarReais(p.preco_custo)}</td>
       <td>${formatarQuantidade(p.quantidade_estoque)}</td>
-      <td style="text-align:right;"><button class="link-btn" data-id="${p.id}">Editar</button></td>
+      <td style="text-align:right; white-space:nowrap;"><button class="link-btn" data-id="${p.id}">Editar</button>${podeGerenciarSituacaoProduto() ? ` <button type="button" class="link-btn ${inativo ? '' : 'link-btn-perigo'}" data-situacao="${inativo ? 'reativar' : 'inativar'}">${inativo ? 'Reativar' : 'Inativar'}</button>` : ''}</td>
     `;
     tr.querySelector('.link-btn').addEventListener('click', () => abrirModalProduto(p));
+    const btnSituacao = tr.querySelector('[data-situacao]');
+    if(btnSituacao) btnSituacao.addEventListener('click', () => abrirModalSituacaoProduto(p, btnSituacao.dataset.situacao));
     body.appendChild(tr);
   });
 }
@@ -10319,7 +10378,8 @@ async function carregarProdutos(pagina = 1){
   const ini = (pagina - 1) * PRODUTOS_POR_PAGINA;
   const t = termoSeguro(produtosTermo);
 
-  let q = supabase.from('produtos').select('*', { count: 'exact' });
+  $('filtro-produto-situacao').classList.toggle('hidden', !recursos.produtoAtivo);
+  let q = aplicarFiltroSituacao(supabase.from('produtos').select('*', { count: 'exact' }), produtosSituacao);
   if(t) q = q.or(`nome.ilike.%${t}%,codigo.ilike.%${t}%,gtin.ilike.%${t}%`);
   const { data, error, count } = await q
     .order('nome', { ascending: true })
@@ -10390,7 +10450,34 @@ function abrirModalProduto(produto){
 
   $('produto-venda-granel').checked = !!(produto && produto.venda_granel);
   alternarSecaoFiscal();
+  atualizarSituacaoNoModalProduto(produto);
   $('modal-produto').classList.remove('hidden');
+}
+
+// Botão "Inativar produto" / "Reativar produto" e histórico de situação (quem e quando) no cadastro.
+let produtoModalAtual = null;
+async function atualizarSituacaoNoModalProduto(produto){
+  produtoModalAtual = produto || null;
+  const btn = $('btn-produto-situacao');
+  const info = $('produto-situacao-info');
+  info.classList.add('hidden');
+  info.innerHTML = '';
+  const mostrar = !!produto && podeGerenciarSituacaoProduto();
+  btn.classList.toggle('hidden', !mostrar);
+  if(!mostrar) return;
+  const inativo = produto.ativo === false;
+  btn.textContent = inativo ? 'Reativar produto' : 'Inativar produto';
+  btn.className = inativo ? 'btn-secondary' : 'btn-perigo';
+  btn.style.cssText = 'width:auto; margin-right:auto;';
+  if(!(produto.inativado_em || produto.reativado_em)) return;
+  const { data } = await supabase.from('produtos_situacao_historico')
+    .select('acao, usuario_nome, motivo, criado_em')
+    .eq('produto_id', produto.id).order('criado_em', { ascending: false }).limit(5);
+  if(produtoModalAtual !== produto || !data || !data.length) return;
+  info.innerHTML = '<strong>Histórico de situação</strong><br>' + data.map(h =>
+    `${h.acao === 'inativado' ? 'Inativado' : 'Reativado'} em ${escapeHtml(new Date(h.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))} por ${escapeHtml(h.usuario_nome || 'usuário')}${h.motivo ? ' — ' + escapeHtml(h.motivo) : ''}`
+  ).join('<br>');
+  info.classList.remove('hidden');
 }
 
 function alternarSecaoFiscal(){
@@ -10406,6 +10493,14 @@ function fecharModalProduto(){
 }
 
 $('btn-novo-produto').addEventListener('click', () => abrirModalProduto(null));
+$('btn-produto-situacao').addEventListener('click', () => {
+  if(!produtoModalAtual) return;
+  abrirModalSituacaoProduto(produtoModalAtual, produtoModalAtual.ativo === false ? 'reativar' : 'inativar');
+});
+$('filtro-produto-situacao').addEventListener('change', (e) => {
+  produtosSituacao = e.target.value;
+  carregarProdutos(1);
+});
 $('btn-cancelar-produto').addEventListener('click', fecharModalProduto);
 $('modal-produto').addEventListener('click', (e) => {
   if(e.target.id === 'modal-produto') fecharModalProduto();
@@ -10691,7 +10786,7 @@ function renderEstoque(lista){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <div class="cliente-nome">${escapeHtml(p.nome)}</div>
+        <div class="cliente-nome">${escapeHtml(p.nome)}${recursos.produtoAtivo && p.ativo === false ? ' <span class="status-badge status-neutro">Inativo</span>' : ''}</div>
         <div class="cliente-sub">${[p.codigo, p.gtin].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </td>
       <td>${formatarQuantidade(p.quantidade_estoque)}</td>
@@ -10705,14 +10800,16 @@ function renderEstoque(lista){
 }
 
 function colunasEstoque(){
-  return 'id, nome, codigo, gtin, quantidade_estoque' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
+  return 'id, nome, codigo, gtin, quantidade_estoque' + (recursos.estoqueMinimo ? ', estoque_minimo' : '') + (recursos.produtoAtivo ? ', ativo' : '');
 }
 
 async function carregarEstoque(pagina = 1){
   const req = ++estoqueReq;
   estoquePagina = pagina;
   const t = termoSeguro(estoqueTermo);
-  const comBusca = (q) => t ? q.or(`nome.ilike.%${t}%,codigo.ilike.%${t}%,gtin.ilike.%${t}%`) : q;
+  $('filtro-estoque-situacao').classList.toggle('hidden', !recursos.produtoAtivo);
+  const situacaoEstoqueFiltro = $('filtro-estoque-situacao').value;
+  const comBusca = (q) => aplicarFiltroSituacao(t ? q.or(`nome.ilike.%${t}%,codigo.ilike.%${t}%,gtin.ilike.%${t}%`) : q, situacaoEstoqueFiltro);
 
   if($('estoque-so-baixo').checked){
     // Comparar duas colunas (quantidade x mínimo) não é possível no filtro do servidor:
@@ -10744,6 +10841,84 @@ $('busca-estoque').addEventListener('input', debounce((e) => {
   carregarEstoque(1);
 }, 250));
 $('estoque-so-baixo').addEventListener('change', () => carregarEstoque(1));
+
+// ---------- Inativar / Reativar produto (Migration 046) ----------
+// Nunca exclui: o produto sai de circulação (PDV, Bar, compostos, Otimizador fiscal e demais seleções de venda/lançamento),
+// mas histórico, estoque, vendas e documentos fiscais continuam intactos. A regra é aplicada no BANCO; a tela só reflete.
+let produtoSituacaoAlvo = null;
+let produtoSituacaoAcao = null;
+let produtoSituacaoOcupado = false;
+
+async function abrirModalSituacaoProduto(produto, acao){
+  produtoSituacaoAlvo = produto;
+  produtoSituacaoAcao = acao;
+  produtoSituacaoOcupado = false;
+  const inativar = acao === 'inativar';
+  $('produto-situacao-msg').innerHTML = '';
+  $('produto-situacao-impactos').innerHTML = '';
+  $('produto-situacao-motivo').value = '';
+  $('produto-situacao-motivo-campo').classList.toggle('hidden', !inativar);
+  $('produto-situacao-titulo').textContent = inativar ? 'Inativar produto?' : 'Reativar produto?';
+  $('produto-situacao-texto').innerHTML = inativar
+    ? `<strong>${escapeHtml(produto.nome)}</strong> deixará de aparecer no PDV, no Bar/Restaurante, nos produtos compostos, no Otimizador fiscal e nas demais telas de venda e lançamento, e não poderá ser vendido nem lançado. O produto <strong>não é excluído</strong>: vendas antigas, notas fiscais, movimentações e o saldo de estoque (${escapeHtml(formatarQuantidade(produto.quantidade_estoque))}) continuam exatamente como estão. Você pode reativá-lo quando quiser.`
+    : `<strong>${escapeHtml(produto.nome)}</strong> voltará a aparecer nas buscas e poderá ser vendido e lançado normalmente. O saldo de estoque não é alterado.`;
+  const btn = $('btn-produto-situacao-confirmar');
+  btn.disabled = false;
+  btn.textContent = inativar ? 'Sim, inativar produto' : 'Sim, reativar produto';
+  btn.className = inativar ? 'btn-perigo' : 'btn-primary';
+  btn.style.width = 'auto';
+  $('modal-produto-situacao').classList.remove('hidden');
+
+  if(inativar){
+    // Aviso de impacto (somente leitura): comandas abertas, compostos que usam o produto e atalhos do PDV.
+    const { data, error } = await supabase.rpc('produto_inativacao_verificar', { p_produto_id: produto.id });
+    if(error || produtoSituacaoAlvo !== produto) return;
+    const itens = [];
+    if(Number(data.comandas_pdv_abertas) > 0) itens.push(`${data.comandas_pdv_abertas} comanda(s) aberta(s) do PDV com este produto — continuam podendo ser fechadas ou canceladas normalmente.`);
+    if(Number(data.comandas_bar_abertas) > 0) itens.push(`${data.comandas_bar_abertas} mesa(s)/comanda(s) aberta(s) do Bar com este produto — continuam podendo ser fechadas ou canceladas normalmente.`);
+    if(Array.isArray(data.compostos_que_usam) && data.compostos_que_usam.length) itens.push(`Usado em produto(s) composto(s) do Bar: ${data.compostos_que_usam.map(escapeHtml).join(', ')}. Esses compostos não poderão ser vendidos até você trocar este produto na receita/escolhas.`);
+    if(Number(data.atalhos_pdv) > 0) itens.push(`Está em ${data.atalhos_pdv} atalho(s) do PDV — o botão deixa de aparecer enquanto o produto estiver inativo.`);
+    if(itens.length) $('produto-situacao-impactos').innerHTML = '<strong>Atenção:</strong><ul>' + itens.map(t => `<li>${t}</li>`).join('') + '</ul>';
+  }
+}
+
+function fecharModalSituacaoProduto(){
+  $('modal-produto-situacao').classList.add('hidden');
+  produtoSituacaoAlvo = null;
+}
+$('btn-produto-situacao-voltar').addEventListener('click', fecharModalSituacaoProduto);
+$('modal-produto-situacao').addEventListener('click', (e) => { if(e.target.id === 'modal-produto-situacao') fecharModalSituacaoProduto(); });
+
+$('btn-produto-situacao-confirmar').addEventListener('click', async () => {
+  const p = produtoSituacaoAlvo;
+  if(!p || produtoSituacaoOcupado) return;
+  produtoSituacaoOcupado = true;   // trava duplo clique
+  const btn = $('btn-produto-situacao-confirmar');
+  btn.disabled = true;
+  const inativar = produtoSituacaoAcao === 'inativar';
+  $('produto-situacao-msg').innerHTML = '';
+  const { error } = inativar
+    ? await supabase.rpc('produto_inativar', { p_produto_id: p.id, p_motivo: $('produto-situacao-motivo').value.trim() || null })
+    : await supabase.rpc('produto_reativar', { p_produto_id: p.id });
+  if(error){
+    produtoSituacaoOcupado = false;
+    btn.disabled = false;
+    $('produto-situacao-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  fecharModalSituacaoProduto();
+  fecharModalProduto();
+  // caches que poderiam ainda mostrar o produto: busca do PDV e catálogo de compostos do Bar
+  pdvCache.clear();
+  barProdutosCatalogoCache = null;
+  barCardapioCache = [];
+  $('produtos-msg').innerHTML = `<div class="msg success">Produto "${escapeHtml(p.nome)}" ${inativar ? 'inativado. Ele não aparece mais para novas vendas e lançamentos; o histórico e o estoque foram mantidos.' : 'reativado. Ele já pode ser vendido e lançado novamente.'}</div>`;
+  carregarProdutos(produtosPagina);
+  if(!$('view-estoque').classList.contains('hidden')) carregarEstoque(estoquePagina);
+});
+
+$('filtro-estoque-situacao').addEventListener('change', () => carregarEstoque(1));
+
 
 function abrirModalEstoque(produto){
   $('estoque-msg').innerHTML = '';
@@ -10979,6 +11154,7 @@ async function pdvConsultarProdutos({ ids, gtins, codigo, busca, limite } = {}){
     pdvRpcConsulta = false;
   }
   let q = supabase.from('produtos').select(recursos.vendaGranel ? PDV_COLUNAS + ', venda_granel' : PDV_COLUNAS);
+  if(recursos.produtoAtivo) q = q.eq('ativo', true);   // produto inativo nunca aparece para nova venda
   if(ids){
     q = q.in('id', ids);
   } else {
@@ -15515,7 +15691,7 @@ async function relatorioFiscalPorTipo(filtros){
 }
 
 async function buscarProdutosParaRelatorioEstoque(){
-  const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '');
+  const colunas = 'id, nome, quantidade_estoque, preco_custo, preco_venda' + (recursos.estoqueMinimo ? ', estoque_minimo' : '') + (recursos.produtoAtivo ? ', ativo' : '');
   const { data, error } = await buscarTodos(() => supabase.from('produtos').select(colunas).order('id', { ascending: true }));
   if(error) throw error;
   return data || [];
@@ -15542,7 +15718,8 @@ async function relatorioEstoquePosicao(){
 }
 
 async function relatorioEstoqueBaixo(){
-  const produtos = await buscarProdutosParaRelatorioEstoque();
+  // produto inativo não entra na reposição (o saldo dele continua na "Posição de estoque", que é patrimonial)
+  const produtos = (await buscarProdutosParaRelatorioEstoque()).filter(p => p.ativo !== false);
   const baixos = produtos.filter(p => situacaoEstoque(p) !== 'ok')
     .sort((a, b) => Number(a.quantidade_estoque) - Number(b.quantidade_estoque));
   return {
@@ -15555,7 +15732,7 @@ async function relatorioEstoqueBaixo(){
 async function relatorioProdutosCadastrados(filtros){
   const termo = (filtros.busca || '').trim();
   const { data, error } = await buscarTodos(() => {
-    let q = supabase.from('produtos').select('id, nome, codigo, preco_custo, preco_venda, quantidade_estoque');
+    let q = supabase.from('produtos').select('id, nome, codigo, preco_custo, preco_venda, quantidade_estoque' + (recursos.produtoAtivo ? ', ativo' : ''));
     if(termo) q = q.ilike('nome', `%${termo}%`);
     return q.order('nome', { ascending: true }).order('id', { ascending: true });
   });
@@ -15564,7 +15741,7 @@ async function relatorioProdutosCadastrados(filtros){
   return {
     titulo: 'Listagem de produtos',
     colunas: ['Produto', 'Código', 'Preço de custo', 'Preço de venda', 'Estoque'],
-    linhas: produtos.map(p => [escapeHtml(p.nome), escapeHtml(p.codigo || '—'), formatarReais(p.preco_custo || 0), formatarReais(p.preco_venda || 0), formatarQuantidade(p.quantidade_estoque)]),
+    linhas: produtos.map(p => [escapeHtml(p.nome) + (p.ativo === false ? ' (inativo)' : ''), escapeHtml(p.codigo || '—'), formatarReais(p.preco_custo || 0), formatarReais(p.preco_venda || 0), formatarQuantidade(p.quantidade_estoque)]),
   };
 }
 
@@ -18724,10 +18901,13 @@ $('ne-arquivo-xml').addEventListener('change', async (e) => {
     const gtins = dados.itens.map(i => i.gtin).filter(Boolean);
     let produtosPorGtin = {};
     if(gtins.length > 0){
-      const { data: produtosData } = await supabase.from('produtos').select('id, nome, gtin, quantidade_estoque, preco_venda, unidade_comercial').in('gtin', gtins);
+      const { data: produtosData } = await supabase.from('produtos').select('id, nome, gtin, quantidade_estoque, preco_venda, unidade_comercial' + (recursos.produtoAtivo ? ', ativo' : '')).in('gtin', gtins);
       (produtosData || []).forEach(p => { produtosPorGtin[p.gtin] = p; });
     }
-    const { data: todosProdutos } = await supabase.from('produtos').select('id, nome, quantidade_estoque, preco_venda, unidade_comercial').order('nome');
+    // produtos inativos não entram na lista de vínculo; só ficam se o GTIN do XML bateu com um (aparece marcado, e a confirmação é bloqueada)
+    const { data: todosProdutosBrutos } = await supabase.from('produtos').select('id, nome, quantidade_estoque, preco_venda, unidade_comercial' + (recursos.produtoAtivo ? ', ativo' : '')).order('nome');
+    const idsInativosComGtin = new Set(Object.values(produtosPorGtin).filter(p => p.ativo === false).map(p => p.id));
+    const todosProdutos = (todosProdutosBrutos || []).filter(p => p.ativo !== false || idsInativosComGtin.has(p.id));
 
     const produtosPorId = {};
     (todosProdutos || []).forEach(p => { produtosPorId[p.id] = p; });
@@ -18785,7 +18965,7 @@ function renderConferenciaNota(todosProdutos){
     const row = document.createElement('div');
     row.className = 'ne-item-row';
 
-    const opcoesProdutos = todosProdutos.map(p => `<option value="${p.id}" ${item.produto_id === p.id ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+    const opcoesProdutos = todosProdutos.map(p => `<option value="${p.id}" ${item.produto_id === p.id ? 'selected' : ''} ${p.ativo === false ? 'disabled' : ''}>${escapeHtml(p.nome)}${p.ativo === false ? ' (INATIVO)' : ''}</option>`).join('');
     const vinculoHtml = `
       <select class="ne-select-produto" data-idx="${idx}">
         <option value="" ${!item.produto_id ? 'selected' : ''}>+ Cadastrar novo produto</option>
@@ -18962,6 +19142,12 @@ function atualizarResumoNota(){
 $('btn-confirmar-entrada').addEventListener('click', async () => {
   const d = notaEmConferencia;
   if(!d) return;
+  // Produto inativo não recebe entrada em nota nova (o banco também recusa): reative o cadastro ou vincule a outro produto.
+  const itensInativos = d.itens.filter(i => i.produto_id && notaEmConferenciaProdutosPorId[i.produto_id] && notaEmConferenciaProdutosPorId[i.produto_id].ativo === false);
+  if(itensInativos.length){
+    $('ne-msg').innerHTML = `<div class="msg error">Produto inativo na nota: ${itensInativos.map(i => escapeHtml(notaEmConferenciaProdutosPorId[i.produto_id].nome)).join(', ')}. Reative o produto em Produtos ou vincule o item a outro produto.</div>`;
+    return;
+  }
 
   const ehAvista = $('ne-tab-avista').classList.contains('active');
   const btn = $('btn-confirmar-entrada');
@@ -19862,16 +20048,20 @@ function renderResumoFinanceiroMesa(){
 async function carregarCardapioBar(){
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
-    .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda ),
+    .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda${recursos.produtoAtivo ? ', ativo' : ''} ),
              bar_produto_grupos ( id, nome, quantidade_escolhas, ordem,
-               bar_produto_grupo_opcoes ( produto_id, ordem, produtos ( nome ) ) )`)
+               bar_produto_grupo_opcoes ( produto_id, ordem, produtos ( nome${recursos.produtoAtivo ? ', ativo' : ''} ) ) )`)
     .eq('ativo_cardapio', true)
     .order('id'));
   if(error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  barCardapioCache = (data || []).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
+  // Produto inativo (Migration 046) nunca é oferecido: nem o item do cardápio, nem como escolha de grupo.
+  (data || []).forEach(bp => (bp.bar_produto_grupos || []).forEach(g => {
+    g.bar_produto_grupo_opcoes = (g.bar_produto_grupo_opcoes || []).filter(o => !(o.produtos && o.produtos.ativo === false));
+  }));
+  barCardapioCache = (data || []).filter(bp => !(bp.produtos && bp.produtos.ativo === false)).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
 }
 
 // ---------- Busca de produto na mesa (Fase 2 — "mini PDV") ----------
@@ -20658,12 +20848,12 @@ $('btn-novo-produto-bar').addEventListener('click', () => abrirModalProdutoBar(n
 async function garantirCatalogoProdutosBar(){
   if(!barProdutosCatalogoCache){
     const [{ data: produtosData }, { data: barData }] = await Promise.all([
-      buscarTodos(() => supabase.from('produtos').select('id, nome, preco_venda').order('nome')),
+      buscarTodos(() => supabase.from('produtos').select('id, nome, preco_venda' + (recursos.produtoAtivo ? ', ativo' : '')).order('nome')),
       buscarTodos(() => supabase.from('bar_produtos').select('produto_id, tipo')),
     ]);
     const tipoPorProduto = new Map((barData || []).map(bp => [bp.produto_id, bp.tipo]));
     barProdutosCatalogoCache = (produtosData || []).map(p => ({
-      id: p.id, nome: p.nome, preco_venda: p.preco_venda,
+      id: p.id, nome: p.nome, preco_venda: p.preco_venda, ativo: p.ativo !== false,
       tipoBar: tipoPorProduto.get(p.id) || 'simples',
     }));
   }
@@ -20718,6 +20908,8 @@ function renderGruposEdicao(){
       // combos) — não oferece a opção, exceto se por algum motivo já estiver marcada (deixa visível
       // para o dono poder desmarcar; o backend rejeita de qualquer forma se tentar salvar assim).
       if(p.tipoBar === 'composto' && !jaSelecionado) return;
+      // Produto inativo não pode virar opção nova; se já estava marcada, fica visível (marcada) para poder ser desmarcada.
+      if(!p.ativo && !jaSelecionado) return;
       const lbl = document.createElement('label'); lbl.className = 'chk';
       const chk = document.createElement('input'); chk.type = 'checkbox';
       chk.checked = jaSelecionado;
@@ -20728,7 +20920,7 @@ function renderGruposEdicao(){
           grupo.opcoes = grupo.opcoes.filter(o => o.produto_id !== p.id);
         }
       });
-      lbl.appendChild(chk); lbl.appendChild(document.createTextNode(p.nome));
+      lbl.appendChild(chk); lbl.appendChild(document.createTextNode(p.nome + (p.ativo ? '' : ' (INATIVO — desmarque)')));
       listaOpcoes.appendChild(lbl);
     });
     card.appendChild(listaOpcoes);
@@ -20751,7 +20943,7 @@ async function abrirModalProdutoBar(id){
   const catalogo = await garantirCatalogoProdutosBar();
   const sel = $('bar-produto-produto');
   sel.innerHTML = '';
-  catalogo.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
+  catalogo.forEach(p => { if(!p.ativo) return; const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
   const atualizarPrecoHint = () => {
     const p = catalogo.find(x => x.id === sel.value);
     $('bar-produto-preco-atual').textContent = p ? `Preço final de venda: ${formatarReais(p.preco_venda)} (para alterar nome ou preço, edite em Produtos).` : '';
@@ -20766,6 +20958,10 @@ async function abrirModalProdutoBar(id){
     if(errBp || !bp){
       $('bar-produto-msg').innerHTML = '<div class="msg error">Produto composto não encontrado.</div>';
     } else {
+      if(![...sel.options].some(o => o.value === bp.produto_id)){   // produto-base já inativo: mantém visível para edição
+        const inat = catalogo.find(x => x.id === bp.produto_id);
+        if(inat){ const o = document.createElement('option'); o.value = inat.id; o.textContent = inat.nome + ' (INATIVO)'; sel.appendChild(o); }
+      }
       sel.value = bp.produto_id;
       barGruposEdicao = (bp.bar_produto_grupos || [])
         .slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
