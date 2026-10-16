@@ -5517,7 +5517,10 @@
         <h3 id="bar-mesa-titulo" style="margin-bottom:6px;">Mesa</h3>
         <span class="bar-mesa-status-badge" id="bar-mesa-status-badge">Em aberto</span>
       </div>
-      <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+        <button type="button" class="btn-perigo hidden" id="btn-bar-mesa-cancelar" style="width:auto;">Cancelar mesa</button>
+        <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
+      </div>
     </div>
     <div id="bar-mesa-msg"></div>
 
@@ -5669,6 +5672,24 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="btn-bar-cancelar-item-voltar">Voltar</button>
       <button type="button" class="btn-primary" id="btn-bar-cancelar-item-confirmar" style="width:auto; padding:10px 20px;">Cancelar item</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: confirmar o cancelamento da MESA (Migration 045). Só chega aqui uma mesa sem consumo válido e sem
+     pagamento (o banco confere de novo): a comanda é encerrada como CANCELADA (histórico mantido) e a mesa fica livre. -->
+<div id="modal-bar-cancelar-mesa" class="modal-overlay modal-overlay-secundario hidden">
+  <div class="modal-card" style="max-width:440px;">
+    <h3 id="bar-cancelar-mesa-titulo">Cancelar mesa</h3>
+    <p class="modal-section-hint" style="margin-top:-6px;">A comanda será encerrada como <strong>cancelada</strong> e a mesa ficará <strong>livre</strong> para outro cliente. O histórico (pedidos e itens cancelados) é mantido. Esta ação não pode ser desfeita.</p>
+    <div id="bar-cancelar-mesa-msg"></div>
+    <div class="field">
+      <label>Motivo do cancelamento da mesa</label>
+      <textarea id="bar-cancelar-mesa-motivo" placeholder="Ex: cliente desistiu e saiu."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-bar-cancelar-mesa-voltar">Voltar</button>
+      <button type="button" class="btn-perigo" id="btn-bar-cancelar-mesa-confirmar" style="width:auto;">Sim, cancelar mesa</button>
     </div>
   </div>
 </div>
@@ -19047,6 +19068,9 @@ let barDestinoCache = [];
 let barDestinoSelecionados = new Set();
 let barGruposEdicao = []; // [{ nome, quantidade_escolhas, ordem, opcoes:[{produto_id,nome,ordem}] }]
 let barItemParaCancelar = null;
+let barMesaQtdItensValidos = 0;   // itens da comanda aberta que NÃO estão cancelados (pré-checagem do "Cancelar mesa"; o banco confere de novo)
+let barMesaQtdPagamentos = 0;     // pagamentos já registrados na comanda aberta (qualquer status)
+let barCancelandoMesa = false;    // bloqueia duplo clique no "Sim, cancelar mesa"
 let barProdutoBarEditandoId = null;
 let barProdutosCatalogoCache = null;
 let barEstornoPagamentoId = null;
@@ -19724,6 +19748,9 @@ async function abrirModalMesa(mesa){
   barMesaResumoAtual = null;
   barMesaItemSelecionado = null;
   barMesaCarrinho = [];
+  barMesaQtdItensValidos = 0;
+  barMesaQtdPagamentos = 0;
+  atualizarBotaoCancelarMesa();
   $('bar-mesa-msg').innerHTML = '';
   $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
   $('bar-mesa-busca-produto').value = '';
@@ -19766,6 +19793,9 @@ async function atualizarSaldoEItensMesa(){
     renderResumoFinanceiroMesa();
     renderItensComandaMesa([]);
     $('bar-mesa-historico-wrap').classList.add('hidden');
+    barMesaQtdItensValidos = 0;
+    barMesaQtdPagamentos = 0;
+    atualizarBotaoCancelarMesa();
     return;
   }
   // Fase 4: pedido_id + bar_pedidos(criado_por) entram só para resolver "Lançado por X" — a
@@ -19789,7 +19819,9 @@ async function atualizarSaldoEItensMesa(){
   barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
   renderResumoFinanceiroMesa();
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
+  barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
   await carregarHistoricoPagamentosMesa();
+  atualizarBotaoCancelarMesa();
 }
 
 // "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
@@ -20101,6 +20133,56 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
 });
 
+// ---------- Cancelar mesa (Migration 045) ----------
+// O botão vermelho só aparece para quem tem a permissão de cancelamento (bar_cancelar_pedido) e só quando a mesa
+// tem uma comanda aberta. A decisão de verdade é do banco (bar_mesa_cancelar): sem pagamento, sem documento
+// fiscal e sem item válido. As mensagens daqui só poupam um clique à toa.
+function atualizarBotaoCancelarMesa(){
+  const btn = $('btn-bar-mesa-cancelar');
+  if(!btn) return;
+  btn.classList.toggle('hidden', !(barComandaAtualId && barMesaAtual && podeAcessarBar('bar_cancelar_pedido')));
+}
+
+$('btn-bar-mesa-cancelar').addEventListener('click', () => {
+  if(!barComandaAtualId || !barMesaAtual) return;
+  if(barMesaQtdPagamentos > 0){
+    $('bar-mesa-msg').innerHTML = '<div class="msg error">Esta mesa já tem pagamento registrado e não pode ser cancelada. Para desfazer um pagamento, use o estorno; se não restar consumo, a mesa fecha normalmente.</div>';
+    return;
+  }
+  if(barMesaQtdItensValidos > 0){
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">Esta mesa ainda tem ${barMesaQtdItensValidos} item(ns) lançado(s). Cancele primeiro os itens (botão "Cancelar" na linha de cada item) e depois cancele a mesa.</div>`;
+    return;
+  }
+  $('bar-mesa-msg').innerHTML = '';
+  $('bar-cancelar-mesa-titulo').textContent = `Cancelar Mesa ${barMesaAtual.numero}?`;
+  $('bar-cancelar-mesa-msg').innerHTML = '';
+  $('bar-cancelar-mesa-motivo').value = '';
+  $('modal-bar-cancelar-mesa').classList.remove('hidden');
+});
+$('btn-bar-cancelar-mesa-voltar').addEventListener('click', () => $('modal-bar-cancelar-mesa').classList.add('hidden'));
+$('btn-bar-cancelar-mesa-confirmar').addEventListener('click', async () => {
+  if(barCancelandoMesa || !barMesaAtual) return;
+  const motivo = $('bar-cancelar-mesa-motivo').value.trim();
+  if(motivo.length < 3){ $('bar-cancelar-mesa-msg').innerHTML = '<div class="msg error">Informe o motivo (mínimo 3 caracteres).</div>'; return; }
+  barCancelandoMesa = true;
+  const btn = $('btn-bar-cancelar-mesa-confirmar');
+  btn.disabled = true; btn.textContent = 'Cancelando...';
+  const mesaId = barMesaAtual.id, numero = barMesaAtual.numero;
+  const { error } = await supabase.rpc('bar_mesa_cancelar', { p_mesa_id: mesaId, p_motivo: motivo });
+  barCancelandoMesa = false;
+  btn.disabled = false; btn.textContent = 'Sim, cancelar mesa';
+  if(error){
+    $('bar-cancelar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  $('modal-bar-cancelar-mesa').classList.add('hidden');
+  $('modal-bar-mesa').classList.add('hidden');
+  barComandaAtualId = null;
+  barMesaAtual = null;
+  await carregarBarMesas();
+  $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${numero} cancelada e liberada para outro cliente.</div>`;
+});
+
 // ---------- Pagamento (dentro do mesmo modal da mesa) ----------
 // Precisa ser EXATAMENTE a mesma lista (mesmas strings, mesma grafia) usada pelos botões de forma
 // de pagamento do PDV (ver #pdx-pagto) — senão a mesma forma de pagamento vira dois "baldes"
@@ -20225,12 +20307,13 @@ $('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa
 // faturamento continua sendo public.vendas — ver relatório final).
 async function carregarHistoricoPagamentosMesa(){
   const wrap = $('bar-mesa-historico-wrap');
-  if(!barComandaAtualId){ wrap.classList.add('hidden'); return; }
+  if(!barComandaAtualId){ wrap.classList.add('hidden'); barMesaQtdPagamentos = 0; return; }
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_pagamentos')
     .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
     .eq('comanda_id', barComandaAtualId)
     .order('criado_em', { ascending: false }));
+  barMesaQtdPagamentos = (!error && data) ? data.length : 0;
   if(error || !data || data.length === 0){
     wrap.classList.add('hidden');
     return;
@@ -20329,6 +20412,7 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
     .select('id')
     .eq('empresa_id', empresaId)
     .eq('mesa_id', mesa.id)
+    .neq('status', 'cancelada')     // Migration 045: uma comanda cancelada não tem pagamento e esconderia o atendimento pago anterior
     .order('criado_em', { ascending: false })
     .limit(1)
     .maybeSingle();
