@@ -20835,14 +20835,17 @@ async function carregarBarDestino(){
   const termo = termoSeguro($('bar-destino-busca').value).toLowerCase();
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
-    .select('id, produto_id, tipo, destino_operacional, produtos ( nome )')
+    .select(`id, produto_id, tipo, destino_operacional, produtos ( nome${recursos.produtoAtivo ? ', ativo' : ''} )`)
     .order('id'));
   if(error){
     $('bar-destino-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
-  let itens = (data || []).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
+  let itens = (data || []).filter(it => it.produtos && it.produtos.ativo !== false).slice().sort((a, b) => (a.produtos ? a.produtos.nome : '').localeCompare(b.produtos ? b.produtos.nome : ''));
   if(termo) itens = itens.filter(it => (it.produtos ? it.produtos.nome : '').toLowerCase().includes(termo));
+  // Não manter seleção de produtos inativos ou ausentes da lista.
+  const idsVisiveis = new Set(itens.map(it => String(it.produto_id)));
+  for(const id of barDestinoSelecionados) if(!idsVisiveis.has(String(id))) barDestinoSelecionados.delete(id);
   barDestinoCache = itens;
   $('bar-destino-empty').classList.toggle('hidden', itens.length > 0);
   $('bar-destino-marcar-todos').checked = false;
