@@ -5555,6 +5555,7 @@
         <span class="bar-mesa-status-badge" id="bar-mesa-status-badge">Em aberto</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+        <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-transferir" style="width:auto;">Transferir mesa</button>
         <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-relatorio" style="width:auto;" title="Imprime a conta de conferência da mesa aberta no Caixa. Não registra pagamento nem é documento fiscal.">Imprimir relatório da mesa</button>
         <button type="button" class="btn-perigo hidden" id="btn-bar-mesa-cancelar" style="width:auto;">Cancelar mesa</button>
         <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
@@ -19925,6 +19926,46 @@ function aoClicarMesaBar(mesa){
   abrirModalMesa(mesa);
 }
 
+// Transferência: só muda a mesa da comanda no banco; NÃO relança pedidos, estoque nem imprime.
+let barTransferindoMesa = false;
+function atualizarBotaoTransferirMesa(){
+  const btn = $('btn-bar-mesa-transferir');
+  if(!btn) return;
+  btn.classList.toggle('hidden', !(barMesaAtual && barMesaAtual.status === 'ocupada' &&
+    barComandaAtualId && (podeAcessarBar('bar_mesas') || podeAcessarBar('bar_caixa'))));
+}
+$('btn-bar-mesa-transferir').addEventListener('click', async () => {
+  if(barTransferindoMesa || !barMesaAtual || !barComandaAtualId) return;
+  if(barMesaCarrinho.length){
+    $('bar-mesa-msg').innerHTML = '<div class="msg error">Lance ou remova os produtos ainda no carrinho antes de transferir.</div>';
+    return;
+  }
+  const origem = barMesaAtual.numero;
+  const resposta = prompt(`Transferir a Mesa ${origem} para qual número de mesa LIVRE?`);
+  if(resposta === null) return;
+  const destino = Number(resposta.trim());
+  if(!Number.isSafeInteger(destino) || destino <= 0 || destino === origem){
+    $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe o número de outra mesa válida.</div>';
+    return;
+  }
+  if(!confirm(`Transferir TODOS os pedidos e pagamentos da Mesa ${origem} para a Mesa ${destino}? A mesa antiga ficará livre.`)) return;
+  const btn = $('btn-bar-mesa-transferir');
+  barTransferindoMesa = true; btn.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc('bar_mesa_transferir', {
+      p_mesa_origem_id: barMesaAtual.id, p_mesa_destino_numero: destino
+    });
+    if(error) throw error;
+    if(!data || data.sucesso !== true) throw new Error('Transferência não confirmada pelo servidor.');
+    $('modal-bar-mesa').classList.add('hidden');
+    barMesaAtual = null; barComandaAtualId = null;
+    await carregarBarMesas();
+    $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${origem} transferida para Mesa ${destino}. Nenhum pedido foi reimpresso.</div>`;
+  } catch(e) {
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">Transferência não realizada: ${escapeHtml(e.message || String(e))}</div>`;
+  } finally { barTransferindoMesa = false; btn.disabled = false; }
+});
+
 // ---------- Modal único da mesa (pedido + pagamento) ----------
 // Requisito central da Migration 018: clicar numa mesa LIVRE nunca pergunta quantidade de
 // pessoas — o modal abre normalmente (sem comanda ainda) e a mesa só passa a existir de verdade
@@ -19939,6 +19980,7 @@ async function abrirModalMesa(mesa){
   barMesaQtdPagamentos = 0;
   atualizarBotaoCancelarMesa();
   atualizarBotaoRelatorioMesa();
+  atualizarBotaoTransferirMesa();
   $('bar-mesa-msg').innerHTML = '';
   $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
   $('bar-mesa-busca-produto').value = '';
@@ -20012,6 +20054,7 @@ async function atualizarSaldoEItensMesa(){
   await carregarHistoricoPagamentosMesa();
   atualizarBotaoCancelarMesa();
   atualizarBotaoRelatorioMesa();
+  atualizarBotaoTransferirMesa();
 }
 
 // "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
@@ -20257,6 +20300,7 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
     if(resultado.mesa_aberta_agora){
       const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
       if(mesaAtualizada) barMesaAtual = mesaAtualizada;
+    atualizarBotaoTransferirMesa();
     }
   }
   barMesaCarrinho = [];
@@ -20554,6 +20598,7 @@ async function receberPagamentoMesaComForma(forma){
     const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', mesaId).single();
     mesaFoiLiberada = !!mesaAtualizada && mesaAtualizada.status === 'livre';
     if(mesaAtualizada) barMesaAtual = mesaAtualizada;
+    atualizarBotaoTransferirMesa();
     if(mesaFoiLiberada) barComandaAtualId = null;
 
     await atualizarSaldoEItensMesa();
@@ -20591,6 +20636,7 @@ async function carregarHistoricoPagamentosMesa(){
     .eq('comanda_id', barComandaAtualId)
     .order('criado_em', { ascending: false }));
   barMesaQtdPagamentos = (!error && data) ? data.length : 0;
+  atualizarBotaoTransferirMesa();
   if(error || !data || data.length === 0){
     wrap.classList.add('hidden');
     return;
