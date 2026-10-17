@@ -5117,7 +5117,7 @@
     <h3 id="modal-usuario-titulo">Novo funcionário</h3>
     <div id="usuario-msg"></div>
     <form id="form-usuario" autocomplete="off">
-      <input type="hidden" id="usr-id">
+      <input type="hidden" id="usr-id"><label>Perfil<select id="usr-papel"><option value="funcionario">Funcionário</option><option value="proprietario">Proprietário</option></select></label>
       <div class="field-row">
         <div class="field"><label>Nome</label><input type="text" id="usr-nome" maxlength="200" required></div>
         <div class="field"><label>Usuário</label><input type="text" id="usr-usuario" maxlength="60" pattern="\S{2,60}" title="Sem espaços, de 2 a 60 caracteres" autocomplete="off"></div>
@@ -5126,7 +5126,7 @@
         <div class="field">
           <label id="usr-senha-rotulo">Senha inicial</label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="usr-senha" maxlength="18" autocomplete="new-password" placeholder="de 5 a 18 caracteres" style="flex:1;">
+            <input type="text" id="usr-senha" minlength="6" maxlength="18" autocomplete="new-password" placeholder="de 6 a 18 caracteres" style="flex:1;">
             <button type="button" class="btn-secondary" id="btn-usr-gerar-senha" style="white-space:nowrap;">Gerar</button>
           </div>
           <div class="modal-section-hint" id="usr-senha-dica" style="margin:6px 0 0;">Entregue este usuário e esta senha ao funcionário. Ele entra com o e-mail da empresa, este usuário e esta senha, na tela de login.</div>
@@ -6785,7 +6785,7 @@ const { abrirImportador, somenteDigitos, chaveGtin, variantesGtin } = await impo
 // (NUNCA coloque aqui a chave "service_role" nem qualquer segredo.)
 // =====================================================================
 const SUPABASE_URL = 'https://etulhyboogqhyyevpnlo.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UCNen-tR3sZvlMvNBCzh3w_6Wer5Pin';
+const SUPABASE_ANON_KEY = 'CONFIGURE_SUA_CHAVE_PUBLICA_SUPABASE';
 
 const SUPABASE_CONFIGURADO =
   /^https:\/\/\S+$/.test(SUPABASE_URL) && !SUPABASE_URL.includes('COLE_AQUI') &&
@@ -7473,7 +7473,7 @@ function mensagemBancoAcesso(error){
 
 async function carregarUsuarios(){
   $('usuarios-msg').innerHTML = '';
-  const { data, error } = await supabase.rpc('usuarios_listar');
+  const { data, error } = await supabase.rpc(acesso.papel === 'proprietario' ? 'florest_usuarios_listar' : 'usuarios_listar');
   if(error){
     usuariosLista = [];
     renderUsuarios();
@@ -7645,7 +7645,7 @@ $('form-usuario').addEventListener('submit', async (e) => {
   if(!id){
     if(!/^\S{2,60}$/.test(usuario)){ usuarioMsg('Informe um usuário sem espaços, de 2 a 60 caracteres.'); return; }
     if(!senhaValida(senha)){ usuarioMsg(MSG_SENHA); return; }
-    if(permissoes.length === 0 && !confirm('Nenhum módulo foi marcado: este funcionário não conseguirá usar nada. Criar mesmo assim?')) return;
+    if($('usr-papel').value !== 'proprietario' && permissoes.length === 0 && !confirm('Nenhum módulo foi marcado: este funcionário não conseguirá usar nada. Criar mesmo assim?')) return;
   } else {
     if(usuario && !/^\S{2,60}$/.test(usuario)){ usuarioMsg('Informe um usuário sem espaços, de 2 a 60 caracteres, ou deixe em branco.'); return; }
     if(senha && !senhaValida(senha)){ usuarioMsg(MSG_SENHA); return; }
@@ -7655,23 +7655,23 @@ $('form-usuario').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     if(!id){
-      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar', nome, usuario, senha, permissoes } });
+      const { data, error } = await supabase.functions.invoke('distgestor-usuarios', { body: { acao: 'criar', nome, usuario, senha, permissoes, papel: $('usr-papel').value } });
       if(error || !data || data.ok !== true){ usuarioMsg(escapeHtml(await mensagemErroFuncao(error, data))); return; }
     } else {
-      const base = { p_id: id, p_nome: nome, p_ativo: $('usr-status').value === 'ativo', p_permissoes: permissoes };
+      const base = { p_id: id, p_nome: nome, p_ativo: $('usr-status').value === 'ativo', p_permissoes: permissoes, p_papel: $('usr-papel').value, p_usuario: usuario || null };
       // "usuario" só é enviado se o campo foi preenchido — Migration 027 (p_usuario em
       // usuarios_atualizar) ainda pode não estar aplicada neste banco; se a função ainda não
       // aceitar este parâmetro, refazemos a chamada sem ele (mesmo idioma de detecção já usado em
       // mensagemBancoAcesso) para não impedir salvar nome/status/permissões por causa disso.
       let resultado = usuario
-        ? await supabase.rpc('usuarios_atualizar', { ...base, p_usuario: usuario })
-        : await supabase.rpc('usuarios_atualizar', base);
+        ? await supabase.rpc('florest_usuario_salvar', { ...base, p_usuario: usuario })
+        : await supabase.rpc('florest_usuario_salvar', base);
       let usuarioNaoSalvo = false;
       if(resultado.error && usuario){
         const m = (resultado.error.message || '');
         const semSuporte = resultado.error.code === 'PGRST202' || resultado.error.code === '42883' || /could not find the function|does not exist/i.test(m);
         if(semSuporte){
-          resultado = await supabase.rpc('usuarios_atualizar', base);
+          resultado = await supabase.rpc('florest_usuario_salvar', base);
           usuarioNaoSalvo = !resultado.error;
         }
       }
@@ -7687,14 +7687,15 @@ $('form-usuario').addEventListener('submit', async (e) => {
       if(usuarioNaoSalvo){
         fecharModalUsuario();
         $('usuarios-msg').innerHTML = '<div class="msg success">Funcionário atualizado. O usuário ainda não pôde ser salvo (recurso pendente de atualização no banco) — os demais dados foram salvos normalmente.</div>';
-        const { data, error } = await supabase.rpc('usuarios_listar');
+        const { data, error } = await supabase.rpc(acesso.papel === 'proprietario' ? 'florest_usuarios_listar' : 'usuarios_listar');
         if(!error){ usuariosLista = data || []; renderUsuarios(); }
         return;
       }
     }
     fecharModalUsuario();
+    if(id && id === acesso.userId){ location.reload(); return; }
     $('usuarios-msg').innerHTML = `<div class="msg success">${id ? 'Funcionário atualizado.' : 'Funcionário criado. Entregue o usuário e a senha inicial a ele.'}</div>`;
-    const { data, error } = await supabase.rpc('usuarios_listar');
+    const { data, error } = await supabase.rpc(acesso.papel === 'proprietario' ? 'florest_usuarios_listar' : 'usuarios_listar');
     if(!error){ usuariosLista = data || []; renderUsuarios(); }
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar';
@@ -20318,7 +20319,7 @@ function renderItensComandaMesa(itens, nomesPorId){
     let status = 'Em aberto', statusClasse = 'status-neutro';
     if(it.estornado){ status = 'Cancelado'; statusClasse = 'status-baixo'; }
     else if(it.pagamento_id){ status = 'Pago'; statusClasse = 'status-ok'; }
-    const podeCancelar = !it.estornado && !it.pagamento_id && podeAcessarBar('bar_cancelar_pedido');
+    const podeCancelar = !it.estornado && !it.pagamento_id && !!modulosComerciais.bar;
     // Requisito #6 (herdado): um composto do modelo novo não tem destino próprio
     // (destino_operacional='sem_destino' na linha comercial) — quem carrega o destino são as
     // escolhas gravadas em bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s)
@@ -20342,7 +20343,7 @@ function renderItensComandaMesa(itens, nomesPorId){
       <td>${formatarReais(subtotal)}</td>
       <td>${destinoTexto}</td>
       <td><span class="status-badge ${statusClasse}">${status}</span></td>
-      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar</button>` : ''}</td>
+      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button> <button type="button" class="link-btn" data-florest-cancelar-pedido="${it.pedido_id}">Cancelar pedido</button>` : ''}</td>
     </tr>`;
   }).join('');
   corpo.querySelectorAll('[data-cancelar-item]').forEach(btn => btn.addEventListener('click', () => abrirModalCancelarItem(btn.dataset.cancelarItem)));
@@ -20360,7 +20361,7 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
   if(motivo.length < 3){ $('bar-cancelar-item-msg').innerHTML = '<div class="msg error">Informe o motivo (mínimo 3 caracteres).</div>'; return; }
   const btn = $('btn-bar-cancelar-item-confirmar');
   btn.disabled = true; btn.textContent = 'Cancelando...';
-  const { error } = await supabase.rpc('bar_pedido_item_cancelar', { p_item_id: barItemParaCancelar, p_motivo: motivo });
+  const { error } = await florestCancelarComAutorizacao('bar_item_cancelar', barItemParaCancelar, motivo);
   btn.disabled = false; btn.textContent = 'Cancelar item';
   if(error){
     $('bar-cancelar-item-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
@@ -20378,7 +20379,7 @@ $('btn-bar-cancelar-item-confirmar').addEventListener('click', async () => {
 function atualizarBotaoCancelarMesa(){
   const btn = $('btn-bar-mesa-cancelar');
   if(!btn) return;
-  btn.classList.toggle('hidden', !(barComandaAtualId && barMesaAtual && podeAcessarBar('bar_cancelar_pedido')));
+  btn.classList.toggle('hidden', !(barComandaAtualId && barMesaAtual && !!modulosComerciais.bar));
 }
 
 // ---------- "Imprimir relatório da mesa" (Migration 047) ----------
@@ -20469,10 +20470,7 @@ $('btn-bar-mesa-cancelar').addEventListener('click', () => {
     $('bar-mesa-msg').innerHTML = '<div class="msg error">Esta mesa já tem pagamento registrado e não pode ser cancelada. Para desfazer um pagamento, use o estorno; se não restar consumo, a mesa fecha normalmente.</div>';
     return;
   }
-  if(barMesaQtdItensValidos > 0){
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">Esta mesa ainda tem ${barMesaQtdItensValidos} item(ns) lançado(s). Cancele primeiro os itens (botão "Cancelar" na linha de cada item) e depois cancele a mesa.</div>`;
-    return;
-  }
+
   $('bar-mesa-msg').innerHTML = '';
   $('bar-cancelar-mesa-titulo').textContent = `Cancelar Mesa ${barMesaAtual.numero}?`;
   $('bar-cancelar-mesa-msg').innerHTML = '';
@@ -20488,7 +20486,7 @@ $('btn-bar-cancelar-mesa-confirmar').addEventListener('click', async () => {
   const btn = $('btn-bar-cancelar-mesa-confirmar');
   btn.disabled = true; btn.textContent = 'Cancelando...';
   const mesaId = barMesaAtual.id, numero = barMesaAtual.numero;
-  const { error } = await supabase.rpc('bar_mesa_cancelar', { p_mesa_id: mesaId, p_motivo: motivo });
+  const { error } = await florestCancelarComAutorizacao('bar_mesa_cancelar', mesaId, motivo);
   barCancelandoMesa = false;
   btn.disabled = false; btn.textContent = 'Sim, cancelar mesa';
   if(error){
@@ -21373,6 +21371,177 @@ $('btn-bar-config-mesas-salvar').addEventListener('click', async () => {
     authScreen.classList.remove('hidden');
   }
 })();
+
+// Melhorias locais Florest — usa a mesma instância Supabase e a mesma sessão do ERP.
+function florestDialog(titulo,conteudo,confirmar='Confirmar'){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');overlay.className='modal-overlay';overlay.style.zIndex='10050';
+    overlay.innerHTML=`<div class="modal-card" style="max-width:900px;max-height:90vh;overflow:auto"><h3>${escapeHtml(titulo)}</h3><form><div class="florest-dialog-msg" role="alert"></div>${conteudo}<div class="modal-actions"><button type="button" class="btn-secondary" data-voltar>Voltar</button><button type="submit" class="btn-accent">${escapeHtml(confirmar)}</button></div></form></div>`;
+    document.body.appendChild(overlay);
+    const form=overlay.querySelector('form');
+    const terminar=v=>{overlay.querySelectorAll('input[type=password]').forEach(i=>i.value='');overlay.remove();resolve(v);};
+    overlay.querySelector('[data-voltar]').onclick=()=>terminar(null);
+    form.onsubmit=e=>{e.preventDefault();terminar(Object.fromEntries(new FormData(form)));};
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape')terminar(null);});
+    setTimeout(()=>overlay.querySelector('input,textarea,select')?.focus(),0);
+  });
+}
+async function florestMensagemEdge(error,data){
+  if(data?.mensagem||data?.error)return data.mensagem||data.error;
+  try{const j=await error?.context?.json();if(j?.mensagem||j?.error)return j.mensagem||j.error;}catch{}
+  return 'Não foi possível concluir a operação.';
+}
+async function florestAutorizar(operacao,alvo,parametros){
+  const dados=await florestDialog('Autorização do proprietário',`
+    <p>A autorização vale somente para esta operação. Sua conta continuará conectada.</p>
+    <label>Usuário ou e-mail individual do proprietário<input name="identificacao" autocomplete="off" maxlength="254" required></label>
+    <label>Senha do proprietário<input name="senha" type="password" autocomplete="off" maxlength="128" required></label>`,'Autorizar');
+  if(!dados)return null;
+  try{
+    const r=await supabase.functions.invoke('florest-autorizar-operacao',{body:{operacao,alvo_id:alvo,parametros,...dados}});
+    if(r.error||!r.data?.ok)throw Error(await florestMensagemEdge(r.error,r.data));
+    return r.data.token;
+  }finally{dados.senha='';}
+}
+const florestCancelamentos=new Map();
+async function florestCancelarComAutorizacao(operacao,alvo,motivo){
+  const chave=JSON.stringify([acesso.userId,operacao,alvo,motivo]);
+  try{
+    let token=florestCancelamentos.get(chave);
+    if(!token){token=await florestAutorizar(operacao,alvo,{motivo});if(!token)return {error:{message:'Operação não autorizada.'}};florestCancelamentos.set(chave,token);}
+    const r=await supabase.rpc('florest_bar_cancelar',{p_token:token,p_operacao:operacao,p_alvo:alvo,p_motivo:motivo});
+    if(r.error){if(/expirada|já utilizada|não corresponde/i.test(r.error.message||''))florestCancelamentos.delete(chave);return r;} // mantém token para recuperar resultado se a resposta se perdeu.
+    if(!r.data?.ok){florestCancelamentos.delete(chave);return {error:{message:r.data?.mensagem||'Cancelamento recusado.'}};}
+    florestCancelamentos.delete(chave);return r;
+  }catch(e){return {error:{message:e.message||'Falha ao autorizar.'}};}
+}
+
+// Lista proprietários, funcionários e garçons; a autorização real é aplicada no banco.
+carregarUsuarios=async function(){
+  $('usuarios-msg').innerHTML='';
+  const r=await supabase.rpc(acesso.papel==='proprietario'?'florest_usuarios_listar':'usuarios_listar');
+  usuariosLista=r.data||[];renderUsuarios();
+  if(r.error)$('usuarios-msg').innerHTML=`<div class="msg error">${escapeHtml(r.error.message)}</div>`;
+};
+CARREGADORES_VIEW.usuarios=carregarUsuarios;
+renderUsuarios=function(){
+  const body=$('tabela-usuarios-body');body.replaceChildren();$('usuarios-empty').classList.toggle('hidden',usuariosLista.length>0);
+  for(const u of usuariosLista){
+    const dono=u.papel==='proprietario',souDono=acesso.papel==='proprietario';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${escapeHtml(u.nome)}${u.id===acesso.userId?' (você)':''}</td><td>${escapeHtml(u.usuario||'—')}</td><td>${dono?'Proprietário':u.tipo_acesso==='garcom'?'Garçom':'Funcionário'}</td><td>${u.ativo?'Ativo':'Inativo'}</td><td>${dono?'Todas as permissões dos módulos contratados':escapeHtml((u.permissoes||[]).map(k=>ROTULO_MODULO[k]||k).join(', '))}</td><td>${u.ultimo_acesso?escapeHtml(new Date(u.ultimo_acesso).toLocaleString('pt-BR')):'—'}</td><td></td>`;
+    const acoes=tr.lastElementChild;
+    Object.assign(acoes.style,{display:'flex',gap:'12px',justifyContent:'flex-end',flexWrap:'wrap'});
+    if(souDono||(!dono&&u.id!==acesso.userId&&u.tipo_acesso!=='garcom')){
+      const b=document.createElement('button');b.type='button';b.className='link-btn';b.textContent='Editar';b.onclick=()=>abrirModalUsuario(u);acoes.append(b);
+    }
+    if(souDono){const b=document.createElement('button');b.type='button';b.className='link-btn';b.textContent='Redefinir senha';b.onclick=()=>florestRedefinirSenha(u);acoes.append(b);}
+    body.append(tr);
+  }
+};
+async function florestRedefinirSenha(u){
+  const d=await florestDialog('Redefinir senha — '+u.nome,`<p>O cadastro, empresa e permissões serão preservados.</p><label>Nova senha<input type="password" name="senha" minlength="6" maxlength="18" autocomplete="new-password" required></label><label>Confirmar nova senha<input type="password" name="confirmacao" minlength="6" maxlength="18" autocomplete="new-password" required></label>`,'Redefinir senha');
+  if(!d)return;
+  try{
+    if(d.senha!==d.confirmacao)throw Error('As senhas não conferem.');
+    const r=await supabase.functions.invoke('distgestor-usuarios',{body:{acao:'redefinir_senha',usuario_id:u.id,senha:d.senha}});
+    if(r.error||!r.data?.ok)throw Error(await florestMensagemEdge(r.error,r.data));
+    $('usuarios-msg').innerHTML='<div class="msg success">Senha redefinida com sucesso.</div>';
+  }catch(e){$('usuarios-msg').innerHTML=`<div class="msg error">${escapeHtml(e.message)}</div>`;}
+  finally{d.senha='';d.confirmacao='';}
+}
+const florestAbrirUsuarioOriginal=abrirModalUsuario;
+abrirModalUsuario=function(u){
+  florestAbrirUsuarioOriginal(u);
+  $('modal-usuario-titulo').textContent=u?'Editar usuário':'Novo usuário';
+  $('usr-papel').value=u?.papel||'funcionario';$('usr-papel').disabled=acesso.papel!=='proprietario';
+  // Troca de senha na edição tem fluxo próprio com confirmação e auditoria.
+  $('usr-senha').closest('.field').classList.toggle('hidden',!!u);$('usr-senha').value='';
+  $('usr-papel').onchange=florestAtualizarPapel;florestAtualizarPapel();
+};
+$('btn-novo-usuario').textContent='+ Novo usuário';
+function florestAtualizarPapel(){
+  const dono=$('usr-papel').value==='proprietario';
+  document.querySelectorAll('#usr-perms input,#usr-perms-bar input').forEach(i=>{if(acesso.papel==='proprietario')i.disabled=dono;});
+  $('usr-perms-dica').textContent=dono?'Proprietário tem todas as permissões dos módulos contratados, sem seleção manual.':'';
+}
+
+// Cancelar pedido inteiro usa a mesma autorização, inclusive tickets de cozinha e bar.
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-florest-cancelar-pedido]');if(!b)return;
+  const d=await florestDialog('Cancelar pedido inteiro','<label>Motivo<textarea name="motivo" minlength="3" maxlength="500" required></textarea></label>','Solicitar autorização');
+  if(!d)return;b.disabled=true;
+  const r=await florestCancelarComAutorizacao('bar_pedido_cancelar',b.dataset.florestCancelarPedido,d.motivo.trim());b.disabled=false;
+  if(r.error){$('bar-mesa-msg').innerHTML=`<div class="msg error">${escapeHtml(r.error.message)}</div>`;return;}
+  await atualizarSaldoEItensMesa();await carregarBarMesas();
+});
+
+// Consulta operacional do Módulo Bar, utilizando a tabela central de vendas.
+for(const view of ['bar']){
+  const area=$('view-'+view);if(!area)continue;
+  const div=document.createElement('div');div.className='subsection';
+  div.innerHTML=`<h3>Consultar vendas do Módulo Bar</h3><p>Pesquise pelo número para consultar mesa, pagamentos e situação operacional.</p><form class="search-row" data-florest-consulta><input name="numero" type="number" min="1" placeholder="Número da venda" required><button class="btn-secondary" type="submit">Consultar venda</button><button type="button" class="btn-secondary" data-florest-historico>Histórico administrativo</button></form><div class="florest-consulta-resultado"></div>`;
+  area.prepend(div);
+  div.querySelector('form').onsubmit=async e=>{
+    e.preventDefault();const n=Number(new FormData(e.target).get('numero'));
+    const r=await supabase.rpc('florest_vendas_pesquisar',{p_numero:n,p_limite:50});
+    const box=div.querySelector('.florest-consulta-resultado');box.replaceChildren();
+    if(r.error){box.textContent=r.error.message;return;}
+    if(!r.data?.length){box.textContent='Venda não encontrada.';return;}
+    for(const v of r.data){const b=document.createElement('button');b.className='link-btn';b.type='button';b.textContent=`Venda nº ${v.numero_venda} · ${v.tipo==='bar'?'Módulo Bar · Mesa '+(v.mesa_numero??'—'):'PDV'} · ${formatarReais(v.total)}`;b.onclick=()=>florestDetalharVenda(v.id);box.append(b);}
+  };
+  div.querySelector('[data-florest-historico]').onclick=florestHistorico;
+}
+async function florestHistorico(){
+  if(acesso.papel!=='proprietario'){alert('Histórico administrativo disponível ao proprietário.');return;}
+  const r=await supabase.from('florest_auditoria_operacoes').select('operacao,alvo_id,solicitante_id,autorizador_id,motivo,antes,depois,resultado,criado_em').order('criado_em',{ascending:false}).limit(50);
+  if(r.error){alert(r.error.message);return;}
+  await florestDialog('Histórico administrativo',`<p>Últimos 50 registros desta empresa.</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.data,null,2))}</pre>`,'Fechar');
+}
+async function florestDetalharVenda(id){
+  const r=await supabase.rpc('florest_venda_detalhar',{p_venda:id});if(r.error){alert(r.error.message);return;}
+  const d=r.data,v=d.venda,c=d.comanda;
+  const podeEditar=acesso.papel==='proprietario'&&v.tipo==='bar'&&!v.cancelada_em;
+  const pagamentos=(d.pagamentos||[]).filter(p=>!p.estornado);
+  let html=`<p>${v.tipo==='bar'?'Módulo Bar · Mesa '+escapeHtml(c?.mesa_numero??'—'):'PDV'} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Total: <strong>${formatarReais(v.total)}</strong>${v.cancelada_em?' · Cancelada':''}</p><table><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Subtotal</th></tr></thead><tbody>`;
+  for(const i of d.itens||[])html+=`<tr><td>${escapeHtml(i.nome)}</td><td>${i.quantidade}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`;
+  html+='</tbody></table>';
+  if(c)html+=`<p>Desconto da comanda: ${formatarReais(c.desconto||0)} · Acréscimo: ${formatarReais(c.acrescimo||0)} · Taxa de serviço: ${formatarReais(c.taxa_servico||0)}</p>`;
+  for(const pa of d.recebimentos||[])html+=`<p>Recebimento em ${escapeHtml(new Date(pa.criado_em).toLocaleString('pt-BR'))}: ${formatarReais(pa.total)} · Desconto: ${formatarReais(pa.desconto)} · Acréscimo: ${formatarReais(pa.acrescimo)} · Taxa: ${formatarReais(pa.taxa_servico)}${pa.estornado?' · Estornado':''}</p>`;
+  html+='<h4>Formas e comprovantes</h4>';
+  for(const p of pagamentos)html+=`<p>${escapeHtml(p.forma_pagamento)} · ${formatarReais(p.valor)} · Comprovante: ${escapeHtml(p.comprovante_referencia||'—')}</p>`;
+  if(!pagamentos.length)html+=`<p>${escapeHtml(v.forma_pagamento)}</p>`;
+  if(podeEditar)html+=`<label>Ação<select name="acao"><option value="consulta">Somente consulta</option><option value="pagamentos">Corrigir forma/comprovante (valor recebido preservado)</option><option value="itens" ${c?.status!=='aberta'||pagamentos.length?'disabled':''}>Corrigir itens/valores sem recebimentos liquidados</option></select></label>`;
+  const escolha=await florestDialog('Venda nº '+v.numero_venda,html,podeEditar?'Continuar':'Fechar');
+  if(!podeEditar||!escolha||escolha.acao==='consulta')return;
+  const campos=[];
+  if(escolha.acao==='pagamentos'){
+    if(!pagamentos.length){alert('Não há pagamento do Bar disponível para correção.');return;}
+    for(const p of pagamentos){const formas=['Dinheiro','Pix','Cartão de Débito','Cartão de Crédito'];if(!formas.includes(p.forma_pagamento))formas.unshift(p.forma_pagamento);campos.push(`<fieldset><legend>${formatarReais(p.valor)}</legend><label>Forma<select name="forma_${p.id}">${formas.map(f=>`<option ${p.forma_pagamento===f?'selected':''}>${escapeHtml(f)}</option>`).join('')}</select></label><label>Comprovante/referência<input name="ref_${p.id}" maxlength="200" value="${escapeHtml(p.comprovante_referencia||'')}"></label></fieldset>`);}
+  }else{
+    campos.push('<p>Exige comanda aberta, recebimentos integralmente estornados e caixa ainda aberto. Para excluir produtos use o cancelamento autorizado na mesa.</p>');
+    for(const i of d.itens||[])campos.push(`<fieldset><legend>${escapeHtml(i.nome)}</legend><label>Quantidade<input type="number" step="0.0001" min="0.0001" name="q_${i.id}" value="${i.quantidade}" required></label><label>Preço<input type="number" step="0.01" min="0" name="p_${i.id}" value="${i.preco_unitario}" required></label></fieldset>`);
+    campos.push(`<label>Desconto da comanda<input type="number" name="desconto" step="0.01" min="0" value="${c?.desconto||0}" required></label>`);
+  }
+  campos.push('<label>Motivo da correção<textarea name="motivo" minlength="3" maxlength="500" required></textarea></label>');
+  const ed=await florestDialog('Correção administrativa',campos.join(''),'Salvar correção');if(!ed)return;
+  const alteracoes=escolha.acao==='pagamentos'?{pagamentos:pagamentos.map(p=>({id:p.id,forma_pagamento:ed['forma_'+p.id],comprovante_referencia:ed['ref_'+p.id]}))}:{itens:(d.itens||[]).map(i=>({id:i.id,quantidade:Number(ed['q_'+i.id]),preco_unitario:Number(ed['p_'+i.id])})),desconto:Number(ed.desconto)};
+  const salvo=await supabase.rpc('florest_venda_corrigir',{p_venda:id,p_alteracoes:alteracoes,p_motivo:ed.motivo,p_idempotencia:crypto.randomUUID()});
+  if(salvo.error){alert(salvo.error.message);return;}alert('Correção salva e auditada.');await florestDetalharVenda(id);
+}
+
+const florestBtnComanda=document.createElement('button');florestBtnComanda.id='btn-florest-comanda-cancelar';florestBtnComanda.type='button';florestBtnComanda.className='btn-secondary hidden';florestBtnComanda.textContent='Cancelar comanda';
+$('btn-bar-mesa-cancelar').after(florestBtnComanda);
+const florestAtualizarCancelarMesaOriginal=atualizarBotaoCancelarMesa;
+atualizarBotaoCancelarMesa=function(){florestAtualizarCancelarMesaOriginal();florestBtnComanda.classList.toggle('hidden',$('btn-bar-mesa-cancelar').classList.contains('hidden'));};
+florestBtnComanda.onclick=async()=>{
+  const alvo=barComandaAtualId;if(!alvo)return;
+  const d=await florestDialog('Cancelar comanda','<label>Motivo<textarea name="motivo" minlength="3" maxlength="500" required></textarea></label>','Solicitar autorização');if(!d)return;
+  florestBtnComanda.disabled=true;const r=await florestCancelarComAutorizacao('bar_comanda_cancelar',alvo,d.motivo.trim());florestBtnComanda.disabled=false;
+  if(r.error){$('bar-mesa-msg').innerHTML=`<div class="msg error">${escapeHtml(r.error.message)}</div>`;return;}
+  $('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barMesaAtual=null;await carregarBarMesas();
+};
+
 </script>
 
 </body>
