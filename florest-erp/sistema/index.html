@@ -20540,7 +20540,8 @@ async function receberPagamentoMesaComForma(forma){
       return;
     }
     const resultado = (data && data[0]) || null;
-    if(resultado) impEnfileirarRecibo('bar', resultado.pagamento_id);   // recibo não fiscal do pagamento (Caixa)
+    // Recibo não fiscal do Bar: não imprimir automaticamente ao receber pagamento.
+    // O registro do pagamento, fechamento da mesa e demais impressões continuam inalterados.
     barMesaAjustesTocados = false;
     $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
       ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado em ${escapeHtml(forma)}. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
