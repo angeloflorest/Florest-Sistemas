@@ -20039,7 +20039,7 @@ async function atualizarSaldoEItensMesa(){
     supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: barComandaAtualId }),
     buscarTodos(() => supabase
       .from('bar_pedidos_itens')
-      .select('id, pedido_id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional ), bar_pedidos ( criado_por )')
+      .select('id, pedido_id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional ), bar_pedidos ( criado_por, criado_em )')
       .eq('comanda_id', barComandaAtualId)
       .order('criado_em')),
     resolverNomesFuncionariosBar(),
@@ -20328,7 +20328,13 @@ function renderItensComandaMesa(itens, nomesPorId){
     // Fase 4: "Lançado por X", discreto, igual às escolhas — não vira coluna nova (o Mini PDV não
     // foi redesenhado, só ganhou esta linha a mais sob o nome do item).
     const autorId = it.bar_pedidos ? it.bar_pedidos.criado_por : null;
-    const lancadoPorTexto = `Lançado por ${escapeHtml(nomeUsuarioBar(autorId, nomesPorId || {}))}`;
+    // O horário pertence ao pedido original, não ao momento em que a mesa foi aberta.
+    const horarioOriginal = (it.bar_pedidos && it.bar_pedidos.criado_em) || it.criado_em;
+    const dataLancamento = horarioOriginal ? new Date(horarioOriginal) : null;
+    const horarioLancamento = dataLancamento && !Number.isNaN(dataLancamento.getTime())
+      ? dataLancamento.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : 'Horário indisponível';
+    const lancadoPorTexto = `Lançado por ${escapeHtml(nomeUsuarioBar(autorId, nomesPorId || {}))} • ${escapeHtml(horarioLancamento)}`;
     const nomeLinha = escolhas.length > 0
       ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div><div class="modal-section-hint" style="margin:1px 0 0;">${lancadoPorTexto}</div>`
       : `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${lancadoPorTexto}</div>`;
