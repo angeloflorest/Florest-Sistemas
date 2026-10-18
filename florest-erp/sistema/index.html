@@ -20675,6 +20675,9 @@ $('btn-bar-cancelar-mesa-confirmar').addEventListener('click', async () => {
 const FORMAS_PAGAMENTO_BAR = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito'];
 let barMesaRecebendo = false; // true enquanto um clique de card está sendo processado (bloqueia duplo clique)
 function setBarMesaFormaCardsDisabled(desabilitado){
+  $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => { b.disabled = desabilitado; });
+}
+
   // Nota a Prazo do Bar: crédito não é dinheiro recebido. Uma única RPC atômica cria a venda,
 // o título de Contas a Receber e fecha a comanda. Não usa bar_comanda_pagar_valor.
 let barNotaPrazoEmAndamento = false;
@@ -20721,9 +20724,6 @@ $('bar-nota-prazo-confirmar').addEventListener('click', async () => {
     $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${numero} fechada em Nota a Prazo. Título registrado em Contas a Receber para o cliente selecionado. Valor: ${formatarReais(Number(data && data.valor_a_receber || saldo))}.</div>`;
   } finally { barNotaPrazoEmAndamento = false; btn.disabled = false; btn.textContent = 'Confirmar Nota a Prazo e fechar mesa'; }
 });
-
-$('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => { b.disabled = desabilitado; });
-}
 
 function barMesaAvancadoAberto(){
   return !$('bar-mesa-avancado').classList.contains('hidden');
