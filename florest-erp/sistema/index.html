@@ -4203,6 +4203,7 @@
         <div id="bar-rel-passo-documento" class="hidden">
           <div class="rel-doc-toolbar">
             <div class="link-btn rel-voltar" id="btn-bar-rel-doc-voltar">&larr; Voltar</div>
+            <button class="btn-secondary hidden" id="btn-bar-rel-exportar-csv" type="button">Exportar para Excel (CSV)</button>
             <button class="btn-accent" id="btn-bar-rel-doc-imprimir">Imprimir / Salvar PDF</button>
           </div>
           <div class="rel-doc-folha" id="bar-rel-doc-folha"></div>
@@ -5558,8 +5559,7 @@
         <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-transferir" style="width:auto;">Transferir mesa</button>
         <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-relatorio" style="width:auto;" title="Imprime a conta de conferência da mesa aberta no Caixa. Não registra pagamento nem é documento fiscal.">Imprimir relatório da mesa</button>
         <button type="button" class="btn-perigo hidden" id="btn-bar-mesa-cancelar" style="width:auto;">Cancelar mesa</button>
-        <button type="button" class="btn-accent hidden" id="btn-bar-mesa-finalizar" style="width:auto;">Finalizar mesa quitada</button>
-        <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Voltar às mesas</button>
+        <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
       </div>
     </div>
     <div id="bar-mesa-msg"></div>
@@ -19380,8 +19380,11 @@ function configurarRealtimeBar(){
 // confirmadas nas Migrations 016/018 (bar_pedidos, bar_pedidos_itens, bar_mesas) — nenhuma
 // migration, RPC, RLS ou permissão nova.
 let barRelRelatorioAtual = null;
+let barRelCsvAtual = null;
 
 const SECOES_RELATORIOS_BAR = [
+  { id: 'bar_historico_mesa', titulo: 'Histórico completo por mesa', descricao: 'Cada abertura de mesa e seus pedidos, pagamentos e caixas, sem filtro por data.', filtros: ['mesa_historico'], gerar: relatorioBarHistoricoMesaCaixa },
+  { id: 'bar_mesas_caixa', titulo: 'Mesas discriminadas por caixa fechado', descricao: 'Escolha um caixa fechado e veja cada mesa, cada comanda e seus recebimentos.', filtros: ['caixa_historico'], gerar: relatorioBarHistoricoMesaCaixa },
   { id: 'bar_faturamento_periodo', titulo: 'Faturamento do Bar por período', descricao: 'Itens lançados (não estornados) e faturamento total do período.', filtros: ['periodo'], gerar: relatorioBarFaturamentoPeriodo },
   { id: 'bar_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade lançada em pedidos do Bar, no período.', filtros: ['periodo'], gerar: relatorioBarProdutosMaisVendidos },
   { id: 'bar_pedidos_periodo', titulo: 'Pedidos por período', descricao: 'Pedidos lançados no Bar, com mesa, usuário e valor.', filtros: ['periodo'], gerar: relatorioBarPedidosPeriodo },
@@ -19441,6 +19444,14 @@ function abrirFiltrosRelatorioBar(rel){
     `;
   } else {
     campos.innerHTML = '';
+  }
+  if(rel.filtros.includes('mesa_historico')){
+    campos.innerHTML = `<div class="field" style="margin-bottom:0;min-width:240px"><label>Mesa</label><select id="bar-rel-filtro-mesa-hist"><option value="">Carregando mesas...</option></select></div>`;
+    popularMesasHistoricoBar();
+  }
+  if(rel.filtros.includes('caixa_historico')){
+    campos.innerHTML = `<div class="field" style="margin-bottom:0;min-width:320px"><label>Caixa do Bar fechado</label><select id="bar-rel-filtro-caixa-hist"><option value="">Carregando caixas...</option></select></div>`;
+    popularCaixasHistoricoBar();
   }
   // Fase 4: "Detalhamento do garçom" — seleção obrigatória de um garçom, igual em espírito ao
   // filtro "Cliente" da Central de Relatórios (mesmo padrão: <select> populado em segundo plano),
@@ -19508,18 +19519,31 @@ async function gerarRelatorioBarAtual(){
     filtros.garcomNome = selectGarcom.options[selectGarcom.selectedIndex].textContent;
   }
 
+  if(rel.filtros.includes('mesa_historico')){
+    filtros.mesaId = $('bar-rel-filtro-mesa-hist')?.value;
+    if(!filtros.mesaId){ $('bar-rel-filtro-msg').innerHTML='<div class="msg error">Selecione a mesa.</div>'; return; }
+  }
+  if(rel.filtros.includes('caixa_historico')){
+    filtros.caixaId = $('bar-rel-filtro-caixa-hist')?.value;
+    if(!filtros.caixaId){ $('bar-rel-filtro-msg').innerHTML='<div class="msg error">Selecione o caixa fechado.</div>'; return; }
+  }
   const btn = $('btn-bar-rel-gerar');
   btn.disabled = true;
   $('bar-rel-filtro-msg').innerHTML = '';
+  barRelCsvAtual = null;
   try {
     const resultado = await rel.gerar(filtros);
+    barRelCsvAtual = resultado.csvLinhas || null;
     const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
     const tituloDocumento = (resultado.titulo || rel.titulo).toUpperCase() + ' — MÓDULO BAR';
     const partesFiltro = [];
     if(rel.filtros.includes('periodo')) partesFiltro.push(`Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`);
     if(rel.filtros.includes('garcom')) partesFiltro.push(`Garçom: ${filtros.garcomNome}`);
+    if(filtros.mesaId) partesFiltro.push('Mesa selecionada');
+    if(filtros.caixaId) partesFiltro.push('Caixa fechado selecionado');
     const descricaoFiltros = partesFiltro.length ? partesFiltro.join(' · ') : 'Sem filtros';
-    $('bar-rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado);
+    $('bar-rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado) + (resultado.htmlDetalhe || '');
+    const b=$('btn-bar-rel-exportar-csv'); if(b) b.classList.toggle('hidden', !barRelCsvAtual);
     mostrarPassoRelatorioBar('documento');
   } catch(err){
     console.error(err);
@@ -19529,6 +19553,14 @@ async function gerarRelatorioBarAtual(){
   }
 }
 
+$('btn-bar-rel-exportar-csv').addEventListener('click',()=>{
+  if(!barRelCsvAtual) return;
+  const csv='\uFEFF'+barRelCsvAtual.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url;a.download='florest-historico-mesas-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 $('btn-bar-rel-doc-imprimir').addEventListener('click', () => {
   // Mesma área/lógica de impressão da Central de Relatórios geral (#rel-impressao-area,
   // body.rel-imprimindo) — reaproveitada aqui também, sem duplicar CSS/mecânica de impressão.
@@ -19536,6 +19568,100 @@ $('btn-bar-rel-doc-imprimir').addEventListener('click', () => {
   document.body.classList.add('rel-imprimindo');
   window.print();
 });
+
+
+// ---------- Histórico de mesas por comanda e por caixa (somente leitura) ----------
+async function barHistBuscar(montar){
+  const r = await buscarTodos(montar, { tamanhoPagina: 800, maximo: 100000 });
+  if(r.error) throw new Error(r.error.message || 'Falha ao consultar histórico');
+  return r.data || [];
+}
+async function popularMesasHistoricoBar(){
+  const el=$('bar-rel-filtro-mesa-hist'); if(!el) return;
+  try {
+    const mesas=await barHistBuscar(()=>supabase.from('bar_mesas').select('id,numero').order('numero'));
+    el.innerHTML='<option value="">Selecione a mesa</option>'+mesas.map(m=>`<option value="${escapeHtml(m.id)}">Mesa ${Number(m.numero)}</option>`).join('');
+  }catch(e){el.innerHTML='<option value="">Erro ao carregar mesas</option>'; $('bar-rel-filtro-msg').textContent=e.message;}
+}
+async function popularCaixasHistoricoBar(){
+  const el=$('bar-rel-filtro-caixa-hist'); if(!el) return;
+  try {
+    const {data,error}=await supabase.rpc('caixa_listar',{p_tipo:'BAR',p_limite:500});
+    if(error) throw error;
+    const caixas=(data?.itens||[]).filter(x=>x.caixa?.status==='fechado');
+    el.innerHTML='<option value="">Selecione o caixa fechado</option>'+caixas.map(x=>`<option value="${escapeHtml(x.caixa.id)}">Caixa nº ${Number(x.caixa.numero)} — ${escapeHtml(x.caixa.aberto_por_nome||'Operador não identificado')} — ${escapeHtml(cxDataHora(x.caixa.fechado_em))}</option>`).join('');
+    if(!caixas.length) $('bar-rel-filtro-msg').textContent='Nenhum caixa fechado disponível na lista de até 500 caixas recentes.';
+  }catch(e){el.innerHTML='<option value="">Erro ao carregar caixas</option>'; $('bar-rel-filtro-msg').textContent=e.message;}
+}
+function barHistDin(v){return brl(Number(v)||0);}
+function barHistHora(v){return v?cxDataHora(v):'—';}
+function barHistTabela(tit, cols, rows){
+  return `<h3 style="margin:20px 0 8px">${escapeHtml(tit)}</h3><table class="rel-doc-tabela"><thead><tr>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(c=>`<td>${escapeHtml(String(c??'—'))}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${cols.length}">Nenhum registro</td></tr>`}</tbody></table>`;
+}
+async function relatorioBarHistoricoMesaCaixa(f){
+  // Toda consulta usa a sessão Supabase/RLS da empresa; nenhuma mutação é executada.
+  const caixas=await barHistBuscar(()=>supabase.from('caixas').select('id,numero,status,aberto_em,fechado_em,aberto_por_nome,fechado_por_nome').eq('tipo_caixa','BAR').order('aberto_em',{ascending:false}));
+  const caixaMap=new Map(caixas.map(c=>[c.id,c]));
+  const mesas=await barHistBuscar(()=>supabase.from('bar_mesas').select('id,numero').order('numero'));
+  const mesaMap=new Map(mesas.map(m=>[m.id,m.numero]));
+  let comandas=await barHistBuscar(()=>supabase.from('bar_comandas').select('id,mesa_id,status,aberta_em,fechada_em,criado_por,desconto,acrescimo,taxa_servico,cancelada_em').order('aberta_em',{ascending:true}));
+  if(f.mesaId) comandas=comandas.filter(c=>c.mesa_id===f.mesaId);
+  const pagamentos=await barHistBuscar(()=>supabase.from('bar_pagamentos').select('id,comanda_id,caixa_id,total,estornado,criado_em').order('criado_em'));
+  const pagamentosPorComanda=new Map();
+  pagamentos.forEach(p=>{if(!pagamentosPorComanda.has(p.comanda_id)) pagamentosPorComanda.set(p.comanda_id,[]); pagamentosPorComanda.get(p.comanda_id).push(p);});
+  // Caixa fechado: identifica comandas com recebimentos nesse caixa OU abertas durante o turno.
+  // Movimentos são atribuídos pelo caixa_id do pagamento, não pela data da comanda.
+  if(f.caixaId){
+    const cx=caixaMap.get(f.caixaId);
+    if(!cx || cx.status!=='fechado') throw new Error('O caixa selecionado não está fechado ou não pode ser consultado.');
+    comandas=comandas.filter(c=>(pagamentosPorComanda.get(c.id)||[]).some(p=>p.caixa_id===f.caixaId) ||
+      (c.aberta_em && c.aberta_em>=cx.aberto_em && (!cx.fechado_em || c.aberta_em<=cx.fechado_em)));
+  }
+  const ids=new Set(comandas.map(c=>c.id));
+  const itens=await barHistBuscar(()=>supabase.from('bar_pedidos_itens').select('id,comanda_id,bar_produto_id,produto_id,quantidade,preco_unitario,estornado,estorno_motivo,criado_em'));
+  const itensFiltrados=itens.filter(i=>ids.has(i.comanda_id));
+  const formas=await barHistBuscar(()=>supabase.from('bar_pagamentos_formas').select('pagamento_id,forma_pagamento,valor'));
+  const formasMap=new Map();formas.forEach(p=>{if(!formasMap.has(p.pagamento_id))formasMap.set(p.pagamento_id,[]);formasMap.get(p.pagamento_id).push(p);});
+  const produtos=await barHistBuscar(()=>supabase.from('produtos').select('id,nome'));
+  const nomesProduto=new Map(produtos.map(p=>[p.id,p.nome]));
+  const barProdutos=await barHistBuscar(()=>supabase.from('bar_produtos').select('id,produto_id'));
+  const vinculos=new Map(barProdutos.map(p=>[p.id,p.produto_id]));
+  const usuarios=await barHistBuscar(()=>supabase.from('perfis').select('id,nome'));
+  const nomesUsuarios=new Map(usuarios.map(u=>[u.id,u.nome]));
+  const itensPorComanda=new Map();itensFiltrados.forEach(i=>{if(!itensPorComanda.has(i.comanda_id))itensPorComanda.set(i.comanda_id,[]);itensPorComanda.get(i.comanda_id).push(i);});
+  const csvLinhas=[['Mesa','Comanda ID','Aberta em','Fechada em','Status','Caixas','Tipo','Produto/Forma','Quantidade','Valor','Estornado']];
+  const resumoMesa=new Map();let detalhe='';let totalRecebido=0, totalConsumo=0, qtdAberturas=0;
+  const ordenadas=[...comandas].sort((a,b)=>(mesaMap.get(a.mesa_id)||0)-(mesaMap.get(b.mesa_id)||0) || String(a.aberta_em).localeCompare(String(b.aberta_em)));
+  for(const c of ordenadas){
+    const numero=mesaMap.get(c.mesa_id)??'?';
+    const listaItens=itensPorComanda.get(c.id)||[];
+    const pags=pagamentosPorComanda.get(c.id)||[];
+    const consumo=listaItens.filter(i=>!i.estornado).reduce((s,i)=>s+Number(i.quantidade)*Number(i.preco_unitario),0);
+    const recebTotal=pags.filter(p=>!p.estornado).reduce((s,p)=>s+Number(p.total),0);
+    const recebCaixa=pags.filter(p=>!p.estornado&&(!f.caixaId||p.caixa_id===f.caixaId)).reduce((s,p)=>s+Number(p.total),0);
+    const abertaNoCaixa=!f.caixaId || (c.aberta_em>=caixaMap.get(f.caixaId).aberto_em && c.aberta_em<=caixaMap.get(f.caixaId).fechado_em);
+    const chave=numero;
+    if(!resumoMesa.has(chave)) resumoMesa.set(chave,{aberturas:0,consumo:0,recebido:0});
+    const rm=resumoMesa.get(chave);
+    if(abertaNoCaixa){rm.aberturas++;qtdAberturas++;rm.consumo+=consumo;totalConsumo+=consumo;}
+    rm.recebido+=recebCaixa;totalRecebido+=recebCaixa;
+    const caixasComanda=[...new Set(pags.map(p=>p.caixa_id).filter(Boolean))].map(id=>caixaMap.get(id)?'nº '+caixaMap.get(id).numero:'Não identificado').join(', ')||'Sem pagamento';
+    const itensRows=listaItens.map(i=>[nomesProduto.get(i.produto_id||vinculos.get(i.bar_produto_id))||'Produto não identificado',Number(i.quantidade),barHistDin(i.preco_unitario),barHistDin(Number(i.quantidade)*Number(i.preco_unitario)),i.estornado?'ESTORNADO'+(i.estorno_motivo?' — '+i.estorno_motivo:''):'Válido']);
+    listaItens.forEach(i=>csvLinhas.push([numero,c.id,barHistHora(c.aberta_em),barHistHora(c.fechada_em),c.status,caixasComanda,'Produto',nomesProduto.get(i.produto_id||vinculos.get(i.bar_produto_id))||'Não identificado',i.quantidade,Number(i.quantidade)*Number(i.preco_unitario),i.estornado?'Sim':'Não']));
+    pags.forEach(p=>csvLinhas.push([numero,c.id,barHistHora(c.aberta_em),barHistHora(c.fechada_em),c.status,caixaMap.get(p.caixa_id)?.numero||'Sem caixa','Pagamento',(formasMap.get(p.id)||[]).map(x=>x.forma_pagamento+' '+barHistDin(x.valor)).join(' + '),1,p.total,p.estornado?'Sim':'Não']));
+    const pagamentosRows=pags.map(p=>[barHistHora(p.criado_em),caixaMap.get(p.caixa_id)?'Caixa nº '+caixaMap.get(p.caixa_id).numero:'Sem caixa', (formasMap.get(p.id)||[]).map(x=>x.forma_pagamento+' '+barHistDin(x.valor)).join(' + ')||'Não detalhado',barHistDin(p.total),p.estornado?'ESTORNADO':'Registrado']);
+    detalhe+=`<section style="page-break-inside:avoid;border-top:2px solid #cbd5e1;margin-top:22px;padding-top:12px"><h3>Mesa ${escapeHtml(numero)} — Comanda ${escapeHtml(c.id.slice(0,8))}</h3><p>Abertura: ${escapeHtml(barHistHora(c.aberta_em))} · Fechamento: ${escapeHtml(barHistHora(c.fechada_em))} · Status: ${escapeHtml(c.status)} · Aberta por: ${escapeHtml(nomesUsuarios.get(c.criado_por)||'Não identificado')} · Caixas com pagamento: ${escapeHtml(caixasComanda)}</p><p><b>Consumo válido: ${barHistDin(consumo)}</b> · Total recebido na comanda: ${barHistDin(recebTotal)} · Recebido ${f.caixaId?'neste caixa':'em todos os caixas'}: ${barHistDin(recebCaixa)}</p>${barHistTabela('Produtos e cancelamentos',['Produto','Qtd.','Preço','Subtotal','Situação'],itensRows)}${barHistTabela('Pagamentos e estornos',['Data','Caixa','Forma','Valor','Situação'],pagamentosRows)}</section>`;
+  }
+  const linhas=[...resumoMesa.entries()].sort((a,b)=>Number(a[0])-Number(b[0])).map(([n,v])=>['Mesa '+n,v.aberturas,barHistDin(v.consumo),barHistDin(v.recebido)]);
+  const cx=f.caixaId?caixaMap.get(f.caixaId):null;
+  return {
+    titulo:cx?`Mesas discriminadas — Caixa nº ${cx.numero}`:`Histórico completo — Mesa ${mesaMap.get(f.mesaId)||'?'}`,
+    metricas:[{label:'Caixa',valor:cx?`nº ${cx.numero} — ${cx.aberto_por_nome||'Operador não identificado'} — ${barHistHora(cx.aberto_em)} até ${barHistHora(cx.fechado_em)}`:'Todos os caixas'}, {label:'Comandas relacionadas',valor:String(comandas.length)},{label:'Aberturas no período do caixa',valor:String(qtdAberturas)},{label:'Consumo das aberturas',valor:barHistDin(totalConsumo)},{label:'Recebimentos atribuídos',valor:barHistDin(totalRecebido)}],
+    colunas:['Mesa','Aberturas','Consumo das aberturas','Recebido'],linhas,
+    rodape:['Os recebimentos são atribuídos pelo caixa vinculado ao pagamento. Aberturas são atribuídas pelo horário do caixa. Comandas que atravessam caixas podem aparecer em mais de um fechamento, sem duplicar recebimentos.','O consumo de comandas abertas antes do caixa não entra no total de consumo das aberturas deste caixa.'],
+    htmlDetalhe:detalhe, csvLinhas
+  };
+}
 
 // ---------- Geradores de relatório — Módulo Bar (leitura, sem alterar nada do módulo) ----------
 // Reaproveita só tabelas/colunas confirmadas nas Migrations 016/018 (bar_pedidos, bar_pedidos_itens,
@@ -20011,7 +20137,6 @@ async function abrirModalMesa(mesa){
   ['bar-mesa-pagamento-valor', 'bar-mesa-forma-cards', 'btn-bar-mesa-avancado-toggle']
     .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
 
-  $('btn-bar-mesa-finalizar').classList.add('hidden');
   $('modal-bar-mesa').classList.remove('hidden');
   await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
 }
@@ -20058,7 +20183,6 @@ async function atualizarSaldoEItensMesa(){
   atualizarBotaoCancelarMesa();
   atualizarBotaoRelatorioMesa();
   atualizarBotaoTransferirMesa();
-  atualizarBotaoFinalizarMesaQuitada();
 }
 
 // "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
@@ -20628,63 +20752,6 @@ $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => {
   b.addEventListener('click', () => receberPagamentoMesaComForma(b.dataset.forma));
 });
 
-// "Voltar às mesas" apenas fecha a janela. Finalização é operação separada e explícita.
-function atualizarBotaoFinalizarMesaQuitada(){
-  const btn = $('btn-bar-mesa-finalizar');
-  const saldo = Number(barMesaResumoAtual?.subtotal_aberto);
-  const consumido = Number(barMesaResumoAtual?.total_consumido);
-  const pago = Number(barMesaResumoAtual?.total_pago);
-  const quitada = !!barMesaAtual && barMesaAtual.status === 'ocupada'
-    && !!barComandaAtualId && Number.isFinite(saldo) && Math.abs(saldo) < 0.005
-    && Number.isFinite(consumido) && consumido > 0
-    && Number.isFinite(pago) && pago > 0;
-  btn.classList.toggle('hidden', !quitada);
-}
-let barFinalizandoMesaQuitada = false;
-$('btn-bar-mesa-finalizar').addEventListener('click', async () => {
-  if(barFinalizandoMesaQuitada || !barMesaAtual || !barComandaAtualId) return;
-  const mesaId = barMesaAtual.id;
-  const comandaId = barComandaAtualId;
-  const empresaId = await obterEmpresaId();
-  const btn = $('btn-bar-mesa-finalizar');
-  barFinalizandoMesaQuitada = true;
-  btn.disabled = true;
-  btn.textContent = 'Finalizando...';
-  try {
-    // Reconferir no servidor antes de solicitar o fechamento, nunca confiar só no saldo exibido.
-    const [mesaResp, resumoResp] = await Promise.all([
-      supabase.from('bar_mesas').select('id, empresa_id, numero, status, comanda_atual_id')
-        .eq('id', mesaId).eq('empresa_id', empresaId).single(),
-      supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: comandaId })
-    ]);
-    if(mesaResp.error || resumoResp.error) throw mesaResp.error || resumoResp.error;
-    const mesa = mesaResp.data;
-    const resumo = resumoResp.data?.[0];
-    if(!mesa || mesa.status !== 'ocupada' || mesa.comanda_atual_id !== comandaId)
-      throw new Error('A situação da mesa mudou. Atualize a lista antes de tentar novamente.');
-    if(!resumo || !Number.isFinite(Number(resumo.subtotal_aberto))
-      || Math.abs(Number(resumo.subtotal_aberto)) >= 0.005
-      || Number(resumo.total_pago) <= 0 || Number(resumo.total_consumido) <= 0)
-      throw new Error('A comanda não está integralmente quitada. Confira o saldo e os pagamentos.');
-    const { error } = await supabase.rpc('bar_mesa_fechar', { p_mesa_id: mesaId });
-    if(error) throw error;
-    const { data: conferida, error: erroConferencia } = await supabase.from('bar_mesas')
-      .select('status, comanda_atual_id').eq('id', mesaId).eq('empresa_id', empresaId).single();
-    if(erroConferencia) throw erroConferencia;
-    if(conferida?.status !== 'livre' || conferida?.comanda_atual_id)
-      throw new Error('O banco não confirmou a liberação da mesa. A janela foi mantida aberta.');
-    barComandaAtualId = null;
-    $('modal-bar-mesa').classList.add('hidden');
-    await carregarBarMesas();
-    $('bar-mesas-msg').innerHTML = '<div class="msg success">Mesa finalizada e liberada com sucesso.</div>';
-  } catch(e) {
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível finalizar a mesa: ${escapeHtml(mensagemBancoAcesso(e))}</div>`;
-  } finally {
-    barFinalizandoMesaQuitada = false;
-    btn.disabled = false;
-    btn.textContent = 'Finalizar mesa quitada';
-  }
-});
 $('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa').classList.add('hidden'));
 
 // Pagamentos já registrados nesta comanda (qualquer status) — permite ver o que já foi pago e, se
