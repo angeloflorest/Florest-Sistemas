@@ -5558,7 +5558,8 @@
         <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-transferir" style="width:auto;">Transferir mesa</button>
         <button type="button" class="btn-secondary hidden" id="btn-bar-mesa-relatorio" style="width:auto;" title="Imprime a conta de conferência da mesa aberta no Caixa. Não registra pagamento nem é documento fiscal.">Imprimir relatório da mesa</button>
         <button type="button" class="btn-perigo hidden" id="btn-bar-mesa-cancelar" style="width:auto;">Cancelar mesa</button>
-        <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Fechar</button>
+        <button type="button" class="btn-accent hidden" id="btn-bar-mesa-finalizar" style="width:auto;">Finalizar mesa quitada</button>
+        <button type="button" class="btn-secondary" id="btn-bar-mesa-fechar-modal" style="width:auto;">Voltar às mesas</button>
       </div>
     </div>
     <div id="bar-mesa-msg"></div>
@@ -20010,6 +20011,7 @@ async function abrirModalMesa(mesa){
   ['bar-mesa-pagamento-valor', 'bar-mesa-forma-cards', 'btn-bar-mesa-avancado-toggle']
     .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
 
+  $('btn-bar-mesa-finalizar').classList.add('hidden');
   $('modal-bar-mesa').classList.remove('hidden');
   await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
 }
@@ -20056,6 +20058,7 @@ async function atualizarSaldoEItensMesa(){
   atualizarBotaoCancelarMesa();
   atualizarBotaoRelatorioMesa();
   atualizarBotaoTransferirMesa();
+  atualizarBotaoFinalizarMesaQuitada();
 }
 
 // "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR" — os 3 números do requisito, sempre recalculados no
@@ -20625,6 +20628,63 @@ $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => {
   b.addEventListener('click', () => receberPagamentoMesaComForma(b.dataset.forma));
 });
 
+// "Voltar às mesas" apenas fecha a janela. Finalização é operação separada e explícita.
+function atualizarBotaoFinalizarMesaQuitada(){
+  const btn = $('btn-bar-mesa-finalizar');
+  const saldo = Number(barMesaResumoAtual?.subtotal_aberto);
+  const consumido = Number(barMesaResumoAtual?.total_consumido);
+  const pago = Number(barMesaResumoAtual?.total_pago);
+  const quitada = !!barMesaAtual && barMesaAtual.status === 'ocupada'
+    && !!barComandaAtualId && Number.isFinite(saldo) && Math.abs(saldo) < 0.005
+    && Number.isFinite(consumido) && consumido > 0
+    && Number.isFinite(pago) && pago > 0;
+  btn.classList.toggle('hidden', !quitada);
+}
+let barFinalizandoMesaQuitada = false;
+$('btn-bar-mesa-finalizar').addEventListener('click', async () => {
+  if(barFinalizandoMesaQuitada || !barMesaAtual || !barComandaAtualId) return;
+  const mesaId = barMesaAtual.id;
+  const comandaId = barComandaAtualId;
+  const empresaId = await obterEmpresaId();
+  const btn = $('btn-bar-mesa-finalizar');
+  barFinalizandoMesaQuitada = true;
+  btn.disabled = true;
+  btn.textContent = 'Finalizando...';
+  try {
+    // Reconferir no servidor antes de solicitar o fechamento, nunca confiar só no saldo exibido.
+    const [mesaResp, resumoResp] = await Promise.all([
+      supabase.from('bar_mesas').select('id, empresa_id, numero, status, comanda_atual_id')
+        .eq('id', mesaId).eq('empresa_id', empresaId).single(),
+      supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: comandaId })
+    ]);
+    if(mesaResp.error || resumoResp.error) throw mesaResp.error || resumoResp.error;
+    const mesa = mesaResp.data;
+    const resumo = resumoResp.data?.[0];
+    if(!mesa || mesa.status !== 'ocupada' || mesa.comanda_atual_id !== comandaId)
+      throw new Error('A situação da mesa mudou. Atualize a lista antes de tentar novamente.');
+    if(!resumo || !Number.isFinite(Number(resumo.subtotal_aberto))
+      || Math.abs(Number(resumo.subtotal_aberto)) >= 0.005
+      || Number(resumo.total_pago) <= 0 || Number(resumo.total_consumido) <= 0)
+      throw new Error('A comanda não está integralmente quitada. Confira o saldo e os pagamentos.');
+    const { error } = await supabase.rpc('bar_mesa_fechar', { p_mesa_id: mesaId });
+    if(error) throw error;
+    const { data: conferida, error: erroConferencia } = await supabase.from('bar_mesas')
+      .select('status, comanda_atual_id').eq('id', mesaId).eq('empresa_id', empresaId).single();
+    if(erroConferencia) throw erroConferencia;
+    if(conferida?.status !== 'livre' || conferida?.comanda_atual_id)
+      throw new Error('O banco não confirmou a liberação da mesa. A janela foi mantida aberta.');
+    barComandaAtualId = null;
+    $('modal-bar-mesa').classList.add('hidden');
+    await carregarBarMesas();
+    $('bar-mesas-msg').innerHTML = '<div class="msg success">Mesa finalizada e liberada com sucesso.</div>';
+  } catch(e) {
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível finalizar a mesa: ${escapeHtml(mensagemBancoAcesso(e))}</div>`;
+  } finally {
+    barFinalizandoMesaQuitada = false;
+    btn.disabled = false;
+    btn.textContent = 'Finalizar mesa quitada';
+  }
+});
 $('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa').classList.add('hidden'));
 
 // Pagamentos já registrados nesta comanda (qualquer status) — permite ver o que já foi pago e, se
