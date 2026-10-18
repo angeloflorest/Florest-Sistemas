@@ -5655,6 +5655,16 @@
           <button type="button" class="bar-forma-card" data-forma="Pix">PIX</button>
           <button type="button" class="bar-forma-card" data-forma="Cartão de Débito">DÉBITO</button>
           <button type="button" class="bar-forma-card" data-forma="Cartão de Crédito">CRÉDITO</button>
+          <button type="button" class="bar-forma-card" id="btn-bar-nota-prazo" style="grid-column:1/-1;background:#f8c820;color:#0b2a4d;">NOTA A PRAZO — CLIENTE</button>
+        </div>
+        <div id="bar-nota-prazo-painel" class="hidden" style="border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:10px 0;background:#fffbea;">
+          <strong>Nota a Prazo — não é pagamento recebido</strong>
+          <p class="modal-section-hint">O saldo restante será lançado em Contas a Receber. A mesa será fechada, e os pagamentos anteriores serão preservados.</p>
+          <div class="field"><label for="bar-nota-prazo-cliente">Cliente cadastrado (obrigatório)</label><select id="bar-nota-prazo-cliente"><option value="">Carregando clientes...</option></select></div>
+          <div class="field"><label for="bar-nota-prazo-vencimento">Vencimento</label><input id="bar-nota-prazo-vencimento" type="date"></div>
+          <button type="button" class="btn-accent" id="bar-nota-prazo-confirmar">Confirmar Nota a Prazo e fechar mesa</button>
+          <button type="button" class="btn-secondary" id="bar-nota-prazo-voltar" style="margin-left:6px;">Voltar</button>
+          <div id="bar-nota-prazo-msg"></div>
         </div>
         <div class="modal-section-hint" id="bar-mesa-pagamento-total-linha" style="margin-top:0;"></div>
 
@@ -20130,6 +20140,7 @@ async function abrirModalMesa(mesa){
   atualizarBotaoCancelarMesa();
   atualizarBotaoRelatorioMesa();
   atualizarBotaoTransferirMesa();
+  $('bar-nota-prazo-painel').classList.add('hidden');
   $('bar-mesa-msg').innerHTML = '';
   $('bar-mesa-titulo').textContent = `Mesa ${mesa.numero}`;
   $('bar-mesa-busca-produto').value = '';
@@ -20664,7 +20675,54 @@ $('btn-bar-cancelar-mesa-confirmar').addEventListener('click', async () => {
 const FORMAS_PAGAMENTO_BAR = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito'];
 let barMesaRecebendo = false; // true enquanto um clique de card está sendo processado (bloqueia duplo clique)
 function setBarMesaFormaCardsDisabled(desabilitado){
-  $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => { b.disabled = desabilitado; });
+  // Nota a Prazo do Bar: crédito não é dinheiro recebido. Uma única RPC atômica cria a venda,
+// o título de Contas a Receber e fecha a comanda. Não usa bar_comanda_pagar_valor.
+let barNotaPrazoEmAndamento = false;
+$('btn-bar-nota-prazo').addEventListener('click', async () => {
+  const painel = $('bar-nota-prazo-painel');
+  painel.classList.remove('hidden');
+  $('bar-nota-prazo-msg').innerHTML = '';
+  const sel = $('bar-nota-prazo-cliente');
+  sel.innerHTML = '<option value="">Carregando clientes...</option>';
+  const { data, error } = await supabase.from('clientes').select('id,nome').eq('empresa_id', perfil.empresa_id).order('nome').limit(1000);
+  if(error){ sel.innerHTML = '<option value="">Falha ao carregar clientes</option>'; $('bar-nota-prazo-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
+  sel.innerHTML = '<option value="">Selecione um cliente</option>' + (data || []).map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join('');
+  const hoje = new Date();
+  const ultimo = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
+  const ano = ultimo.getFullYear(), mes = String(ultimo.getMonth()+1).padStart(2,'0'), dia = String(ultimo.getDate()).padStart(2,'0');
+  $('bar-nota-prazo-vencimento').value = `${ano}-${mes}-${dia}`;
+});
+$('bar-nota-prazo-voltar').addEventListener('click', () => $('bar-nota-prazo-painel').classList.add('hidden'));
+$('bar-nota-prazo-confirmar').addEventListener('click', async () => {
+  if(barNotaPrazoEmAndamento || !barComandaAtualId || !barMesaAtual) return;
+  const cliente = $('bar-nota-prazo-cliente').value;
+  const vencimento = $('bar-nota-prazo-vencimento').value;
+  const msg = $('bar-nota-prazo-msg');
+  if(!cliente || !vencimento){ msg.innerHTML = '<div class="msg error">Selecione o cliente e o vencimento.</div>'; return; }
+  if(barMesaCarrinho.length){ msg.innerHTML = '<div class="msg error">Lance ou remova os itens do carrinho antes de finalizar.</div>'; return; }
+  if(barMesaAjustesTocados){ msg.innerHTML = '<div class="msg error">Os ajustes de desconto, acréscimo ou taxa ainda não foram aplicados. Para segurança, finalize esses ajustes antes de usar Nota a Prazo.</div>'; return; }
+  const saldo = Number(barMesaResumoAtual && barMesaResumoAtual.subtotal_aberto || 0);
+  if(saldo <= 0.01){ msg.innerHTML = '<div class="msg error">Não há saldo em aberto para Nota a Prazo.</div>'; return; }
+  if(!confirm(`Registrar ${formatarReais(saldo)} em Contas a Receber para o cliente selecionado e fechar a mesa ${barMesaAtual.numero}?`)) return;
+  barNotaPrazoEmAndamento = true;
+  const btn = $('bar-nota-prazo-confirmar'); btn.disabled = true; btn.textContent = 'Registrando...';
+  const mesaId = barMesaAtual.id; const numero = barMesaAtual.numero;
+  try {
+    const { data, error } = await supabase.rpc('bar_comanda_finalizar_nota_prazo', {
+      p_comanda_id: barComandaAtualId, p_cliente_id: cliente, p_vencimento: vencimento
+    });
+    if(error){ msg.innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
+    const { data: mesa } = await supabase.from('bar_mesas').select('status').eq('id', mesaId).single();
+    if(!mesa || mesa.status !== 'livre'){ msg.innerHTML = '<div class="msg error">A operação retornou, mas não foi possível confirmar a liberação da mesa. Confira o banco antes de repetir.</div>'; return; }
+    $('bar-nota-prazo-painel').classList.add('hidden');
+    $('modal-bar-mesa').classList.add('hidden');
+    barComandaAtualId = null; barMesaAtual = null;
+    await carregarBarMesas();
+    $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${numero} fechada em Nota a Prazo. Título registrado em Contas a Receber para o cliente selecionado. Valor: ${formatarReais(Number(data && data.valor_a_receber || saldo))}.</div>`;
+  } finally { barNotaPrazoEmAndamento = false; btn.disabled = false; btn.textContent = 'Confirmar Nota a Prazo e fechar mesa'; }
+});
+
+$('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => { b.disabled = desabilitado; });
 }
 
 function barMesaAvancadoAberto(){
