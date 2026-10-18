@@ -1,0 +1,71 @@
+
+> test
+> node --test access.test.mjs
+
+(node:11920) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ SQL: migração não concede maria a nenhum perfil existente (79.461ms)
+✔ SQL: proprietário autorizado pela regra administrativa proposta (21.2508ms)
+✔ SQL: funcionário precisa de concessão explícita; garçom padrão não recebe IA (77.5833ms)
+✔ SQL: usuário inativo ou empresa bloqueada não usa IA, inclusive proprietário (22.7105ms)
+▶ SQL: todas as 37 entradas IA protegidas negam acesso direto sem maria
+  ✔ maria_acao_pendente_atual (3.524ms)
+  ✔ maria_acao_preparar (4.0848ms)
+  ✔ maria_acao_responder (4.4401ms)
+  ✔ maria_auditoria_minha (4.8015ms)
+  ✔ maria_bar_analise (6.7701ms)
+  ✔ maria_buscar_produto (6.3789ms)
+  ✔ maria_cliente_detalhe (7.0984ms)
+  ✔ maria_clientes_buscar (5.3095ms)
+  ✔ maria_clientes_ranking (7.9827ms)
+  ✔ maria_clientes_situacao (5.0465ms)
+  ✔ maria_comparar_clientes (5.7299ms)
+  ✔ maria_comparar_periodos (4.3618ms)
+  ✔ maria_comparar_produtos (2.703ms)
+  ✔ maria_contas_pagar (3.6665ms)
+  ✔ maria_despesas_agrupadas (10.7651ms)
+  ✔ maria_despesas_listar (8.0701ms)
+  ✔ maria_estoque_analise (5.973ms)
+  ✔ maria_estoque_baixo (3.265ms)
+  ✔ maria_estoque_zerado (3.5852ms)
+  ✔ maria_financeiro_resumo (5.1283ms)
+  ✔ maria_formas_pagamento_mes (2.6562ms)
+  ✔ maria_pagamento_por_semana (2.2757ms)
+  ✔ maria_panorama (4.2066ms)
+  ✔ maria_pet_agenda (6.6931ms)
+  ✔ maria_pet_historico (4.3074ms)
+  ✔ maria_pet_pacotes (4.2965ms)
+  ✔ maria_pet_retorno (5.1004ms)
+  ✔ maria_produto_detalhe (4.1511ms)
+  ✔ maria_produto_por_dia_semana (2.2661ms)
+  ✔ maria_produtos_mais_vendidos_mes (3.044ms)
+  ✔ maria_ranking_produtos (2.5885ms)
+  ✔ maria_resumo_vendas_hoje (4.5315ms)
+  ✔ maria_resumo_vendas_mes (2.4897ms)
+  ✔ maria_resumo_vendas_ontem (2.5748ms)
+  ✔ maria_ultimas_vendas (2.7165ms)
+  ✔ maria_uso_atual (13.9162ms)
+  ✔ maria_uso_iniciar (2.9306ms)
+✔ SQL: todas as 37 entradas IA protegidas negam acesso direto sem maria (213.9679ms)
+✔ SQL: maria não concede financeiro, relatório, custo ou margem ao Bar (52.9556ms)
+✔ SQL: permissão MARIA não substitui relatorios nem pdv; tenant A não lê B (56.7763ms)
+✔ SQL: revogar maria bloqueia a próxima requisição, sem refresh de JWT (11.9826ms)
+✔ SQL: valida chaves existentes e rejeita novas chaves inventadas (7.047ms)
+✔ Edge: bloqueio direto antes de consumo, ação pendente, ferramentas e Groq (781.2102ms)
+✔ Edge: JWT inválido não consulta RPC e usuário autorizado continua conversando (Groq simulado) (262.5568ms)
+✔ Edge: modelo não consegue ampliar whitelist para consultar financeiro sem autorização (26.9483ms)
+✔ Edge: alterações limitadas à autorização e whitelist de cadastro, bases publicadas preservadas (103.4264ms)
+✔ Cadastro: valida nova chave maria e rejeita chave não reconhecida (3.7246ms)
+✔ SQL: preserva corpos e modos das 37 funções fora dos gates novos e do recorte de histórico (20.136ms)
+✔ Frontend: checkbox próprio, rota protegida, envio direto e atalho sem vazamento (12.6872ms)
+✔ Regressão estática: bloco de operações do Bar e overrides finais permanece igual após normalizar finais de linha (11.105ms)
+✔ SQL/RLS: vendas da outra empresa permanecem invisíveis ao funcionário autorizado (7.8112ms)
+✔ SQL: rollback recusa remover chave em uso e restaura estado sem concessões (54.0804ms)
+ℹ tests 56
+ℹ suites 0
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9964.9348

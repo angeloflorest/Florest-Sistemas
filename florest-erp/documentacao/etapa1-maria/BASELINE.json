@@ -1,0 +1,207 @@
+{
+  "main": "adbe1899fdc09517a03c433371665d1d6d5f366e",
+  "branch": "correcao-permissoes-maria",
+  "migration": "20261018232136_maria_acesso_independente.sql",
+  "gate_functions": [
+    "maria_acao_pendente_atual",
+    "maria_acao_preparar",
+    "maria_acao_responder",
+    "maria_auditoria_minha",
+    "maria_bar_analise",
+    "maria_buscar_produto",
+    "maria_cliente_detalhe",
+    "maria_clientes_buscar",
+    "maria_clientes_ranking",
+    "maria_clientes_situacao",
+    "maria_comparar_clientes",
+    "maria_comparar_periodos",
+    "maria_comparar_produtos",
+    "maria_contas_pagar",
+    "maria_despesas_agrupadas",
+    "maria_despesas_listar",
+    "maria_estoque_analise",
+    "maria_estoque_baixo",
+    "maria_estoque_zerado",
+    "maria_financeiro_resumo",
+    "maria_formas_pagamento_mes",
+    "maria_pagamento_por_semana",
+    "maria_panorama",
+    "maria_pet_agenda",
+    "maria_pet_historico",
+    "maria_pet_pacotes",
+    "maria_pet_retorno",
+    "maria_produto_detalhe",
+    "maria_produto_por_dia_semana",
+    "maria_produtos_mais_vendidos_mes",
+    "maria_ranking_produtos",
+    "maria_resumo_vendas_hoje",
+    "maria_resumo_vendas_mes",
+    "maria_resumo_vendas_ontem",
+    "maria_ultimas_vendas",
+    "maria_uso_atual",
+    "maria_uso_iniciar"
+  ],
+  "finalizer_unchanged": true,
+  "edge_versions": {
+    "maria-chat": 14,
+    "distgestor-usuarios": 23
+  },
+  "edge_baseline_sha256": {
+    "maria-chat": "960b72f25acb56f18bd99c541db8449f7b263914af386c400589e5e4024c28e4",
+    "distgestor-usuarios": "0d3ce4f4b5ca026de1d2829868fda1ede1bcb076587134b4c28a94e3d805ce41"
+  },
+  "source_hashes": {
+    "private.empresa_id_ativa": "7258f9f510dc71553407ee53d48c77a160f5f23595a4c77ebf42121659812217",
+    "private.exigir_empresa_ativa": "cc03dff930fac8b27615ed575e615f771df9af11ebedb0a2c8eb0bfd11186dd1",
+    "private.maria_acao_bloqueio": "53785d2b1fc0cb6e7cb700a56c9483d46a21cf843190844aec046bd6e7ebd759",
+    "private.maria_acao_requisitos": "442eecdd1a41415ee4cbfd9cd43c023d73e57c6a9a1a75e13bd4ed6818cdf761",
+    "private.maria_acoes_permitidas": "0b49728f2b9c9fc5f42a4efcddbcfc560179051acc8a774fa0085e4f3ce03b1b",
+    "private.perm": "8c7831eea22577fb4b0e7e837091eb9348bc571497f621e52d4b67828194287e",
+    "private.perm_alguma": "b8be1dfe805252f0090c76bade82e938428a6cf06bfbcd3c1e22f4dfd08756eb",
+    "private.usuarios_modulos": "f77a10509e3a767845838b011b0ae0cddf60c10592ce256c39b762546ceb5d8f",
+    "private.usuarios_normalizar_permissoes": "c27c6c085d6a1bd1e118c6a2e94bcc06c75e34ffe83dd49c02d80a3ba8832bcc",
+    "public.maria_acao_pendente_atual": "6ce4c5f52d6be26a46ef6d41e804c29c379bd23d1c164d09a2eab58a365da595",
+    "public.maria_acao_preparar": "e57da238e7bbc7cc1e0adf8cb6ff14ee86c07608bdf97fb9461895b6de65cce1",
+    "public.maria_acao_responder": "71a7e506c5248246618a145f2761f285db3d4a9cf5b2d1099512368054a94f7c",
+    "public.maria_auditoria_minha": "9c7c8f3125bf82f65bf1ea22c4a5e8cd573b7eef32c818c0b680453921e93f18",
+    "public.maria_bar_analise": "eec79d4857c89c98571ce529a49b194c012d7e1c39789188d95bb7a3ed77e892",
+    "public.maria_buscar_produto": "4512c3615c0b5a31bd8cc54c053d6e634c8c00b0d722cbce661f31c4019befb3",
+    "public.maria_cliente_detalhe": "ccb9a385855e64b41f87cb6f2f4614cd51ac81cf32e6deeff6aa7f997a97700e",
+    "public.maria_clientes_buscar": "2a774cc7b3d1cf0a654037a2ad02b7adc43c79a6039d9e045c081f6aba635f90",
+    "public.maria_clientes_ranking": "4b683b6be8635335b5bc342277e32db529ea6c2757a192b0a06713eb6cde9c68",
+    "public.maria_clientes_situacao": "9df8c9f2a1daff68a2280ecd73c80c29533a579e921802405f1043c6a294f6ed",
+    "public.maria_comparar_clientes": "d6e3e6ec3b9491fa09b512cbbac24830b745f347534c4316a60b158a91ff417e",
+    "public.maria_comparar_periodos": "1e29ce22c54bcd587f7cba21edd14017515052fd23167a49b66fa741fca2c80e",
+    "public.maria_comparar_produtos": "2985ffc49641a81a6f5a4871802a9d9843663900514a7aae19e12a0a255bca53",
+    "public.maria_contas_pagar": "1667cb3bf3fe886c2f8c7ef0a17a0e764ff5ad2665bbca752fbfac4756b760b9",
+    "public.maria_despesas_agrupadas": "833b390c3e4b5e0e8c8147b58123e0a41302e63ba4d180e8e32c097236f7343a",
+    "public.maria_despesas_listar": "a97350378a9b75b09e7cc8cc05dbbe0c159e88357f0b747ca7ec3c3345113876",
+    "public.maria_estoque_analise": "8e7587e13e8086120a662ad5affaf305202bc2705d4b243bc2d6eb4233bf6e47",
+    "public.maria_estoque_baixo": "d5fe411dcccead69089f63b0cba9a759faf1705c8539ccdb040721dd994c87f3",
+    "public.maria_estoque_zerado": "d953e2478246a647337162d4388ec7bb76dcdde94fd7c27893c21fe03bca2c08",
+    "public.maria_financeiro_resumo": "ba366a9b358574a9d2e85c240faea2155546384b1030a6cc0f065e6809da42c1",
+    "public.maria_formas_pagamento_mes": "1317ccb018f7ad0122267fcee65cd06a8d4f46e500c1b3ac6bd2f9908de01d04",
+    "public.maria_pagamento_por_semana": "62ae218281eaf246ae2b8f45b8905d76a84812c91fb442b181526b306b547f35",
+    "public.maria_panorama": "3f7916bfccf799150f148fe5d3f16facbd1cbe2014788a3bed91eae9cd3664a7",
+    "public.maria_pet_agenda": "43fcf2c9b184d1912f391e968ec8fd9d57a790f8088f0178f01d44df84b7620c",
+    "public.maria_pet_historico": "68fc5ae5a99579f89489faeb7e542ba876498c6035ddef00f5b54ffb67c4fa5c",
+    "public.maria_pet_pacotes": "b2c3217aa8e166601d854f9f7952766a5cf3ca14965fa0c685995a6a1e756c68",
+    "public.maria_pet_retorno": "f661dab06ba64cc2f4b132c0a53109b43eb8b8df5c8260c2fc0d308c72158ccb",
+    "public.maria_produto_detalhe": "60d3c7deff7f01fa0c8d894f32040bb97537b414810eb8cbed19862558c7b783",
+    "public.maria_produto_por_dia_semana": "9fa0bc4f1fe6ddb473c798bcb20a5d6e3476f495f0a397fbc862b33f6c4c1f2d",
+    "public.maria_produtos_mais_vendidos_mes": "6b93ad279d34e0f7fbd0493eef72c3fa48eeaf67d4f1745ada8e07d0018f7f6a",
+    "public.maria_ranking_produtos": "6fc78d266e03f6b806438160a0b6cbdeff57b0dfe1aa46a5e3cf759dba143f19",
+    "public.maria_resumo_vendas_hoje": "1adf8054c1adbfb0d393c168f218392968ab2aa15c38daca0e93efcbd8fcaee6",
+    "public.maria_resumo_vendas_mes": "479239b13962814fb3ea31822ae30d7cd314acca652d45ab309c191687f66bd2",
+    "public.maria_resumo_vendas_ontem": "05e6d82388cb87e810427c0cf96dc59acc81203597a554e80c81008a3a1a6001",
+    "public.maria_ultimas_vendas": "f6f3bb49e09a0f78bef396a4c4912d48b4472628969ef2d180f7ee12fa5988c3",
+    "public.maria_uso_atual": "3dc116e547278d1f5c10e880216db2e81e632ec5723ce296bd66b603068959e9",
+    "public.maria_uso_finalizar": "0bf4c322a350c64614e984ea8611052b48f769951d46ac29fec2f44afa20b36e",
+    "public.maria_uso_iniciar": "6221cacada40f89f5c80464f6a90e20eb115d80f12ee854b9b277c578c3a620f"
+  },
+  "production_branch_tracking": {
+    "erp_florest": "main",
+    "petgestor": "main",
+    "florest_admin": "main"
+  },
+  "github_remote_write_error": "403 Resource not accessible by integration",
+  "edge_functions_published": [
+    {
+      "slug": "florest-sync",
+      "version": 20,
+      "verify_jwt": false,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "florest-notificar",
+      "version": 18,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "distgestor-usuarios",
+      "version": 23,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "florest-admin-usuarios-remoto",
+      "version": 19,
+      "verify_jwt": false,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-configurar-emitente",
+      "version": 26,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-upload-certificado",
+      "version": 19,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-emitir-documento",
+      "version": 23,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "florest-login",
+      "version": 7,
+      "verify_jwt": false,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-cancelar-documento",
+      "version": 6,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "florest-print-agent",
+      "version": 8,
+      "verify_jwt": false,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "maria-chat",
+      "version": 14,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-definir-ambiente",
+      "version": 4,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-consultar-documento",
+      "version": 6,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "fiscal-contingencia",
+      "version": 5,
+      "verify_jwt": false,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "florest-autorizar-operacao",
+      "version": 1,
+      "verify_jwt": true,
+      "status": "ACTIVE"
+    }
+  ],
+  "tests": {
+    "total": 56,
+    "pass": 56,
+    "fail": 0,
+    "engine": "PGlite 0.5.10; Node v24.21.0; Supabase/Groq mock",
+    "full_bar_e2e": "não validado"
+  }
+}

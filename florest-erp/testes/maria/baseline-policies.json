@@ -1,0 +1,102 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "bar_mesas",
+    "policyname": "bar_mesas_select",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(empresa_id = ( SELECT private.empresa_id_ativa() AS empresa_id_ativa))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "bar_mesas",
+    "policyname": "modulo_bar_bar_mesas_select",
+    "permissive": "RESTRICTIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "( SELECT private.empresa_tem_modulo('bar'::text) AS empresa_tem_modulo)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "bar_mesas",
+    "policyname": "rbac_bar_mesas_select",
+    "permissive": "RESTRICTIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "( SELECT private.perm_alguma(ARRAY['bar_visualizar'::text, 'bar_mesas'::text, 'bar_pedidos'::text, 'bar_caixa'::text, 'bar_portaria'::text, 'bar_configurar'::text]) AS perm_alguma)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "despesas",
+    "policyname": "despesas_select",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(empresa_id = ( SELECT private.empresa_id_ativa() AS empresa_id_ativa))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "despesas",
+    "policyname": "rbac_despesas_select",
+    "permissive": "RESTRICTIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "( SELECT private.perm_alguma(ARRAY['financeiro'::text, 'relatorios'::text]) AS perm_alguma)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "perfis",
+    "policyname": "perfis_select_proprio",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(id = ( SELECT auth.uid() AS uid))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "produtos",
+    "policyname": "produtos_select",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(empresa_id = ( SELECT private.empresa_id_ativa() AS empresa_id_ativa))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "produtos",
+    "policyname": "rbac_produtos_select",
+    "permissive": "RESTRICTIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "( SELECT private.perm_alguma(ARRAY['produtos'::text, 'estoque'::text, 'notas_entrada'::text, 'fiscal'::text, 'dashboard'::text, 'relatorios'::text, 'bar_pedidos'::text]) AS perm_alguma)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "vendas",
+    "policyname": "rbac_vendas_select",
+    "permissive": "RESTRICTIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "( SELECT private.perm_alguma(ARRAY['pdv'::text, 'dashboard'::text, 'financeiro'::text, 'fiscal'::text, 'relatorios'::text]) AS perm_alguma)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "vendas",
+    "policyname": "vendas_select",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(empresa_id = ( SELECT private.empresa_id_ativa() AS empresa_id_ativa))",
+    "with_check": null
+  }
+]

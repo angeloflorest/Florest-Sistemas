@@ -1,0 +1,8 @@
+# Configuração versionada das duas funções desta etapa. Não vincula nem publica projeto.
+project_id = "florest-erp-maria-homologacao"
+
+[functions.maria-chat]
+verify_jwt = true
+
+[functions.distgestor-usuarios]
+verify_jwt = true
