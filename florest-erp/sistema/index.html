@@ -9704,7 +9704,10 @@ const CARREGADORES_VIEW = {
 const VIEWS_SEM_PERMISSAO_PROPRIA = ['maria'];
 
 function abrirView(view){
-  if(!VIEWS_SEM_PERMISSAO_PROPRIA.includes(view) && !podeAcessar(view.replace(/-/g, '_'))) return;   // sem permissão: não abre (o banco também recusa os dados)
+  // Use a chave de permissão definida em MODULOS_ACESSO, não o nome da view.
+  // Ex.: view 'bar' exige 'bar_visualizar' e também módulo comercial 'bar' ativo.
+  const cfgAcessoView = MODULOS_ACESSO.find(m => m.view === view);
+  if(!VIEWS_SEM_PERMISSAO_PROPRIA.includes(view) && (!cfgAcessoView || !podeAcessar(cfgAcessoView.k))) return;
   viewAtual = view;                                   // MARIA flutuante: decide se aparece nesta tela
   atualizarMariaFlutuante();
   if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
