@@ -13363,7 +13363,7 @@ const CX_TIPOS = {
 const CX_MSG_PDV_FECHADO = 'Não existe Caixa PDV aberto. Abra o caixa para continuar.';
 const CX_MSG_BAR_FECHADO = 'O Caixa do Bar está fechado. Abra o caixa para receber este pagamento.';
 const CX_ROTULO_FORMA = { 'Pix': 'PIX' };
-const CX_PERMISSOES_BAR = ['bar_caixa', 'relatorios', 'financeiro', 'dashboard'];   // quem enxerga a aba Caixa do Bar
+const CX_PERMISSOES_BAR = ['bar_caixa'];   // proprietário ou funcionário com permissão de caixa
 const cxEstado = { PDV: null, BAR: null };   // última resposta de caixa_atual(tipo); null = ainda não consultado
 const cxSeq = { PDV: 0, BAR: 0 };            // descarta resposta de consulta antiga que chega depois de uma mais nova
 let cxOcupado = false;                       // trava de abrir/fechar-preparar
@@ -13400,11 +13400,26 @@ function cxMsgErro(err, padrao){
 }
 function cxMsg(tipo, texto, tipoMsg){ msgBox('cx-msg-' + tipo, texto, tipoMsg); }
 
+function cxBarCaixaPermitido(caixa, empresaId){
+  return !!(caixa && empresaId && caixa.empresa_id === empresaId && acesso.userId && acesso.ativo &&
+    (acesso.papel === 'proprietario' ||
+      (podeAcessarBar('bar_caixa') && caixa.aberto_por === acesso.userId)));
+}
+async function cxValidarCaixa(caixa){
+  if(caixa && caixa.tipo_caixa === 'BAR' && !cxBarCaixaPermitido(caixa, await obterEmpresaId())){
+    throw new Error('Você só pode acessar caixas do Bar abertos por você na sua empresa.');
+  }
+}
+
 // ---- estado ----
 async function cxCarregar(tipo){
   const sq = ++cxSeq[tipo];
   let resp;
-  try { resp = await supabase.rpc('caixa_atual', { p_tipo: tipo }); }
+  try {
+    if(tipo === 'BAR' && !cxBarPodeVer()) throw new Error('Você não tem permissão para acessar o caixa do Bar.');
+    resp = await supabase.rpc('caixa_atual', { p_tipo: tipo });
+    if(!resp.error) await cxValidarCaixa(resp.data && resp.data.caixa);
+  }
   catch(e){ resp = { data: null, error: e }; }
   if(sq !== cxSeq[tipo]) return cxEstado[tipo];              // chegou depois de uma consulta mais nova
   const { data, error } = resp;
@@ -13418,10 +13433,12 @@ async function cxCarregar(tipo){
     caixa: (data && data.caixa) || null,
     resumo: (data && data.resumo) || null,
     pode_operar: !!(data && data.pode_operar),
+    bloqueado_por_outro: tipo === 'BAR' && !!(data && data.bloqueado_por_outro),
   };
   return cxEstado[tipo];
 }
-const cxFechadoCerto = (tipo) => !!cxEstado[tipo] && cxEstado[tipo].aberto === false;
+const cxFechadoCerto = (tipo) => !!cxEstado[tipo] && cxEstado[tipo].aberto === false &&
+  !(tipo === 'BAR' && cxEstado[tipo].bloqueado_por_outro);
 
 function cxAposMudanca(tipo){
   cxRenderPainel(tipo);
@@ -13477,9 +13494,9 @@ function cxHtmlFechado(tipo, est){
          <input type="text" inputmode="decimal" id="cx-valor-ini-${tipo}" value="0,00" maxlength="16" autocomplete="off">
        </div>
        <button type="button" class="btn-accent" data-cx-acao="abrir" data-cx-tipo="${tipo}">ABRIR CAIXA</button>`
-    : '<p class="cx-texto">Você não tem permissão para abrir este caixa.</p>';
+    : `<p class="cx-texto">${est.bloqueado_por_outro ? 'O caixa aberto pertence a outro operador. Você pode receber pagamentos das mesas, mas somente o responsável ou o proprietário pode consultar os valores e fechar o caixa.' : 'Você não tem permissão para abrir este caixa.'}</p>`;
   return `<div class="cx-painel">
-    <div class="cx-topo"><span class="cx-badge cx-badge-fechado">CAIXA FECHADO</span><span class="cx-sub">${escapeHtml(CX_TIPOS[tipo].nome)}</span></div>
+    <div class="cx-topo"><span class="cx-badge ${est.bloqueado_por_outro ? 'cx-badge-aberto' : 'cx-badge-fechado'}">${est.bloqueado_por_outro ? 'CAIXA EM USO' : 'CAIXA FECHADO'}</span><span class="cx-sub">${escapeHtml(CX_TIPOS[tipo].nome)}</span></div>
     ${abrir}
     <div class="cx-msg" id="cx-msg-${tipo}"></div>
     <div class="cx-hist" id="cx-hist-${tipo}"></div>
@@ -13507,7 +13524,11 @@ async function cxCarregarHist(tipo){
   try { resp = await supabase.rpc('caixa_listar', { p_tipo: tipo, p_limite: 8 }); } catch(e){ return; }
   const el = $('cx-hist-' + tipo);
   if(!el || resp.error || !resp.data) return;
-  const fechados = (resp.data.itens || []).filter(i => i.caixa && i.caixa.status === 'fechado').slice(0, 5);
+  let empresaId;
+  try { if(tipo === 'BAR') empresaId = await obterEmpresaId(); } catch(e){ return; }
+  if(sq !== cxSeq[tipo]) return;
+  const fechados = (resp.data.itens || []).filter(i => i.caixa && i.caixa.status === 'fechado' &&
+    (tipo !== 'BAR' || cxBarCaixaPermitido(i.caixa, empresaId))).slice(0, 5);
   if(!fechados.length){ el.innerHTML = ''; return; }
   el.innerHTML = `<h4 class="cx-hist-titulo">Últimos fechamentos</h4>
     <table class="cx-tabela"><thead><tr><th>Caixa</th><th>Fechado em</th><th>Operador</th><th class="cx-num">Total</th><th></th></tr></thead><tbody>` +
@@ -13518,6 +13539,7 @@ async function cxCarregarHist(tipo){
 // ---- abrir ----
 async function cxAbrir(tipo){
   if(cxOcupado) return;
+  if(tipo === 'BAR' && !cxBarPodeVer()) return;
   const campo = $('cx-valor-ini-' + tipo);
   const valor = cxParseValor(campo ? campo.value : '0');
   if(valor === null){ cxMsg(tipo, 'Informe um valor inicial válido (zero ou maior).'); if(campo) campo.focus(); return; }
@@ -13534,6 +13556,7 @@ async function cxAbrir(tipo){
       }
       return;
     }
+    await cxValidarCaixa(data.caixa);
     cxEstado[tipo] = { aberto: true, caixa: data.caixa, resumo: data.resumo, pode_operar: true };
     cxAposMudanca(tipo);
     cxMsg(tipo, `${CX_TIPOS[tipo].nome} aberto.`, 'success');
@@ -13566,9 +13589,10 @@ async function cxFecharFluxo(tipo){
     const est = await cxCarregar(tipo);                // sempre com os números de agora
     if(!est || est.aberto !== true){
       cxAposMudanca(tipo);
-      cxMsg(tipo, est && est.aberto === false ? 'Este caixa já está fechado.' : ((est && est.erro) || 'Não foi possível consultar o caixa.'));
+      cxMsg(tipo, est && est.bloqueado_por_outro ? 'Somente o responsável ou o proprietário pode fechar este caixa.' : (est && est.aberto === false ? 'Este caixa já está fechado.' : ((est && est.erro) || 'Não foi possível consultar o caixa.')));
       return;
     }
+    if(tipo === 'BAR' && !est.pode_operar){ cxMsg(tipo, 'Você não tem permissão para fechar este caixa.'); return; }
     cxFecharTipo = tipo; cxFecharCaixaId = est.caixa.id;
     $('cx-fechar-titulo').textContent = 'Fechar ' + CX_TIPOS[tipo].nome;
     $('cx-fechar-corpo').innerHTML = cxHtmlConfirmacao(tipo, est);
@@ -13604,6 +13628,15 @@ function cxFechamentoConcluido(tipo, data){
 async function cxConfirmarFechamento(){
   if(cxFechando || !cxFecharCaixaId) return;
   const tipo = cxFecharTipo, id = cxFecharCaixaId;
+  if(tipo === 'BAR'){
+    const est = cxEstado.BAR;
+    if(!est || !est.pode_operar || !est.caixa || est.caixa.id !== id){
+      msgBox('cx-fechar-msg', 'Você não tem permissão para fechar este caixa.', 'error'); return;
+    }
+    try { await cxValidarCaixa(est.caixa); }
+    catch(e){ msgBox('cx-fechar-msg', e.message, 'error'); return; }
+    if(cxFechando || cxFecharCaixaId !== id) return;
+  }
   const pode = !(cxEstado[tipo] && cxEstado[tipo].pode_operar === false);
   cxFechando = true;
   const btn = $('btn-cx-fechar-confirmar');
@@ -13653,6 +13686,8 @@ async function cxAbrirDetalhe(id){
     return;
   }
   const { caixa: c, resumo: r, resumo_fechamento: snap, movimentos } = resp.data;
+  try { await cxValidarCaixa(c); }
+  catch(e){ $('cx-det-corpo').innerHTML = `<div class="msg error">${escapeHtml(e.message)}</div>`; return; }
   const tipo = c.tipo_caixa;
   $('cx-det-titulo').textContent = `${CX_TIPOS[tipo] ? CX_TIPOS[tipo].nome : 'Caixa'} nº ${Number(c.numero)} — ${c.status === 'aberto' ? 'aberto' : 'fechado'}`;
   const dif = snap && Math.abs(Number(snap.total_recebido) - Number(r.total_recebido)) > 0.004;
@@ -13784,8 +13819,9 @@ function cxBarChipRender(){
     if(!cxBarPodeVer() || !est || est.aberto === null){ chip.classList.add('hidden'); }
     else {
       chip.classList.remove('hidden');
-      chip.classList.add(est.aberto ? 'aberto' : 'fechado');
-      chip.textContent = est.aberto ? 'Caixa do Bar: ABERTO' : 'Caixa do Bar: FECHADO' + (est.pode_operar ? ' — abrir' : '');
+      const aberto = est.aberto || est.bloqueado_por_outro;
+      chip.classList.add(aberto ? 'aberto' : 'fechado');
+      chip.textContent = aberto ? 'Caixa do Bar: ABERTO' : 'Caixa do Bar: FECHADO' + (est.pode_operar ? ' — abrir' : '');
     }
   }
   cxBarAvisoMesaAtualizar();
@@ -19344,9 +19380,8 @@ function podeAcessarBar(permissao){
 const BAR_SUBVIEW_PERMISSOES = {
   historico: ['bar_historico_consultar'],
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
-  // Caixa do Bar (Migration 032): operar = bar_caixa; ver (somente leitura) = também Relatórios/Financeiro/Dashboard.
-  // O banco repete essa regra em caixa_atual/abrir/fechar/listar/detalhe.
-  caixa: ['bar_caixa','relatorios','financeiro','dashboard'],
+  // Caixa do Bar: proprietário ou bar_caixa; funcionário acessa somente o próprio caixa.
+  caixa: ['bar_caixa'],
   // Garçons (Fase 4 — correção): administrar contas de garçom (cadastrar/editar/excluir/redefinir
   // senha) é restrito EXCLUSIVAMENTE ao proprietário nesta primeira versão — bar_configurar NÃO
   // autoriza (ver bar_garcons_listar/bar_garcom_atualizar/bar_garcom_excluir, Migration 020). Por
@@ -20869,10 +20904,8 @@ async function carregarHistoricoPagamentosMesa(){
   const wrap = $('bar-mesa-historico-wrap');
   if(!barComandaAtualId){ wrap.classList.add('hidden'); barMesaQtdPagamentos = 0; return; }
   const { data, error } = await buscarTodos(() => supabase
-    .from('bar_pagamentos')
-    .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
-    .eq('comanda_id', barComandaAtualId)
-    .order('criado_em', { ascending: false }));
+    .rpc('bar_comanda_pagamentos_listar', { p_comanda_id: barComandaAtualId })
+    .order('criado_em', { ascending: false }).order('id'));
   barMesaQtdPagamentos = (!error && data) ? data.length : 0;
   atualizarBotaoTransferirMesa();
   if(error || !data || data.length === 0){
@@ -20983,11 +21016,8 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
   }
   barEstornarBuscaComandaId = comanda.id;
   const { data: pagamentos, error: erroPagamentos } = await buscarTodos(() => supabase
-    .from('bar_pagamentos')
-    .select('id, total, criado_em, estornado, estornado_em, bar_pagamentos_formas(forma_pagamento, valor)')
-    .eq('empresa_id', empresaId)
-    .eq('comanda_id', comanda.id)
-    .order('criado_em', { ascending: false }));
+    .rpc('bar_comanda_pagamentos_listar', { p_comanda_id: comanda.id })
+    .order('criado_em', { ascending: false }).order('id'));
   if(erroPagamentos){
     $('bar-estornar-busca-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(erroPagamentos))}</div>`;
     return;
