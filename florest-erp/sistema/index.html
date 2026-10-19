@@ -4154,6 +4154,7 @@
         <button type="button" class="bar-subnav-item" data-barview="caixa">Caixa</button>
         <button type="button" class="bar-subnav-item" data-barview="garcons">Garçons</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
+        <button type="button" class="bar-subnav-item" data-barview="historico">Histórico de Vendas</button>
         <button type="button" class="bar-subnav-item" data-barview="relatorios">Relatórios</button>
         <button type="button" class="bar-subnav-item" data-barview="configuracoes">Configurações</button>
       </div>
@@ -4168,6 +4169,22 @@
         <div id="bar-mesas-msg"></div>
         <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Clique em "⚙ Configurar mesas" para definir a quantidade.</div>
         <div id="bar-mesas-grid" class="bar-mesas-grid"></div>
+      </div>
+
+      <div id="bar-sub-historico" class="bar-subview hidden">
+        <h3>Histórico de Vendas</h3>
+        <button type="button" class="btn-secondary hidden" id="bar-historico-auditoria">Histórico administrativo</button>
+        <form id="bar-historico-filtros" class="search-row" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+          <label>Venda<input name="numero" type="number" min="1" step="1" placeholder="Número da venda"></label>
+          <label>Mesa<input name="mesa" type="number" min="1" step="1" placeholder="Número da mesa"></label>
+          <label>Cliente<input name="cliente" maxlength="100" placeholder="Nome do cliente"></label>
+          <label>De<input name="inicio" type="date"></label><label>Até<input name="fim" type="date"></label>
+          <label>Situação<select name="status"><option value="">Todas</option><option>Concluída</option><option>A Prazo</option><option>Cancelada</option><option>Em aberto</option></select></label>
+          <button class="btn-secondary" type="submit">Pesquisar</button>
+        </form>
+        <div id="bar-historico-msg" role="status" aria-live="polite"></div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Venda</th><th>Data e hora</th><th>Mesa</th><th>Cliente</th><th>Total</th><th>Situação</th><th>Documento fiscal</th><th>Ação</th></tr></thead><tbody id="bar-historico-body"></tbody></table></div>
+        <div class="modal-actions"><button type="button" class="btn-secondary" id="bar-historico-anterior">Anterior</button><button type="button" class="btn-secondary" id="bar-historico-proxima">Próxima</button></div>
       </div>
 
       <!-- ---- SUBVIEW: CAIXA DO BAR (Migration 032) ---- -->
@@ -5660,6 +5677,7 @@
         <div id="bar-nota-prazo-painel" class="hidden" style="border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:10px 0;background:#fffbea;">
           <strong>Nota a Prazo — não é pagamento recebido</strong>
           <p class="modal-section-hint">O saldo restante será lançado em Contas a Receber. A mesa será fechada, e os pagamentos anteriores serão preservados.</p>
+          <div class="field"><label for="bar-nota-prazo-busca">Buscar cliente pelo nome</label><input id="bar-nota-prazo-busca" maxlength="100"><button type="button" class="btn-secondary" id="bar-nota-prazo-buscar">Buscar clientes</button></div>
           <div class="field"><label for="bar-nota-prazo-cliente">Cliente cadastrado (obrigatório)</label><select id="bar-nota-prazo-cliente"><option value="">Carregando clientes...</option></select></div>
           <div class="field"><label for="bar-nota-prazo-vencimento">Vencimento</label><input id="bar-nota-prazo-vencimento" type="date"></div>
           <button type="button" class="btn-accent" id="bar-nota-prazo-confirmar">Confirmar Nota a Prazo e fechar mesa</button>
@@ -6886,6 +6904,12 @@ const PERMISSOES_BAR_DETALHE = [
   { k: 'bar_cancelar_pedido',    rotulo: 'Bar — Cancelar item de pedido' },
   { k: 'bar_corrigir_pessoas',   rotulo: 'Bar — Corrigir pessoas (para menos)' },
   { k: 'bar_estornar_pagamento', rotulo: 'Bar — Estornar pagamento' },
+  { k: 'bar_historico_consultar', rotulo: 'Bar — Consultar histórico de vendas' },
+  { k: 'bar_historico_detalhar', rotulo: 'Bar — Visualizar detalhes de venda e documentos' },
+  { k: 'bar_venda_editar', rotulo: 'Bar — Editar venda e cliente' },
+  { k: 'bar_venda_cancelar', rotulo: 'Bar — Cancelar venda' },
+  { k: 'bar_venda_refazer', rotulo: 'Bar — Refazer venda' },
+
 ];
 
 // Módulos comerciais opcionais, contratados por empresa (independente da permissão do usuário).
@@ -19318,6 +19342,7 @@ function podeAcessarBar(permissao){
 // esconde/mostra cada ação (lançar pedido, receber pagamento, estornar) conforme a permissão de
 // quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
+  historico: ['bar_historico_consultar'],
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
   // Caixa do Bar (Migration 032): operar = bar_caixa; ver (somente leitura) = também Relatórios/Financeiro/Dashboard.
   // O banco repete essa regra em caixa_atual/abrir/fechar/listar/detalhe.
@@ -19358,13 +19383,15 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 });
 
 async function abrirSubViewBar(sub){
+  if(!visivelBarSubview(sub)) return;
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','caixa','garcons','produtos','relatorios','configuracoes'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','caixa','garcons','produtos','relatorios','configuracoes','historico'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas'){ cxBarChipAtualizar(); await carregarBarMesas(); }
   else if(sub === 'caixa') await cxBarAbrirSub();
   else if(sub === 'garcons') await carregarBarGarcons();
   else if(sub === 'produtos') await carregarBarProdutos();
+  else if(sub === 'historico'){ $('bar-historico-auditoria').classList.toggle('hidden',acesso.papel!=='proprietario'); await carregarBarHistorico(); }
   else if(sub === 'relatorios') carregarBarRelatorios();
   else if(sub === 'configuracoes') await abrirConfigSubViewBar(barConfigSubViewAtual);
 }
@@ -20688,11 +20715,9 @@ $('btn-bar-nota-prazo').addEventListener('click', async () => {
   const painel = $('bar-nota-prazo-painel');
   painel.classList.remove('hidden');
   $('bar-nota-prazo-msg').innerHTML = '';
-  const sel = $('bar-nota-prazo-cliente');
-  sel.innerHTML = '<option value="">Carregando clientes...</option>';
-  const { data, error } = await supabase.from('clientes').select('id,nome').eq('empresa_id', perfil.empresa_id).order('nome').limit(1000);
-  if(error){ sel.innerHTML = '<option value="">Falha ao carregar clientes</option>'; $('bar-nota-prazo-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
-  sel.innerHTML = '<option value="">Selecione um cliente</option>' + (data || []).map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join('');
+  if(!podeAcessarBar('bar_caixa')){ $('bar-nota-prazo-msg').textContent='Sem permissão para Nota a Prazo.'; return; }
+  $('bar-nota-prazo-busca').value='';
+  await carregarClientesNotaPrazo();
   const hoje = new Date();
   const ultimo = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
   const ano = ultimo.getFullYear(), mes = String(ultimo.getMonth()+1).padStart(2,'0'), dia = String(ultimo.getDate()).padStart(2,'0');
@@ -20704,6 +20729,7 @@ $('bar-nota-prazo-confirmar').addEventListener('click', async () => {
   const cliente = $('bar-nota-prazo-cliente').value;
   const vencimento = $('bar-nota-prazo-vencimento').value;
   const msg = $('bar-nota-prazo-msg');
+  if(!podeAcessarBar('bar_caixa')){ msg.textContent='Sem permissão para Nota a Prazo.'; return; }
   if(!cliente || !vencimento){ msg.innerHTML = '<div class="msg error">Selecione o cliente e o vencimento.</div>'; return; }
   if(barMesaCarrinho.length){ msg.innerHTML = '<div class="msg error">Lance ou remova os itens do carrinho antes de finalizar.</div>'; return; }
   if(barMesaAjustesTocados){ msg.innerHTML = '<div class="msg error">Os ajustes de desconto, acréscimo ou taxa ainda não foram aplicados. Para segurança, finalize esses ajustes antes de usar Nota a Prazo.</div>'; return; }
@@ -20714,17 +20740,16 @@ $('bar-nota-prazo-confirmar').addEventListener('click', async () => {
   const btn = $('bar-nota-prazo-confirmar'); btn.disabled = true; btn.textContent = 'Registrando...';
   const mesaId = barMesaAtual.id; const numero = barMesaAtual.numero;
   try {
-    const { data, error } = await supabase.rpc('bar_comanda_finalizar_nota_prazo', {
+    const data = await barHistoricoRpc('bar_comanda_finalizar_nota_prazo', {
       p_comanda_id: barComandaAtualId, p_cliente_id: cliente, p_vencimento: vencimento
     });
-    if(error){ msg.innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`; return; }
-    const { data: mesa } = await supabase.from('bar_mesas').select('status').eq('id', mesaId).single();
-    if(!mesa || mesa.status !== 'livre'){ msg.innerHTML = '<div class="msg error">A operação retornou, mas não foi possível confirmar a liberação da mesa. Confira o banco antes de repetir.</div>'; return; }
+    if(!data?.venda_id || !data?.titulo_id){ throw new Error('Resposta de fechamento incompleta. Confira a venda no histórico antes de repetir.'); }
     $('bar-nota-prazo-painel').classList.add('hidden');
     $('modal-bar-mesa').classList.add('hidden');
     barComandaAtualId = null; barMesaAtual = null;
     await carregarBarMesas();
     $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${numero} fechada em Nota a Prazo. Título registrado em Contas a Receber para o cliente selecionado. Valor: ${formatarReais(Number(data && data.valor_a_receber || saldo))}.</div>`;
+  } catch(e){ msg.textContent=barHistoricoErro(e)+' A mesma comanda é protegida contra duplicação; confira o histórico ou repita com o mesmo cliente e vencimento.';
   } finally { barNotaPrazoEmAndamento = false; btn.disabled = false; btn.textContent = 'Confirmar Nota a Prazo e fechar mesa'; }
 });
 
@@ -21691,60 +21716,152 @@ document.addEventListener('click',async e=>{
   await atualizarSaldoEItensMesa();await carregarBarMesas();
 });
 
-// Consulta operacional do Módulo Bar, utilizando a tabela central de vendas.
-for(const view of ['bar']){
-  const area=$('view-'+view);if(!area)continue;
-  const div=document.createElement('div');div.className='subsection';
-  div.innerHTML=`<h3>Consultar vendas do Módulo Bar</h3><p>Pesquise pelo número para consultar mesa, pagamentos e situação operacional.</p><form class="search-row" data-florest-consulta><input name="numero" type="number" min="1" placeholder="Número da venda" required><button class="btn-secondary" type="submit">Consultar venda</button><button type="button" class="btn-secondary" data-florest-historico>Histórico administrativo</button></form><div class="florest-consulta-resultado"></div>`;
-  area.prepend(div);
-  div.querySelector('form').onsubmit=async e=>{
-    e.preventDefault();const n=Number(new FormData(e.target).get('numero'));
-    const r=await supabase.rpc('florest_vendas_pesquisar',{p_numero:n,p_limite:50});
-    const box=div.querySelector('.florest-consulta-resultado');box.replaceChildren();
-    if(r.error){box.textContent=r.error.message;return;}
-    if(!r.data?.length){box.textContent='Venda não encontrada.';return;}
-    for(const v of r.data){const b=document.createElement('button');b.className='link-btn';b.type='button';b.textContent=`Venda nº ${v.numero_venda} · ${v.tipo==='bar'?'Módulo Bar · Mesa '+(v.mesa_numero??'—'):'PDV'} · ${formatarReais(v.total)}`;b.onclick=()=>florestDetalharVenda(v.id);box.append(b);}
-  };
-  div.querySelector('[data-florest-historico]').onclick=florestHistorico;
+// Histórico do Bar: permissões independentes, sem emissão fiscal automática.
+const barHistoricoEstado={offset:0,seq:0,ocupado:false};
+function barHistoricoPode(k){return podeAcessarBar(k);}
+function barHistoricoErro(e){return mensagemBancoAcesso(e)||e?.message||'Não foi possível concluir. Atualize e tente novamente.';}
+async function barHistoricoRpc(nome,args={}){
+  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),20000);
+  try{const r=await supabase.rpc(nome,args).abortSignal(ctrl.signal);if(r.error)throw r.error;return r.data;}
+  finally{clearTimeout(t);}
 }
+async function barClientesConsultar(busca=''){
+  return await barHistoricoRpc('bar_clientes_nota_prazo',{p_busca:busca,p_offset:0})||[];
+}
+let barNotaClientesSeq=0;
+async function carregarClientesNotaPrazo(){
+  const seq=++barNotaClientesSeq,sel=$('bar-nota-prazo-cliente'),msg=$('bar-nota-prazo-msg');
+  sel.disabled=true;sel.innerHTML='<option value="">Carregando clientes...</option>';
+  $('bar-nota-prazo-confirmar').disabled=true;msg.textContent='';
+  try{
+    const clientes=await barClientesConsultar($('bar-nota-prazo-busca').value.trim());
+    if(seq!==barNotaClientesSeq)return;
+    sel.innerHTML='<option value="">'+(clientes.length?'Selecione um cliente':'Nenhum cliente encontrado')+'</option>'+clientes.map(c=>`<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}</option>`).join('');
+    if(clientes.length===200)msg.textContent='Mostrando os primeiros 200 clientes. Refine a busca pelo nome.';
+    sel.disabled=!clientes.length;$('bar-nota-prazo-confirmar').disabled=!clientes.length;
+  }catch(e){
+    if(seq!==barNotaClientesSeq)return;
+    sel.innerHTML='<option value="">Falha ao carregar clientes</option>';
+    msg.textContent=barHistoricoErro(e)+' Use “Buscar clientes” para tentar novamente.';
+  }
+}
+$('bar-nota-prazo-buscar').onclick=carregarClientesNotaPrazo;
+$('bar-nota-prazo-busca').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();carregarClientesNotaPrazo();}});
+
+function barHistoricoFiscalTexto(docs){
+  return (docs||[]).filter(d=>d.status!=='nao_emitida').map(d=>`${(d.tipo_documento||'').toUpperCase()} ${d.numero||'—'} · série ${d.serie||'—'} · ${d.status||'—'}`).join(' | ')||'—';
+}
+async function carregarBarHistorico(){
+  if(!barHistoricoPode('bar_historico_consultar')){$('bar-historico-msg').textContent='Sem permissão para consultar o histórico.';return;}
+  const seq=++barHistoricoEstado.seq,form=$('bar-historico-filtros'),f=new FormData(form),body=$('bar-historico-body');
+  $('bar-historico-msg').textContent='Consultando vendas...';body.replaceChildren();
+  try{
+    const rows=await barHistoricoRpc('bar_historico_pesquisar',{
+      p_numero:f.get('numero')||null,p_mesa:f.get('mesa')||null,p_cliente:f.get('cliente')||'',
+      p_inicio:f.get('inicio')||null,p_fim:f.get('fim')||null,p_status:f.get('status')||'',p_offset:barHistoricoEstado.offset
+    });
+    if(seq!==barHistoricoEstado.seq)return;
+    for(const v of rows||[]){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${escapeHtml(String(v.numero_venda))}</td><td>${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))}</td><td>${escapeHtml(String(v.mesa_numero??'—'))}</td><td>${escapeHtml(v.cliente_nome||'—')}</td><td>${formatarReais(v.total)}</td><td>${escapeHtml(v.situacao)}</td><td>${escapeHtml(barHistoricoFiscalTexto(v.documentos))}</td><td></td>`;
+      if(barHistoricoPode('bar_historico_detalhar')){const b=document.createElement('button');b.type='button';b.className='link-btn';b.textContent='Detalhes';b.onclick=()=>barHistoricoDetalhar(v.id);tr.lastElementChild.append(b);}
+      body.append(tr);
+    }
+    $('bar-historico-msg').textContent=rows?.length?`Vendas ${barHistoricoEstado.offset+1} a ${barHistoricoEstado.offset+rows.length}.`:'Nenhuma venda encontrada.';
+    $('bar-historico-anterior').disabled=barHistoricoEstado.offset===0;$('bar-historico-proxima').disabled=(rows?.length||0)<50;
+  }catch(e){if(seq===barHistoricoEstado.seq)$('bar-historico-msg').textContent=barHistoricoErro(e);}
+}
+$('bar-historico-filtros').onsubmit=e=>{e.preventDefault();barHistoricoEstado.offset=0;carregarBarHistorico();};
+$('bar-historico-anterior').onclick=()=>{barHistoricoEstado.offset=Math.max(0,barHistoricoEstado.offset-50);carregarBarHistorico();};
+$('bar-historico-proxima').onclick=()=>{barHistoricoEstado.offset+=50;carregarBarHistorico();};
+const barHistoricoTentativas=new Map();
+async function barHistoricoMutacao(nome,args){
+  // Persiste a mesma chave por usuário e conteúdo para recuperar resposta perdida após recarga.
+  const content=JSON.stringify([acesso.userId,nome,args]),storageKey='florest-bar-operacao:'+content;
+  let key=barHistoricoTentativas.get(content);
+  try{key=key||sessionStorage.getItem(storageKey);}catch{}
+  key=key||novaChaveUuid();barHistoricoTentativas.set(content,key);
+  try{sessionStorage.setItem(storageKey,key);}catch{}
+  const data=await barHistoricoRpc(nome,{...args,p_idempotencia:key});
+  barHistoricoTentativas.delete(content);try{sessionStorage.removeItem(storageKey);}catch{}
+  return data;
+}
+async function barHistoricoDetalhar(id){
+  if(!barHistoricoPode('bar_historico_detalhar'))return;
+  if(barHistoricoEstado.ocupado)return;barHistoricoEstado.ocupado=true;
+  try{
+    const d=await barHistoricoRpc('florest_venda_detalhar',{p_venda:id}),v=d.venda,c=d.comanda;
+    const bloqueio=!!d.fiscal_bloqueado,acoes=['<option value="consulta">Somente consulta</option>'];
+    if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_editar'))acoes.push('<option value="editar">Editar venda / cliente / pagamento</option>');
+    if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_cancelar'))acoes.push('<option value="cancelar">Excluir venda (cancelamento com estorno)</option>');
+    if(barHistoricoPode('bar_venda_refazer'))acoes.push('<option value="refazer">Refazer como nova venda em mesa livre</option>');
+    for(const doc of d.documentos||[])acoes.push(`<option value="doc:${escapeHtml(doc.id)}">Documento ${(doc.tipo_documento||'').toUpperCase()} ${escapeHtml(doc.numero||'—')} · ${escapeHtml(doc.status)}</option>`);
+    let html=`<p>Mesa ${escapeHtml(String(c?.mesa_numero??'—'))} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Cliente: ${escapeHtml(d.cliente_nome||'—')} · Pagamento: ${escapeHtml(v.forma_pagamento)} · ${v.cancelada_em?'Cancelada':c?.status==='aberta'?'Em aberto':'Concluída'}</p><p>Total: <strong>${formatarReais(v.total)}</strong> · Desconto: ${formatarReais(c?.desconto||0)} · Acréscimo: ${formatarReais(c?.acrescimo||0)} · Taxa: ${formatarReais(c?.taxa_servico||0)}</p>`;
+    html+='<table><thead><tr><th>Produto/serviço</th><th>Quantidade</th><th>Valor</th><th>Subtotal</th></tr></thead><tbody>'+(d.itens||[]).map(i=>`<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(String(i.quantidade))}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`).join('')+'</tbody></table>';
+    html+='<h4>Pagamentos</h4>'+(d.pagamentos||[]).map(p=>`<p>${escapeHtml(p.forma_pagamento)}: ${formatarReais(p.valor)}${p.estornado?' (estornado)':''}</p>`).join('');
+    html+='<h4>Contas a receber</h4>'+(d.titulos||[]).map(t=>`<p>${escapeHtml(t.status)} · Original ${formatarReais(t.valor_original)} · Saldo ${formatarReais(t.saldo_aberto)} · Vencimento ${escapeHtml(t.vencimento)}</p>`).join('');
+    html+='<h4>Documentos fiscais</h4><p>'+escapeHtml(barHistoricoFiscalTexto(d.documentos))+'</p>';
+    if(bloqueio)html+='<p class="msg error">Documento fiscal emitido, reservado ou em processamento: edição e cancelamento comuns bloqueados. Utilize o procedimento fiscal próprio. Refazer cria outra venda e preserva integralmente esta.</p>';
+    html+='<label>Ação<select name="acao">'+acoes.join('')+'</select></label>';
+    const choice=await florestDialog('Venda nº '+v.numero_venda,html,'Continuar');if(!choice||choice.acao==='consulta')return;
+    if(choice.acao.startsWith('doc:')){await barHistoricoDocumento(choice.acao.slice(4));return;}
+    if(choice.acao==='editar'){await barHistoricoEditar(d);return;}
+    if(choice.acao==='cancelar'){
+      const f=await florestDialog('Cancelar venda nº '+v.numero_venda,'<p>O número e o histórico serão preservados. Os recebimentos elegíveis e o estoque serão estornados na mesma transação. Caixa fechado, título recebido ou documento fiscal impedem esta operação.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Confirmar cancelamento');
+      if(f)await barHistoricoMutacao('bar_historico_cancelar',{p_venda:id,p_motivo:f.motivo.trim()});
+    }
+    if(choice.acao==='refazer'){
+      if(!barHistoricoPode('bar_pedidos'))throw Error('Refazer exige também permissão para lançar pedidos.');
+      const e=await obterEmpresaId(),r=await supabase.from('bar_mesas').select('id,numero').eq('empresa_id',e).eq('status','livre').order('numero');if(r.error)throw r.error;
+      if(!r.data?.length)throw Error('Nenhuma mesa livre para uma nova venda.');
+      const f=await florestDialog('Refazer venda nº '+v.numero_venda,'<p>Cria uma nova venda com novo número e pedido em mesa livre, usando os preços e a disponibilidade atuais do cardápio. O original permanece intacto. Não registra pagamento nem emite documento fiscal.</p><label>Mesa<select name="mesa" required>'+r.data.map(m=>`<option value="${escapeHtml(m.id)}">Mesa ${m.numero}</option>`).join('')+'</select></label><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Criar nova venda');
+      if(f){const result=await barHistoricoMutacao('bar_historico_refazer',{p_venda:id,p_mesa:f.mesa,p_motivo:f.motivo.trim()});alert('Nova venda nº '+result.numero_venda+' criada, sem pagamento e sem emissão fiscal.');}
+    }
+    await carregarBarHistorico();
+  }catch(e){alert(barHistoricoErro(e));}
+  finally{barHistoricoEstado.ocupado=false;}
+}
+async function barHistoricoEditar(d){
+  const v=d.venda,c=d.comanda,pagos=(d.pagamentos||[]).filter(p=>!p.estornado),permiteItens=!pagos.length;
+  const [clientes,catalogo]=await Promise.all([barClientesConsultar(''),barHistoricoRpc('bar_historico_catalogo')]);
+  const choices=['<option value="manter">Manter cliente atual</option>','<option value="">Sem cliente</option>',...clientes.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.nome)}</option>`)];
+  let html='<p>Itens e valores exigem ausência de pagamentos liquidados; títulos já recebidos e caixas encerrados impedem a correção. Compostos mantêm sua receita original. Para adicionar itens ou alterar a composição, use Refazer venda e o fluxo normal de pedidos.</p><label>Cliente<select name="cliente">'+choices.join('')+'</select></label>';
+  for(const i of d.itens||[]){
+    html+=`<fieldset><legend>${escapeHtml(i.nome)}</legend><label>Produto<select name="produto_${i.id}" ${permiteItens?'':'disabled'}><option value="">Manter produto e composição</option>${(catalogo||[]).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)}</option>`).join('')}</select></label><label>Quantidade<input name="q_${i.id}" type="number" min="0.0001" step="0.0001" value="${i.quantidade}" ${permiteItens?'':'disabled'} required></label><label>Preço<input name="p_${i.id}" type="number" min="0" step="0.01" value="${i.preco_unitario}" ${permiteItens?'':'disabled'} required></label></fieldset>`;
+  }
+  html+=`<label>Desconto<input name="desconto" type="number" min="0" step="0.01" value="${c?.desconto||0}" ${permiteItens?'':'disabled'} required></label>`;
+  for(const p of pagos)html+=`<fieldset><legend>Recebido: ${formatarReais(p.valor)}</legend><label>Forma<select name="forma_${p.id}">${[...new Set([p.forma_pagamento,...FORMAS_PAGAMENTO_BAR])].map(f=>`<option ${f===p.forma_pagamento?'selected':''}>${escapeHtml(f)}</option>`).join('')}</select></label></fieldset>`;
+  html+='<label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>';
+  const f=await florestDialog('Editar venda nº '+v.numero_venda,html,'Salvar correção');if(!f)return;
+  const alteracoes={};
+  if(f.cliente!=='manter')alteracoes.cliente_id=f.cliente||null;
+  const itens=[];
+  if(permiteItens){for(const i of d.itens||[]){const p=f['produto_'+i.id],q=Number(f['q_'+i.id]),preco=Number(f['p_'+i.id]);if(p||q!==Number(i.quantidade)||preco!==Number(i.preco_unitario))itens.push({id:i.id,quantidade:q,preco_unitario:preco,...(p?{bar_produto_id:p}:{})});}if(itens.length)alteracoes.itens=itens;if(Number(f.desconto)!==Number(c?.desconto||0))alteracoes.desconto=Number(f.desconto);}
+  const pagamentos=pagos.filter(p=>f['forma_'+p.id]!==p.forma_pagamento).map(p=>({id:p.id,forma_pagamento:f['forma_'+p.id]}));if(pagamentos.length)alteracoes.pagamentos=pagamentos;
+  if(!Object.keys(alteracoes).length){alert('Nenhuma alteração informada.');return;}
+  await barHistoricoMutacao('florest_venda_corrigir',{p_venda:v.id,p_alteracoes:alteracoes,p_motivo:f.motivo.trim()});
+  alert('Correção salva e auditada.');await carregarBarHistorico();
+}
+async function barHistoricoDocumento(id){
+  const d=await barHistoricoRpc('bar_historico_documento',{p_documento:id});
+  let opts='<option value="consulta">Somente consulta</option>';
+  if(d.xml_conteudo||d.xml_url)opts+='<option value="xml">Consultar / baixar XML existente</option>';
+  if(d.pdf_conteudo||d.pdf_url||(d.tipo_documento==='nfce'&&d.xml_conteudo))opts+='<option value="danfe">Abrir DANFE / PDF existente</option>';
+  const f=await florestDialog('Documento fiscal '+(d.numero||'—'),`<p>${escapeHtml(d.tipo_documento)} · Série ${escapeHtml(d.serie||'—')} · ${escapeHtml(d.status)}</p><p>Chave: ${escapeHtml(d.chave_acesso||'—')}</p><p>Protocolo: ${escapeHtml(d.protocolo||'—')}</p><label>Ação<select name="acao">${opts}</select></label>`,'Continuar');if(!f)return;
+  if(f.acao==='danfe'){if(!nfceImprimirDocumento(d).ok)alert('DANFE/PDF indisponível para este documento.');}
+  if(f.acao==='xml'){
+    if(d.xml_conteudo){const xml=nfceDecodificarXml(d.xml_conteudo);if(!xml)throw Error('XML indisponível.');const a=document.createElement('a'),url=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));a.href=url;a.download='documento-'+(d.numero||id)+'.xml';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    else if(d.xml_url){const url=new URL(d.xml_url);if(!['https:','http:'].includes(url.protocol))throw Error('URL de XML inválida.');window.open(url.href,'_blank','noopener,noreferrer');}
+  }
+}
+
 async function florestHistorico(){
   if(acesso.papel!=='proprietario'){alert('Histórico administrativo disponível ao proprietário.');return;}
   const r=await supabase.from('florest_auditoria_operacoes').select('operacao,alvo_id,solicitante_id,autorizador_id,motivo,antes,depois,resultado,criado_em').order('criado_em',{ascending:false}).limit(50);
   if(r.error){alert(r.error.message);return;}
   await florestDialog('Histórico administrativo',`<p>Últimos 50 registros desta empresa.</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(r.data,null,2))}</pre>`,'Fechar');
 }
-async function florestDetalharVenda(id){
-  const r=await supabase.rpc('florest_venda_detalhar',{p_venda:id});if(r.error){alert(r.error.message);return;}
-  const d=r.data,v=d.venda,c=d.comanda;
-  const podeEditar=acesso.papel==='proprietario'&&v.tipo==='bar'&&!v.cancelada_em;
-  const pagamentos=(d.pagamentos||[]).filter(p=>!p.estornado);
-  let html=`<p>${v.tipo==='bar'?'Módulo Bar · Mesa '+escapeHtml(c?.mesa_numero??'—'):'PDV'} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Total: <strong>${formatarReais(v.total)}</strong>${v.cancelada_em?' · Cancelada':''}</p><table><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Subtotal</th></tr></thead><tbody>`;
-  for(const i of d.itens||[])html+=`<tr><td>${escapeHtml(i.nome)}</td><td>${i.quantidade}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`;
-  html+='</tbody></table>';
-  if(c)html+=`<p>Desconto da comanda: ${formatarReais(c.desconto||0)} · Acréscimo: ${formatarReais(c.acrescimo||0)} · Taxa de serviço: ${formatarReais(c.taxa_servico||0)}</p>`;
-  for(const pa of d.recebimentos||[])html+=`<p>Recebimento em ${escapeHtml(new Date(pa.criado_em).toLocaleString('pt-BR'))}: ${formatarReais(pa.total)} · Desconto: ${formatarReais(pa.desconto)} · Acréscimo: ${formatarReais(pa.acrescimo)} · Taxa: ${formatarReais(pa.taxa_servico)}${pa.estornado?' · Estornado':''}</p>`;
-  html+='<h4>Formas e comprovantes</h4>';
-  for(const p of pagamentos)html+=`<p>${escapeHtml(p.forma_pagamento)} · ${formatarReais(p.valor)} · Comprovante: ${escapeHtml(p.comprovante_referencia||'—')}</p>`;
-  if(!pagamentos.length)html+=`<p>${escapeHtml(v.forma_pagamento)}</p>`;
-  if(podeEditar)html+=`<label>Ação<select name="acao"><option value="consulta">Somente consulta</option><option value="pagamentos">Corrigir forma/comprovante (valor recebido preservado)</option><option value="itens" ${c?.status!=='aberta'||pagamentos.length?'disabled':''}>Corrigir itens/valores sem recebimentos liquidados</option></select></label>`;
-  const escolha=await florestDialog('Venda nº '+v.numero_venda,html,podeEditar?'Continuar':'Fechar');
-  if(!podeEditar||!escolha||escolha.acao==='consulta')return;
-  const campos=[];
-  if(escolha.acao==='pagamentos'){
-    if(!pagamentos.length){alert('Não há pagamento do Bar disponível para correção.');return;}
-    for(const p of pagamentos){const formas=['Dinheiro','Pix','Cartão de Débito','Cartão de Crédito'];if(!formas.includes(p.forma_pagamento))formas.unshift(p.forma_pagamento);campos.push(`<fieldset><legend>${formatarReais(p.valor)}</legend><label>Forma<select name="forma_${p.id}">${formas.map(f=>`<option ${p.forma_pagamento===f?'selected':''}>${escapeHtml(f)}</option>`).join('')}</select></label><label>Comprovante/referência<input name="ref_${p.id}" maxlength="200" value="${escapeHtml(p.comprovante_referencia||'')}"></label></fieldset>`);}
-  }else{
-    campos.push('<p>Exige comanda aberta, recebimentos integralmente estornados e caixa ainda aberto. Para excluir produtos use o cancelamento autorizado na mesa.</p>');
-    for(const i of d.itens||[])campos.push(`<fieldset><legend>${escapeHtml(i.nome)}</legend><label>Quantidade<input type="number" step="0.0001" min="0.0001" name="q_${i.id}" value="${i.quantidade}" required></label><label>Preço<input type="number" step="0.01" min="0" name="p_${i.id}" value="${i.preco_unitario}" required></label></fieldset>`);
-    campos.push(`<label>Desconto da comanda<input type="number" name="desconto" step="0.01" min="0" value="${c?.desconto||0}" required></label>`);
-  }
-  campos.push('<label>Motivo da correção<textarea name="motivo" minlength="3" maxlength="500" required></textarea></label>');
-  const ed=await florestDialog('Correção administrativa',campos.join(''),'Salvar correção');if(!ed)return;
-  const alteracoes=escolha.acao==='pagamentos'?{pagamentos:pagamentos.map(p=>({id:p.id,forma_pagamento:ed['forma_'+p.id],comprovante_referencia:ed['ref_'+p.id]}))}:{itens:(d.itens||[]).map(i=>({id:i.id,quantidade:Number(ed['q_'+i.id]),preco_unitario:Number(ed['p_'+i.id])})),desconto:Number(ed.desconto)};
-  const salvo=await supabase.rpc('florest_venda_corrigir',{p_venda:id,p_alteracoes:alteracoes,p_motivo:ed.motivo,p_idempotencia:crypto.randomUUID()});
-  if(salvo.error){alert(salvo.error.message);return;}alert('Correção salva e auditada.');await florestDetalharVenda(id);
-}
-
+$('bar-historico-auditoria').onclick=florestHistorico;
 const florestBtnComanda=document.createElement('button');florestBtnComanda.id='btn-florest-comanda-cancelar';florestBtnComanda.type='button';florestBtnComanda.className='btn-secondary hidden';florestBtnComanda.textContent='Cancelar comanda';
 $('btn-bar-mesa-cancelar').after(florestBtnComanda);
 const florestAtualizarCancelarMesaOriginal=atualizarBotaoCancelarMesa;
