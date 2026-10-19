@@ -3020,7 +3020,7 @@
     <div class="nav-item enabled" data-view="relatorios" id="nav-relatorios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4.5 20.5V10.2M12 20.5V4.5M19.5 20.5v-7.3"/></svg></span><span class="nav-label">Relatórios</span></div>
     <div class="nav-item enabled" data-view="configuracoes" id="nav-configuracoes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.3-2-3.4-2.2.7a7.8 7.8 0 0 0-1.3-.8L15.4 5h-4l-.4 2.2c-.5.2-.9.5-1.3.8l-2.2-.7-2 3.4L7.4 12c-.1.5-.1 1 0 1.5l-1.9 1.3 2 3.4 2.2-.7c.4.3.8.6 1.3.8l.4 2.2h4l.4-2.2c.5-.2.9-.5 1.3-.8l2.2.7 2-3.4-1.9-1.3Z"/></svg></span><span class="nav-label">Configurações</span></div>
     <div class="nav-item enabled" data-view="usuarios" id="nav-usuarios"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c1.9.6 3 2.3 3 4.7"/></svg></span><span class="nav-label">Usuários e Acessos</span></div>
-    <div class="nav-item enabled" data-view="maria" id="nav-maria"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-8Z"/><path d="M9 8.5h6M9 11.5h3.5"/></svg></span><span class="nav-label">MARIA Assistente Inteligente</span></div>
+    <div class="nav-item enabled hidden" data-view="maria" id="nav-maria"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-8Z"/><path d="M9 8.5h6M9 11.5h3.5"/></svg></span><span class="nav-label">MARIA Assistente Inteligente</span></div>
     <div id="secao-modulo-pet" class="hidden">
       <div class="nav-group-label">MÓDULO PET</div>
     <div class="nav-item enabled" data-view="agenda" id="nav-agenda"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.5h3M13.5 16.5h3"/></svg></span><span class="nav-label">Agenda</span></div>
@@ -6873,6 +6873,7 @@ const MODULOS_ACESSO = [
   { k: 'relatorios',    view: 'relatorios',    rotulo: 'Relatórios' },
   { k: 'configuracoes', view: 'configuracoes', rotulo: 'Configurações' },
   { k: 'usuarios',      view: 'usuarios',      rotulo: 'Usuários e Acessos' },
+  { k: 'maria_acessar', view: 'maria',         rotulo: 'MARIA — Acessar assistente' },
   // ---- Módulo comercial: PET (opcional, por empresa — ver MODULOS_COMERCIAIS) ----
   { k: 'agenda',        view: 'agenda',        rotulo: 'Agenda',  moduloComercial: 'pet' },
   { k: 'pets',          view: 'pets',          rotulo: 'Pets',    moduloComercial: 'pet' },
@@ -7493,7 +7494,7 @@ function aplicarAcessoNaTela(){
 }
 
 function primeiroModuloPermitido(exceto){
-  const ordem = ['pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios'];
+  const ordem = ['pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios', 'maria_acessar'];
   const k = ordem.find(m => m !== exceto && podeAcessar(m));
   return k ? MODULOS_ACESSO.find(m => m.k === k).view : null;
 }
@@ -9478,9 +9479,8 @@ $('btn-concluir-com-sessao').addEventListener('click', async () => {
 // Chat que chama a Edge Function EXISTENTE 'maria-chat' com o usuário já autenticado
 // (supabase.functions.invoke envia o JWT da sessão). Body: { mensagem } — NUNCA empresa_id: a empresa é
 // resolvida pelo backend. Nenhuma chave de IA / service_role fica no navegador. Resposta em `resposta`.
-// Sem permissão própria no banco nesta etapa: a view está em VIEWS_SEM_PERMISSAO_PROPRIA (abrirView) e
-// NÃO em MODULOS_ACESSO (que alimenta a tela de permissões de Usuários e Acessos). O que a MARIA pode
-// responder é decidido pela própria Edge Function.
+// A permissão maria_acessar controla menu, atalhos, navegação e envio. A Edge Function
+// valida novamente o perfil autenticado antes de consultar dados ou executar ferramentas.
 // =====================================================================
 const MARIA_MSG_INICIAL = 'Olá! Sou a MARIA. O que você quer saber hoje?';
 const MARIA_MSG_ESPERA = 'MARIA está analisando...';
@@ -9549,7 +9549,7 @@ function mariaAgendarReaparecer(){
   mariaOcultaTimer = setTimeout(() => { mariaOcultaTimer = null; atualizarMariaFlutuante(); }, resta + 50);
 }
 function atualizarMariaFlutuante(){
-  const porTela = !viewAtual || MARIA_FLUTUANTE_OCULTA_EM.includes(viewAtual);   // regra de tela: sempre vale primeiro
+  const porTela = !mariaPodeAcessar() || !viewAtual || MARIA_FLUTUANTE_OCULTA_EM.includes(viewAtual);
   const porTempo = mariaOcultaAtiva();
   if(porTempo){ if(!mariaOcultaTimer) mariaAgendarReaparecer(); }
   else if(mariaOcultaTimer){ clearTimeout(mariaOcultaTimer); mariaOcultaTimer = null; }
@@ -9618,7 +9618,11 @@ function mariaMensagemErro(error){
   return 'A MARIA não conseguiu responder agora. Tente novamente em instantes.';
 }
 
+function mariaPodeAcessar(){
+  return !!acesso.userId && acesso.ativo && podeAcessar('maria_acessar');
+}
 async function mariaEnviar(textoBruto){
+  if(!mariaPodeAcessar()) return;
   if(mariaEnviando) return;                       // evita envio duplo
   const texto = String(textoBruto == null ? '' : textoBruto).trim();
   if(!texto) return;
@@ -9659,6 +9663,7 @@ async function mariaEnviar(textoBruto){
 }
 
 function mariaAbrir(){
+  if(!mariaPodeAcessar()) return;
   mariaRolarFim();
   if(window.innerWidth > 760 && !mariaEnviando) $('maria-texto').focus();
 }
@@ -9714,7 +9719,7 @@ const CARREGADORES_VIEW = {
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
-  // ---- MARIA (núcleo do ERP, sem permissão própria — ver VIEWS_SEM_PERMISSAO_PROPRIA) ----
+  // ---- MARIA (permissão específica maria_acessar) ----
   'maria': () => mariaAbrir(),
   // ---- Módulo comercial: PET ----
   'agenda': () => carregarAgendaView(),
@@ -9724,14 +9729,11 @@ const CARREGADORES_VIEW = {
   'bar': () => carregarBarView(),
 };
 
-// Views do núcleo do ERP que não dependem de uma permissão de módulo (nem existem em MODULOS_ACESSO).
-const VIEWS_SEM_PERMISSAO_PROPRIA = ['maria'];
-
 function abrirView(view){
   // Use a chave de permissão definida em MODULOS_ACESSO, não o nome da view.
   // Ex.: view 'bar' exige 'bar_visualizar' e também módulo comercial 'bar' ativo.
   const cfgAcessoView = MODULOS_ACESSO.find(m => m.view === view);
-  if(!VIEWS_SEM_PERMISSAO_PROPRIA.includes(view) && (!cfgAcessoView || !podeAcessar(cfgAcessoView.k))) return;
+  if(!cfgAcessoView || !podeAcessar(cfgAcessoView.k)) return;
   viewAtual = view;                                   // MARIA flutuante: decide se aparece nesta tela
   atualizarMariaFlutuante();
   if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
@@ -19389,18 +19391,16 @@ const BAR_SUBVIEW_PERMISSOES = {
   // visivelBarSubview(), checando papel==='proprietario' diretamente.
   garcons: [],
   produtos: ['bar_configurar'],
-  // Relatórios do Bar: mesma regra de "Mesas" — qualquer permissão operacional do Bar já basta
-  // (é a mesma checagem de acesso ao módulo, em duas camadas, que o restante do Bar já usa).
-  relatorios: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
+  // Relatórios financeiros do Bar são exclusivos do proprietário.
+  relatorios: [],
   // Configurações (Fase 3): reúne Mesas/Destino dos Produtos/Impressoras — mesma permissão que já
   // protegia "Destino dos Produtos" e "Configurar mesas" (bar_configurar).
   configuracoes: ['bar_configurar'],
 };
 
-// Garçons (Fase 4 — correção): única aba do Bar cuja visibilidade não é por lista de permissões —
-// é sempre e só o proprietário, mesmo que o funcionário logado tenha bar_configurar.
+// Garçons e Relatórios são exclusivos do proprietário, independentemente das permissões operacionais.
 function visivelBarSubview(view){
-  if(view === 'garcons') return !!acesso && acesso.papel === 'proprietario';
+  if(view === 'garcons' || view === 'relatorios') return !!acesso && acesso.papel === 'proprietario';
   return (BAR_SUBVIEW_PERMISSOES[view] || []).some(p => podeAcessarBar(p));
 }
 
@@ -19492,6 +19492,7 @@ const SECOES_RELATORIOS_BAR = [
 ];
 
 function carregarBarRelatorios(){
+  if(!visivelBarSubview('relatorios')) return;
   renderizarListaRelatoriosBar();
   mostrarPassoRelatorioBar('lista');
 }
@@ -19518,6 +19519,7 @@ $('btn-bar-rel-voltar-lista').addEventListener('click', () => mostrarPassoRelato
 $('btn-bar-rel-doc-voltar').addEventListener('click', () => mostrarPassoRelatorioBar('filtros'));
 
 function abrirFiltrosRelatorioBar(rel){
+  if(!visivelBarSubview('relatorios')) return;
   barRelRelatorioAtual = rel;
   $('bar-rel-filtro-titulo').textContent = rel.titulo;
   $('bar-rel-filtro-descricao').textContent = rel.descricao;
@@ -19587,6 +19589,7 @@ async function popularSelectGarconsRelatorioBar(){
 $('btn-bar-rel-gerar').addEventListener('click', gerarRelatorioBarAtual);
 
 async function gerarRelatorioBarAtual(){
+  if(!visivelBarSubview('relatorios')) return;
   const rel = barRelRelatorioAtual;
   if(!rel) return;
 
