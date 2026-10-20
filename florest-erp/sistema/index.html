@@ -3991,12 +3991,12 @@
         </div>
         <div class="subsection">
           <div class="subsection-header"><div><h3>Pacote mensal de XMLs</h3><p>Os arquivos são separados por empresa e competência. Confira os XMLs ausentes antes de enviar ao contador.</p></div></div>
-          <div class="xmlc-acoes"><div class="field"><label for="xmlc-mes">Competência</label><input type="month" id="xmlc-mes"></div><button type="button" class="btn-secondary" id="xmlc-resumo">Conferir XMLs</button><button type="button" class="btn-accent" id="xmlc-baixar">Gerar e baixar ZIP</button></div>
+          <div class="xmlc-acoes"><div class="field"><label for="xmlc-mes">Competência</label><input type="month" id="xmlc-mes"></div><button type="button" class="btn-secondary" id="xmlc-resumo">Conferir XMLs</button><button type="button" class="btn-accent" id="xmlc-baixar">Gerar e baixar ZIP</button><button type="button" class="btn-accent" id="xmlc-enviar">Enviar ao contador</button></div>
           <div id="xmlc-pacote-msg" class="xmlc-msg" role="status"></div>
           <div id="xmlc-resumo-dados" class="hidden"></div>
-          <p class="xmlc-nota">Atenção: o ZIP contém apenas os XMLs armazenados no ERP. Cancelamentos, documentos externos e XMLs ausentes precisam ser conferidos antes da entrega. Gerar o ZIP não envia e-mail ao contador.</p>
+          <p class="xmlc-nota">Atenção: o ZIP contém apenas os XMLs armazenados no ERP. Cancelamentos, documentos externos e XMLs ausentes precisam ser conferidos antes da entrega. O envio ao contador exige confirmação e só é permitido quando não houver XMLs pendentes.</p>
         </div>
-        <div class="subsection"><div class="subsection-header"><div><h3>Histórico de pacotes preparados</h3><p>Registros das gerações. O arquivo ZIP não fica armazenado para baixar novamente: para isso, gere outro pacote.</p></div><button type="button" class="btn-secondary" id="xmlc-atualizar">Atualizar histórico</button></div><div class="table-card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Competência</th><th>XMLs</th><th>Pendentes</th><th>Status</th><th>Destinatário</th></tr></thead><tbody id="xmlc-historico"><tr><td colspan="6">Abra a aba para carregar.</td></tr></tbody></table></div></div>
+        <div class="subsection"><div class="subsection-header"><div><h3>Histórico de pacotes</h3><p>Registros das gerações. O arquivo ZIP não fica armazenado para baixar novamente: para isso, gere outro pacote.</p></div><button type="button" class="btn-secondary" id="xmlc-atualizar">Atualizar histórico</button></div><div class="table-card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Competência</th><th>XMLs</th><th>Pendentes</th><th>Status</th><th>Destinatário</th></tr></thead><tbody id="xmlc-historico"><tr><td colspan="6">Abra a aba para carregar.</td></tr></tbody></table></div></div>
       </div>
     </div>
 
@@ -22411,14 +22411,31 @@ async function xmlcSalvar(){
 async function xmlcSolicitar(acao){
  const competencia=$('xmlc-mes').value;
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)){xmlcAviso('xmlc-pacote-msg','Selecione uma competência válida.',true);return;}
- const btn=$('xmlc-'+(acao==='resumo'?'resumo':'baixar'));btn.disabled=true;
- xmlcAviso('xmlc-pacote-msg',acao==='resumo'?'Conferindo XMLs...':'Gerando ZIP...');
+ const envio=acao==='enviar';
+ const btn=$('xmlc-'+(acao==='resumo'?'resumo':envio?'enviar':'baixar'));
+ let confirmarReenvio=false;
+ if(envio){
+   const email=$('xmlc-email').value.trim();
+   if(!email||!$('xmlc-email').checkValidity()){xmlcAviso('xmlc-pacote-msg','Cadastre e salve um e-mail válido para o contador antes de enviar.',true);return;}
+   if(!confirm('Enviar o ZIP de XMLs da competência '+competencia+' para '+email+'?\n\nConfira previamente os XMLs e o destinatário.'))return;
+ }
+ btn.disabled=true;
+ xmlcAviso('xmlc-pacote-msg',acao==='resumo'?'Conferindo XMLs...':envio?'Enviando XMLs ao contador...':'Gerando ZIP...');
  try{
    const {data:{session},error:authError}=await supabase.auth.getSession();if(authError||!session?.access_token)throw Error('Sessão expirada. Entre novamente.');
-   const resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
+   let resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
      method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
      body:JSON.stringify({competencia,acao})
    });
+   if(envio&&resposta.status===409){
+     const conflito=await resposta.json().catch(()=>({}));
+     if(!conflito.reenvio||!confirm('Este pacote já consta como enviado. Deseja reenviar para o mesmo contador?'))return;
+     confirmarReenvio=true;
+     resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
+       method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+       body:JSON.stringify({competencia,acao,confirmarReenvio})
+     });
+   }
    if(!resposta.ok){const erro=await resposta.json().catch(()=>({}));throw Error(erro.erro||'Erro HTTP '+resposta.status);}
    if(acao==='resumo'){
      const dados=await resposta.json();const area=$('xmlc-resumo-dados');area.replaceChildren();area.classList.remove('hidden');area.classList.add('xmlc-resumo');
@@ -22426,6 +22443,9 @@ async function xmlcSolicitar(acao){
      const p=document.createElement('p');p.textContent='A conferência não substitui a verificação de cancelamentos e documentos externos.';area.appendChild(p);
      if(dados.pendentes?.length){const ul=document.createElement('ul');for(const pend of dados.pendentes){const li=document.createElement('li');li.textContent=(pend.tipo||'Documento')+' nº '+(pend.numero||'—')+' — XML ausente';ul.appendChild(li);}area.appendChild(ul);}
      xmlcAviso('xmlc-pacote-msg','Conferência concluída. Confira os pendentes antes da entrega.');
+   }else if(envio){
+     const dados=await resposta.json();
+     xmlcAviso('xmlc-pacote-msg','Envio aceito pelo Resend para '+(dados.destinatario||'o contador')+' ('+(dados.quantidade??0)+' XMLs). '+(dados.historico_registrado===false?'Atenção: histórico não registrado.':'A entrega final ainda depende do servidor de e-mail.'));
    }else{
      const blob=await resposta.blob();if(!blob.size)throw Error('ZIP vazio recebido.');
      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='xml-contador-'+competencia+'.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -22438,6 +22458,7 @@ $('fiscal-aba-btn-xml-contador').addEventListener('click',()=>fcpTrocarAba('xml-
 $('xmlc-salvar').addEventListener('click',xmlcSalvar);
 $('xmlc-resumo').addEventListener('click',()=>xmlcSolicitar('resumo'));
 $('xmlc-baixar').addEventListener('click',()=>xmlcSolicitar('baixar'));
+$('xmlc-enviar').addEventListener('click',()=>xmlcSolicitar('enviar'));
 $('xmlc-atualizar').addEventListener('click',xmlcAbrir);
 
 </script>
