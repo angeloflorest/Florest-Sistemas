@@ -3320,6 +3320,7 @@
             <button type="button" class="pdx-pg" data-forma="Cartão de Débito"><i>&#9645;</i>Cartão Débito</button>
             <button type="button" class="pdx-pg" data-forma="Cartão de Crédito"><i>&#9645;</i>Cartão Crédito</button>
             <button type="button" class="pdx-pg" data-forma="Outros"><i>&hellip;</i>Outros</button>
+            <button type="button" class="pdx-pg" id="pdv-nota-prazo" data-nota-prazo="true" aria-pressed="false">NOTA A PRAZO</button>
           </div>
           <div id="pdx-pag-erro" class="pdx-pag-erro" role="alert"></div>
           <div class="pdx-pag-lista" id="pdx-pag-lista"></div>
@@ -11109,6 +11110,8 @@ let pdvProcessando = false;
 // inteiros — [{ forma: 'Pix', centavos: 1500 }]. Só existe em memória até FINALIZAR (nada é gravado
 // antes); remover uma forma aqui não exige estorno. pdvTotalCentavosRef = total vigente da venda.
 let pdvPagamentos = [];
+let pdvNotaPrazo = false;
+let pdvFinalizando = false;
 let pdvTotalCentavosRef = 0;
 const PDV_MAX_PAGAMENTOS = 10; // mesmo limite validado no servidor (registrar_venda_mista)
 const PDV_FORMA_ROTULO = { 'Pix': 'PIX' }; // texto exibido na lista; o valor enviado é sempre o nome da forma
@@ -11886,6 +11889,7 @@ function atualizarPainelPagamentoPdv(){
   const total = pdvTotalCentavosRef;
   const restante = total - pdvSomaPagamentos();
   const temVenda = pdvCarrinho.length > 0 && total > 0;
+  if(!temVenda) pdvNotaPrazo = false;
 
   const lista = $('pdx-pag-lista');
   lista.innerHTML = '';
@@ -11897,14 +11901,23 @@ function atualizarPainelPagamentoPdv(){
     row.querySelector('button').addEventListener('click', () => pdvRemoverPagamento(idx));
     lista.appendChild(row);
   });
+  if(pdvNotaPrazo){
+    const row = document.createElement('div');
+    row.className = 'pdx-pag-item';
+    row.textContent = `Nota a Prazo — Em aberto: ${pdvCentavosParaReais(total)}. Recebido: R$ 0,00.`;
+    lista.appendChild(row);
+  }
 
   $('pdx-pag-restante').textContent = pdvCentavosParaReais(Math.max(restante, 0));
 
   const podeAdicionar = temVenda && restante > 0 && pdvPagamentos.length < PDV_MAX_PAGAMENTOS;
-  document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => { b.disabled = !podeAdicionar; });
+  document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
+    b.disabled = pdvFinalizando || (b.dataset.notaPrazo ? !temVenda || pdvPagamentos.length > 0 : !podeAdicionar || pdvNotaPrazo);
+  });
+  $('pdv-nota-prazo').setAttribute('aria-pressed', String(pdvNotaPrazo));
   const campo = $('pdv-valor-forma');
-  campo.disabled = !podeAdicionar;
-  campo.value = podeAdicionar ? pdvCentavosParaTexto(restante) : '';
+  campo.disabled = !podeAdicionar || pdvNotaPrazo || pdvFinalizando;
+  campo.value = !campo.disabled ? pdvCentavosParaTexto(restante) : '';
 
   if(pdvCarrinho.length > 0 && total <= 0){
     pdvErroPagamento('O total da venda é R$ 0,00: não há valor a receber, então ela não pode ser finalizada aqui.');
@@ -11915,11 +11928,14 @@ function atualizarPainelPagamentoPdv(){
   }
 
   // FINALIZAR só com pagamentos lançados e Restante exatamente zero.
-  $('btn-finalizar-venda').disabled = !(temVenda && restante === 0 && pdvPagamentos.length > 0);
+  $('btn-finalizar-venda').disabled = pdvFinalizando || !(temVenda && (pdvNotaPrazo
+    ? pdvPagamentos.length === 0 && !!$('pdv-cliente').value
+    : restante === 0 && pdvPagamentos.length > 0));
 }
 
 // Clique numa forma = adiciona um pagamento com o valor do campo.
 function pdvAdicionarPagamento(forma){
+  if(pdvNotaPrazo || pdvFinalizando) return;
   pdvErroPagamento('');
   if(pdvCarrinho.length === 0) return;
 
@@ -11970,8 +11986,15 @@ function pdvRemoverPagamento(idx){
 }
 
 document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
-  b.addEventListener('click', () => pdvAdicionarPagamento(b.dataset.forma));
+  b.addEventListener('click', () => {
+    if(!b.dataset.notaPrazo){ pdvAdicionarPagamento(b.dataset.forma); return; }
+    if(pdvFinalizando || pdvPagamentos.length || !pdvCarrinho.length) return;
+    if(!$('pdv-cliente').value){ pdvMensagem('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.'); pdxAbrirCliente(); return; }
+    pdvNotaPrazo = !pdvNotaPrazo;
+    atualizarPainelPagamentoPdv();
+  });
 });
+$('pdv-cliente').addEventListener('change', atualizarPainelPagamentoPdv);
 $('pdv-valor-forma').addEventListener('keydown', (e) => {
   if(e.key === 'Enter') e.preventDefault(); // a forma é escolhida clicando no botão correspondente
 });
@@ -11988,8 +12011,18 @@ $('btn-limpar-venda').addEventListener('click', () => {
   $('pdv-busca-produto').focus();
 });
 
+function pdvPrazoLerTentativa(){
+  const raw = sessionStorage.getItem('florest.pdv.prazo.' + acesso.userId);
+  return raw ? JSON.parse(raw) : null;
+}
+function pdvPrazoSalvarTentativa(tentativa){
+  const chave = 'florest.pdv.prazo.' + acesso.userId;
+  if(tentativa) sessionStorage.setItem(chave, JSON.stringify(tentativa));
+  else sessionStorage.removeItem(chave);
+}
 $('btn-finalizar-venda').addEventListener('click', async () => {
-  if(pdvCarrinho.length === 0) return;
+  if(pdvCarrinho.length === 0 || pdvFinalizando) return;
+  const notaPrazo = pdvNotaPrazo;
 
   // "CPF na nota" é opcional, mas se foi digitado algo precisa ser um CPF válido antes de finalizar.
   if(!pdxValidarCpfNota()){
@@ -12000,13 +12033,14 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const cpfNota = somenteDigitos($('pdv-cpf-nota').value) || null;
 
   const clienteId = $('pdv-cliente').value || null;
+  if(notaPrazo && !clienteId){ pdvMensagem('Nota a Prazo exige um cliente cadastrado.'); pdxAbrirCliente(); return; }
 
   // Itens (mesma fórmula de desconto de sempre) e conferência FINAL em centavos: a venda só segue
   // com pelo menos um pagamento lançado e soma dos pagamentos exatamente igual ao total.
   const itensParaEnviar = pdvMontarItensVenda();
   const totalCentavos = pdvTotalCentavosServidor(itensParaEnviar);
   const restanteCentavos = totalCentavos - pdvSomaPagamentos();
-  if(pdvPagamentos.length === 0 || totalCentavos <= 0 || restanteCentavos !== 0){
+  if(totalCentavos <= 0 || (notaPrazo ? pdvPagamentos.length > 0 : pdvPagamentos.length === 0 || restanteCentavos !== 0)){
     pdvMensagem(restanteCentavos > 0
       ? `Ainda falta receber ${pdvCentavosParaReais(restanteCentavos)}. Lance o restante antes de finalizar.`
       : 'Lance o pagamento da venda antes de finalizar.');
@@ -12017,23 +12051,43 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   // (divisão inteira exata → serializa com no máximo 2 casas, como o servidor exige).
   const pagamentosParaEnviar = pdvPagamentos.map(p => ({ forma_pagamento: p.forma, valor: p.centavos / 100 }));
 
+  let tentativa = null, prazoJaPendente = false;
+  try {
+    try { tentativa = pdvPrazoLerTentativa(); } catch(e){ if(notaPrazo) throw e; }
+    prazoJaPendente = !!tentativa;
+    const assinatura = JSON.stringify({ clienteId, itens: itensParaEnviar, cpfNota });
+    if(tentativa && (!notaPrazo || tentativa.assinatura !== assinatura)){
+      pdvMensagem('Há uma Nota a Prazo com resposta pendente. Confira o histórico antes de iniciar outra venda. Para consultar o resultado, repita a mesma tentativa com os mesmos dados.'); return;
+    }
+    if(notaPrazo){
+      if(!confirm(`Confirmar Nota a Prazo integral de ${pdvCentavosParaReais(totalCentavos)} para o cliente selecionado? Nenhum valor será recebido agora.`)) return;
+      if(!tentativa) tentativa = { chave: pdxNovoId(), assinatura };
+      pdvPrazoSalvarTentativa(tentativa); // preservar a chave ANTES de enviar, inclusive em falha de rede
+    }
+  } catch(e){ pdvMensagem('Não foi possível preservar a tentativa de Nota a Prazo nesta sessão. Não finalize; confira o armazenamento do navegador.'); return; }
+
   const btn = $('btn-finalizar-venda');
+  pdvFinalizando = true;
   btn.disabled = true;
   btn.textContent = 'Registrando venda...';
-
-  // TODA venda nova do PDV central passa por registrar_venda_mista (inclusive com uma forma só): ela
-  // chama a registrar_venda de sempre por dentro e grava vendas_pagamentos na mesma transação.
-  const { data, error } = await supabase.rpc('registrar_venda_mista', {
+  try {
+  // À vista mantém registrar_venda_mista. Prazo usa uma RPC sem pagamentos recebidos.
+  const { data, error } = notaPrazo
+    ? await supabase.rpc('registrar_venda_prazo', {
+      p_cliente_id: clienteId, p_itens: itensParaEnviar, p_cpf_nota: cpfNota,
+      p_chave_idempotencia: tentativa.chave
+    })
+    : await supabase.rpc('registrar_venda_mista', {
     p_cliente_id: clienteId,
     p_itens: itensParaEnviar,
     p_pagamentos: pagamentosParaEnviar,
     p_cpf_nota: cpfNota
   });
 
-  btn.textContent = 'FINALIZAR VENDA (F3)';
-  atualizarPainelPagamentoPdv(); // reabilita o botão só se os pagamentos ainda estiverem completos
-
   if(error){
+    // Uma primeira chamada rejeitada pelo PostgreSQL não confirmou a venda. Uma tentativa
+    // anterior com resposta desconhecida mantém a chave até recuperar a mesma venda.
+    if(notaPrazo && error.code && !prazoJaPendente) pdvPrazoSalvarTentativa(null);
     if(error.code === 'CX001'){     // Controle de caixa: caixa fechado entre o último passo e a finalização
       pdvMensagem(escapeHtml(error.message));
       cxPdvAtualizar();
@@ -12047,10 +12101,13 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const vendaId = linha ? linha.venda_id : null;
   const numeroVenda = linha ? linha.numero_venda : null;
 
-  pdvMensagem('Venda registrada com sucesso!', 'success');
+  if(!vendaId || !numeroVenda) throw new Error('Resposta da venda não confirmada.');
+  if(notaPrazo) pdvPrazoSalvarTentativa(null);
+  pdvMensagem(`Venda nº ${numeroVenda} registrada com sucesso!${notaPrazo ? ' Nota a Prazo: título em aberto no Contas a Receber; nenhum valor recebido.' : ''}`, 'success');
 
   pdvCarrinho = [];
   pdvPagamentos = [];
+  pdvNotaPrazo = false;
   pdvCache.clear(); // o estoque mudou: as próximas leituras consultam o saldo atualizado
   $('pdv-desconto').value = '0';
   $('pdv-cpf-nota').value = '';
@@ -12063,6 +12120,13 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
     abrirModalVendaConcluida(vendaId, numeroVenda);   // o pedido só imprime se o operador clicar em "Imprimir pedido"
   } else {
     impEnfileirarRecibo('venda', vendaId);            // sem modal não há botão: mantém o recibo não fiscal como antes
+  }
+  } catch(e){
+    pdvMensagem('Não foi possível confirmar a resposta da venda. Se foi Nota a Prazo, repita com os mesmos dados para recuperar o resultado sem duplicar. Confira o histórico antes de iniciar outra venda.');
+  } finally {
+    pdvFinalizando = false;
+    btn.textContent = 'FINALIZAR VENDA (F3)';
+    atualizarPainelPagamentoPdv();
   }
 });
 
@@ -12423,6 +12487,7 @@ function pdxRenderClientes(){
     b.addEventListener('click', () => {
       $('pdv-cliente').value = o.value;
       pdxAtualizarClienteRotulo();
+      atualizarPainelPagamentoPdv();
       // Cliente com CPF válido no cadastro: preenche "CPF na nota" automaticamente.
       // O operador ainda pode alterar ou apagar o campo antes de finalizar a venda.
       const cpfDoCliente = o.value ? pdvClientesCpf.get(o.value) : null;
@@ -13695,8 +13760,10 @@ async function cxAbrirDetalhe(id){
   const dif = snap && Math.abs(Number(snap.total_recebido) - Number(r.total_recebido)) > 0.004;
   const mov = (movimentos || []).map(m => {
     if(m.tipo === 'venda'){
-      const formas = (m.pagamentos || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ') || escapeHtml(m.forma_pagamento || '—');
-      return `<tr><td>Venda nº ${escapeHtml(m.numero)}${m.cancelada ? ' <span class="cx-tag-cancel">CANCELADA</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
+      const aPrazo = m.forma_pagamento === 'Nota a Prazo';
+      const formas = aPrazo ? `Nota a Prazo · Recebido: ${brl(m.valor_recebido || 0)}` : (m.pagamentos || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ') || escapeHtml(m.forma_pagamento || '—');
+      const cliente = aPrazo && m.cliente ? `<br>Cliente: ${escapeHtml(m.cliente)}` : '';
+      return `<tr><td>Venda nº ${escapeHtml(m.numero)}${cliente}${m.cancelada ? ' <span class="cx-tag-cancel">CANCELADA</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
     }
     const formas = (m.formas || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ');
     return `<tr><td>Mesa ${m.mesa != null ? escapeHtml(m.mesa) : '—'}${m.estornado ? ' <span class="cx-tag-cancel">ESTORNADO</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
