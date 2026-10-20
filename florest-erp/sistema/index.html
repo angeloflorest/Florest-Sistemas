@@ -2174,6 +2174,9 @@
   .pdx-tot-total b{ font-size:34px; font-weight:800; line-height:1; }
 
   /* pagamento */
+  #view-pdv .pdx-dir{ overflow:hidden; }
+  #view-pdv .pdx-pag-conteudo{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:0 3px 3px; }
+  #view-pdv .pdx-dir > .pdx-finalizar-wrap{ flex:0 0 auto; margin-top:0; background:#fff; }
   .pdx-pagto{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .pdx-pg{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
@@ -3308,6 +3311,7 @@
 
         <!-- DIREITA: pagamento -->
         <section class="pdx-painel pdx-dir">
+          <div class="pdx-pag-conteudo">
           <!-- Pagamento misto/parcial (Migration 028): o operador informa o valor desta forma e clica
                na forma — cada clique ADICIONA um pagamento à lista; a venda só finaliza com Restante = 0.
                Todo o cálculo é em centavos inteiros (ver "PDV: pagamento misto" no script). -->
@@ -3324,6 +3328,7 @@
           </div>
           <div id="pdx-pag-erro" class="pdx-pag-erro" role="alert"></div>
           <div class="pdx-pag-lista" id="pdx-pag-lista"></div>
+          </div>
           <div class="pdx-finalizar-wrap">
             <div class="pdx-fin-total"><span>Total a pagar</span><b id="pdx-fin-total">R$ 0,00</b></div>
             <div class="pdx-fin-total pdx-fin-restante"><span>Restante</span><b id="pdx-pag-restante">R$ 0,00</b></div>
@@ -11893,6 +11898,12 @@ function pdvErroPagamento(texto){
   $('pdx-pag-erro').textContent = texto || '';
 }
 
+function pdvClienteCadastradoId(){
+  const sel = $('pdv-cliente');
+  const opt = sel.options[sel.selectedIndex];
+  return opt && !opt.disabled && opt.value && opt.value === sel.value ? opt.value : null;
+}
+
 // Redesenha lista, restante, campo de valor e estado dos botões (inclusive o FINALIZAR) a partir
 // do estado atual (pdvCarrinho + pdvPagamentos). Chamada sempre que algo disso muda.
 function atualizarPainelPagamentoPdv(){
@@ -11931,6 +11942,8 @@ function atualizarPainelPagamentoPdv(){
 
   if(pdvCarrinho.length > 0 && total <= 0){
     pdvErroPagamento('O total da venda é R$ 0,00: não há valor a receber, então ela não pode ser finalizada aqui.');
+  } else if(pdvNotaPrazo && !pdvClienteCadastradoId()){
+    pdvErroPagamento('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.');
   } else if(temVenda && restante > 0 && pdvPagamentos.length >= PDV_MAX_PAGAMENTOS){
     pdvErroPagamento(`Limite de ${PDV_MAX_PAGAMENTOS} formas de pagamento por venda atingido. Remova uma para continuar.`);
   } else {
@@ -11939,7 +11952,7 @@ function atualizarPainelPagamentoPdv(){
 
   // FINALIZAR só com pagamentos lançados e Restante exatamente zero.
   $('btn-finalizar-venda').disabled = pdvFinalizando || !(temVenda && (pdvNotaPrazo
-    ? pdvPagamentos.length === 0 && !!$('pdv-cliente').value
+    ? pdvPagamentos.length === 0 && !!pdvClienteCadastradoId()
     : restante === 0 && pdvPagamentos.length > 0));
 }
 
@@ -11999,7 +12012,7 @@ document.querySelectorAll('#pdx-pagto .pdx-pg').forEach(b => {
   b.addEventListener('click', () => {
     if(!b.dataset.notaPrazo){ pdvAdicionarPagamento(b.dataset.forma); return; }
     if(pdvFinalizando || pdvPagamentos.length || !pdvCarrinho.length) return;
-    if(!$('pdv-cliente').value){ pdvMensagem('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.'); pdxAbrirCliente(); return; }
+    if(!pdvClienteCadastradoId()){ pdvErroPagamento('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.'); pdxAbrirCliente(); return; }
     pdvNotaPrazo = !pdvNotaPrazo;
     atualizarPainelPagamentoPdv();
   });
@@ -12043,7 +12056,7 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const cpfNota = somenteDigitos($('pdv-cpf-nota').value) || null;
 
   const clienteId = $('pdv-cliente').value || null;
-  if(notaPrazo && !clienteId){ pdvMensagem('Nota a Prazo exige um cliente cadastrado.'); pdxAbrirCliente(); return; }
+  if(notaPrazo && !pdvClienteCadastradoId()){ pdvErroPagamento('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.'); pdxAbrirCliente(); return; }
 
   // Itens (mesma fórmula de desconto de sempre) e conferência FINAL em centavos: a venda só segue
   // com pelo menos um pagamento lançado e soma dos pagamentos exatamente igual ao total.
