@@ -2187,9 +2187,11 @@
   .pdx-pg:hover{ border-color:var(--florest-navy); }
   .pdx-pg.ativo{ background:var(--florest-yellow); border-color:var(--florest-navy); }
   .pdx-pg.ativo i{ color:var(--florest-navy); }
-  .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"]{ grid-column:1 / -1; }
-  .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"], .pdx-pg[data-forma="Outros"]{ min-height:52px; }
-  .pdx-pg[data-forma="Outros"]{ grid-column:1 / -1; min-height:52px; }
+  /* Cinco formas visíveis: duas colunas, Nota a Prazo ocupando a última linha. */
+  #view-pdv .pdx-pg{ min-height:52px; }
+  #view-pdv .pdx-pg[data-nota-prazo="true"]{ grid-column:1 / -1; }
+  /* O preview continua no DOM para preservar os eventos e a busca, mas não duplica o produto do cupom. */
+  #view-pdv #pdv-preview{ display:none; }
   .pdx-pg:disabled{ opacity:.45; cursor:not-allowed; }
   .pdx-pg:disabled:hover{ border-color:#CBCFD6; }
   .pdx-pag-valor{ font-size:22px; font-weight:700; text-align:right; }
@@ -3323,7 +3325,6 @@
             <button type="button" class="pdx-pg" data-forma="Pix"><i>&#9632;</i>PIX</button>
             <button type="button" class="pdx-pg" data-forma="Cartão de Débito"><i>&#9645;</i>Cartão Débito</button>
             <button type="button" class="pdx-pg" data-forma="Cartão de Crédito"><i>&#9645;</i>Cartão Crédito</button>
-            <button type="button" class="pdx-pg" data-forma="Outros"><i>&hellip;</i>Outros</button>
             <button type="button" class="pdx-pg" id="pdv-nota-prazo" data-nota-prazo="true" aria-pressed="false">NOTA A PRAZO</button>
           </div>
           <div id="pdx-pag-erro" class="pdx-pag-erro" role="alert"></div>
