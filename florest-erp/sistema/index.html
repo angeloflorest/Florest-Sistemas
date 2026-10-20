@@ -3597,7 +3597,7 @@
       <div class="fin-abas" role="tablist" aria-label="Seções do Financeiro">
         <button type="button" class="fin-aba active" id="fin-aba-resumo" data-fin-aba="resumo" role="tab" aria-selected="true">Resumo</button>
         <button type="button" class="fin-aba" id="fin-aba-receber" data-fin-aba="receber" role="tab" aria-selected="false">Contas a Receber</button>
-        <button type="button" class="fin-aba" id="fin-aba-pagar" disabled title="Em breve">Contas a Pagar <small>em breve</small></button>
+        <button type="button" class="fin-aba" id="fin-aba-pagar" data-fin-aba="pagar" role="tab" aria-selected="false">Contas a Pagar</button>
       </div>
 
       <div id="fin-pane-resumo">
@@ -3672,6 +3672,38 @@
             <button type="button" class="btn-accent" id="btn-cr-receber" disabled>RECEBER</button>
           </div>
         </div>
+      </div>
+      <!-- ETAPA 3: obrigações e pagamentos; cadastro nunca movimenta caixa. -->
+      <div id="fin-pane-pagar" class="hidden">
+        <div class="search-row" style="align-items:center; flex-wrap:wrap;">
+          <button type="button" class="btn-accent" id="btn-cp-nova">+ Nova conta</button>
+          <label>Situação <select id="cp-status"><option value="aberto">Em aberto</option><option value="parcialmente_pago">Parcialmente pago</option><option value="pago">Pago</option><option value="vencido">Vencido</option><option value="todos">Todos</option></select></label>
+          <button type="button" class="btn-secondary" id="btn-cp-atualizar">Atualizar</button>
+          <button type="button" class="btn-secondary hidden" id="btn-cp-recuperar">Recuperar tentativa pendente</button>
+        </div>
+        <p id="cp-alerta" role="status"></p><div id="cp-msg" role="status"></div>
+        <form id="form-cp" class="table-card hidden" style="padding:18px; margin-bottom:16px;">
+          <h3>Nova conta a pagar</h3>
+          <div class="field"><label for="cp-descricao">Descrição</label><input id="cp-descricao" maxlength="200" required></div>
+          <div class="field-row">
+            <div class="field"><label for="cp-tipo">Tipo</label><select id="cp-tipo"><option value="unica">Única</option><option value="parcelada">Parcelada</option><option value="recorrente">Recorrente mensal</option></select></div>
+            <div class="field"><label for="cp-origem">Origem financeira</label><select id="cp-origem" required><option value="">Selecione</option><option value="PDV">PDV</option><option value="BAR">Módulo Bar</option></select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="cp-valor" id="cp-valor-rotulo">Valor total</label><input id="cp-valor" inputmode="decimal" placeholder="0,00" required></div>
+            <div class="field"><label for="cp-vencimento">Primeiro vencimento / mês inicial</label><input id="cp-vencimento" type="date" required></div>
+            <div class="field"><label for="cp-quantidade">Parcelas / meses (até 600)</label><input id="cp-quantidade" type="number" min="1" max="600" step="1" value="1" required disabled></div>
+            <div class="field hidden" id="cp-dia-campo"><label for="cp-dia">Dia mensal do vencimento</label><input id="cp-dia" type="number" min="1" max="31" step="1" value="10"></div>
+          </div>
+          <div class="field"><label for="cp-observacoes">Observações (opcionais)</label><textarea id="cp-observacoes" maxlength="4000"></textarea></div>
+          <p class="cr-nota" id="cp-regra">O cadastro gera somente a obrigação. Nenhum pagamento ou saída de caixa será realizado.</p>
+          <div class="modal-actions"><button type="button" class="btn-secondary" id="btn-cp-cancelar">Cancelar</button><button class="btn-accent" id="btn-cp-salvar" type="submit">Cadastrar conta</button></div>
+        </form>
+        <div class="table-card" style="overflow-x:auto;"><table>
+          <thead><tr><th>Descrição / histórico</th><th>Original</th><th>Pago</th><th>Saldo</th><th>Vencimento</th><th>Status</th><th>Origem</th><th></th></tr></thead>
+          <tbody id="cp-lista"></tbody>
+        </table></div>
+        <div class="search-row" style="align-items:center;"><button type="button" class="btn-secondary" id="btn-cp-ant">Anterior</button><span id="cp-pagina"></span><button type="button" class="btn-secondary" id="btn-cp-prox">Próxima</button></div>
       </div>
     </div>
 
@@ -4793,6 +4825,21 @@
 </div>
 
 <!-- ===== MODAL: RECEBER TÍTULOS (Contas a Receber) ===== -->
+<!-- ETAPA 3: pagamento atômico de uma obrigação -->
+<div id="modal-cp-pagar" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:620px; max-height:90vh; overflow-y:auto;">
+    <h3>Pagar conta</h3><div id="cp-pag-detalhe"></div>
+    <div class="field"><label for="cp-pag-valor">Valor que será pago agora</label><input id="cp-pag-valor" inputmode="decimal" autocomplete="off"></div>
+    <div class="field-row">
+      <div class="field"><label for="cp-pag-forma">Forma</label><select id="cp-pag-forma"><option>Dinheiro</option><option>Pix</option><option>Cartão de Débito</option><option disabled>Cartão de Crédito</option></select></div>
+      <div class="field"><label for="cp-pag-parte">Valor nesta forma</label><input id="cp-pag-parte" inputmode="decimal" autocomplete="off"></div>
+    </div>
+    <p class="cr-nota">Crédito indisponível: exige controle de fatura para não registrar uma saída indevida.</p>
+    <button type="button" class="btn-secondary" id="btn-cp-forma">Adicionar forma</button>
+    <div id="cp-pag-formas"></div><p id="cp-pag-restante"></p><div id="cp-pag-msg" role="status"></div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" id="btn-cp-fechar">Fechar</button><button type="button" class="btn-accent" id="btn-cp-pagar">Confirmar pagamento</button></div>
+  </div>
+</div>
 <div id="modal-cr-receber" class="modal-overlay hidden">
   <div class="modal-card" style="max-width:480px;">
     <h3>Receber títulos</h3>
@@ -7332,6 +7379,7 @@ $('btn-logout').addEventListener('click', async () => {
   renderCarrinho();
   cmdReset();                 // comandas e contas a receber não passam para o próximo usuário
   crReset();
+  cpReset();
   viewAtual = null;           // MARIA: esconde o atalho flutuante e apaga a conversa
   atualizarMariaFlutuante();
   mariaReiniciar();
@@ -13232,7 +13280,7 @@ async function carregarFinanceiro(){
 
   const { data: despesasData, error: erroDespesas } = await buscarTodos(() => supabase
     .from('despesas')
-    .select('id, descricao, categoria, valor, data')
+    .select('id, descricao, categoria, valor, data, cp_lote, origem_caixa')
     .gte('data', inicio.toISOString().slice(0,10))
     .lte('data', fim.toISOString().slice(0,10))
     .order('data', { ascending: true })
@@ -13266,7 +13314,7 @@ async function carregarFinanceiro(){
       data: new Date(d.data + 'T12:00:00'),
       descricao: d.descricao + (d.categoria ? ` (${d.categoria})` : ''),
       valor: Number(d.valor),
-      id: d.id
+      id: d.cp_lote || d.origem_caixa ? null : d.id
     }))
   ].sort((a, b) => b.data - a.data);
 
@@ -13312,11 +13360,10 @@ async function removerDespesa(id){
   carregarFinanceiro();
 }
 
-function abrirModalDespesa(){
-  $('despesa-msg').innerHTML = '';
-  $('form-despesa').reset();
-  $('despesa-data').value = new Date().toISOString().slice(0,10);
-  $('modal-despesa').classList.remove('hidden');
+async function abrirModalDespesa(){
+  finSelecionarAba('pagar');
+  if(!cpEmpresa) await cpCarregar();
+  cpNova();
 }
 
 function fecharModalDespesa(){
@@ -13551,6 +13598,12 @@ function cxHtmlResumo(r){
   if(r.tipo_caixa === 'PDV' && canc.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas canceladas (fora do total)</td><td class="cx-num">${canc.qtd}</td><td class="cx-num">${brl(canc.total)}</td></tr>`);
   if(r.tipo_caixa === 'BAR' && est.qtd > 0) extras.push(`<tr class="cx-extra"><td>Pagamentos estornados (fora do total)</td><td class="cx-num">${est.qtd}</td><td class="cx-num">${brl(est.total)}</td></tr>`);
   const rotuloOper = r.tipo_caixa === 'PDV' ? 'vendas' : 'recebimentos';
+  if(r.saidas_contas_pagar){
+    const saidas = r.saidas_contas_pagar;
+    extras.push(`<tr class="cx-extra"><td>Saídas — Contas a Pagar</td><td class="cx-num">${Number(saidas.qtd)||0}</td><td class="cx-num">− ${brl(saidas.total)}</td></tr>`);
+    (saidas.por_forma || []).forEach(f => extras.push(`<tr class="cx-extra"><td>Saída em ${escapeHtml(f.forma)}</td><td class="cx-num">${Number(f.qtd)||0}</td><td class="cx-num">− ${brl(f.total)}</td></tr>`));
+    extras.push(`<tr class="cx-extra"><td>Entradas menos despesas pagas (todas as formas)</td><td></td><td class="cx-num">${brl(r.saldo_apos_despesas)}</td></tr>`);
+  }
   return `<table class="cx-tabela">
     <thead><tr><th>Forma de pagamento</th><th class="cx-num">Lanç.</th><th class="cx-num">Valor</th></tr></thead>
     <tbody>${linhas}${extras.join('')}</tbody>
@@ -13568,7 +13621,7 @@ function cxHtmlAberto(tipo, est){
       <div><small>Valor inicial</small><b>${brl(c.valor_inicial)}</b></div>
     </div>
     ${cxHtmlResumo(r)}
-    <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b> (valor inicial + recebido em dinheiro)</div>
+    <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b> (valor inicial + entradas em dinheiro − saídas em dinheiro)</div>
     <div class="cx-msg" id="cx-msg-${tipo}"></div>
     <div class="cx-acoes">
       <button type="button" class="btn-secondary" data-cx-acao="atualizar" data-cx-tipo="${tipo}">Atualizar</button>
@@ -13811,7 +13864,8 @@ async function cxAbrirDetalhe(id){
     <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b></div>
     ${dif ? `<div class="cx-comp-aviso">Total no fechamento: <b>${brl(snap.total_recebido)}</b>. Os valores acima já refletem estornos/cancelamentos feitos depois.</div>` : ''}
     <h4 class="cx-hist-titulo">${tipo === 'PDV' ? 'Vendas deste caixa' : 'Recebimentos deste caixa'}</h4>
-    ${mov || recebimentosCaixa ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}${recebimentosCaixa}</tbody></table></div>` : '<p class="cx-vazio">Nenhum movimento neste caixa.</p>'}`;
+    ${mov || recebimentosCaixa ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}${recebimentosCaixa}</tbody></table></div>` : '<p class="cx-vazio">Nenhuma entrada neste caixa.</p>'}
+    ${resp.data.pagamentos_despesas && resp.data.pagamentos_despesas.length ? `<h4>Saídas — Contas a Pagar</h4><div class="cx-det-mov"><table class="cx-tabela"><tbody>${resp.data.pagamentos_despesas.map(d => `<tr><td><b>PAGAMENTO DE DESPESA</b><br>${escapeHtml(d.descricao)}<br>Conta: ${escapeHtml(d.despesa_id)}<br>Usuário: ${escapeHtml(d.usuario)}</td><td>${escapeHtml(cxDataHora(d.em))}</td><td>${(d.formas||[]).map(f=>escapeHtml(f.forma)+' '+brl(f.valor)).join(' · ')}</td><td class="cx-num">− ${brl(d.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
 
 // ---- cliques (um único ouvinte para todos os painéis/relatórios) ----
@@ -13967,6 +14021,10 @@ async function relatorioControleCaixa(filtros){
     metricas.push({ label: 'Caixa do Bar', valor: `${brl(porTipo.BAR ? porTipo.BAR.total_recebido : 0)} (${nCx(porTipo.BAR ? porTipo.BAR.caixas : 0)})` });
   }
   metricas.push({ label: 'Por forma de pagamento', valor: textoFormas });
+  const saidas = itens.reduce((s,i)=>s+Number(i.resumo.saidas_contas_pagar?.total||0),0);
+  const vendas = itens.reduce((s,i)=>s+Number(i.resumo.vendas_recebidas||0),0);
+  const recebimentos = itens.reduce((s,i)=>s+Number(i.resumo.recebimentos_titulos?.total||0),0);
+  metricas.push({label:'Entradas de vendas',valor:brl(vendas)}, {label:'Entradas de Contas a Receber',valor:brl(recebimentos)}, {label:'Saídas de Contas a Pagar',valor:brl(saidas)});
   const linhas = itens.map(i => {
     const c = i.caixa, r = i.resumo;
     const f = (r.por_forma || []).filter(x => Number(x.total) > 0).map(x => `${escapeHtml(cxRotuloForma(x.forma))} ${brl(x.total)}`).join('<br>') || '—';
@@ -13977,15 +14035,17 @@ async function relatorioControleCaixa(filtros){
       brl(c.valor_inicial),
       f,
       `<strong>${brl(r.total_recebido)}</strong>`,
+      brl(r.saidas_contas_pagar?.total||0),
+      brl(r.saldo_dinheiro_esperado),
       `<button type="button" class="link-btn cx-no-print" data-cx-detalhe="${escapeHtml(c.id)}">Detalhes</button>`,
     ];
   });
   return {
     titulo: 'Controle de caixa',
     metricas,
-    colunas: ['Caixa', 'Abertura / operador', 'Fechamento / operador', 'Valor inicial', 'Formas de pagamento', 'Total recebido', ''],
+    colunas: ['Caixa', 'Abertura / operador', 'Fechamento / operador', 'Valor inicial', 'Entradas por forma', 'Total recebido', 'Saídas de despesas', 'Dinheiro esperado', ''],
     linhas,
-    totalizadores: ['Total', '', '', '', '', `<strong>${brl(data && data.totais ? data.totais.total_recebido : 0)}</strong>`, ''],
+    totalizadores: ['Total', '', '', '', '', `<strong>${brl(data && data.totais ? data.totais.total_recebido : 0)}</strong>`,brl(saidas),'',''],
     rodape: data && data.limitado ? ['Mostrando os 500 caixas mais recentes do período; reduza o período para ver os demais.'] : [],
   };
 }
@@ -14852,11 +14912,11 @@ let crCancelar = null;               // titulo em cancelamento
 let crMsgTimer = null;
 
 function finAbrir(){
-  if(finAbaAtual === 'receber') crRecarregar(); else carregarFinanceiro();
+  if(finAbaAtual === 'pagar') cpCarregar(); else if(finAbaAtual === 'receber') crRecarregar(); else carregarFinanceiro();
 }
 
 function finSelecionarAba(aba){
-  if(aba !== 'resumo' && aba !== 'receber') return;
+  if(aba !== 'resumo' && aba !== 'receber' && aba !== 'pagar') return;
   finAbaAtual = aba;
   $('fin-aba-resumo').classList.toggle('active', aba === 'resumo');
   $('fin-aba-receber').classList.toggle('active', aba === 'receber');
@@ -14864,8 +14924,11 @@ function finSelecionarAba(aba){
   $('fin-aba-receber').setAttribute('aria-selected', aba === 'receber' ? 'true' : 'false');
   $('fin-pane-resumo').classList.toggle('hidden', aba !== 'resumo');
   $('fin-pane-receber').classList.toggle('hidden', aba !== 'receber');
+  $('fin-aba-pagar').classList.toggle('active', aba === 'pagar');
+  $('fin-aba-pagar').setAttribute('aria-selected', aba === 'pagar' ? 'true' : 'false');
+  $('fin-pane-pagar').classList.toggle('hidden', aba !== 'pagar');
   $('btn-nova-despesa').classList.toggle('hidden', aba !== 'resumo');
-  if(aba === 'receber') crRecarregar(); else carregarFinanceiro();
+  if(aba === 'pagar') cpCarregar(); else if(aba === 'receber') crRecarregar(); else carregarFinanceiro();
 }
 
 function crAviso(id, texto, tipo){
@@ -15303,6 +15366,212 @@ function crReset(){
   $('fin-pane-resumo').classList.remove('hidden'); $('fin-pane-receber').classList.add('hidden');
   $('btn-nova-despesa').classList.remove('hidden');
 }
+
+// ---------- ETAPA 3: Contas a Pagar (somente RPCs; sem saldo editável no cliente) ----------
+let cpItens = [], cpOffset = 0, cpBusy = false, cpSeq = 0, cpLoadSeq = 0;
+let cpEmpresa = null, cpPagamento = null, cpCriacao = null;
+function cpStorage(valor){
+  if(!cpEmpresa || !acesso.userId) throw new Error('Empresa ou sessão indisponível.');
+  const k = 'florest.cp.' + acesso.userId + '.' + cpEmpresa;
+  if(arguments.length){ if(valor) sessionStorage.setItem(k,JSON.stringify(valor)); else sessionStorage.removeItem(k); }
+  else { const v=sessionStorage.getItem(k); return v ? JSON.parse(v) : null; }
+}
+function cpFormEstado(){
+  const travado = cpBusy || !!cpCriacao;
+  $('form-cp').querySelectorAll('input,select,textarea,button[type="submit"]').forEach(e => { e.disabled=travado; });
+  if(!travado) $('cp-quantidade').disabled=$('cp-tipo').value==='unica';
+}
+function cpTipo(){
+  const recorrente=$('cp-tipo').value==='recorrente';
+  $('cp-dia-campo').classList.toggle('hidden',!recorrente);
+  $('cp-valor-rotulo').textContent=recorrente ? 'Valor de cada mês' : 'Valor total';
+  if($('cp-tipo').value==='unica') $('cp-quantidade').value='1';
+  $('cp-regra').textContent=recorrente
+    ? 'Uma conta por mês, sem pagamento automático. Dias inexistentes usam o último dia do mês.'
+    : 'Só gera obrigações, sem saída de caixa. Parcelas mensais dividem o total e os centavos, preservando o dia original quando possível.';
+  cpFormEstado();
+}
+async function cpCarregar(){
+  const sq=cpSeq, load=++cpLoadSeq;
+  try {
+    const empresa=await obterEmpresaId();
+    if(sq!==cpSeq || load!==cpLoadSeq) return;
+    cpEmpresa=empresa;
+    const pend=cpStorage();
+    $('btn-cp-recuperar').classList.toggle('hidden',!pend);
+    const {data,error}=await supabase.rpc('contas_pagar_listar',{p_status:$('cp-status').value,p_offset:cpOffset});
+    if(error) throw error;
+    if(sq!==cpSeq || load!==cpLoadSeq) return;
+    cpItens=data.itens || [];
+    $('cp-alerta').textContent=String(data.vencidas||0)+' conta(s) vencida(s) e '+String(data.proximas||0)+' a vencer nos próximos 7 dias.';
+    $('cp-lista').innerHTML=cpItens.map(d => {
+      const hist=(d.historico||[]).map(p => '<p>'+escapeHtml(cxDataHora(p.em))+' · '+brl(p.valor)+' · Caixa '+escapeHtml(p.caixa.tipo_caixa)+' nº '+escapeHtml(p.caixa.numero)+' · '+escapeHtml(p.usuario)+'<br>'+(p.formas||[]).map(f=>escapeHtml(f.forma)+': '+brl(f.valor)).join(' · ')+'</p>').join('');
+      const origem=d.origem ? escapeHtml(d.origem) : (Number(d.saldo)>0 ? '<select data-cp-origem="'+escapeHtml(d.id)+'"><option value="">Definir origem</option><option>PDV</option><option>BAR</option></select><button type="button" class="link-btn" data-cp-definir="'+escapeHtml(d.id)+'">Salvar origem</button>' : 'Não informada');
+      return '<tr'+(d.vencido ? ' style="background:#FFF0ED;"' : '')+'><td><b>'+escapeHtml(d.descricao)+'</b>'+
+        (d.parcela ? '<br>Parcela / mês '+escapeHtml(d.parcela)+'/'+escapeHtml(d.quantidade) : '')+
+        (d.observacoes ? '<br>'+escapeHtml(d.observacoes) : '')+
+        (hist ? '<details><summary>Histórico de pagamentos</summary>'+hist+'</details>' : (d.status==='pago' ? '<br><small>Pagamento legado sem histórico nesta etapa</small>' : ''))+
+        '</td><td>'+brl(d.valor_original)+'</td><td>'+brl(d.valor_pago)+'</td><td>'+brl(d.saldo)+'</td><td>'+escapeHtml(d.vencimento||'Não informado')+
+        (d.vencido ? '<br><b>VENCIDA</b>' : '')+'</td><td>'+escapeHtml(d.status.replaceAll('_',' '))+'</td><td>'+origem+
+        '</td><td>'+(Number(d.saldo)>0 ? '<button type="button" class="btn-secondary" data-cp-pagar="'+escapeHtml(d.id)+'"'+(!d.origem ? ' disabled' : '')+'>Pagar</button>' : '')+'</td></tr>';
+    }).join('') || '<tr><td colspan="8">Nenhuma conta neste filtro.</td></tr>';
+    $('cp-pagina').textContent=cpOffset+'–'+(cpOffset+cpItens.length)+' de '+data.total;
+    $('btn-cp-ant').disabled=cpOffset===0;
+    $('btn-cp-prox').disabled=cpOffset+cpItens.length>=Number(data.total);
+  } catch(e){ if(sq===cpSeq && load===cpLoadSeq) msgBox('cp-msg',msgErroRpc(e,'Não foi possível carregar as contas.')); }
+}
+function cpNova(){
+  if(cpBusy) return;
+  try {
+    if(cpStorage()){ cpRecuperar(); return; }
+    cpCriacao=null; $('form-cp').reset(); cpTipo(); $('form-cp').classList.remove('hidden');
+  } catch(e){ msgBox('cp-msg',e.message); }
+}
+async function cpCadastrar(e){
+  if(e) e.preventDefault();
+  if(cpBusy) return;
+  const sq=cpSeq;
+  let eraPendente=false;
+  try {
+    const anterior=cpStorage();
+    if(anterior && anterior.tipo!=='criar'){ msgBox('cp-msg','Recupere o pagamento pendente antes de cadastrar.'); return; }
+    eraPendente=!!anterior;
+    if(!cpCriacao){
+      const cent=pdvParseValorCentavos($('cp-valor').value);
+      if(!Number.isSafeInteger(cent)||cent<=0) throw new Error('Informe um valor positivo com até duas casas decimais.');
+      const tipo=$('cp-tipo').value, qtd=tipo==='unica' ? 1 : Number($('cp-quantidade').value);
+      if(!Number.isInteger(qtd)||qtd<1||qtd>600) throw new Error('Informe de 1 a 600 parcelas ou meses.');
+      const dados={descricao:$('cp-descricao').value.trim(),valor:cent/100,vencimento:$('cp-vencimento').value,
+        tipo,origem:$('cp-origem').value,quantidade:qtd,dia:tipo==='recorrente' ? Number($('cp-dia').value) : null,observacoes:$('cp-observacoes').value.trim()||null};
+      if(!dados.descricao||!dados.vencimento||!dados.origem) throw new Error('Informe descrição, vencimento e origem.');
+      cpCriacao={tipo:'criar',chave:novaChaveUuid(),dados};
+    }
+    if(!eraPendente && !confirm('Cadastrar '+cpCriacao.dados.quantidade+' obrigação(ões), sem movimentar caixa?')){ cpCriacao=null; return; }
+    cpStorage(cpCriacao); cpBusy=true; cpFormEstado();
+    const {data,error}=await supabase.rpc('contas_pagar_criar',{p_dados:cpCriacao.dados,p_chave:cpCriacao.chave});
+    if(error) throw error;
+    if(!data || !Array.isArray(data.ids) || !data.ids.length) throw new Error('Resposta incompleta. Recupere a mesma tentativa.');
+    if(sq!==cpSeq) return;
+    cpStorage(null); cpCriacao=null; $('form-cp').classList.add('hidden');
+    msgBox('cp-msg',data.quantidade+' conta(s) cadastrada(s). Nenhuma saída de caixa realizada.','success');
+    await cpCarregar();
+  } catch(e){
+    if(sq===cpSeq){
+      if(e.code && !eraPendente){ cpStorage(null); cpCriacao=null; }
+      if(cpCriacao) msgBox('cp-msg','Resultado não confirmado. Use “Recuperar tentativa pendente” para repetir os mesmos dados sem duplicar. '+msgErroRpc(e,''));
+      else msgBox('cp-msg',msgErroRpc(e,e.message||'Não foi possível cadastrar.'));
+      $('btn-cp-recuperar').classList.toggle('hidden',!cpCriacao);
+    }
+  } finally { cpBusy=false; if(sq===cpSeq) cpFormEstado(); }
+}
+function cpMostrarPagamento(r){
+  cpPagamento=r;
+  $('cp-pag-detalhe').innerHTML='<p><b>'+escapeHtml(r.descricao)+'</b><br>Original: '+brl(r.valor_original)+' · Pago: '+brl(r.valor_pago)+' · Saldo: '+brl(r.saldo)+
+    '<br>Saída automática: Caixa '+escapeHtml(r.caixa.tipo_caixa)+' nº '+escapeHtml(r.caixa.numero)+'</p>';
+  $('cp-pag-valor').value=pdvCentavosParaTexto(r.alvo);
+  msgBox('cp-pag-msg',r.pendente ? 'Resultado pendente: confirme a mesma tentativa para recuperar sem duplicar.' : '');
+  cpRenderPagamento(); $('modal-cp-pagar').classList.remove('hidden');
+}
+async function cpAbrirPagamento(id){
+  if(cpBusy) return;
+  const sq=cpSeq;
+  try {
+    if(cpStorage()){ await cpRecuperar(); return; }
+    cpBusy=true;
+    const {data,error}=await supabase.rpc('contas_pagar_preparar',{p_despesa:id}); if(error) throw error;
+    if(sq!==cpSeq) return;
+    cpMostrarPagamento({...data,tipo:'pagar',alvo:centavos(data.saldo),formas:[],chave:null,pendente:false});
+  } catch(e){ if(sq===cpSeq) msgBox('cp-msg',msgErroRpc(e,'Não foi possível preparar o pagamento.')); }
+  finally { cpBusy=false; if(sq===cpSeq && cpPagamento) cpRenderPagamento(); }
+}
+function cpRenderPagamento(){
+  const r=cpPagamento; if(!r) return;
+  const soma=r.formas.reduce((s,f)=>s+f.centavos,0), valido=Number.isSafeInteger(r.alvo)&&r.alvo>0&&r.alvo<=centavos(r.saldo);
+  ['cp-pag-valor','cp-pag-parte','cp-pag-forma','btn-cp-forma'].forEach(id=>{$(id).disabled=cpBusy||r.pendente;});
+  $('cp-pag-parte').value=valido ? pdvCentavosParaTexto(Math.max(0,r.alvo-soma)) : '';
+  $('cp-pag-formas').innerHTML=r.formas.map((f,i)=>'<p>'+escapeHtml(f.forma_pagamento)+': '+brlCent(f.centavos)+
+    (!cpBusy&&!r.pendente ? ' <button type="button" class="link-btn" data-cp-remover="'+i+'">Remover</button>' : '')+'</p>').join('');
+  $('cp-pag-restante').textContent=valido ? 'Falta distribuir: '+brlCent(Math.max(0,r.alvo-soma)) : 'Informe valor positivo, até o saldo da conta.';
+  $('btn-cp-pagar').disabled=cpBusy||!valido||soma!==r.alvo;
+  $('btn-cp-fechar').disabled=cpBusy;
+}
+async function cpConfirmarPagamento(){
+  const r=cpPagamento, sq=cpSeq;
+  if(!r||cpBusy) return;
+  const soma=r.formas.reduce((s,f)=>s+f.centavos,0);
+  if(!Number.isSafeInteger(r.alvo)||r.alvo<=0||r.alvo>centavos(r.saldo)||soma!==r.alvo) return;
+  const eraPendente=r.pendente;
+  try {
+    if(!eraPendente && !confirm('Confirmar saída de '+brlCent(soma)+' no Caixa '+r.caixa.tipo_caixa+' nº '+r.caixa.numero+'?')) return;
+    r.chave=r.chave||novaChaveUuid(); cpStorage(r); r.pendente=true; cpBusy=true; cpRenderPagamento();
+    const {data,error}=await supabase.rpc('contas_pagar_pagar',{p_despesa:r.id,p_pagamentos:r.formas.map(f=>({forma_pagamento:f.forma_pagamento,valor:f.centavos/100})),p_chave:r.chave});
+    if(error) throw error;
+    if(!data || !data.pagamento_id || !data.caixa) throw new Error('Resposta incompleta. Recupere a mesma tentativa.');
+    if(sq!==cpSeq) return;
+    cpStorage(null); cpPagamento=null; $('modal-cp-pagar').classList.add('hidden');
+    msgBox('cp-msg','Pagamento de '+brl(data.valor)+' confirmado no Caixa '+data.caixa.tipo_caixa+' nº '+data.caixa.numero+'.','success');
+    await cpCarregar();
+  } catch(e){
+    if(sq===cpSeq){
+      if(e.details==='CP_ETAPA3_SEM_PAGAMENTO' || (e.code&&!eraPendente)){ cpStorage(null); r.pendente=false; r.chave=null; }
+      msgBox('cp-pag-msg',r.pendente ? 'Resultado desconhecido. Confirme a mesma tentativa para recuperar sem duplicar. '+msgErroRpc(e,'') : msgErroRpc(e,'Nada foi pago.'));
+      $('btn-cp-recuperar').classList.toggle('hidden',!r.pendente);
+    }
+  } finally { cpBusy=false; if(sq===cpSeq) cpRenderPagamento(); }
+}
+async function cpRecuperar(){
+  if(cpBusy) return;
+  try {
+    const p=cpStorage(); if(!p) return;
+    if(p.tipo==='pagar'){ cpMostrarPagamento({...p,pendente:true}); return; }
+    cpCriacao=p;
+    const d=p.dados;
+    for(const k of ['descricao','valor','vencimento','tipo','origem','quantidade','dia','observacoes']) $('cp-'+k).value=k==='valor' ? pdvCentavosParaTexto(centavos(d[k])) : d[k]??'';
+    cpTipo(); $('form-cp').classList.remove('hidden');
+    await cpCadastrar();
+  } catch(e){ msgBox('cp-msg',msgErroRpc(e,e.message)); }
+}
+function cpReset(){
+  cpSeq++; cpLoadSeq++; cpItens=[]; cpOffset=0; cpBusy=false; cpEmpresa=null; cpPagamento=null; cpCriacao=null;
+  $('fin-pane-pagar').classList.add('hidden'); $('fin-aba-pagar').classList.remove('active');
+  $('fin-aba-pagar').setAttribute('aria-selected','false'); $('modal-cp-pagar').classList.add('hidden');
+  $('form-cp').classList.add('hidden'); $('form-cp').reset(); $('cp-lista').innerHTML='';
+  ['cp-msg','cp-pag-msg','cp-alerta'].forEach(id=>{$(id).textContent='';});
+}
+$('fin-aba-pagar').addEventListener('click',()=>finSelecionarAba('pagar'));
+$('btn-cp-nova').addEventListener('click',cpNova);
+$('cp-tipo').addEventListener('change',cpTipo);
+$('form-cp').addEventListener('submit',cpCadastrar);
+$('btn-cp-cancelar').addEventListener('click',()=>{if(!cpBusy) $('form-cp').classList.add('hidden');});
+$('btn-cp-atualizar').addEventListener('click',cpCarregar);
+$('btn-cp-recuperar').addEventListener('click',cpRecuperar);
+$('cp-status').addEventListener('change',()=>{cpOffset=0;cpCarregar();});
+$('btn-cp-ant').addEventListener('click',()=>{cpOffset=Math.max(0,cpOffset-100);cpCarregar();});
+$('btn-cp-prox').addEventListener('click',()=>{cpOffset+=100;cpCarregar();});
+$('cp-lista').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-cp-pagar],[data-cp-definir]');if(!b||cpBusy) return;
+  if(b.dataset.cpPagar){ cpAbrirPagamento(b.dataset.cpPagar);return; }
+  const sq=cpSeq;
+  try {
+    const id=b.dataset.cpDefinir, origem=b.parentElement.querySelector('[data-cp-origem]').value;
+    if(!origem || !confirm('Vincular permanentemente esta conta antiga ao Caixa '+origem+'? Nenhum pagamento será realizado.')) return;
+    cpBusy=true;
+    const {error}=await supabase.rpc('contas_pagar_definir_origem',{p_despesa:id,p_origem:origem});if(error) throw error;
+    if(sq===cpSeq) await cpCarregar();
+  } catch(err){if(sq===cpSeq) msgBox('cp-msg',msgErroRpc(err,'Não foi possível definir origem.'));}
+  finally {cpBusy=false;}
+});
+$('cp-pag-valor').addEventListener('input',()=>{const r=cpPagamento;if(!r||cpBusy||r.pendente)return;r.alvo=pdvParseValorCentavos($('cp-pag-valor').value);r.formas=[];r.chave=null;cpRenderPagamento();});
+$('btn-cp-forma').addEventListener('click',()=>{
+  const r=cpPagamento;if(!r||cpBusy||r.pendente)return;
+  const valor=pdvParseValorCentavos($('cp-pag-parte').value),soma=r.formas.reduce((s,f)=>s+f.centavos,0),forma=$('cp-pag-forma').value;
+  if(!['Dinheiro','Pix','Cartão de Débito'].includes(forma)||!Number.isSafeInteger(valor)||valor<=0||valor>r.alvo-soma||r.formas.length>=10){msgBox('cp-pag-msg','Informe valor positivo até o restante e no máximo 10 formas.');return;}
+  r.formas.push({forma_pagamento:forma,centavos:valor});cpRenderPagamento();
+});
+$('cp-pag-formas').addEventListener('click',e=>{const b=e.target.closest('[data-cp-remover]');if(!b||!cpPagamento||cpBusy||cpPagamento.pendente)return;cpPagamento.formas.splice(Number(b.dataset.cpRemover),1);cpRenderPagamento();});
+$('btn-cp-pagar').addEventListener('click',cpConfirmarPagamento);
+$('btn-cp-fechar').addEventListener('click',()=>{if(!cpBusy){$('modal-cp-pagar').classList.add('hidden');cpPagamento=null;}});
+// ---------- Fim da Etapa 3 ----------
 
 // ---------- Relatórios ----------
 // Central de Relatórios (Correção 3): um catálogo PLANO por seção (sem categorias em cards) —
