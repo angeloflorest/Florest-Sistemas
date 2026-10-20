@@ -3641,6 +3641,7 @@
 
       <!-- ===== FINANCEIRO > CONTAS A RECEBER (Migration 031) ===== -->
       <div id="fin-pane-receber" class="hidden">
+        <button type="button" id="btn-cr-recuperar" class="btn-secondary hidden">RECUPERAR RECEBIMENTO PENDENTE</button>
         <div id="cr-tela-clientes">
           <div class="cr-busca">
             <label for="cr-busca">Buscar cliente</label>
@@ -3655,6 +3656,7 @@
           <div class="cr-det-topo">
             <button type="button" class="btn-secondary" id="btn-cr-voltar">&larr; Voltar</button>
             <div><h3 id="cr-det-nome">—</h3><span id="cr-det-sub"></span></div>
+            <label>Títulos <select id="cr-status-titulos"><option value="aberto">Em aberto</option><option value="pago">Pagos</option><option value="todos">Todos</option></select></label>
             <label class="cr-todos"><input type="checkbox" id="cr-sel-todos"> Selecionar todos</label>
           </div>
           <div id="cr-msg-det"></div>
@@ -4794,6 +4796,12 @@
       <span id="cr-rec-qtd">—</span>
       <span class="total" id="cr-rec-total">R$ 0,00</span>
     </div>
+    <p id="cr-rec-caixa"></p>
+    <div id="cr-rec-titulos"></div>
+    <label class="pdx-rotulo" for="cr-rec-valor">Valor a receber agora</label>
+    <input id="cr-rec-valor" class="pdx-input" type="text" inputmode="decimal" autocomplete="off">
+    <label class="pdx-rotulo" for="cr-rec-valor-forma">Valor nesta forma de pagamento</label>
+    <input id="cr-rec-valor-forma" class="pdx-input" type="text" inputmode="decimal" autocomplete="off">
     <label class="pdx-rotulo" style="margin-top:14px;">Forma de recebimento</label>
     <div class="cmd-formas" id="cr-formas">
       <button type="button" class="cmd-forma" data-forma="Dinheiro">DINHEIRO</button>
@@ -4801,6 +4809,8 @@
       <button type="button" class="cmd-forma" data-forma="Cartão de Débito">DÉBITO</button>
       <button type="button" class="cmd-forma" data-forma="Cartão de Crédito">CRÉDITO</button>
     </div>
+    <div id="cr-rec-pagamentos"></div>
+    <p id="cr-rec-restante"></p>
     <div id="cr-rec-msg"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="btn-cr-rec-cancelar">CANCELAR</button>
@@ -13519,7 +13529,12 @@ function cxHtmlResumo(r){
   const extras = [];
   const par = (o) => ({ qtd: Number(o && o.qtd) || 0, total: Number(o && o.total) || 0 });
   const prazo = par(r.a_prazo), canc = par(r.canceladas), est = par(r.estornos);
-  if(r.tipo_caixa === 'PDV' && prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas a prazo (valor a receber, fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
+  const recebimentos = par(r.recebimentos_titulos);
+  if(r.recebimentos_titulos){
+    extras.push(`<tr class="cx-extra"><td>Vendas/pagamentos recebidos no ato</td><td></td><td class="cx-num">${brl(r.vendas_recebidas)}</td></tr>`);
+    extras.push(`<tr class="cx-extra"><td>Recebimentos de Notas a Prazo (incluídos no total)</td><td class="cx-num">${recebimentos.qtd}</td><td class="cx-num">${brl(recebimentos.total)}</td></tr>`);
+  }
+  if(prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas a prazo (valor a receber, fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
   if(r.tipo_caixa === 'PDV' && canc.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas canceladas (fora do total)</td><td class="cx-num">${canc.qtd}</td><td class="cx-num">${brl(canc.total)}</td></tr>`);
   if(r.tipo_caixa === 'BAR' && est.qtd > 0) extras.push(`<tr class="cx-extra"><td>Pagamentos estornados (fora do total)</td><td class="cx-num">${est.qtd}</td><td class="cx-num">${brl(est.total)}</td></tr>`);
   const rotuloOper = r.tipo_caixa === 'PDV' ? 'vendas' : 'recebimentos';
@@ -13768,6 +13783,11 @@ async function cxAbrirDetalhe(id){
     const formas = (m.formas || []).map(p => `${escapeHtml(cxRotuloForma(p.forma))} ${brl(p.valor)}`).join(' · ');
     return `<tr><td>Mesa ${m.mesa != null ? escapeHtml(m.mesa) : '—'}${m.estornado ? ' <span class="cx-tag-cancel">ESTORNADO</span>' : ''}</td><td>${escapeHtml(cxDataHora(m.em))}</td><td>${formas}</td><td class="cx-num">${brl(m.total)}</td></tr>`;
   }).join('');
+  const recebimentosCaixa = (resp.data.recebimentos_titulos || []).map(r => {
+    const titulos = (r.titulos || []).map(t => `Venda nº ${escapeHtml(t.numero_venda)} · Título ${escapeHtml(t.titulo_id)} · ${brl(t.valor)}`).join('<br>');
+    const formas = (r.formas || []).map(f => `${escapeHtml(f.forma)} ${brl(f.valor)}`).join(' · ');
+    return `<tr><td><b>RECEBIMENTO NOTA A PRAZO</b><br>${titulos}<br>Cliente: ${escapeHtml(r.cliente || '—')}<br>Usuário: ${escapeHtml(r.usuario || '—')}</td><td>${escapeHtml(cxDataHora(r.em))}</td><td>${formas}</td><td class="cx-num">${brl(r.total)}</td></tr>`;
+  }).join('');
   $('cx-det-corpo').innerHTML = `
     <div class="cx-info">
       <div><small>Aberto por</small><b>${escapeHtml(c.aberto_por_nome || '—')}</b><small>${escapeHtml(cxDataHora(c.aberto_em))}</small></div>
@@ -13778,7 +13798,7 @@ async function cxAbrirDetalhe(id){
     <div class="cx-saldo-dinheiro">Dinheiro esperado no caixa <b>${brl(r.saldo_dinheiro_esperado)}</b></div>
     ${dif ? `<div class="cx-comp-aviso">Total no fechamento: <b>${brl(snap.total_recebido)}</b>. Os valores acima já refletem estornos/cancelamentos feitos depois.</div>` : ''}
     <h4 class="cx-hist-titulo">${tipo === 'PDV' ? 'Vendas deste caixa' : 'Recebimentos deste caixa'}</h4>
-    ${mov ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}</tbody></table></div>` : '<p class="cx-vazio">Nenhum movimento neste caixa.</p>'}`;
+    ${mov || recebimentosCaixa ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}${recebimentosCaixa}</tbody></table></div>` : '<p class="cx-vazio">Nenhum movimento neste caixa.</p>'}`;
 }
 
 // ---- cliques (um único ouvinte para todos os painéis/relatórios) ----
@@ -14811,10 +14831,10 @@ let crClienteAtual = null;           // { cliente_id, cliente_nome }
 let crTitulos = [];                  // títulos em aberto do cliente (contas_receber_listar)
 let crTotalRegistros = 0;
 const crSel = new Set();             // titulo_id selecionados
-const crChaves = new Map();          // assinatura da seleção -> chave de idempotência (reenvio da MESMA seleção não duplica)
+const crChaves = new Map();          // títulos e formas -> chave de idempotência da mesma operação
 let crOcupado = false;
 let crSeq = 0, crResumoSeq = 0, crTitSeq = 0;
-let crReceber = null;                // { ids, totalCent, forma, chave }
+let crReceber = null;                // seleção, saldos, caixa de destino, formas e tentativa idempotente
 let crCancelar = null;               // titulo em cancelamento
 let crMsgTimer = null;
 
@@ -14865,6 +14885,7 @@ async function crCarregarResumo(){
 }
 
 function crRenderClientes(totais, comBusca){
+  try { $('btn-cr-recuperar').classList.toggle('hidden', !crLerTentativa()); } catch(e){ $('btn-cr-recuperar').classList.remove('hidden'); }
   msgBox('cr-msg', '');
   const box = $('cr-clientes');
   const t = totais || {};
@@ -14892,6 +14913,7 @@ function crAbrirCliente(clienteId){
   const c = crClientes.find(x => x.cliente_id === clienteId);
   if(!c) return;
   crClienteAtual = { cliente_id: c.cliente_id, cliente_nome: c.cliente_nome };
+  $('cr-status-titulos').value = 'aberto';
   crSel.clear(); crTitulos = [];
   msgBox('cr-msg-det', '');
   $('cr-det-nome').textContent = c.cliente_nome;
@@ -14917,12 +14939,12 @@ async function crCarregarTitulos(){
   const seq = ++crTitSeq, sq = crSeq;
   try {
     const { data, error } = await supabase.rpc('contas_receber_listar',
-      { p_cliente_id: cli.cliente_id, p_status: 'aberto', p_limite: 500, p_offset: 0 });
+      { p_cliente_id: cli.cliente_id, p_status: $('cr-status-titulos').value, p_limite: 500, p_offset: 0 });
     if(error) throw error;
     if(seq !== crTitSeq || sq !== crSeq || !crClienteAtual || crClienteAtual.cliente_id !== cli.cliente_id) return false;
     crTitulos = (data && Array.isArray(data.titulos)) ? data.titulos : [];
     crTotalRegistros = Number(data && data.total_registros) || crTitulos.length;
-    const vivos = new Set(crTitulos.map(t => t.titulo_id));
+    const vivos = new Set(crTitulos.filter(t => ['aberto','parcialmente_pago'].includes(t.status)).map(t => t.titulo_id));
     Array.from(crSel).forEach(id => { if(!vivos.has(id)) crSel.delete(id); });      // selecionado que já não está em aberto sai
     crRenderTitulos();
     return true;
@@ -14935,21 +14957,24 @@ async function crCarregarTitulos(){
 function crRenderTitulos(){
   const box = $('cr-titulos');
   const n = crTitulos.length;
-  $('cr-det-sub').textContent = n === 1 ? '1 título em aberto' : `${n} títulos em aberto`;
+  $('cr-det-sub').textContent = n === 1 ? '1 título' : `${n} títulos`;
   if(!n){
-    box.innerHTML = '<div class="cr-vazio" style="grid-column:auto;border:none;">Este cliente não tem mais títulos em aberto.</div>';
+    box.innerHTML = '<div class="cr-vazio" style="grid-column:auto;border:none;">Nenhum título neste filtro.</div>';
     crAtualizarBarra();
     return;
   }
   box.innerHTML = crTitulos.map(t => {
     const sel = crSel.has(t.titulo_id);
     const aberto = t.status === 'aberto';                       // só título totalmente em aberto pode ser cancelado
+    const selecionavel = ['aberto','parcialmente_pago'].includes(t.status);
+    const historico = (t.recebimentos || []).map(h => `<p>${escapeHtml(cxDataHora(h.recebido_em))} · ${brl(h.valor)} · saldo após ${brl(h.saldo_depois)} · ${escapeHtml(h.caixa_tipo ? `Caixa ${h.caixa_tipo} nº ${h.caixa_numero}` : 'Recebimento antigo sem caixa identificado')} · ${escapeHtml(h.usuario || '—')}<br>${(h.formas || []).map(f => `${escapeHtml(f.forma)}: ${brl(f.valor)}`).join(' · ')}</p>`).join('');
     return `<div class="cr-tit${sel ? ' sel' : ''}" data-titulo="${escapeHtml(t.titulo_id)}">
-      <input type="checkbox" ${sel ? 'checked' : ''} aria-label="Selecionar título da venda ${escapeHtml(t.numero_venda)}">
+      <input type="checkbox" ${sel ? 'checked' : ''} ${selecionavel ? '' : 'disabled'} aria-label="Selecionar título da venda ${escapeHtml(t.numero_venda)}">
       <span class="cr-tit-venc">${escapeHtml(dataBR(t.vencimento))}${t.vencido ? ' <span class="cr-tag venc">Vencido</span>' : ''}</span>
-      <span class="cr-tit-venda">Venda nº ${escapeHtml(t.numero_venda)}${t.venda_cancelada ? '<small><span class="cr-tag aviso">⚠ Venda de origem cancelada</span></small>' : ''}</span>
+      <span class="cr-tit-venda">Venda nº ${escapeHtml(t.numero_venda)}<small>${escapeHtml(t.status)} · ${escapeHtml(t.tipo_caixa ? 'Origem: '+t.tipo_caixa : 'Origem não identificada')}</small>${t.venda_cancelada ? '<small><span class="cr-tag aviso">⚠ Venda de origem cancelada</span></small>' : ''}</span>
       <span class="cr-tit-valor">${brl(t.saldo_aberto)}</span>
       ${aberto ? '<button type="button" class="cr-mais" aria-label="Mais ações" title="Mais ações">&#8942;</button>' : '<span></span>'}
+      ${historico ? `<details style="grid-column:1/-1"><summary>Histórico de recebimentos</summary>${historico}</details>` : ''}
     </div>`;
   }).join('') + (crTotalRegistros > crTitulos.length ? `<div class="cr-vazio" style="grid-column:auto;border:none;">Mostrando os ${crTitulos.length} primeiros de ${crTotalRegistros} títulos.</div>` : '');
   crAtualizarBarra();
@@ -14964,15 +14989,21 @@ function crAtualizarBarra(){
   $('cr-sel-qtd').textContent = n === 0 ? 'Nenhum título selecionado' : n === 1 ? '1 título selecionado' : `${n} títulos selecionados`;
   $('cr-sel-total').textContent = brlCent(c);
   const b = $('btn-cr-receber');
-  b.disabled = n === 0 || crOcupado;
-  b.textContent = n === 0 ? 'RECEBER' : 'RECEBER ' + brlCent(c);
+  let pendente = false;
+  try { pendente = !!crLerTentativa(); } catch(e){ pendente = true; }
+  $('btn-cr-recuperar').classList.toggle('hidden', !pendente);
+  b.disabled = (n === 0 && !pendente) || crOcupado;
+  b.textContent = pendente ? 'RECUPERAR RECEBIMENTO PENDENTE' : n === 0 ? 'RECEBER' : 'RECEBER ' + brlCent(c);
   const todos = $('cr-sel-todos');
-  todos.checked = crTitulos.length > 0 && n === crTitulos.length;
-  todos.indeterminate = n > 0 && n < crTitulos.length;
-  todos.disabled = crTitulos.length === 0;
+  const aptos = crTitulos.filter(t => ['aberto','parcialmente_pago'].includes(t.status)).length;
+  todos.checked = aptos > 0 && n === aptos;
+  todos.indeterminate = n > 0 && n < aptos;
+  todos.disabled = aptos === 0;
 }
 
 function crAlternar(id, marcar){
+  const titulo = crTitulos.find(t => t.titulo_id === id);
+  if(!titulo || !['aberto','parcialmente_pago'].includes(titulo.status)) return;
   if(marcar === undefined) marcar = !crSel.has(id);
   if(marcar) crSel.add(id); else crSel.delete(id);
   const row = $('cr-titulos').querySelector(`.cr-tit[data-titulo="${CSS.escape(id)}"]`);
@@ -14984,104 +15015,140 @@ function crFecharMenus(){ document.querySelectorAll('.cr-menu').forEach(m => m.r
 
 // ---- receber títulos selecionados ----
 function crAssinatura(ids){ return ids.slice().sort().join(','); }
-
-async function crAbrirReceber(){
-  if(crOcupado || !crClienteAtual || crSel.size === 0) return;
-  const antes = crAssinatura(Array.from(crSel));
-  crOcupado = true; crAtualizarBarra();
-  let ok;
-  try { ok = await crCarregarTitulos(); }                       // confere no banco antes de abrir
-  finally { crOcupado = false; }
-  if(!ok) { crAtualizarBarra(); return; }
-  const ids = Array.from(crSel);
-  if(!ids.length || crAssinatura(ids) !== antes){
-    crAviso('cr-msg-det', ids.length ? 'Alguns títulos selecionados já não estavam em aberto. Confira a seleção antes de receber.' : 'Os títulos selecionados já foram recebidos ou cancelados. Atualizamos a lista.');
-    crAtualizarBarra();
-    return;
-  }
-  const totalCent = crSelCentavos();
-  const sig = crAssinatura(ids);
-  let chave = crChaves.get(sig);
-  if(!chave){ chave = novaChaveUuid(); crChaves.set(sig, chave); }
-  crReceber = { ids, totalCent, forma: null, chave };
-  $('cr-rec-cliente').textContent = crClienteAtual.cliente_nome;
-  $('cr-rec-qtd').textContent = ids.length === 1 ? '1 título' : `${ids.length} títulos`;
-  $('cr-rec-total').textContent = brlCent(totalCent);
-  msgBox('cr-rec-msg', '');
-  crMarcarForma(null);
+function crLerTentativa(){
+  const texto = sessionStorage.getItem('florest.cr.tentativa.' + acesso.userId);
+  return texto ? JSON.parse(texto) : null;
+}
+function crSalvarTentativa(r){
+  const chave = 'florest.cr.tentativa.' + acesso.userId;
+  if(r) sessionStorage.setItem(chave, JSON.stringify(r));
+  else sessionStorage.removeItem(chave);
+}
+function crMostrarReceber(r){
+  crReceber = r;
+  $('cr-rec-cliente').textContent = r.cliente_nome;
+  $('cr-rec-qtd').textContent = r.ids.length === 1 ? '1 título' : r.ids.length + ' títulos';
+  $('cr-rec-total').textContent = 'Saldo da seleção: ' + brlCent(r.saldoCent);
+  $('cr-rec-caixa').textContent = 'Destino automático: Caixa ' + r.caixa.tipo_caixa + ' nº ' + r.caixa.numero;
+  $('cr-rec-valor').value = pdvCentavosParaTexto(r.alvoCent);
+  msgBox('cr-rec-msg', r.pendente ? 'Há uma tentativa com resultado desconhecido. Confirme novamente para recuperar a mesma operação, sem duplicar a baixa.' : '');
+  crRenderReceber();
   $('modal-cr-receber').classList.remove('hidden');
 }
-
-function crMarcarForma(forma){
-  if(crReceber) crReceber.forma = forma;
-  $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => b.classList.toggle('sel', !!forma && b.dataset.forma === forma));
-  $('btn-cr-rec-ok').disabled = !forma || crOcupado;
+async function crAbrirReceber(){
+  if(crOcupado) return;
+  try {
+    const pendente = crLerTentativa();
+    if(pendente){ crMostrarReceber({ ...pendente, pendente: true }); return; }
+  } catch(e){ crAviso('cr-msg', 'Não foi possível ler a tentativa pendente desta sessão. Confira antes de receber.'); return; }
+  if(!crClienteAtual || crSel.size === 0) return;
+  const antes = crAssinatura(Array.from(crSel));
+  crOcupado = true; crAtualizarBarra();
+  try {
+    const ok = await crCarregarTitulos();
+    const ids = Array.from(crSel);
+    if(!ok || !ids.length || crAssinatura(ids) !== antes){
+      crAviso('cr-msg-det', 'A seleção mudou. Confira os títulos antes de receber.'); return;
+    }
+    const {data,error} = await supabase.rpc('contas_receber_preparar', {p_titulos:ids});
+    if(error) throw error;
+    crMostrarReceber({ids,cliente_nome:data.cliente_nome,titulos:data.titulos,caixa:data.caixa,
+      saldoCent:centavos(data.saldo_total),alvoCent:centavos(data.saldo_total),pagamentos:[],chave:null,pendente:false});
+  } catch(e){ crAviso('cr-msg-det', msgErroRpc(e,'Não foi possível preparar o recebimento.')); }
+  finally { crOcupado = false; if(crReceber) crRenderReceber(); crAtualizarBarra(); }
 }
-
+function crRenderReceber(){
+  const r = crReceber;
+  if(!r) return;
+  const soma = r.pagamentos.reduce((s,p) => s+p.centavos,0);
+  const valido = Number.isSafeInteger(r.alvoCent) && r.alvoCent > 0 && r.alvoCent <= r.saldoCent;
+  $('cr-rec-valor').disabled = crOcupado || r.pendente;
+  $('cr-rec-valor-forma').disabled = crOcupado || r.pendente || !valido || soma >= r.alvoCent;
+  $('cr-rec-valor-forma').value = valido && soma < r.alvoCent ? pdvCentavosParaTexto(r.alvoCent-soma) : '';
+  $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = crOcupado || r.pendente || !valido || soma >= r.alvoCent; });
+  $('cr-rec-pagamentos').innerHTML = r.pagamentos.map((p,i) =>
+    '<p>' + escapeHtml(p.forma_pagamento) + ': ' + brlCent(p.centavos) +
+    (r.pendente || crOcupado ? '' : ' <button type="button" class="link-btn" data-cr-remover="' + i + '">Remover</button>') + '</p>').join('');
+  $('cr-rec-restante').textContent = valido ? 'Falta distribuir nas formas: ' + brlCent(Math.max(0,r.alvoCent-soma)) : 'Informe um valor maior que zero e até o saldo da seleção.';
+  let restante = valido ? r.alvoCent : 0;
+  $('cr-rec-titulos').innerHTML = r.titulos.map(t => {
+    const valor = Math.min(centavos(t.saldo_aberto),restante);
+    restante -= valor;
+    return '<p><b>Venda nº ' + escapeHtml(t.numero_venda) + '</b><br>Original: ' + brl(t.valor_original) +
+      ' · Já recebido: ' + brl(t.valor_recebido) + ' · Saldo: ' + brl(t.saldo_aberto) +
+      '<br>Receber agora neste título: ' + brlCent(valor) + '</p>';
+  }).join('') + (r.ids.length > 1 ? '<small>Distribuição automática por vencimento, criação e ID, na ordem exibida.</small>' : '');
+  $('btn-cr-rec-ok').disabled = crOcupado || !valido || soma !== r.alvoCent;
+}
+function crMarcarForma(forma){
+  const r = crReceber;
+  if(!r || crOcupado || r.pendente || !forma) return;
+  const valor = pdvParseValorCentavos($('cr-rec-valor-forma').value);
+  const soma = r.pagamentos.reduce((s,p) => s+p.centavos,0);
+  if(valor === null || valor <= 0 || valor > r.alvoCent-soma || r.pagamentos.length >= 10){
+    msgBox('cr-rec-msg','Informe um valor válido para esta forma, até o restante (máximo de 10 lançamentos).'); return;
+  }
+  r.pagamentos.push({forma_pagamento:forma,centavos:valor});
+  crRenderReceber();
+}
 function crFecharReceber(){
   if(crOcupado) return;
   $('modal-cr-receber').classList.add('hidden');
   crReceber = null;
 }
-
 async function crConfirmarReceber(){
   const r = crReceber;
-  if(crOcupado || !r) return;                                   // duplo clique: ignorado
-  if(!r.forma){ msgBox('cr-rec-msg', 'Escolha a forma de recebimento.'); return; }
+  if(crOcupado || !r) return;
+  const soma = r.pagamentos.reduce((s,p) => s+p.centavos,0);
+  if(!Number.isSafeInteger(r.alvoCent) || r.alvoCent <= 0 || r.alvoCent > r.saldoCent || soma !== r.alvoCent){
+    msgBox('cr-rec-msg','Confira o valor recebido e distribua exatamente esse valor nas formas.'); return;
+  }
+  const pagamentos = r.pagamentos.map(p => ({forma_pagamento:p.forma_pagamento,valor:reaisDeCentavos(p.centavos)}));
+  const assinatura = JSON.stringify({ids:r.ids.slice().sort(),pagamentos});
   const sq = crSeq;
   crOcupado = true;
   const btn = $('btn-cr-rec-ok'); const txt = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Recebendo...';
-  $('btn-cr-rec-cancelar').disabled = true;
-  $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = true; });
-  msgBox('cr-rec-msg', '');
+  btn.textContent = 'Recebendo...'; $('btn-cr-rec-cancelar').disabled = true;
   let ok = false;
   try {
-    const { data, error } = await supabase.rpc('contas_receber_receber', {
-      p_titulos: r.ids,                                          // SÓ os títulos marcados
-      p_pagamentos: [{ forma_pagamento: r.forma, valor: reaisDeCentavos(r.totalCent) }],
-      p_chave_idempotencia: r.chave
+    if(!r.chave){ r.chave = crChaves.get(assinatura) || novaChaveUuid(); crChaves.set(assinatura,r.chave); }
+    crSalvarTentativa(r); // persistir ANTES da chamada; nunca enviar sem a chave durável
+    r.pendente = true; crRenderReceber();
+    const {data,error} = await supabase.rpc('contas_receber_receber', {
+      p_titulos:r.ids,p_pagamentos:pagamentos,p_chave_idempotencia:r.chave
     });
     if(error) throw error;
+    if(!data || !data.recebimento_id || !data.caixa || !Array.isArray(data.rateio)) throw new Error('Resposta incompleta do recebimento; repita a mesma tentativa.');
     if(sq !== crSeq) return;
-    ok = true;
-    crChaves.delete(crAssinatura(r.ids));
+    crSalvarTentativa(null);
+    ok = true; crChaves.delete(assinatura);
     const d = data || {};
-    const n = Number(d.quantidade_titulos) || r.ids.length;
-    const nome = crClienteAtual ? crClienteAtual.cliente_nome : '';
-    $('modal-cr-receber').classList.add('hidden');
-    crReceber = null;
+    $('modal-cr-receber').classList.add('hidden'); crReceber = null;
+    const saldo = (d.rateio || []).reduce((s,t) => s+Number(t.saldo_depois),0);
     $('cr-ok-corpo').innerHTML = [
-      ['Cliente', nome],
-      ['Títulos baixados', String(n)],
-      ['Valor', brl(d.valor_total != null ? d.valor_total : reaisDeCentavos(r.totalCent))],
-      ['Recebido em', ({ 'Cartão de Débito': 'Débito', 'Cartão de Crédito': 'Crédito' })[r.forma] || r.forma]
-    ].map(([k, v]) => `<div><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');
-    crSel.clear();
-    $('modal-cr-ok').classList.remove('hidden');
-    setTimeout(() => $('btn-cr-ok').focus(), 0);
+      ['Cliente',r.cliente_nome],['Títulos com recebimento',String(d.quantidade_titulos || r.ids.length)],
+      ['Valor recebido',brl(d.valor_total)],['Saldo dos títulos movimentados',brl(saldo)],
+      ['Caixa',d.caixa ? d.caixa.tipo_caixa + ' nº ' + d.caixa.numero : '—'],
+      ['Formas',r.pagamentos.map(p => p.forma_pagamento + ': ' + brlCent(p.centavos)).join(' · ')]
+    ].map(([k,v]) => '<div><span>' + escapeHtml(k) + '</span><b>' + escapeHtml(v) + '</b></div>').join('');
+    crSel.clear(); $('modal-cr-ok').classList.remove('hidden');
     crOcupado = false;
-    const tem = await crCarregarTitulos();                       // os baixados saem da lista; os outros continuam
-    if(tem && !crTitulos.length){ /* nenhum em aberto: a tela mostra o aviso; "Voltar" atualiza a lista de clientes */ }
+    if(crClienteAtual) await crCarregarTitulos(); else await crCarregarResumo();
   } catch(e){
     if(sq === crSeq){
-      const m = String((e && e.message) || '');
-      const rede = !(e && e.code) && (e instanceof TypeError || /failed to fetch|network|load failed|timeout/i.test(m));
-      if(rede){
-        msgBox('cr-rec-msg', 'Não foi possível confirmar o recebimento (falha de conexão). Toque de novo em CONFIRMAR RECEBIMENTO: a mesma tentativa é protegida contra baixa duplicada.');
-        console.error('[Contas a Receber] receber (resultado desconhecido):', e);
+      if(e && e.details === 'CR_ETAPA2_SEM_RECEBIMENTO'){
+        crSalvarTentativa(null); r.pendente = false; r.chave = null; crChaves.delete(assinatura);
+        msgBox('cr-rec-msg',msgErroRpc(e,'Nada foi recebido. Confira os valores e o caixa e tente de novo.'));
+        crCarregarTitulos();
       } else {
-        msgBox('cr-rec-msg', msgErroRpc(e, 'Não foi possível receber. Atualize a tela e tente novamente.'));
-        crCarregarTitulos();                                     // já pode ter sido recebido por outra pessoa
+        msgBox('cr-rec-msg','Não foi possível confirmar o resultado. Confirme novamente a mesma tentativa para recuperar o recibo sem duplicar. ' + msgErroRpc(e,'Confira a conexão.'));
       }
     }
   } finally {
     crOcupado = false;
     if(sq === crSeq){
-      btn.textContent = txt;
-      $('btn-cr-rec-cancelar').disabled = false;
-      $('cr-formas').querySelectorAll('.cmd-forma').forEach(b => { b.disabled = false; });
-      if(!ok && crReceber) crMarcarForma(crReceber.forma);
+      btn.textContent = txt; $('btn-cr-rec-cancelar').disabled = false;
+      if(!ok && crReceber) crRenderReceber();
       crAtualizarBarra();
     }
   }
@@ -15148,10 +15215,11 @@ $('cr-clientes').addEventListener('click', (e) => {
 });
 $('btn-cr-voltar').addEventListener('click', crVoltarParaClientes);
 $('cr-sel-todos').addEventListener('change', (e) => {
-  if(e.target.checked) crTitulos.forEach(t => crSel.add(t.titulo_id)); else crSel.clear();
+  if(e.target.checked) crTitulos.filter(t => ['aberto','parcialmente_pago'].includes(t.status)).forEach(t => crSel.add(t.titulo_id)); else crSel.clear();
   crRenderTitulos();
 });
 $('cr-titulos').addEventListener('click', (e) => {
+  if(e.target.closest('details')) return;
   const mais = e.target.closest('.cr-mais');
   const menuItem = e.target.closest('.cr-menu button');
   const row = e.target.closest('.cr-tit');
@@ -15175,6 +15243,18 @@ $('cr-titulos').addEventListener('click', (e) => {
 });
 document.addEventListener('click', (e) => { if(!e.target.closest('.cr-mais, .cr-menu')) crFecharMenus(); });
 $('btn-cr-receber').addEventListener('click', crAbrirReceber);
+$('btn-cr-recuperar').addEventListener('click', crAbrirReceber);
+$('cr-status-titulos').addEventListener('change', () => { if(crOcupado) return; crSel.clear(); crCarregarTitulos(); });
+$('cr-rec-valor').addEventListener('input', () => {
+  if(!crReceber || crOcupado || crReceber.pendente) return;
+  crReceber.alvoCent = pdvParseValorCentavos($('cr-rec-valor').value);
+  crReceber.pagamentos = []; crReceber.chave = null; crRenderReceber();
+});
+$('cr-rec-pagamentos').addEventListener('click', e => {
+  const b = e.target.closest('[data-cr-remover]');
+  if(!b || !crReceber || crReceber.pendente || crOcupado) return;
+  crReceber.pagamentos.splice(Number(b.dataset.crRemover),1); crReceber.chave = null; crRenderReceber();
+});
 $('cr-formas').addEventListener('click', (e) => {
   const b = e.target.closest('.cmd-forma');
   if(!b || crOcupado || !crReceber) return;
