@@ -816,6 +816,16 @@
   }
   .btn-accent:hover{ background: var(--florest-yellow-hover); }
 
+
+/* XMLs para Contadores */
+.xmlc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;max-width:850px}
+.xmlc-acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0}
+.xmlc-acoes .field{margin:0}.xmlc-acoes button{min-height:42px}
+.xmlc-msg{margin-top:12px;font-size:13px}.xmlc-msg:empty{display:none}
+.xmlc-nota{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--ink-soft)}
+.xmlc-resumo{padding:14px;background:var(--florest-blue-light);border:1px solid var(--border);border-radius:9px;margin-top:12px}
+.xmlc-resumo ul{max-height:240px;overflow:auto;margin:8px 0 0;padding-left:20px}
+
   /* ---------- FISCAL › CORRIGIR PRODUTOS (Migration 038) ---------- */
   .fcp-tabs{ display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
   .fcp-tab{
@@ -3761,6 +3771,7 @@
         <button type="button" class="fcp-tab active" id="fiscal-aba-btn-docs" role="tab">Documentos fiscais</button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-corrigir" role="tab">Corrigir Produtos <span class="fcp-tab-badge hidden" id="fcp-tab-badge">0</span></button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-contingencia" role="tab">Notas em contingência <span class="fcp-tab-badge hidden" id="ctg-tab-badge">0</span></button>
+        <button type="button" class="fcp-tab" id="fiscal-aba-btn-xml-contador" role="tab">XMLs para Contadores</button>
       </div>
 
       <div id="fiscal-aba-docs">
@@ -3966,6 +3977,26 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div id="fiscal-aba-xml-contador" class="hidden">
+        <div class="subsection">
+          <div class="subsection-header"><div><h3>XMLs para Contadores</h3><p>Cadastre o contador, confira a competência e prepare os arquivos XML em ZIP. O envio automático por e-mail ainda não está disponível.</p></div></div>
+          <div class="xmlc-grid">
+            <div class="field"><label for="xmlc-nome">Nome do contador / escritório</label><input id="xmlc-nome" type="text" maxlength="150" placeholder="Nome do escritório contábil"></div>
+            <div class="field"><label for="xmlc-email">E-mail do contador</label><input id="xmlc-email" type="email" maxlength="254" placeholder="contador@escritorio.com.br"></div>
+          </div>
+          <button type="button" class="btn-accent" id="xmlc-salvar">Salvar contador</button>
+          <div id="xmlc-cadastro-msg" class="xmlc-msg" role="status"></div>
+        </div>
+        <div class="subsection">
+          <div class="subsection-header"><div><h3>Pacote mensal de XMLs</h3><p>Os arquivos são separados por empresa e competência. Confira os XMLs ausentes antes de enviar ao contador.</p></div></div>
+          <div class="xmlc-acoes"><div class="field"><label for="xmlc-mes">Competência</label><input type="month" id="xmlc-mes"></div><button type="button" class="btn-secondary" id="xmlc-resumo">Conferir XMLs</button><button type="button" class="btn-accent" id="xmlc-baixar">Gerar e baixar ZIP</button></div>
+          <div id="xmlc-pacote-msg" class="xmlc-msg" role="status"></div>
+          <div id="xmlc-resumo-dados" class="hidden"></div>
+          <p class="xmlc-nota">Atenção: o ZIP contém apenas os XMLs armazenados no ERP. Cancelamentos, documentos externos e XMLs ausentes precisam ser conferidos antes da entrega. Gerar o ZIP não envia e-mail ao contador.</p>
+        </div>
+        <div class="subsection"><div class="subsection-header"><div><h3>Histórico de pacotes preparados</h3><p>Registros das gerações. O arquivo ZIP não fica armazenado para baixar novamente: para isso, gere outro pacote.</p></div><button type="button" class="btn-secondary" id="xmlc-atualizar">Atualizar histórico</button></div><div class="table-card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Competência</th><th>XMLs</th><th>Pendentes</th><th>Status</th><th>Destinatário</th></tr></thead><tbody id="xmlc-historico"><tr><td colspan="6">Abra a aba para carregar.</td></tr></tbody></table></div></div>
       </div>
     </div>
 
@@ -9786,7 +9817,7 @@ const CARREGADORES_VIEW = {
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); },
+  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -9931,11 +9962,14 @@ function fcpTrocarAba(aba){
   $('fiscal-aba-docs').classList.toggle('hidden', aba !== 'docs');
   $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
   $('fiscal-aba-contingencia').classList.toggle('hidden', aba !== 'contingencia');
+  $('fiscal-aba-xml-contador').classList.toggle('hidden', aba !== 'xml-contador');
   $('fiscal-aba-btn-docs').classList.toggle('active', aba === 'docs');
   $('fiscal-aba-btn-corrigir').classList.toggle('active', aba === 'corrigir');
   $('fiscal-aba-btn-contingencia').classList.toggle('active', aba === 'contingencia');
+  $('fiscal-aba-btn-xml-contador').classList.toggle('active', aba === 'xml-contador');
   if(aba === 'corrigir') fcpAbrir();
   if(aba === 'contingencia') ctgAbrirAba();
+  if(aba === 'xml-contador') xmlcAbrir();
 }
 async function fcpAbrir(){
   let emp = null;
@@ -22341,6 +22375,70 @@ florestBtnComanda.onclick=async()=>{
   if(r.error){$('bar-mesa-msg').innerHTML=`<div class="msg error">${escapeHtml(r.error.message)}</div>`;return;}
   $('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barMesaAtual=null;await carregarBarMesas();
 };
+
+
+
+// ===== Fiscal > XMLs para Contadores — integração com backend fiscal-xml-contador =====
+const XMLC = {empresa:null,carregando:false};
+function xmlcAviso(id,texto,erro=false){const el=$(id);el.textContent=texto||'';el.style.color=erro?'var(--danger)':'var(--ink-soft)';}
+function xmlcTexto(valor){return String(valor??'');}
+function xmlcCelula(tr,valor){const td=document.createElement('td');td.textContent=xmlcTexto(valor);tr.appendChild(td);}
+async function xmlcAbrir(){
+  try{
+    const empresa=await obterEmpresaId();
+    if(XMLC.empresa!==empresa){XMLC.empresa=empresa;$('xmlc-nome').value='';$('xmlc-email').value='';$('xmlc-resumo-dados').classList.add('hidden');}
+    if(!$('xmlc-mes').value){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);$('xmlc-mes').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+    const [c,h]=await Promise.all([
+      supabase.from('fiscal_contadores').select('nome,email').eq('empresa_id',empresa).maybeSingle(),
+      supabase.from('fiscal_pacotes_xml').select('criado_em,competencia,qtd_xml,qtd_pendentes,status,destinatario').eq('empresa_id',empresa).order('criado_em',{ascending:false}).limit(30)
+    ]);
+    if(c.error)throw c.error;
+    $('xmlc-nome').value=c.data?.nome||'';$('xmlc-email').value=c.data?.email||'';
+    xmlcAviso('xmlc-cadastro-msg','');
+    if(h.error)throw h.error;
+    const corpo=$('xmlc-historico');corpo.replaceChildren();
+    if(!h.data?.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=6;td.textContent='Nenhum pacote preparado ainda.';tr.appendChild(td);corpo.appendChild(tr);}
+    for(const item of h.data||[]){const tr=document.createElement('tr');const data=item.criado_em?new Date(item.criado_em).toLocaleString('pt-BR'):'—';xmlcCelula(tr,data);xmlcCelula(tr,String(item.competencia||'').slice(0,7));xmlcCelula(tr,item.qtd_xml);xmlcCelula(tr,item.qtd_pendentes);xmlcCelula(tr,item.status);xmlcCelula(tr,item.destinatario||'—');corpo.appendChild(tr);}
+  }catch(e){xmlcAviso('xmlc-cadastro-msg','Não foi possível carregar: '+(e.message||e),true);}
+}
+async function xmlcSalvar(){
+ const nome=$('xmlc-nome').value.trim(),email=$('xmlc-email').value.trim();
+ if(!nome||!email||!$('xmlc-email').checkValidity()){xmlcAviso('xmlc-cadastro-msg','Preencha o nome e um e-mail válido.',true);return;}
+ const btn=$('xmlc-salvar');btn.disabled=true;
+ try{const empresa=await obterEmpresaId();const {error}=await supabase.from('fiscal_contadores').upsert({empresa_id:empresa,nome,email},{onConflict:'empresa_id'});if(error)throw error;xmlcAviso('xmlc-cadastro-msg','Cadastro do contador salvo. O envio automático ainda não está ativado.');}
+ catch(e){xmlcAviso('xmlc-cadastro-msg','Falha ao salvar: '+(e.message||e),true);}finally{btn.disabled=false;}
+}
+async function xmlcSolicitar(acao){
+ const competencia=$('xmlc-mes').value;
+ if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)){xmlcAviso('xmlc-pacote-msg','Selecione uma competência válida.',true);return;}
+ const btn=$('xmlc-'+(acao==='resumo'?'resumo':'baixar'));btn.disabled=true;
+ xmlcAviso('xmlc-pacote-msg',acao==='resumo'?'Conferindo XMLs...':'Gerando ZIP...');
+ try{
+   const {data:{session},error:authError}=await supabase.auth.getSession();if(authError||!session?.access_token)throw Error('Sessão expirada. Entre novamente.');
+   const resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
+     method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+     body:JSON.stringify({competencia,acao})
+   });
+   if(!resposta.ok){const erro=await resposta.json().catch(()=>({}));throw Error(erro.erro||'Erro HTTP '+resposta.status);}
+   if(acao==='resumo'){
+     const dados=await resposta.json();const area=$('xmlc-resumo-dados');area.replaceChildren();area.classList.remove('hidden');area.classList.add('xmlc-resumo');
+     const titulo=document.createElement('strong');titulo.textContent='XMLs encontrados: '+(dados.quantidade??0)+' | XMLs pendentes: '+(dados.pendentes?.length??0);area.appendChild(titulo);
+     const p=document.createElement('p');p.textContent='A conferência não substitui a verificação de cancelamentos e documentos externos.';area.appendChild(p);
+     if(dados.pendentes?.length){const ul=document.createElement('ul');for(const pend of dados.pendentes){const li=document.createElement('li');li.textContent=(pend.tipo||'Documento')+' nº '+(pend.numero||'—')+' — XML ausente';ul.appendChild(li);}area.appendChild(ul);}
+     xmlcAviso('xmlc-pacote-msg','Conferência concluída. Confira os pendentes antes da entrega.');
+   }else{
+     const blob=await resposta.blob();if(!blob.size)throw Error('ZIP vazio recebido.');
+     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='xml-contador-'+competencia+'.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+     xmlcAviso('xmlc-pacote-msg','ZIP gerado. Confira o manifesto.json e os XMLs antes de entregar ao contador.');
+   }
+   await xmlcAbrir();
+ }catch(e){xmlcAviso('xmlc-pacote-msg','Falha: '+(e.message||e),true);}finally{btn.disabled=false;}
+}
+$('fiscal-aba-btn-xml-contador').addEventListener('click',()=>fcpTrocarAba('xml-contador'));
+$('xmlc-salvar').addEventListener('click',xmlcSalvar);
+$('xmlc-resumo').addEventListener('click',()=>xmlcSolicitar('resumo'));
+$('xmlc-baixar').addEventListener('click',()=>xmlcSolicitar('baixar'));
+$('xmlc-atualizar').addEventListener('click',xmlcAbrir);
 
 </script>
 
