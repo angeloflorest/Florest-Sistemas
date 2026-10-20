@@ -13591,18 +13591,16 @@ function cxHtmlResumo(r){
   const prazo = par(r.a_prazo), canc = par(r.canceladas), est = par(r.estornos);
   const recebimentos = par(r.recebimentos_titulos);
   if(r.recebimentos_titulos){
-    extras.push(`<tr class="cx-extra"><td>Vendas/pagamentos recebidos no ato</td><td></td><td class="cx-num">${brl(r.vendas_recebidas)}</td></tr>`);
-    extras.push(`<tr class="cx-extra"><td>Recebimentos de Notas a Prazo (incluídos no total)</td><td class="cx-num">${recebimentos.qtd}</td><td class="cx-num">${brl(recebimentos.total)}</td></tr>`);
+    extras.push(`<tr class="cx-extra"><td>Recebimentos de notas a prazo (incluídos no total)</td><td class="cx-num">${recebimentos.qtd}</td><td class="cx-num">${brl(recebimentos.total)}</td></tr>`);
   }
-  if(prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas a prazo (valor a receber, fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
+  if(prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas de notas a prazo (fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
   if(r.tipo_caixa === 'PDV' && canc.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas canceladas (fora do total)</td><td class="cx-num">${canc.qtd}</td><td class="cx-num">${brl(canc.total)}</td></tr>`);
   if(r.tipo_caixa === 'BAR' && est.qtd > 0) extras.push(`<tr class="cx-extra"><td>Pagamentos estornados (fora do total)</td><td class="cx-num">${est.qtd}</td><td class="cx-num">${brl(est.total)}</td></tr>`);
   const rotuloOper = r.tipo_caixa === 'PDV' ? 'vendas' : 'recebimentos';
   if(r.saidas_contas_pagar){
     const saidas = r.saidas_contas_pagar;
-    extras.push(`<tr class="cx-extra"><td>Saídas — Contas a Pagar</td><td class="cx-num">${Number(saidas.qtd)||0}</td><td class="cx-num">− ${brl(saidas.total)}</td></tr>`);
-    (saidas.por_forma || []).forEach(f => extras.push(`<tr class="cx-extra"><td>Saída em ${escapeHtml(f.forma)}</td><td class="cx-num">${Number(f.qtd)||0}</td><td class="cx-num">− ${brl(f.total)}</td></tr>`));
-    extras.push(`<tr class="cx-extra"><td>Entradas menos despesas pagas (todas as formas)</td><td></td><td class="cx-num">${brl(r.saldo_apos_despesas)}</td></tr>`);
+    extras.push(`<tr class="cx-extra"><td colspan="3" style="font-weight:700;padding-top:14px;">Despesas</td></tr>`);
+    (saidas.itens || []).forEach(d => extras.push(`<tr class="cx-extra"><td style="padding-left:22px;">${escapeHtml(d.descricao || 'Despesa')}</td><td></td><td class="cx-num">− ${brl(d.valor)}</td></tr>`));
   }
   return `<table class="cx-tabela">
     <thead><tr><th>Forma de pagamento</th><th class="cx-num">Lanç.</th><th class="cx-num">Valor</th></tr></thead>
@@ -13865,7 +13863,7 @@ async function cxAbrirDetalhe(id){
     ${dif ? `<div class="cx-comp-aviso">Total no fechamento: <b>${brl(snap.total_recebido)}</b>. Os valores acima já refletem estornos/cancelamentos feitos depois.</div>` : ''}
     <h4 class="cx-hist-titulo">${tipo === 'PDV' ? 'Vendas deste caixa' : 'Recebimentos deste caixa'}</h4>
     ${mov || recebimentosCaixa ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}${recebimentosCaixa}</tbody></table></div>` : '<p class="cx-vazio">Nenhuma entrada neste caixa.</p>'}
-    ${resp.data.pagamentos_despesas && resp.data.pagamentos_despesas.length ? `<h4>Saídas — Contas a Pagar</h4><div class="cx-det-mov"><table class="cx-tabela"><tbody>${resp.data.pagamentos_despesas.map(d => `<tr><td><b>PAGAMENTO DE DESPESA</b><br>${escapeHtml(d.descricao)}<br>Conta: ${escapeHtml(d.despesa_id)}<br>Usuário: ${escapeHtml(d.usuario)}</td><td>${escapeHtml(cxDataHora(d.em))}</td><td>${(d.formas||[]).map(f=>escapeHtml(f.forma)+' '+brl(f.valor)).join(' · ')}</td><td class="cx-num">− ${brl(d.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+    ${resp.data.pagamentos_despesas && resp.data.pagamentos_despesas.length ? `<h4>Despesas</h4><div class="cx-det-mov"><table class="cx-tabela"><tbody>${resp.data.pagamentos_despesas.map(d => `<tr><td><b>PAGAMENTO DE DESPESA</b><br>${escapeHtml(d.descricao)}<br>Conta: ${escapeHtml(d.despesa_id)}<br>Usuário: ${escapeHtml(d.usuario)}</td><td>${escapeHtml(cxDataHora(d.em))}</td><td>${(d.formas||[]).map(f=>escapeHtml(f.forma)+' '+brl(f.valor)).join(' · ')}</td><td class="cx-num">− ${brl(d.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
 
 // ---- cliques (um único ouvinte para todos os painéis/relatórios) ----
