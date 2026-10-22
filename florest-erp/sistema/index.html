@@ -5930,6 +5930,7 @@
     <form id="form-bar-produto">
       <div class="field">
         <label>Produto do catálogo</label>
+        <input type="search" id="bar-produto-busca" placeholder="Pesquisar produto pelo nome..." autocomplete="off" aria-label="Pesquisar produto do catálogo">
         <select id="bar-produto-produto" required></select>
       </div>
       <p class="modal-section-hint" id="bar-produto-preco-atual" style="margin-top:-8px;"></p>
@@ -19829,6 +19830,7 @@ let barMesaQtdPagamentos = 0;     // pagamentos já registrados na comanda abert
 let barCancelandoMesa = false;    // bloqueia duplo clique no "Sim, cancelar mesa"
 let barProdutoBarEditandoId = null;
 let barProdutosCatalogoCache = null;
+let barProdutoModalReq = 0;
 let barEstornoPagamentoId = null;
 let barEstornoPagamentoCallback = null; // função chamada após um estorno confirmado, para recarregar a tela certa
 let barFiscalComandaAtual = null;
@@ -21715,26 +21717,26 @@ async function carregarBarProdutos(){
 $('bar-produtos-busca').addEventListener('input', debounce(() => carregarBarProdutos()));
 $('btn-novo-produto-bar').addEventListener('click', () => abrirModalProdutoBar(null));
 
-// Cache compartilhado do catálogo (id/nome/preço) para o select "Produto do catálogo" e para as
-// opções de cada grupo de escolha — carregado uma vez por sessão da tela.
+// Catálogo renovado a cada abertura do composto: inclui cadastros feitos sem recarregar a página.
+// A origem é produtos; uma linha simples em bar_produtos nunca exclui o produto-base da seleção.
 // CORREÇÃO (revisão de segurança pré-produção): o catálogo agora também traz o tipo já configurado
 // de cada produto no cardápio do bar (bar_produtos.tipo), para que a lista de opções de um grupo de
 // escolha nunca ofereça um item JÁ composto (a ser tratado como componente físico) — evita aninhar
 // um composto dentro de outro. O backend (bar_produto_salvar) também bloqueia isso de forma
 // definitiva; este filtro é só para não nem oferecer a opção inválida na interface.
 async function garantirCatalogoProdutosBar(){
-  if(!barProdutosCatalogoCache){
-    const [{ data: produtosData }, { data: barData }] = await Promise.all([
-      buscarTodos(() => supabase.from('produtos').select('id, nome, preco_venda' + (recursos.produtoAtivo ? ', ativo' : '')).order('nome')),
-      buscarTodos(() => supabase.from('bar_produtos').select('produto_id, tipo')),
-    ]);
-    const tipoPorProduto = new Map((barData || []).map(bp => [bp.produto_id, bp.tipo]));
-    barProdutosCatalogoCache = (produtosData || []).map(p => ({
-      id: p.id, nome: p.nome, preco_venda: p.preco_venda, ativo: p.ativo !== false,
-      tipoBar: tipoPorProduto.get(p.id) || 'simples',
-    }));
-  }
-  return barProdutosCatalogoCache;
+  const empresaId = await obterEmpresaId();
+  const [{ data: produtosData, error: erroProdutos }, { data: barData, error: erroBar }] = await Promise.all([
+    buscarTodos(() => supabase.from('produtos').select('id, nome, preco_venda' + (recursos.produtoAtivo ? ', ativo' : '')).eq('empresa_id', empresaId).order('nome').order('id'), { tamanhoPagina: 500, maximo: Infinity }),
+    buscarTodos(() => supabase.from('bar_produtos').select('produto_id, tipo').eq('empresa_id', empresaId).order('id'), { tamanhoPagina: 500, maximo: Infinity }),
+  ]);
+  if(erroProdutos || erroBar) throw erroProdutos || erroBar;
+  if(empresaId !== await obterEmpresaId()) throw new Error('A empresa da sessão mudou. Abra o cadastro novamente.');
+  const tipoPorProduto = new Map((barData || []).map(bp => [bp.produto_id, bp.tipo]));
+  return (produtosData || []).map(p => ({
+    id: p.id, nome: p.nome, preco_venda: p.preco_venda, ativo: p.ativo !== false,
+    tipoBar: tipoPorProduto.get(p.id) || 'simples',
+  }));
 }
 
 function renderGruposEdicao(){
@@ -21808,30 +21810,62 @@ $('btn-bar-produto-add-grupo').addEventListener('click', () => {
   barGruposEdicao.push({ nome: '', quantidade_escolhas: 1, ordem: barGruposEdicao.length, opcoes: [] });
   renderGruposEdicao();
 });
-$('btn-cancelar-produto-bar').addEventListener('click', () => $('modal-bar-produto').classList.add('hidden'));
+$('btn-cancelar-produto-bar').addEventListener('click', () => { ++barProdutoModalReq; $('modal-bar-produto').classList.add('hidden'); });
 
 async function abrirModalProdutoBar(id){
+  const req = ++barProdutoModalReq;
   barProdutoBarEditandoId = id;
   barGruposEdicao = [];
   $('bar-produto-msg').innerHTML = '';
   $('form-bar-produto').reset();
   $('bar-produto-titulo').textContent = id ? 'Editar produto composto' : 'Criar produto composto';
 
-  const catalogo = await garantirCatalogoProdutosBar();
   const sel = $('bar-produto-produto');
   sel.innerHTML = '';
-  catalogo.forEach(p => { if(!p.ativo) return; const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
+  sel.onchange = null;
+  $('bar-produto-busca').oninput = null;
+  barProdutosCatalogoCache = null;
+  $('bar-produto-busca').value = '';
+  $('bar-produto-grupos-lista').innerHTML = '';
+  $('bar-produto-preco-atual').textContent = '';
+  $('modal-bar-produto').classList.remove('hidden');
+  const btnSalvar = $('btn-salvar-produto-bar');
+  btnSalvar.disabled = true;
+  let catalogo;
+  try {
+    catalogo = await garantirCatalogoProdutosBar();
+  } catch(error){
+    if(req === barProdutoModalReq) $('bar-produto-msg').innerHTML = `<div class="msg error">Não foi possível carregar os produtos: ${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    return;
+  }
+  if(req !== barProdutoModalReq) return;
+  barProdutosCatalogoCache = catalogo;
   const atualizarPrecoHint = () => {
     const p = catalogo.find(x => x.id === sel.value);
     $('bar-produto-preco-atual').textContent = p ? `Preço final de venda: ${formatarReais(p.preco_venda)} (para alterar nome ou preço, edite em Produtos).` : '';
   };
+  const filtrarProdutos = () => {
+    const escolhido = sel.value;
+    const termo = $('bar-produto-busca').value.trim().toLocaleLowerCase('pt-BR');
+    sel.innerHTML = '';
+    const encontrados = catalogo.filter(p => p.ativo && p.nome.toLocaleLowerCase('pt-BR').includes(termo));
+    const placeholder = document.createElement('option');
+    placeholder.value = ''; placeholder.textContent = encontrados.length ? 'Selecione um produto' : 'Nenhum produto encontrado';
+    sel.appendChild(placeholder);
+    encontrados.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome; sel.appendChild(o); });
+    sel.value = encontrados.some(p => p.id === escolhido) ? escolhido : '';
+    atualizarPrecoHint();
+  };
+  $('bar-produto-busca').oninput = filtrarProdutos;
+  filtrarProdutos();
   sel.onchange = atualizarPrecoHint;
 
   if(id){
     const { data: bp, error: errBp } = await supabase
       .from('bar_produtos')
       .select('id, produto_id, bar_produto_grupos ( id, nome, quantidade_escolhas, ordem, bar_produto_grupo_opcoes ( produto_id, ordem ) )')
-      .eq('id', id).single();
+      .eq('empresa_id', await obterEmpresaId()).eq('id', id).single();
+    if(req !== barProdutoModalReq) return;
     if(errBp || !bp){
       $('bar-produto-msg').innerHTML = '<div class="msg error">Produto composto não encontrado.</div>';
     } else {
@@ -21853,6 +21887,7 @@ async function abrirModalProdutoBar(id){
   }
   atualizarPrecoHint();
   renderGruposEdicao();
+  btnSalvar.disabled = false;
   $('modal-bar-produto').classList.remove('hidden');
 }
 
@@ -21897,6 +21932,7 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
     $('bar-produto-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
+  barProdutosCatalogoCache = null;
   $('modal-bar-produto').classList.add('hidden');
   await carregarBarProdutos();
 });
