@@ -4274,12 +4274,14 @@
           <div class="search-row" style="align-items:flex-end;" id="bar-rel-filtro-campos"></div>
           <div id="bar-rel-filtro-msg"></div>
           <button class="btn-accent" id="btn-bar-rel-gerar">Gerar relatório</button>
+          <button type="button" class="btn-secondary hidden" id="btn-bar-rel-novos-limpar">Limpar</button>
         </div>
 
         <div id="bar-rel-passo-documento" class="hidden">
           <div class="rel-doc-toolbar">
             <div class="link-btn rel-voltar" id="btn-bar-rel-doc-voltar">&larr; Voltar</div>
             <button class="btn-secondary hidden" id="btn-bar-rel-exportar-csv" type="button">Exportar para Excel (CSV)</button>
+            <button class="btn-secondary hidden" id="btn-bar-rel-exportar-xlsx" type="button">Exportar Excel (.xlsx)</button>
             <button class="btn-accent" id="btn-bar-rel-doc-imprimir">Imprimir / Salvar PDF</button>
           </div>
           <div class="rel-doc-folha" id="bar-rel-doc-folha"></div>
@@ -19951,6 +19953,10 @@ let barRelRelatorioAtual = null;
 let barRelCsvAtual = null;
 
 const SECOES_RELATORIOS_BAR = [
+  { id: 'bar_novo_periodo', titulo: 'Vendas por Período', descricao: 'Vendas por dia e comanda, recebimentos parciais e cancelamentos.', filtros: ['periodo', 'novos'], gerar: f => barNovoGerar('periodo', f) },
+  { id: 'bar_novo_caixa', titulo: 'Vendas por Caixa', descricao: 'Recebimentos e estornos por caixa e forma de pagamento.', filtros: ['periodo', 'novos', 'novo_caixa'], gerar: f => barNovoGerar('caixa', f) },
+  { id: 'bar_novo_produto', titulo: 'Vendas por Produto', descricao: 'Itens comerciais simples e compostos, com preço praticado.', filtros: ['periodo', 'novos', 'novo_produto'], gerar: f => barNovoGerar('produto', f) },
+  { id: 'bar_novo_comparativo', titulo: 'Comparativo de 5 Produtos', descricao: 'Vendas diretas e consumo histórico de até cinco produtos por dia.', filtros: ['periodo', 'novos', 'novo_comparativo'], gerar: f => barNovoGerar('comparativo', f) },
   { id: 'bar_historico_mesa', titulo: 'Histórico completo por mesa', descricao: 'Cada abertura de mesa e seus pedidos, pagamentos e caixas, sem filtro por data.', filtros: ['mesa_historico'], gerar: relatorioBarHistoricoMesaCaixa },
   { id: 'bar_mesas_caixa', titulo: 'Mesas discriminadas por caixa fechado', descricao: 'Escolha um caixa fechado e veja cada mesa, cada comanda e seus recebimentos.', filtros: ['caixa_historico'], gerar: relatorioBarHistoricoMesaCaixa },
   { id: 'bar_faturamento_periodo', titulo: 'Faturamento do Bar por período', descricao: 'Itens lançados (não estornados) e faturamento total do período.', filtros: ['periodo'], gerar: relatorioBarFaturamentoPeriodo },
@@ -19992,6 +19998,8 @@ $('btn-bar-rel-doc-voltar').addEventListener('click', () => mostrarPassoRelatori
 
 function abrirFiltrosRelatorioBar(rel){
   if(!visivelBarSubview('relatorios')) return;
+  ++barNovoFiltroSeq;
+  barNovoXlsx = null;
   barRelRelatorioAtual = rel;
   $('bar-rel-filtro-titulo').textContent = rel.titulo;
   $('bar-rel-filtro-descricao').textContent = rel.descricao;
@@ -20038,6 +20046,8 @@ function abrirFiltrosRelatorioBar(rel){
   if(rel.filtros.length === 0){
     campos.innerHTML = '<p class="rel-passo-descricao" style="margin:0;">Este relatório não tem filtros — é sempre gerado com os dados atuais.</p>';
   }
+  $('btn-bar-rel-novos-limpar').classList.toggle('hidden', !rel.filtros.includes('novos'));
+  if(rel.filtros.includes('novos')) barNovoPrepararFiltros(rel);
   mostrarPassoRelatorioBar('filtros');
 }
 
@@ -20064,6 +20074,12 @@ async function gerarRelatorioBarAtual(){
   if(!visivelBarSubview('relatorios')) return;
   const rel = barRelRelatorioAtual;
   if(!rel) return;
+  const novoSeq = barNovoFiltroSeq;
+  if(rel.filtros.includes('novos')){
+    barNovoXlsx = null;
+    $('bar-rel-doc-folha').innerHTML = '';
+    try { await barNovoAguardarFiltros(); } catch(error){ $('bar-rel-filtro-msg').textContent = error.message; return; }
+  }
 
   const filtros = {};
   if(rel.filtros.includes('periodo')){
@@ -20099,22 +20115,32 @@ async function gerarRelatorioBarAtual(){
     if(!filtros.caixaId){ $('bar-rel-filtro-msg').innerHTML='<div class="msg error">Selecione o caixa fechado.</div>'; return; }
   }
   const btn = $('btn-bar-rel-gerar');
+  if(rel.filtros.includes('novos')){
+    filtros.caixaId = $('bar-novo-caixa')?.value || null;
+    filtros.produtos = Array.from(document.querySelectorAll('[data-bar-novo-produto]')).map(s => s.value).filter(Boolean);
+    if(new Set(filtros.produtos).size !== filtros.produtos.length){ $('bar-rel-filtro-msg').textContent = 'Selecione produtos diferentes.'; return; }
+    if(rel.filtros.includes('novo_comparativo') && !filtros.produtos.length){ $('bar-rel-filtro-msg').textContent = 'Selecione ao menos um produto.'; return; }
+  }
   btn.disabled = true;
   $('bar-rel-filtro-msg').innerHTML = '';
   barRelCsvAtual = null;
   try {
     const resultado = await rel.gerar(filtros);
+    if(rel.filtros.includes('novos') && (novoSeq !== barNovoFiltroSeq || rel !== barRelRelatorioAtual || !visivelBarSubview('relatorios'))) return;
     barRelCsvAtual = resultado.csvLinhas || null;
     const nomeEmpresa = await obterNomeEmpresaImpressaoRelatorio();
+    if(rel.filtros.includes('novos') && (novoSeq !== barNovoFiltroSeq || rel !== barRelRelatorioAtual || !visivelBarSubview('relatorios'))) return;
     const tituloDocumento = (resultado.titulo || rel.titulo).toUpperCase() + ' — MÓDULO BAR';
     const partesFiltro = [];
     if(rel.filtros.includes('periodo')) partesFiltro.push(`Período: ${formatarDataBR(filtros.dataInicio)} a ${formatarDataBR(filtros.dataFim)}`);
     if(rel.filtros.includes('garcom')) partesFiltro.push(`Garçom: ${filtros.garcomNome}`);
     if(filtros.mesaId) partesFiltro.push('Mesa selecionada');
-    if(filtros.caixaId) partesFiltro.push('Caixa fechado selecionado');
+    if(filtros.caixaId) partesFiltro.push(rel.filtros.includes('novos') ? 'Caixa selecionado' : 'Caixa fechado selecionado');
     const descricaoFiltros = partesFiltro.length ? partesFiltro.join(' · ') : 'Sem filtros';
     $('bar-rel-doc-folha').innerHTML = montarHtmlDocumentoRelatorio(tituloDocumento, nomeEmpresa, descricaoFiltros, resultado) + (resultado.htmlDetalhe || '');
     const b=$('btn-bar-rel-exportar-csv'); if(b) b.classList.toggle('hidden', !barRelCsvAtual);
+    $('btn-bar-rel-exportar-xlsx').classList.toggle('hidden', !rel.filtros.includes('novos'));
+    if(rel.filtros.includes('novos')) $('btn-bar-rel-exportar-csv').classList.add('hidden');
     mostrarPassoRelatorioBar('documento');
   } catch(err){
     console.error(err);
@@ -20140,6 +20166,205 @@ $('btn-bar-rel-doc-imprimir').addEventListener('click', () => {
   window.print();
 });
 
+
+// ---------- Novos relatórios do Bar: cálculos puros, sem mutações ----------
+const barNovoDia = v => v ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(v)) : '';
+const barNovoCentavos = v => Math.round((Number(v) || 0) * 100);
+function barNovoCalcular(tipo, f, d){
+  const dentro = v => { const dia = barNovoDia(v); return dia && dia >= f.dataInicio && dia <= f.dataFim; };
+  const produtos = new Map(d.produtos.map(p => [p.id,p]));
+  const comandas = new Map(d.comandas.map(c => [c.id,c]));
+  const vendas = new Map(d.vendas.map(v => [v.id,v]));
+  const mesas = new Map(d.mesas.map(m => [m.id,m.numero]));
+  const caixas = new Map(d.caixas.map(c => [c.id,c]));
+  const vinculos = new Map(d.barProdutos.map(p => [p.id,p.produto_id]));
+  const formas = new Map();
+  for(const p of d.formas){ if(!formas.has(p.pagamento_id)) formas.set(p.pagamento_id,[]); formas.get(p.pagamento_id).push(p); }
+  const pid = i => i.produto_id || vinculos.get(i.bar_produto_id);
+  const valido = i => {
+    const c = comandas.get(i.comanda_id), v = vendas.get(c?.venda_id);
+    return !i.estornado && !c?.cancelada_em && c?.status !== 'cancelada' && !v?.cancelada_em;
+  };
+  const nome = id => produtos.get(id)?.nome || 'Produto não identificado';
+  const dinheiro = v => Number((v / 100).toFixed(2));
+  let colunas = [], linhas = [], resumos = [], notas = [];
+  if(tipo === 'periodo'){
+    colunas = ['Data da venda','Venda','Comanda','Mesa','Situação','Valor vendido','Formas de pagamento','Recebido líquido atual','Saldo atual'];
+    const diarios = new Map(); let total = 0, quantidade = 0;
+    for(const v of d.vendas.filter(v => dentro(v.criado_em)).sort((a,b) => a.criado_em.localeCompare(b.criado_em))){
+      const c = d.comandas.find(c => c.venda_id === v.id);
+      if(!c) continue;
+      const cancelada = !!(v.cancelada_em || c.cancelada_em || c.status === 'cancelada');
+      const pags = d.pagamentos.filter(p => p.comanda_id === c.id && !p.estornado);
+      const recebido = pags.reduce((s,p) => s + barNovoCentavos(p.total),0);
+      const valor = cancelada ? 0 : barNovoCentavos(v.total);
+      const dia = barNovoDia(v.criado_em);
+      const diario = diarios.get(dia) || { total:0, quantidade:0 };
+      diario.total += valor; diario.quantidade += cancelada ? 0 : 1; diarios.set(dia,diario);
+      total += valor; quantidade += cancelada ? 0 : 1;
+      linhas.push([dia,v.numero_venda,c.id,mesas.get(c.mesa_id) ?? '—',cancelada ? 'Cancelada' : c.status,
+        dinheiro(valor),pags.map(p => (formas.get(p.id)||[]).map(x => `${x.forma_pagamento}: ${dinheiro(barNovoCentavos(x.valor))}`).join(' + ') || 'Não detalhado').join(' / ') || 'Sem recebimento',dinheiro(recebido),dinheiro(cancelada ? 0 : Math.max(0,valor-recebido))]);
+    }
+    resumos = [['Total geral do período',dinheiro(total)],['Quantidade de vendas',quantidade], ...[...diarios].map(([dia,x]) => [`${dia} — ${x.quantidade} venda(s)`,dinheiro(x.total)])];
+    notas = ['Competência pela data da venda. Cada venda/comanda é somada uma vez; vendas canceladas têm valor zero.', 'Recebido e saldo mostram a situação atual da venda, incluindo pagamentos parciais posteriores ao período. Pagamentos estornados não entram no recebido.'];
+  } else if(tipo === 'caixa'){
+    colunas = ['Caixa','Operador','Abertura','Fechamento','Forma','Quantidade de vendas','Recebido no período','Estornos no período','Total líquido'];
+    const grupos = new Map(); let bruto = 0, estornos = 0;
+    for(const p of d.pagamentos){
+      if(f.caixaId && p.caixa_id !== f.caixaId) continue;
+      const c = caixas.get(p.caixa_id);
+      if(p.caixa_id && !c) continue;
+      const entrada = dentro(p.criado_em), saida = p.estornado && dentro(p.estornado_em);
+      if(!entrada && !saida) continue;
+      const fs = formas.get(p.id) || [];
+      const partes = fs.length ? fs.map(x => ({forma:x.forma_pagamento,valor:barNovoCentavos(x.valor)})) : [{forma:'Não detalhado',valor:barNovoCentavos(p.total)}];
+      const diferenca = barNovoCentavos(p.total) - partes.reduce((s,x) => s+x.valor,0);
+      if(diferenca) partes.push({forma:'Diferença não detalhada',valor:diferenca});
+      for(const parte of partes){
+        const key = `${p.caixa_id || 'sem-caixa'}|${parte.forma}`;
+        const g = grupos.get(key) || { c, forma:parte.forma, vendas:new Set(), bruto:0, estornos:0 };
+        if(entrada){ g.bruto += parte.valor; g.vendas.add(p.comanda_id); bruto += parte.valor; }
+        if(saida){ g.estornos += parte.valor; estornos += parte.valor; }
+        grupos.set(key,g);
+      }
+    }
+    const vendasCaixa = new Map();
+    for(const p of d.pagamentos.filter(p => dentro(p.criado_em) && (!f.caixaId || p.caixa_id === f.caixaId) && (!p.caixa_id || caixas.has(p.caixa_id)))){
+      const key=p.caixa_id || 'Sem caixa'; if(!vendasCaixa.has(key)) vendasCaixa.set(key,new Set()); vendasCaixa.get(key).add(p.comanda_id);
+    }
+    linhas = [...grupos.values()].map(g => [g.c?.numero ?? 'Sem caixa',g.c?.aberto_por_nome || '—',g.c?.aberto_em || '—',g.c?.fechado_em || 'Aberto',g.forma,g.vendas.size,dinheiro(g.bruto),dinheiro(g.estornos),dinheiro(g.bruto-g.estornos)]);
+    resumos = [['Total recebido',dinheiro(bruto)],['Estornos',dinheiro(estornos)],['Total líquido',dinheiro(bruto-estornos)], ...[...vendasCaixa].map(([id,ids]) => [`Vendas distintas — caixa ${caixas.get(id)?.numero ?? id}`,ids.size])];
+    notas = ['Recebimentos pela data do pagamento e estornos pela data do estorno, sempre no caixa original. Não soma movimentos de caixa novamente.', 'Quantidade de vendas: comandas distintas com recebimento no período, incluindo recebimentos depois estornados. Uma comanda com pagamentos parciais conta uma vez por caixa; quantidades por forma não devem ser somadas entre formas.'];
+    if(d.pagamentos.some(p => p.estornado && !p.estornado_em)) notas.push('Há pagamentos legados estornados sem data de estorno; não é possível atribuí-los a um dia do período.');
+  } else if(tipo === 'produto'){
+    colunas = ['Produto','Data da venda','Quantidade','Valor unitário praticado','Total vendido'];
+    const grupos = new Map(), totais = new Map(); let total = 0;
+    for(const i of d.itens){
+      const id = pid(i); if(!valido(i) || !dentro(i.criado_em) || (f.produtos?.length && !f.produtos.includes(id))) continue;
+      const preco = barNovoCentavos(i.preco_unitario), valor = Math.round(Number(i.quantidade)*preco);
+      const key = `${id}|${barNovoDia(i.criado_em)}|${preco}`;
+      const g = grupos.get(key) || {id,dia:barNovoDia(i.criado_em),preco,qtd:0,total:0};
+      g.qtd += Number(i.quantidade); g.total += valor; grupos.set(key,g);
+      totais.set(id,(totais.get(id)||0)+valor); total += valor;
+    }
+    linhas = [...grupos.values()].sort((a,b) => a.dia.localeCompare(b.dia)||nome(a.id).localeCompare(nome(b.id))).map(g => [nome(g.id),g.dia,g.qtd,dinheiro(g.preco),dinheiro(g.total)]);
+    resumos = [['Total geral',dinheiro(total)], ...[...totais].map(([id,v]) => [nome(id),dinheiro(v)])];
+    notas = ['Itens comerciais simples e compostos, pela data do lançamento. Preços históricos praticados; itens e comandas cancelados excluídos. Valores brutos dos itens, antes dos ajustes da comanda; não soma componentes novamente.'];
+  } else if(tipo === 'comparativo'){
+    const selecionados = [...new Set(f.produtos || [])];
+    if(!selecionados.length || selecionados.length > 5 || selecionados.length !== f.produtos.length || selecionados.some(id => !produtos.has(id))) throw new Error('Selecione de um a cinco produtos diferentes da empresa.');
+    colunas = ['Produto','Data da movimentação','Quantidade','Unidade','Origem','Produto composto de origem'];
+    const itens = new Map(d.itens.map(i => [i.id,i]));
+    const baixasPorItem = new Map();
+    for(const b of d.baixas){ if(!baixasPorItem.has(b.pedido_item_id)) baixasPorItem.set(b.pedido_item_id,[]); baixasPorItem.get(b.pedido_item_id).push(b); }
+    const grupos = new Map(), diarios = new Map(), totais = new Map(selecionados.map(id => [id,0]));
+    const adicionar = (id,data,qtd,origem,composto='') => {
+      if(!selecionados.includes(id) || !dentro(data)) return;
+      const dia = barNovoDia(data), key = JSON.stringify([id,dia,origem,composto]);
+      const g = grupos.get(key) || {id,dia,qtd:0,origem,composto}; g.qtd += Number(qtd); grupos.set(key,g);
+      totais.set(id,totais.get(id)+Number(qtd));
+      if(!diarios.has(dia)) diarios.set(dia,new Map()); const ds=diarios.get(dia); ds.set(id,(ds.get(id)||0)+Number(qtd));
+    };
+    for(const i of d.itens){
+      if(!valido(i)) continue;
+      const id = pid(i), diretas = (baixasPorItem.get(i.id)||[]).filter(b => b.produto_id === id);
+      if(diretas.length && !diretas.some(b => !b.estornada)) continue;
+      adicionar(id,i.criado_em,i.quantidade,'Venda direta');
+    }
+    for(const b of d.baixas){
+      const i = itens.get(b.pedido_item_id);
+      if(b.estornada || !i || !valido(i) || b.produto_id === pid(i)) continue;
+      adicionar(b.produto_id,b.criado_em,b.quantidade,'Componente de produto composto',nome(pid(i)));
+    }
+    linhas = [...grupos.values()].sort((a,b) => selecionados.indexOf(a.id)-selecionados.indexOf(b.id)||a.dia.localeCompare(b.dia)).map(g => [nome(g.id),g.dia,g.qtd,produtos.get(g.id)?.unidade_comercial || 'Não informada',g.origem,g.composto || '—']);
+    resumos = selecionados.map(id => [`${nome(id)} (${produtos.get(id)?.unidade_comercial || 'unidade não informada'})`,totais.get(id)]);
+    const comparacao = { colunas:['Data',...selecionados.map(id => `${nome(id)} (${produtos.get(id)?.unidade_comercial || 'unidade não informada'})`)], linhas:[...diarios].sort(([a],[b]) => a.localeCompare(b)).map(([dia,ds]) => [dia,...selecionados.map(id => ds.get(id)||0)]) };
+    notas = ['Consumo de componentes extraído exclusivamente das baixas históricas. Itens cancelados e baixas estornadas excluídos. A baixa do próprio produto vendido não é contada novamente.', 'Unidade exibida conforme cadastro atual: as baixas históricas não armazenam um retrato da unidade. Não se somam quantidades de produtos com unidades diferentes.'];
+    return {colunas,linhas,resumos,notas,comparacao};
+  } else throw new Error('Relatório inválido.');
+  return {colunas,linhas,resumos,notas};
+}
+// ---------- Fim dos cálculos puros dos novos relatórios ----------
+
+let barNovoCargaFiltros = Promise.resolve(), barNovoFiltroSeq = 0, barNovoXlsx = null;
+async function barNovoLer(tabela, colunas, empresa){
+  if(!visivelBarSubview('relatorios')) throw new Error('Sem permissão para relatórios do Bar.');
+  const {data,error} = await buscarTodos(() => supabase.from(tabela).select(colunas).eq('empresa_id',empresa).order('id'), {tamanhoPagina:500,maximo:Infinity});
+  if(error) throw error;
+  if(empresa !== await obterEmpresaId() || !visivelBarSubview('relatorios')) throw new Error('A sessão mudou. Gere o relatório novamente.');
+  return data || [];
+}
+function barNovoPrepararFiltros(rel){
+  const seq = ++barNovoFiltroSeq, campos = $('bar-rel-filtro-campos');
+  barNovoXlsx = null; $('bar-rel-doc-folha').innerHTML = '';
+  if(rel.filtros.includes('novo_caixa')) campos.insertAdjacentHTML('beforeend','<div class="field"><label>Caixa do Bar</label><select id="bar-novo-caixa"><option value="">Todos os caixas</option></select></div>');
+  const quantidade = rel.filtros.includes('novo_comparativo') ? 5 : rel.filtros.includes('novo_produto') ? 1 : 0;
+  for(let i=1;i<=quantidade;i++) campos.insertAdjacentHTML('beforeend',`<div class="field" style="min-width:220px"><label for="bar-novo-busca-${i}">Produto ${i}</label><input type="search" id="bar-novo-busca-${i}" placeholder="Pesquisar pelo nome"><select id="bar-novo-produto-${i}" data-bar-novo-produto><option value="">${quantidade===1?'Todos os produtos':'Selecione um produto'}</option></select></div>`);
+  barNovoCargaFiltros = (async () => {
+    const empresa = await obterEmpresaId();
+    const [produtos,caixas] = await Promise.all([
+      quantidade ? barNovoLer('produtos','id,nome',empresa) : [],
+      rel.filtros.includes('novo_caixa') ? barNovoLer('caixas','id,numero,tipo_caixa,aberto_por_nome,aberto_em',empresa) : [],
+    ]);
+    if(seq !== barNovoFiltroSeq) return;
+    if($('bar-novo-caixa')) $('bar-novo-caixa').innerHTML = '<option value="">Todos os caixas</option>'+caixas.filter(c => c.tipo_caixa==='BAR').map(c => `<option value="${escapeHtml(c.id)}">Caixa ${c.numero} — ${escapeHtml(c.aberto_por_nome || '—')} — ${escapeHtml(cxDataHora(c.aberto_em))}</option>`).join('');
+    const atualizar = () => {
+      const selecionados = Array.from(document.querySelectorAll('[data-bar-novo-produto]')).map(s => s.value);
+      for(let i=1;i<=quantidade;i++){
+        const sel=$('bar-novo-produto-'+i), atual=sel.value, termo=$('bar-novo-busca-'+i).value.trim().toLocaleLowerCase('pt-BR');
+        sel.innerHTML = `<option value="">${quantidade===1?'Todos os produtos':'Selecione um produto'}</option>`+produtos.filter(p => (p.id===atual || !selecionados.includes(p.id)) && (p.id===atual || p.nome.toLocaleLowerCase('pt-BR').includes(termo))).sort((a,b) => a.nome.localeCompare(b.nome)).map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)}</option>`).join('');
+        sel.value=atual;
+      }
+    };
+    for(let i=1;i<=quantidade;i++){ $('bar-novo-busca-'+i).oninput=atualizar; $('bar-novo-produto-'+i).onchange=atualizar; }
+    atualizar();
+  })();
+  barNovoCargaFiltros.catch(e => { if(seq===barNovoFiltroSeq) $('bar-rel-filtro-msg').textContent='Não foi possível carregar os filtros: '+mensagemBancoAcesso(e); });
+}
+async function barNovoAguardarFiltros(){ await barNovoCargaFiltros; }
+$('btn-bar-rel-novos-limpar').onclick = () => {
+  ++barNovoFiltroSeq; barNovoXlsx=null; barRelCsvAtual=null;
+  abrirFiltrosRelatorioBar(barRelRelatorioAtual);
+  $('bar-rel-filtro-data-inicio').value=''; $('bar-rel-filtro-data-fim').value='';
+};
+async function barNovoGerar(tipo,f){
+  if(!visivelBarSubview('relatorios')) throw new Error('Sem permissão para relatórios do Bar.');
+  const empresa = await obterEmpresaId();
+  const seq = barNovoFiltroSeq;
+  const defs = {
+    produtos:['produtos','id,nome,unidade_comercial'], mesas:['bar_mesas','id,numero'],
+    comandas:['bar_comandas','id,mesa_id,venda_id,status,cancelada_em'], vendas:['vendas','id,numero_venda,tipo,total,criado_em,cancelada_em'],
+    pagamentos:['bar_pagamentos','id,comanda_id,venda_id,caixa_id,total,criado_em,estornado,estornado_em'], formas:['bar_pagamentos_formas','id,pagamento_id,forma_pagamento,valor'],
+    caixas:['caixas','id,numero,tipo_caixa,aberto_por_nome,aberto_em,fechado_em'],
+    itens:['bar_pedidos_itens','id,comanda_id,produto_id,bar_produto_id,quantidade,preco_unitario,criado_em,estornado'],
+    baixas:['bar_pedidos_itens_baixas','id,pedido_item_id,produto_id,quantidade,criado_em,estornada'], barProdutos:['bar_produtos','id,produto_id'],
+  };
+  const necessarios = {periodo:['vendas','comandas','mesas','pagamentos','formas'],caixa:['pagamentos','formas','caixas'],produto:['produtos','itens','comandas','vendas','barProdutos'],comparativo:['produtos','itens','baixas','comandas','vendas','barProdutos']}[tipo];
+  const d = Object.fromEntries(Object.keys(defs).map(k => [k,[]]));
+  await Promise.all(necessarios.map(async k => { d[k]=await barNovoLer(...defs[k],empresa); }));
+  if(seq !== barNovoFiltroSeq) throw new Error('Os filtros mudaram. Gere o relatório novamente.');
+  d.vendas=d.vendas.filter(v => v.tipo==='bar'); d.caixas=d.caixas.filter(c => c.tipo_caixa==='BAR');
+  const r = barNovoCalcular(tipo,f,d);
+  barNovoXlsx = {empresa,seq:barNovoFiltroSeq,tipo,f:{...f},r};
+  const monetaria = titulo => /valor vendido|recebido|saldo|valor unitário|total vendido|estornos|total líquido/i.test(titulo);
+  return {colunas:r.colunas,linhas:r.linhas.map(l => l.map((v,i) => escapeHtml(monetaria(r.colunas[i]) ? brl(v) : String(v ?? '')))),metricas:r.resumos.map(([label,valor]) => ({label,valor:tipo === 'comparativo' || /quantidade|vendas distintas/i.test(label) ? String(valor) : brl(valor)})),rodape:r.notas,
+    htmlDetalhe:r.comparacao ? barHistTabela('Comparação diária',r.comparacao.colunas,r.comparacao.linhas) : ''};
+}
+$('btn-bar-rel-exportar-xlsx').onclick = async () => {
+  const resultado=barNovoXlsx, btn=$('btn-bar-rel-exportar-xlsx');
+  if(!resultado || !visivelBarSubview('relatorios')) return;
+  btn.disabled=true;
+  try {
+    const XLSX=await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs');
+    if(resultado !== barNovoXlsx || resultado.empresa !== await obterEmpresaId() || !visivelBarSubview('relatorios')) throw new Error('Gere o relatório novamente para exportar.');
+    const wb=XLSX.utils.book_new(), r=resultado.r;
+    for(const [nome,rows] of [['Dados',[r.colunas,...r.linhas]],['Totais',[['Descrição','Total'],...r.resumos]],['Critérios',[['Período',resultado.f.dataInicio,resultado.f.dataFim],...r.notas.map(n => [n])]],...(r.comparacao ? [['Comparação diária',[r.comparacao.colunas,...r.comparacao.linhas]]] : [])]){
+      const sheet=XLSX.utils.aoa_to_sheet(rows); sheet['!cols']=rows[0].map(() => ({wch:24})); XLSX.utils.book_append_sheet(wb,sheet,nome);
+    }
+    XLSX.writeFile(wb,`florest-bar-${resultado.tipo}-${resultado.f.dataInicio}-${resultado.f.dataFim}.xlsx`);
+  } catch(error){ alert('Não foi possível exportar: '+mensagemBancoAcesso(error)); }
+  finally { btn.disabled=false; }
+};
 
 // ---------- Histórico de mesas por comanda e por caixa (somente leitura) ----------
 async function barHistBuscar(montar){
