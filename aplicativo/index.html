@@ -19,10 +19,8 @@
 </div><aside class="how"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.5"/></svg><div><strong>Instalação segura</strong><p>Baixe somente os arquivos disponibilizados neste portal oficial. No Android, o aparelho pode solicitar autorização para instalar um APK baixado pelo navegador. Confira o nome do aplicativo antes de concluir. Em caso de dúvidas, entre em contato com o responsável pelo seu sistema.</p></div></aside></div></main>
 <footer class="footer"><div class="wrap footer-inner"><span><strong>Florest Sistemas</strong> · Tecnologia para o seu negócio</span><span>© <span id="year"></span> Florest Sistemas · <a href="https://florestsistemas.com.br" target="_blank" rel="noopener noreferrer">Site oficial ↗</a></span></div></footer>
 <script>
-// Para publicar uma nova versão, envie o APK para aplicativo/downloads/florest-garcom.apk.
-// O mesmo endereço continuará entregando o arquivo atualizado a cada substituição.
-// O arquivo manifest.json é opcional. Exemplo: {"garcom":{"arquivo":"downloads/florest-garcom.apk","versao":"1.0.0"}}
-// Se o manifesto não existir, o site verifica se o APK padrão está disponível.
+// Download da versão mais recente publicada no GitHub Releases.
+// Para futuras versões, mantenha o mesmo nome do arquivo APK na release.
 (function(){
 'use strict';
 document.getElementById('year').textContent=new Date().getFullYear();
@@ -30,10 +28,13 @@ const btn=document.getElementById('garcom-download');
 const label=document.getElementById('garcom-download-text');
 const note=document.getElementById('garcom-note');
 const version=document.getElementById('garcom-version');
-btn.addEventListener('click',e=>{if(btn.getAttribute('aria-disabled')==='true')e.preventDefault();});
-function activate(url,ver){btn.href=url;btn.removeAttribute('aria-disabled');btn.setAttribute('download','');label.textContent='Baixar Florest Garçom';note.textContent='Instalador oficial para Android (.apk)';if(ver)version.textContent='Versão '+ver;else version.textContent='APK disponível';}
-async function check(url){try{const r=await fetch(url,{method:'HEAD',cache:'no-store'});return r.ok&&!(r.headers.get('content-type')||'').includes('text/html');}catch{return false;}}
-(async()=>{let path='downloads/florest-garcom.apk',ver='';try{const r=await fetch('manifest.json',{cache:'no-store'});if(r.ok){const data=await r.json();if(data&&data.garcom&&typeof data.garcom.arquivo==='string'&&/^downloads\/[\w./-]+\.apk$/i.test(data.garcom.arquivo)&&!data.garcom.arquivo.includes('..')){path=data.garcom.arquivo;ver=String(data.garcom.versao||'').slice(0,30);}}}catch{}if(await check(path)){activate(path,ver);}})();
+const apk='application-49794fa1-d1f1-4ead-ac91-28a16370ad55.apk';
+btn.href='https://github.com/angeloflorest/Florest-Sistemas/releases/latest/download/'+apk;
+btn.removeAttribute('aria-disabled');
+btn.removeAttribute('download');
+label.textContent='Baixar Florest Garçom';
+note.textContent='Download oficial pelo GitHub Releases (.apk)';
+version.textContent='Versão 1.0.0';
 })();
 </script>
 </body>
