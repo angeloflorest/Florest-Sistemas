@@ -4254,7 +4254,7 @@
             </thead>
             <tbody id="bar-produtos-tabela-body"></tbody>
           </table>
-          <div id="bar-produtos-empty" class="empty-state hidden">Nenhum produto composto cadastrado ainda.</div>
+          <div id="bar-produtos-empty" class="empty-state hidden">Nenhum produto composto ativo encontrado.</div>
         </div>
       </div>
 
@@ -19833,6 +19833,10 @@ let barCancelandoMesa = false;    // bloqueia duplo clique no "Sim, cancelar mes
 let barProdutoBarEditandoId = null;
 let barProdutosCatalogoCache = null;
 let barProdutoModalReq = 0;
+let barProdutoBaseEditandoId = null;
+let barProdutoSalvando = false;
+let barProdutoExcluindo = false;
+let barProdutosListaReq = 0;
 let barEstornoPagamentoId = null;
 let barEstornoPagamentoCallback = null; // função chamada após um estorno confirmado, para recarregar a tela certa
 let barFiscalComandaAtual = null;
@@ -21913,13 +21917,18 @@ $('btn-bar-destino-remover').addEventListener('click', () => aplicarDestinoEmLot
 
 // ---------- Produtos Compostos (ex-"Produtos do Bar" — requisito #3/#4/#5) ----------
 async function carregarBarProdutos(){
+  const req = ++barProdutosListaReq;
+  const empresaId = await obterEmpresaId();
   $('bar-produtos-msg').innerHTML = '';
   const termo = termoSeguro($('bar-produtos-busca').value).toLowerCase();
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
     .select('id, produtos ( nome, preco_venda ), bar_produto_grupos ( id, nome )')
+    .eq('empresa_id', empresaId)
     .eq('tipo', 'composto')
+    .eq('ativo_cardapio', true)
     .order('id'));
+  if(req !== barProdutosListaReq) return;
   if(error){
     $('bar-produtos-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
@@ -21934,10 +21943,36 @@ async function carregarBarProdutos(){
       <td>${escapeHtml(it.produtos ? it.produtos.nome : '—')}</td>
       <td>${formatarReais(it.produtos ? it.produtos.preco_venda : 0)}</td>
       <td>${grupos.length > 0 ? escapeHtml(grupos.map(g => g.nome).join(', ')) : '<span class="modal-section-hint">modelo antigo (componentes fixos)</span>'}</td>
-      <td><button type="button" class="link-btn" data-editar-produto-bar="${it.id}">Editar</button></td>
+      <td><button type="button" class="link-btn" data-editar-produto-bar="${it.id}">Editar</button> | <button type="button" class="link-btn link-btn-perigo" data-excluir-produto-bar="${it.id}">Excluir</button></td>
     </tr>`;
   }).join('');
   document.querySelectorAll('[data-editar-produto-bar]').forEach(btn => btn.addEventListener('click', () => abrirModalProdutoBar(btn.dataset.editarProdutoBar)));
+  document.querySelectorAll('[data-excluir-produto-bar]').forEach(btn => btn.addEventListener('click', () => excluirProdutoCompostoBar(btn.dataset.excluirProdutoBar)));
+}
+async function excluirProdutoCompostoBar(id){
+  if(barProdutoExcluindo || !podeAcessarBar('bar_configurar')) return;
+  barProdutoExcluindo = true;
+  const msg = $('bar-produtos-msg');
+  msg.innerHTML = '';
+  try {
+    const empresaId = await obterEmpresaId();
+    const {data: previa, error: erroPrevia} = await supabase.rpc('bar_produto_composto_excluir', {p_id:id,p_confirmar:false});
+    if(erroPrevia) throw erroPrevia;
+    const dados = previa;
+    if(!dados || dados.empresa_id !== empresaId) throw new Error('Produto composto não encontrado nesta empresa.');
+    if(empresaId !== await obterEmpresaId() || !podeAcessarBar('bar_configurar')) throw new Error('A sessão mudou. Abra a tela novamente.');
+    const confirmou = confirm(`Excluir "${dados.nome}" dos Produtos Compostos?\n\nO composto será desativado no cardápio. O produto original, os grupos e o histórico serão preservados.\n\nReferências encontradas: ${dados.pedidos_itens} item(ns) de pedido, ${dados.escolhas_historicas} escolha(s) histórica(s) e ${dados.dependencias} dependência(s) em outras composições.`);
+    if(!confirmou) return;
+    if(empresaId !== await obterEmpresaId() || !podeAcessarBar('bar_configurar')) throw new Error('A sessão mudou. Abra a tela novamente.');
+    const {data: resultado, error} = await supabase.rpc('bar_produto_composto_excluir', {p_id:id,p_confirmar:true,p_nome_confirmado:dados.nome});
+    if(error) throw error;
+    if(!resultado || resultado.ativo_cardapio !== false) throw new Error('Não foi possível confirmar a exclusão. Atualize a lista e confira o produto.');
+    barProdutosCatalogoCache = null;
+    await carregarBarProdutos();
+    msg.innerHTML = '<div class="msg success">Produto composto excluído do cardápio por desativação. Cadastro original e histórico preservados.</div>';
+  } catch(error){
+    msg.innerHTML = `<div class="msg error">Não foi possível excluir: ${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+  } finally { barProdutoExcluindo = false; }
 }
 $('bar-produtos-busca').addEventListener('input', debounce(() => carregarBarProdutos()));
 $('btn-novo-produto-bar').addEventListener('click', () => abrirModalProdutoBar(null));
@@ -22040,12 +22075,15 @@ $('btn-cancelar-produto-bar').addEventListener('click', () => { ++barProdutoModa
 async function abrirModalProdutoBar(id){
   const req = ++barProdutoModalReq;
   barProdutoBarEditandoId = id;
+  barProdutoBaseEditandoId = null;
   barGruposEdicao = [];
   $('bar-produto-msg').innerHTML = '';
   $('form-bar-produto').reset();
   $('bar-produto-titulo').textContent = id ? 'Editar produto composto' : 'Criar produto composto';
 
   const sel = $('bar-produto-produto');
+  sel.disabled = !!id;
+  $('bar-produto-busca').disabled = !!id;
   sel.innerHTML = '';
   sel.onchange = null;
   $('bar-produto-busca').oninput = null;
@@ -22093,7 +22131,9 @@ async function abrirModalProdutoBar(id){
     if(req !== barProdutoModalReq) return;
     if(errBp || !bp){
       $('bar-produto-msg').innerHTML = '<div class="msg error">Produto composto não encontrado.</div>';
+      return;
     } else {
+      barProdutoBaseEditandoId = bp.produto_id;
       if(![...sel.options].some(o => o.value === bp.produto_id)){   // produto-base já inativo: mantém visível para edição
         const inat = catalogo.find(x => x.id === bp.produto_id);
         if(inat){ const o = document.createElement('option'); o.value = inat.id; o.textContent = inat.nome + ' (INATIVO)'; sel.appendChild(o); }
@@ -22118,6 +22158,7 @@ async function abrirModalProdutoBar(id){
 
 $('form-bar-produto').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if(barProdutoSalvando || $('btn-salvar-produto-bar').disabled || !podeAcessarBar('bar_configurar')) return;
   const produtoId = $('bar-produto-produto').value;
   if(!produtoId){ $('bar-produto-msg').innerHTML = '<div class="msg error">Selecione um produto do catálogo.</div>'; return; }
   if(barGruposEdicao.length === 0){
@@ -22139,27 +22180,46 @@ $('form-bar-produto').addEventListener('submit', async (e) => {
     }
   }
   const btn = $('btn-salvar-produto-bar');
-  btn.disabled = true; btn.textContent = 'Salvando...';
-  const { error } = await supabase.rpc('bar_produto_salvar', {
-    p_id: barProdutoBarEditandoId,
-    p_produto_id: produtoId,
-    p_tipo: 'composto',
-    p_destino_operacional: 'sem_destino',
-    p_ativo_cardapio: true,
-    p_componentes: null,
-    p_grupos: barGruposEdicao.map((g, idx) => ({
-      nome: g.nome.trim(), quantidade_escolhas: g.quantidade_escolhas || 1, ordem: idx,
-      opcoes: g.opcoes.map((o, i) => ({ produto_id: o.produto_id, ordem: i })),
-    })),
-  });
-  btn.disabled = false; btn.textContent = 'Salvar';
-  if(error){
-    $('bar-produto-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+  const req = barProdutoModalReq;
+  const editandoId = barProdutoBarEditandoId;
+  if(editandoId && produtoId !== barProdutoBaseEditandoId){
+    $('bar-produto-msg').innerHTML = '<div class="msg error">O produto-base não pode ser trocado durante a edição. Use Criar produto composto para configurar outro produto.</div>';
     return;
   }
-  barProdutosCatalogoCache = null;
-  $('modal-bar-produto').classList.add('hidden');
-  await carregarBarProdutos();
+  const grupos = barGruposEdicao.map((g, idx) => ({
+    nome:g.nome.trim(), quantidade_escolhas:g.quantidade_escolhas || 1, ordem:idx,
+    opcoes:g.opcoes.map((o,i) => ({produto_id:o.produto_id,ordem:i})),
+  }));
+  barProdutoSalvando = true;
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    const empresaId = await obterEmpresaId();
+    const {data: vinculo, error: erroVinculo} = await supabase.from('bar_produtos')
+      .select('id, produto_id, tipo').eq('empresa_id', empresaId).eq('produto_id', produtoId).maybeSingle();
+    if(erroVinculo) throw erroVinculo;
+    if(req !== barProdutoModalReq) return;
+    if(editandoId && vinculo?.id !== editandoId) throw new Error('A configuração do produto mudou. Reabra o cadastro antes de salvar.');
+    if(empresaId !== await obterEmpresaId()) throw new Error('A empresa da sessão mudou. Abra o cadastro novamente.');
+    const { error } = await supabase.rpc('bar_produto_salvar', {
+      p_id: vinculo?.id || null,
+      p_produto_id: produtoId,
+      p_tipo: 'composto',
+      p_destino_operacional: 'sem_destino',
+      p_ativo_cardapio: true,
+      p_componentes: null,
+      p_grupos: grupos,
+    });
+    if(error) throw error;
+    if(req !== barProdutoModalReq) return;
+    barProdutosCatalogoCache = null;
+    $('modal-bar-produto').classList.add('hidden');
+    await carregarBarProdutos();
+  } catch(error){
+    if(req === barProdutoModalReq) $('bar-produto-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+  } finally {
+    barProdutoSalvando = false;
+    if(req === barProdutoModalReq){ btn.disabled = false; btn.textContent = 'Salvar'; }
+  }
 });
 
 // ---------- Garçons (Fase 4 — Migration 020) ----------
