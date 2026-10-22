@@ -816,16 +816,6 @@
   }
   .btn-accent:hover{ background: var(--florest-yellow-hover); }
 
-
-/* XMLs para Contadores */
-.xmlc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;max-width:850px}
-.xmlc-acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0}
-.xmlc-acoes .field{margin:0}.xmlc-acoes button{min-height:42px}
-.xmlc-msg{margin-top:12px;font-size:13px}.xmlc-msg:empty{display:none}
-.xmlc-nota{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--ink-soft)}
-.xmlc-resumo{padding:14px;background:var(--florest-blue-light);border:1px solid var(--border);border-radius:9px;margin-top:12px}
-.xmlc-resumo ul{max-height:240px;overflow:auto;margin:8px 0 0;padding-left:20px}
-
   /* ---------- FISCAL › CORRIGIR PRODUTOS (Migration 038) ---------- */
   .fcp-tabs{ display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
   .fcp-tab{
@@ -2197,11 +2187,9 @@
   .pdx-pg:hover{ border-color:var(--florest-navy); }
   .pdx-pg.ativo{ background:var(--florest-yellow); border-color:var(--florest-navy); }
   .pdx-pg.ativo i{ color:var(--florest-navy); }
-  /* Cinco formas visíveis: duas colunas, Nota a Prazo ocupando a última linha. */
-  #view-pdv .pdx-pg{ min-height:52px; }
-  #view-pdv .pdx-pg[data-nota-prazo="true"]{ grid-column:1 / -1; }
-  /* O preview continua no DOM para preservar os eventos e a busca, mas não duplica o produto do cupom. */
-  #view-pdv #pdv-preview{ display:none; }
+  .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"]{ grid-column:1 / -1; }
+  .pdx-pg[data-forma="Dinheiro"], .pdx-pg[data-forma="Pix"], .pdx-pg[data-forma="Outros"]{ min-height:52px; }
+  .pdx-pg[data-forma="Outros"]{ grid-column:1 / -1; min-height:52px; }
   .pdx-pg:disabled{ opacity:.45; cursor:not-allowed; }
   .pdx-pg:disabled:hover{ border-color:#CBCFD6; }
   .pdx-pag-valor{ font-size:22px; font-weight:700; text-align:right; }
@@ -2609,20 +2597,22 @@
 
   /* FLOREST — tabela de consumo: ações sempre acessíveis, mesmo com nomes longos. */
   #bar-mesa-consumo-scroll{ width:100%; max-width:100%; overflow-x:auto; overflow-y:visible; overscroll-behavior-x:contain; scrollbar-width:auto; }
-  #bar-mesa-consumo-scroll table{ width:100%; min-width:560px; table-layout:fixed; }
+  #bar-mesa-consumo-scroll table{ width:100%; min-width:650px; table-layout:fixed; }
   #bar-mesa-consumo-scroll th, #bar-mesa-consumo-scroll td{ padding:9px 6px; font-size:12px; overflow-wrap:anywhere; vertical-align:middle; }
-  #bar-mesa-consumo-scroll th:nth-child(1){width:38%;}
-  #bar-mesa-consumo-scroll th:nth-child(2){width:9%;}
-  #bar-mesa-consumo-scroll th:nth-child(3){width:14%;}
-  #bar-mesa-consumo-scroll th:nth-child(4){width:14%;}
-  #bar-mesa-consumo-scroll th:nth-child(5){width:12%;}
-  #bar-mesa-consumo-scroll th:nth-child(6){width:13%;}
+  #bar-mesa-consumo-scroll th:nth-child(1){width:29%;}
+  #bar-mesa-consumo-scroll th:nth-child(2){width:7%;}
+  #bar-mesa-consumo-scroll th:nth-child(3){width:12%;}
+  #bar-mesa-consumo-scroll th:nth-child(4){width:12%;}
+  #bar-mesa-consumo-scroll th:nth-child(5){width:11%;}
+  #bar-mesa-consumo-scroll th:nth-child(6){width:11%;}
+  #bar-mesa-consumo-scroll th:nth-child(7){width:18%;}
   #bar-mesa-consumo-scroll th:last-child, #bar-mesa-consumo-scroll td:last-child{ position:sticky; right:0; z-index:2; background:#fff; box-shadow:-3px 0 7px rgba(11,42,77,.10); }
   #bar-mesa-consumo-scroll th:last-child{ background:var(--florest-bg); z-index:3; }
   #bar-mesa-consumo-scroll td:last-child button{ display:block; width:100%; min-height:32px; padding:5px 3px; margin:2px 0; font-size:11px; line-height:1.25; white-space:normal; text-align:center; border-radius:5px; }
   #bar-mesa-consumo-scroll td:last-child [data-cancelar-item]{ background:#fff0ed; color:#a72820; }
+  #bar-mesa-consumo-scroll td:last-child [data-florest-cancelar-pedido]{ background:#f2f4f8; color:#243956; }
   #bar-mesa-consumo-scroll tbody tr:hover td:last-child{background:#fff;}
-  @media(max-width:760px){ #modal-bar-mesa .modal-card-mesa{padding:12px;} #bar-mesa-consumo-scroll table{min-width:560px;} }
+  @media(max-width:760px){ #modal-bar-mesa .modal-card-mesa{padding:12px;} #bar-mesa-consumo-scroll table{min-width:610px;} }
 
   /* ---------- Mesa/Comanda como "mini PDV" (Fase 2) ---------- */
   .bar-mesa-cabecalho{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
@@ -2634,14 +2624,6 @@
   .bar-mesa-col-esquerda, .bar-mesa-col-direita{ min-width:0; }
   @media (max-width: 920px){ .bar-mesa-grid{ grid-template-columns:1fr; } }
   .bar-mesa-busca-wrap{ position:relative; }
-  /* Busca de produto do Caixa Bar com dimensões de campo de PDV. */
-  #bar-mesa-busca-produto{
-    display:block; width:100%; min-height:46px; padding:11px 14px;
-    font:500 15px var(--font-body); color:var(--ink);
-    background:#fff; border:1.5px solid var(--border); border-radius:9px;
-    outline:none;
-  }
-  #bar-mesa-busca-produto:focus{ border-color:var(--florest-yellow); box-shadow:0 0 0 3px rgba(248,200,32,.18); }
   .bar-mesa-item-selecionado{ border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:10px; background:#FAFBF9; }
   .bar-mesa-item-selecionado-nome{ font-weight:600; font-size:14.5px; margin-bottom:10px; }
   .bar-saldo-resumo-vertical{ flex-direction:column; gap:10px; }
@@ -3341,6 +3323,7 @@
             <button type="button" class="pdx-pg" data-forma="Pix"><i>&#9632;</i>PIX</button>
             <button type="button" class="pdx-pg" data-forma="Cartão de Débito"><i>&#9645;</i>Cartão Débito</button>
             <button type="button" class="pdx-pg" data-forma="Cartão de Crédito"><i>&#9645;</i>Cartão Crédito</button>
+            <button type="button" class="pdx-pg" data-forma="Outros"><i>&hellip;</i>Outros</button>
             <button type="button" class="pdx-pg" id="pdv-nota-prazo" data-nota-prazo="true" aria-pressed="false">NOTA A PRAZO</button>
           </div>
           <div id="pdx-pag-erro" class="pdx-pag-erro" role="alert"></div>
@@ -3771,7 +3754,6 @@
         <button type="button" class="fcp-tab active" id="fiscal-aba-btn-docs" role="tab">Documentos fiscais</button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-corrigir" role="tab">Corrigir Produtos <span class="fcp-tab-badge hidden" id="fcp-tab-badge">0</span></button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-contingencia" role="tab">Notas em contingência <span class="fcp-tab-badge hidden" id="ctg-tab-badge">0</span></button>
-        <button type="button" class="fcp-tab" id="fiscal-aba-btn-xml-contador" role="tab">XMLs para Contadores</button>
       </div>
 
       <div id="fiscal-aba-docs">
@@ -3977,26 +3959,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <div id="fiscal-aba-xml-contador" class="hidden">
-        <div class="subsection">
-          <div class="subsection-header"><div><h3>XMLs para Contadores</h3><p>Cadastre o contador, confira a competência e prepare os arquivos XML em ZIP. O envio automático por e-mail ainda não está disponível.</p></div></div>
-          <div class="xmlc-grid">
-            <div class="field"><label for="xmlc-nome">Nome do contador / escritório</label><input id="xmlc-nome" type="text" maxlength="150" placeholder="Nome do escritório contábil"></div>
-            <div class="field"><label for="xmlc-email">E-mail do contador</label><input id="xmlc-email" type="email" maxlength="254" placeholder="contador@escritorio.com.br"></div>
-          </div>
-          <button type="button" class="btn-accent" id="xmlc-salvar">Salvar contador</button>
-          <div id="xmlc-cadastro-msg" class="xmlc-msg" role="status"></div>
-        </div>
-        <div class="subsection">
-          <div class="subsection-header"><div><h3>Pacote mensal de XMLs</h3><p>Os arquivos são separados por empresa e competência. Confira os XMLs ausentes antes de enviar ao contador.</p></div></div>
-          <div class="xmlc-acoes"><div class="field"><label for="xmlc-mes">Competência</label><input type="month" id="xmlc-mes"></div><button type="button" class="btn-secondary" id="xmlc-resumo">Conferir XMLs</button><button type="button" class="btn-accent" id="xmlc-baixar">Gerar e baixar ZIP</button><button type="button" class="btn-accent" id="xmlc-enviar">Enviar ao contador</button></div>
-          <div id="xmlc-pacote-msg" class="xmlc-msg" role="status"></div>
-          <div id="xmlc-resumo-dados" class="hidden"></div>
-          <p class="xmlc-nota">Atenção: o ZIP contém apenas os XMLs armazenados no ERP. Cancelamentos, documentos externos e XMLs ausentes precisam ser conferidos antes da entrega. O envio ao contador exige confirmação e só é permitido quando não houver XMLs pendentes.</p>
-        </div>
-        <div class="subsection"><div class="subsection-header"><div><h3>Histórico de pacotes</h3><p>Registros das gerações. O arquivo ZIP não fica armazenado para baixar novamente: para isso, gere outro pacote.</p></div><button type="button" class="btn-secondary" id="xmlc-atualizar">Atualizar histórico</button></div><div class="table-card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Competência</th><th>XMLs</th><th>Pendentes</th><th>Status</th><th>Destinatário</th></tr></thead><tbody id="xmlc-historico"><tr><td colspan="6">Abra a aba para carregar.</td></tr></tbody></table></div></div>
       </div>
     </div>
 
@@ -5742,7 +5704,7 @@
         <div class="table-card" style="margin-top:8px;">
           <div id="bar-mesa-consumo-scroll" role="region" aria-label="Consumo da mesa; role para os lados para ver os dados">
             <table>
-              <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Status</th><th>Ações</th></tr></thead>
               <tbody id="bar-mesa-itens-body"></tbody>
             </table>
           </div>
@@ -9817,7 +9779,7 @@ const CARREGADORES_VIEW = {
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); },
+  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -9962,14 +9924,11 @@ function fcpTrocarAba(aba){
   $('fiscal-aba-docs').classList.toggle('hidden', aba !== 'docs');
   $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
   $('fiscal-aba-contingencia').classList.toggle('hidden', aba !== 'contingencia');
-  $('fiscal-aba-xml-contador').classList.toggle('hidden', aba !== 'xml-contador');
   $('fiscal-aba-btn-docs').classList.toggle('active', aba === 'docs');
   $('fiscal-aba-btn-corrigir').classList.toggle('active', aba === 'corrigir');
   $('fiscal-aba-btn-contingencia').classList.toggle('active', aba === 'contingencia');
-  $('fiscal-aba-btn-xml-contador').classList.toggle('active', aba === 'xml-contador');
   if(aba === 'corrigir') fcpAbrir();
   if(aba === 'contingencia') ctgAbrirAba();
-  if(aba === 'xml-contador') xmlcAbrir();
 }
 async function fcpAbrir(){
   let emp = null;
@@ -13632,16 +13591,18 @@ function cxHtmlResumo(r){
   const prazo = par(r.a_prazo), canc = par(r.canceladas), est = par(r.estornos);
   const recebimentos = par(r.recebimentos_titulos);
   if(r.recebimentos_titulos){
-    extras.push(`<tr class="cx-extra"><td>Recebimentos de notas a prazo (incluídos no total)</td><td class="cx-num">${recebimentos.qtd}</td><td class="cx-num">${brl(recebimentos.total)}</td></tr>`);
+    extras.push(`<tr class="cx-extra"><td>Vendas/pagamentos recebidos no ato</td><td></td><td class="cx-num">${brl(r.vendas_recebidas)}</td></tr>`);
+    extras.push(`<tr class="cx-extra"><td>Recebimentos de Notas a Prazo (incluídos no total)</td><td class="cx-num">${recebimentos.qtd}</td><td class="cx-num">${brl(recebimentos.total)}</td></tr>`);
   }
-  if(prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas de notas a prazo (fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
+  if(prazo.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas a prazo (valor a receber, fora do total)</td><td class="cx-num">${prazo.qtd}</td><td class="cx-num">${brl(prazo.total)}</td></tr>`);
   if(r.tipo_caixa === 'PDV' && canc.qtd > 0) extras.push(`<tr class="cx-extra"><td>Vendas canceladas (fora do total)</td><td class="cx-num">${canc.qtd}</td><td class="cx-num">${brl(canc.total)}</td></tr>`);
   if(r.tipo_caixa === 'BAR' && est.qtd > 0) extras.push(`<tr class="cx-extra"><td>Pagamentos estornados (fora do total)</td><td class="cx-num">${est.qtd}</td><td class="cx-num">${brl(est.total)}</td></tr>`);
   const rotuloOper = r.tipo_caixa === 'PDV' ? 'vendas' : 'recebimentos';
   if(r.saidas_contas_pagar){
     const saidas = r.saidas_contas_pagar;
-    extras.push(`<tr class="cx-extra"><td colspan="3" style="font-weight:700;padding-top:14px;">Despesas</td></tr>`);
-    (saidas.itens || []).forEach(d => extras.push(`<tr class="cx-extra"><td style="padding-left:22px;">${escapeHtml(d.descricao || 'Despesa')}</td><td></td><td class="cx-num">− ${brl(d.valor)}</td></tr>`));
+    extras.push(`<tr class="cx-extra"><td>Saídas — Contas a Pagar</td><td class="cx-num">${Number(saidas.qtd)||0}</td><td class="cx-num">− ${brl(saidas.total)}</td></tr>`);
+    (saidas.por_forma || []).forEach(f => extras.push(`<tr class="cx-extra"><td>Saída em ${escapeHtml(f.forma)}</td><td class="cx-num">${Number(f.qtd)||0}</td><td class="cx-num">− ${brl(f.total)}</td></tr>`));
+    extras.push(`<tr class="cx-extra"><td>Entradas menos despesas pagas (todas as formas)</td><td></td><td class="cx-num">${brl(r.saldo_apos_despesas)}</td></tr>`);
   }
   return `<table class="cx-tabela">
     <thead><tr><th>Forma de pagamento</th><th class="cx-num">Lanç.</th><th class="cx-num">Valor</th></tr></thead>
@@ -13904,7 +13865,7 @@ async function cxAbrirDetalhe(id){
     ${dif ? `<div class="cx-comp-aviso">Total no fechamento: <b>${brl(snap.total_recebido)}</b>. Os valores acima já refletem estornos/cancelamentos feitos depois.</div>` : ''}
     <h4 class="cx-hist-titulo">${tipo === 'PDV' ? 'Vendas deste caixa' : 'Recebimentos deste caixa'}</h4>
     ${mov || recebimentosCaixa ? `<div class="cx-det-mov"><table class="cx-tabela"><tbody>${mov}${recebimentosCaixa}</tbody></table></div>` : '<p class="cx-vazio">Nenhuma entrada neste caixa.</p>'}
-    ${resp.data.pagamentos_despesas && resp.data.pagamentos_despesas.length ? `<h4>Despesas</h4><div class="cx-det-mov"><table class="cx-tabela"><tbody>${resp.data.pagamentos_despesas.map(d => `<tr><td><b>PAGAMENTO DE DESPESA</b><br>${escapeHtml(d.descricao)}<br>Conta: ${escapeHtml(d.despesa_id)}<br>Usuário: ${escapeHtml(d.usuario)}</td><td>${escapeHtml(cxDataHora(d.em))}</td><td>${(d.formas||[]).map(f=>escapeHtml(f.forma)+' '+brl(f.valor)).join(' · ')}</td><td class="cx-num">− ${brl(d.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+    ${resp.data.pagamentos_despesas && resp.data.pagamentos_despesas.length ? `<h4>Saídas — Contas a Pagar</h4><div class="cx-det-mov"><table class="cx-tabela"><tbody>${resp.data.pagamentos_despesas.map(d => `<tr><td><b>PAGAMENTO DE DESPESA</b><br>${escapeHtml(d.descricao)}<br>Conta: ${escapeHtml(d.despesa_id)}<br>Usuário: ${escapeHtml(d.usuario)}</td><td>${escapeHtml(cxDataHora(d.em))}</td><td>${(d.formas||[]).map(f=>escapeHtml(f.forma)+' '+brl(f.valor)).join(' · ')}</td><td class="cx-num">− ${brl(d.total)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
 
 // ---- cliques (um único ouvinte para todos os painéis/relatórios) ----
@@ -16672,7 +16633,23 @@ function fiscalTipoLabel(tipo){
 // ---------- Fiscal › Documentos fiscais: pesquisa por filtros (Migration 042) ----------
 // A aba abre VAZIA. A lista só aparece depois de "Pesquisar" (8 filtros independentes ou combinados, decididos no banco com RLS/empresa_id).
 // As ações fiscais de cada linha (abrir venda, cancelar NFC-e, status) são as mesmas de antes: só a origem da lista mudou.
-const FPQ = { args: null, pagina: 0, tam: 50, total: 0, indisponivel: false };
+const FPQ = { args: null, pagina: 0, tam: 50, total: 0, indisponivel: false, req: 0 };
+let fiscalVendaReq = 0;
+function fpqLimparResultados(limparVenda = true){
+  $('tabela-fiscal-body').innerHTML = '';
+  $('fiscal-empty').classList.add('hidden');
+  $('fpq-pag').classList.add('hidden');
+  FPQ.total = 0;
+  if(!limparVenda) return; // atualização após ação fiscal preserva a venda que será recarregada
+  ++fiscalVendaReq; // invalida também uma abertura de venda ainda em andamento
+  fiscalVendaAbertaId = null;
+  ['fiscal-venda-msg', 'fiscal-venda-titulo', 'fiscal-venda-sub',
+    'fiscal-venda-itens', 'fiscal-venda-documentos', 'fiscal-venda-acoes'].forEach(id => { $(id).innerHTML = ''; });
+  $('fiscal-busca-numero').value = '';
+  $('fiscal-venda-resultado').classList.add('hidden');
+  $('fiscal-venda-teste-ctg').innerHTML = '';
+  $('fiscal-venda-teste-ctg').classList.add('hidden');
+}
 function fpqParseValor(t){
   let s = String(t || '').replace(/R\$/gi, '').replace(/\s/g, '');
   if(!s) return { vazio: true };
@@ -16694,43 +16671,54 @@ function fpqLerFiltros(){
   return { args: a };
 }
 function fpqResetar(){
+  ++FPQ.req;
+  $('btn-fpq-pesquisar').disabled = false;
   ['fpq-nota', 'fpq-venda', 'fpq-valor', 'fpq-status', 'fpq-ini', 'fpq-fim', 'fpq-cliente', 'fpq-cpf'].forEach(id => { $(id).value = ''; });
   FPQ.args = null; FPQ.pagina = 0; FPQ.total = 0;
+  fpqLimparResultados();
   $('fpq-msg').innerHTML = '';
-  $('tabela-fiscal-body').innerHTML = '';
-  $('fiscal-empty').classList.add('hidden');
-  $('fpq-pag').classList.add('hidden');
   $('fpq-resumo').textContent = 'Use os filtros acima e clique em Pesquisar para listar documentos fiscais.';
-  $('fiscal-venda-msg').innerHTML = '';
-  $('fiscal-venda-resultado').classList.add('hidden');
 }
 async function fiscalPesquisar(pagina, silencioso){
   const pag = Math.max(0, Number(pagina) || 0);
+  const req = ++FPQ.req;
+  const btn = $('btn-fpq-pesquisar');
+  fpqLimparResultados(!silencioso || pag !== FPQ.pagina);
+  $('fpq-msg').innerHTML = '';
+  $('fpq-resumo').textContent = 'Use os filtros acima e clique em Pesquisar para listar documentos fiscais.';
+  btn.disabled = false;
   if(!silencioso){
+    FPQ.args = null; FPQ.pagina = 0;
     const f = fpqLerFiltros();
     if(f.erro){ $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(f.erro)}</div>`; return; }
     FPQ.args = f.args;
   }
   if(!FPQ.args) return;
+  const args = { ...FPQ.args }; // filtros desta consulta, independentes de chamadas posteriores
   $('fpq-msg').innerHTML = '';
-  const btn = $('btn-fpq-pesquisar'); btn.disabled = true;
+  $('fpq-resumo').textContent = 'Pesquisando documentos fiscais...';
+  btn.disabled = true;
   try {
-    const { data, error } = await supabase.rpc('fiscal_documentos_pesquisar', { ...FPQ.args, p_limite: FPQ.tam, p_offset: pag * FPQ.tam });
+    const { data, error } = await supabase.rpc('fiscal_documentos_pesquisar', { ...args, p_limite: FPQ.tam, p_offset: pag * FPQ.tam });
+    if(req !== FPQ.req) return;
     if(error){
       $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(ctgFuncaoAusente(error) ? 'A pesquisa de documentos fiscais ainda não foi instalada no banco (Migration 042).' : ctgMsgErro(error))}</div>`;
       return;
     }
     const ids = (data && data.ids) || [];
     const semDoc = (data && data.vendas_sem_documento) || [];
-    FPQ.total = Number((data && data.total) || 0); FPQ.pagina = pag;
+    const total = Number((data && data.total) || 0);
     let lista = [];
     if(ids.length){
       const empresaId = await obterEmpresaId();
+      if(req !== FPQ.req) return;
       const { data: docs, error: e2 } = await supabase.from('documentos_fiscais').select('*, vendas(numero_venda, clientes(nome))').eq('empresa_id', empresaId).in('id', ids);
+      if(req !== FPQ.req) return;
       if(e2){ $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(e2.message)}</div>`; return; }
       const porId = new Map((docs || []).map(d => [d.id, d]));
       lista = ids.map(id => porId.get(id)).filter(Boolean);       // mantém a ordem decidida pelo banco (mais recentes primeiro)
     }
+    FPQ.total = total; FPQ.pagina = pag;
     fiscalRenderLinhas(lista, pag === 0 ? semDoc : []);
     const ini = FPQ.total ? pag * FPQ.tam + 1 : 0, fim = pag * FPQ.tam + lista.length;
     $('fpq-resumo').textContent = FPQ.total || semDoc.length
@@ -16740,7 +16728,14 @@ async function fiscalPesquisar(pagina, silencioso){
     $('fpq-pag').classList.toggle('hidden', !temPag);
     $('btn-fpq-ant').disabled = pag === 0;
     $('btn-fpq-prox').disabled = fim >= FPQ.total;
-  } finally { btn.disabled = false; }
+  } catch(error){
+    if(req === FPQ.req) $('fpq-msg').innerHTML = `<div class="msg error">${escapeHtml(ctgMsgErro(error))}</div>`;
+  } finally {
+    if(req === FPQ.req){
+      btn.disabled = false;
+      if($('fpq-msg').innerHTML) $('fpq-resumo').textContent = 'Não foi possível concluir a pesquisa.';
+    }
+  }
 }
 function fiscalRenderLinhas(lista, semDoc){
   const body = $('tabela-fiscal-body');
@@ -16817,6 +16812,7 @@ $('fiscal-busca-numero').addEventListener('keydown', (e) => {
 });
 
 async function buscarVendaFiscal(){
+  const req = ++fiscalVendaReq;
   const numero = parseInt($('fiscal-busca-numero').value, 10);
   $('fiscal-venda-msg').innerHTML = '';
   $('fiscal-venda-resultado').classList.add('hidden');
@@ -16834,15 +16830,17 @@ async function buscarVendaFiscal(){
     .eq('numero_venda', numero)
     .maybeSingle();
 
+  if(req !== fiscalVendaReq) return;
   if(error || !venda){
     $('fiscal-venda-msg').innerHTML = '<div class="msg error">Venda não encontrada.</div>';
     return;
   }
 
-  await renderVendaFiscal(venda);
+  await renderVendaFiscal(venda, req);
 }
 
 async function abrirVendaFiscalPorId(vendaId){
+  const req = ++fiscalVendaReq;
   const empresaId = await obterEmpresaId();
   const { data: venda, error } = await supabase
     .from('vendas')
@@ -16851,13 +16849,14 @@ async function abrirVendaFiscalPorId(vendaId){
     .eq('id', vendaId)
     .maybeSingle();
 
-  if(error || !venda) return;
+  if(req !== fiscalVendaReq || error || !venda) return;
   $('fiscal-busca-numero').value = venda.numero_venda;
-  await renderVendaFiscal(venda);
+  await renderVendaFiscal(venda, req);
 }
 
-async function renderVendaFiscal(venda){
+async function renderVendaFiscal(venda, req = ++fiscalVendaReq){
   const empresaId = await obterEmpresaId();
+  if(req !== fiscalVendaReq) return;
   $('fiscal-venda-titulo').textContent = `Venda #${venda.numero_venda}`;
   $('fiscal-venda-sub').textContent =
     `${venda.clientes ? venda.clientes.nome : 'Cliente não identificado'} · ${new Date(venda.criado_em).toLocaleDateString('pt-BR')} · ${venda.forma_pagamento} · ${formatarReais(venda.total)}`;
@@ -16879,6 +16878,7 @@ async function renderVendaFiscal(venda){
     .eq('empresa_id', empresaId)
     .eq('venda_id', venda.id);
 
+  if(req !== fiscalVendaReq) return;
   const containerItens = $('fiscal-venda-itens');
   containerItens.innerHTML = '';
   (itens || []).forEach(it => {
@@ -16901,6 +16901,7 @@ async function renderVendaFiscal(venda){
     .eq('venda_id', venda.id)
     .order('created_at', { ascending: true });
 
+  if(req !== fiscalVendaReq) return;
   fiscalVendaAbertaId = venda.id;
   renderDocumentosDaVenda(venda.id, documentos || []);
 
@@ -16914,6 +16915,7 @@ async function renderVendaFiscal(venda){
     acoes.appendChild(btn);
   }
   await ctgTesteMontarBotao(venda, documentos || [], acoes);     // "Testar contingência (homologação)": só Fiscal + homologação
+  if(req !== fiscalVendaReq) return;
   ctgTesteRenderUltimo(venda.id);
 
   $('fiscal-venda-resultado').classList.remove('hidden');
@@ -20934,11 +20936,7 @@ $('btn-bar-mesa-add-carrinho').addEventListener('click', () => {
   $('bar-mesa-item-selecionado').classList.add('hidden');
   $('bar-mesa-escolhas').innerHTML = '';
   renderCarrinhoMesa();
-  // Após adicionar, deixar o novo pedido visível para lançamento.
-  // A lista de produtos só reabre quando o operador clicar na busca.
-  $('bar-mesa-busca-resultados').classList.add('hidden');
-  $('bar-mesa-busca-produto').blur();
-  $('bar-mesa-carrinho-wrap').scrollIntoView({block:'nearest', behavior:'smooth'});
+  $('bar-mesa-busca-produto').focus();
 });
 
 function renderCarrinhoMesa(){
@@ -21005,7 +21003,6 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
   }
   barMesaCarrinho = [];
   renderCarrinhoMesa();
-  $('bar-mesa-busca-resultados').classList.add('hidden');
   $('bar-mesa-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
   await atualizarSaldoEItensMesa();
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
@@ -21016,6 +21013,9 @@ function renderItensComandaMesa(itens, nomesPorId){
   $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
   corpo.innerHTML = itens.map(it => {
     const subtotal = Number(it.quantidade) * Number(it.preco_unitario);
+    let status = 'Em aberto', statusClasse = 'status-neutro';
+    if(it.estornado){ status = 'Cancelado'; statusClasse = 'status-baixo'; }
+    else if(it.pagamento_id){ status = 'Pago'; statusClasse = 'status-ok'; }
     const podeCancelar = !it.estornado && !it.pagamento_id && !!modulosComerciais.bar;
     // Requisito #6 (herdado): um composto do modelo novo não tem destino próprio
     // (destino_operacional='sem_destino' na linha comercial) — quem carrega o destino são as
@@ -21045,7 +21045,8 @@ function renderItensComandaMesa(itens, nomesPorId){
       <td>${formatarReais(it.preco_unitario)}</td>
       <td>${formatarReais(subtotal)}</td>
       <td>${destinoTexto}</td>
-      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button>` : ''}</td>
+      <td><span class="status-badge ${statusClasse}">${status}</span></td>
+      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button> <button type="button" class="link-btn" data-florest-cancelar-pedido="${it.pedido_id}">Cancelar pedido</button>` : ''}</td>
     </tr>`;
   }).join('');
   corpo.querySelectorAll('[data-cancelar-item]').forEach(btn => btn.addEventListener('click', () => abrirModalCancelarItem(btn.dataset.cancelarItem)));
@@ -22375,91 +22376,6 @@ florestBtnComanda.onclick=async()=>{
   if(r.error){$('bar-mesa-msg').innerHTML=`<div class="msg error">${escapeHtml(r.error.message)}</div>`;return;}
   $('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barMesaAtual=null;await carregarBarMesas();
 };
-
-
-
-// ===== Fiscal > XMLs para Contadores — integração com backend fiscal-xml-contador =====
-const XMLC = {empresa:null,carregando:false};
-function xmlcAviso(id,texto,erro=false){const el=$(id);el.textContent=texto||'';el.style.color=erro?'var(--danger)':'var(--ink-soft)';}
-function xmlcTexto(valor){return String(valor??'');}
-function xmlcCelula(tr,valor){const td=document.createElement('td');td.textContent=xmlcTexto(valor);tr.appendChild(td);}
-async function xmlcAbrir(){
-  try{
-    const empresa=await obterEmpresaId();
-    if(XMLC.empresa!==empresa){XMLC.empresa=empresa;$('xmlc-nome').value='';$('xmlc-email').value='';$('xmlc-resumo-dados').classList.add('hidden');}
-    if(!$('xmlc-mes').value){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);$('xmlc-mes').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
-    const [c,h]=await Promise.all([
-      supabase.from('fiscal_contadores').select('nome,email').eq('empresa_id',empresa).maybeSingle(),
-      supabase.from('fiscal_pacotes_xml').select('criado_em,competencia,qtd_xml,qtd_pendentes,status,destinatario').eq('empresa_id',empresa).order('criado_em',{ascending:false}).limit(30)
-    ]);
-    if(c.error)throw c.error;
-    $('xmlc-nome').value=c.data?.nome||'';$('xmlc-email').value=c.data?.email||'';
-    xmlcAviso('xmlc-cadastro-msg','');
-    if(h.error)throw h.error;
-    const corpo=$('xmlc-historico');corpo.replaceChildren();
-    if(!h.data?.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=6;td.textContent='Nenhum pacote preparado ainda.';tr.appendChild(td);corpo.appendChild(tr);}
-    for(const item of h.data||[]){const tr=document.createElement('tr');const data=item.criado_em?new Date(item.criado_em).toLocaleString('pt-BR'):'—';xmlcCelula(tr,data);xmlcCelula(tr,String(item.competencia||'').slice(0,7));xmlcCelula(tr,item.qtd_xml);xmlcCelula(tr,item.qtd_pendentes);xmlcCelula(tr,item.status);xmlcCelula(tr,item.destinatario||'—');corpo.appendChild(tr);}
-  }catch(e){xmlcAviso('xmlc-cadastro-msg','Não foi possível carregar: '+(e.message||e),true);}
-}
-async function xmlcSalvar(){
- const nome=$('xmlc-nome').value.trim(),email=$('xmlc-email').value.trim();
- if(!nome||!email||!$('xmlc-email').checkValidity()){xmlcAviso('xmlc-cadastro-msg','Preencha o nome e um e-mail válido.',true);return;}
- const btn=$('xmlc-salvar');btn.disabled=true;
- try{const empresa=await obterEmpresaId();const {error}=await supabase.from('fiscal_contadores').upsert({empresa_id:empresa,nome,email},{onConflict:'empresa_id'});if(error)throw error;xmlcAviso('xmlc-cadastro-msg','Cadastro do contador salvo. O envio automático ainda não está ativado.');}
- catch(e){xmlcAviso('xmlc-cadastro-msg','Falha ao salvar: '+(e.message||e),true);}finally{btn.disabled=false;}
-}
-async function xmlcSolicitar(acao){
- const competencia=$('xmlc-mes').value;
- if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)){xmlcAviso('xmlc-pacote-msg','Selecione uma competência válida.',true);return;}
- const envio=acao==='enviar';
- const btn=$('xmlc-'+(acao==='resumo'?'resumo':envio?'enviar':'baixar'));
- let confirmarReenvio=false;
- if(envio){
-   const email=$('xmlc-email').value.trim();
-   if(!email||!$('xmlc-email').checkValidity()){xmlcAviso('xmlc-pacote-msg','Cadastre e salve um e-mail válido para o contador antes de enviar.',true);return;}
-   if(!confirm('Enviar o ZIP de XMLs da competência '+competencia+' para '+email+'?\n\nConfira previamente os XMLs e o destinatário.'))return;
- }
- btn.disabled=true;
- xmlcAviso('xmlc-pacote-msg',acao==='resumo'?'Conferindo XMLs...':envio?'Enviando XMLs ao contador...':'Gerando ZIP...');
- try{
-   const {data:{session},error:authError}=await supabase.auth.getSession();if(authError||!session?.access_token)throw Error('Sessão expirada. Entre novamente.');
-   let resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
-     method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
-     body:JSON.stringify({competencia,acao})
-   });
-   if(envio&&resposta.status===409){
-     const conflito=await resposta.json().catch(()=>({}));
-     if(!conflito.reenvio||!confirm('Este pacote já consta como enviado. Deseja reenviar para o mesmo contador?'))return;
-     confirmarReenvio=true;
-     resposta=await fetch(SUPABASE_URL+'/functions/v1/fiscal-xml-contador',{
-       method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
-       body:JSON.stringify({competencia,acao,confirmarReenvio})
-     });
-   }
-   if(!resposta.ok){const erro=await resposta.json().catch(()=>({}));throw Error(erro.erro||'Erro HTTP '+resposta.status);}
-   if(acao==='resumo'){
-     const dados=await resposta.json();const area=$('xmlc-resumo-dados');area.replaceChildren();area.classList.remove('hidden');area.classList.add('xmlc-resumo');
-     const titulo=document.createElement('strong');titulo.textContent='XMLs encontrados: '+(dados.quantidade??0)+' | XMLs pendentes: '+(dados.pendentes?.length??0);area.appendChild(titulo);
-     const p=document.createElement('p');p.textContent='A conferência não substitui a verificação de cancelamentos e documentos externos.';area.appendChild(p);
-     if(dados.pendentes?.length){const ul=document.createElement('ul');for(const pend of dados.pendentes){const li=document.createElement('li');li.textContent=(pend.tipo||'Documento')+' nº '+(pend.numero||'—')+' — XML ausente';ul.appendChild(li);}area.appendChild(ul);}
-     xmlcAviso('xmlc-pacote-msg','Conferência concluída. Confira os pendentes antes da entrega.');
-   }else if(envio){
-     const dados=await resposta.json();
-     xmlcAviso('xmlc-pacote-msg','Envio aceito pelo Resend para '+(dados.destinatario||'o contador')+' ('+(dados.quantidade??0)+' XMLs). '+(dados.historico_registrado===false?'Atenção: histórico não registrado.':'A entrega final ainda depende do servidor de e-mail.'));
-   }else{
-     const blob=await resposta.blob();if(!blob.size)throw Error('ZIP vazio recebido.');
-     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='xml-contador-'+competencia+'.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-     xmlcAviso('xmlc-pacote-msg','ZIP gerado. Confira o manifesto.json e os XMLs antes de entregar ao contador.');
-   }
-   await xmlcAbrir();
- }catch(e){xmlcAviso('xmlc-pacote-msg','Falha: '+(e.message||e),true);}finally{btn.disabled=false;}
-}
-$('fiscal-aba-btn-xml-contador').addEventListener('click',()=>fcpTrocarAba('xml-contador'));
-$('xmlc-salvar').addEventListener('click',xmlcSalvar);
-$('xmlc-resumo').addEventListener('click',()=>xmlcSolicitar('resumo'));
-$('xmlc-baixar').addEventListener('click',()=>xmlcSolicitar('baixar'));
-$('xmlc-enviar').addEventListener('click',()=>xmlcSolicitar('enviar'));
-$('xmlc-atualizar').addEventListener('click',xmlcAbrir);
 
 </script>
 
