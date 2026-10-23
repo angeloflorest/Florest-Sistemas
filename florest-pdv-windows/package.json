@@ -1,0 +1,17 @@
+{
+  "name": "florest-pdv-windows",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Florest PDV Windows - base de desenvolvimento",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/local-db.cjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0"
+  }
+}
