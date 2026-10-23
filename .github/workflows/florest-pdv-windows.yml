@@ -1,0 +1,54 @@
+name: Florest PDV Windows
+on:
+  push:
+    branches: [florest-pdv-windows]
+    paths: ['florest-pdv-windows/**', '.github/workflows/florest-pdv-windows.yml']
+permissions:
+  contents: write
+concurrency:
+  group: pdv-windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: florest-pdv-windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: florest-pdv-windows/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Conferir abertura do aplicativo empacotado
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath './dist/win-unpacked/Florest PDV.exe' -ArgumentList '--smoke-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Falha no aplicativo: $($process.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Florest-PDV-Windows
+          path: florest-pdv-windows/dist/*.exe
+          if-no-files-found: error
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const tag = `pdv-windows-teste-${context.runNumber}`;
+            const release = await github.rest.repos.createRelease({
+              ...context.repo, tag_name: tag, target_commitish: context.sha,
+              name: `Florest PDV Windows — teste ${context.runNumber}`, prerelease: true,
+              body: 'Instalador de teste do Florest PDV Windows. Faça o primeiro login e a abertura do caixa com internet. Depois, as vendas ficam salvas localmente e sincronizam ao reconectar. Não emite documento fiscal. Comandas e abertura/fechamento de caixa exigem conexão.'
+            });
+            for (const name of fs.readdirSync('florest-pdv-windows/dist').filter(n => n.endsWith('.exe'))) {
+              const file = path.join('florest-pdv-windows/dist', name);
+              await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: release.data.id, name, data: fs.readFileSync(file)});
+            }

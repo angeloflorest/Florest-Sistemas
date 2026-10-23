@@ -1,30 +1,44 @@
-# Florest PDV Windows — início do desenvolvimento
+# Florest PDV Windows
 
-Projeto separado na branch `florest-pdv-windows`, sem mudanças na produção.
+Aplicativo de teste Windows do PDV principal do Florest ERP. O layout é derivado da tela do navegador. O navegador e o Módulo Bar não foram alterados.
 
-## Referência obrigatória
+## Instalação e conferência
 
-O PDV original está em `florest-erp/sistema/index.html`. Reproduzir seu layout, atalhos, caixa, vendas, clientes, formas de pagamento e permissões. Não remover funcionalidades. Remover apenas a opção **Sair do PDV** e o fluxo de emissão fiscal no executável. Após finalizar uma venda, oferecer **Imprimir comprovante não fiscal** ou **Cancelar impressão**, retornando imediatamente à próxima venda.
+1. Execute `Florest-PDV-Setup-0.2.0.exe` no Windows 10/11 de 64 bits.
+2. Com internet, entre com e-mail da empresa, usuário e senha do Florest ERP. Os produtos, clientes e atalhos são recebidos automaticamente.
+3. Abra o Caixa PDV. A abertura e o fechamento precisam de conexão.
+4. Faça uma venda. O aplicativo salva primeiro no SQLite local e oferece **Imprimir comprovante não fiscal** ou **Cancelar impressão**.
+5. Desconecte a internet e faça outra venda. Feche e abra o aplicativo para conferir a persistência. Reconecte e use **Enviar atualizações**, ou aguarde a rodada automática (a cada minuto).
+6. Confira a venda no ERP e o histórico local. Antes de fechar o caixa, envie todas as pendências.
 
-## Estado atual
+O primeiro acesso exige internet. A sessão é protegida pelo Windows; o próximo início pode continuar sem conexão. Revogação de acesso e mudanças de permissão são verificadas quando o servidor volta a responder. A versão não emite documentos fiscais.
 
-Base inicial Electron + SQLite, sem conexão ao ERP e **sem fluxo de venda ainda**. O banco local cria cache de produtos/clientes, vendas locais e cursor de sincronização. As ações de sincronização estão intencionalmente desativadas até a implementação segura com autenticação, empresa_id, idempotência e regras reais do ERP.
+## Funcionalidades
 
-## Sincronização em desenvolvimento
+- Leitura de código de barras e pesquisa de produtos; quantidades fracionadas/granel.
+- Clientes, CPF opcional, desconto, pagamentos mistos, troco em dinheiro e Nota a Prazo.
+- Catálogo por empresa, estoque local descontando pendências e cupom em andamento recuperável.
+- UUID por venda e proteção contra clique repetido; envio idempotente preservando as validações do ERP.
+- Sincronização automática, botões manuais e histórico com erros e reimpressão.
+- Abertura/fechamento de caixa, comandas compartilhadas e configuração dos atalhos **com internet**.
+- Comprovante térmico não fiscal via diálogo de impressão do Windows.
 
-O motor `src/sync.cjs` serializa rodadas automáticas/manuais, mantém o UUID em reenvios e só confirma a mesma venda e empresa. O catálogo completo é substituído em uma transação, removendo cadastros excluídos sem misturar empresas. O transporte autenticado para o Supabase ainda precisa ser implementado; este motor não está conectado à tela.
+## Regras de operação desta versão de teste
 
-Validação: 8 testes executados com Node.js 22, incluindo resposta perdida, chamadas simultâneas, isolamento por empresa, persistência e atualização atômica do catálogo. Rodar `npm test` com Node.js 22 antes de reconstruir o módulo nativo para Electron.
+- Abra o caixa com internet antes de operar offline. Não feche esse mesmo caixa em outro computador enquanto este terminal tiver pendências. Se o caixa remoto for trocado, o aplicativo preserva a venda e exibe o erro para conferência; não transfere o valor para outro caixa automaticamente.
+- O estoque offline é o último saldo recebido, menos vendas locais. Vendas simultâneas de outros computadores podem provocar recusa no envio; a pendência fica salva e visível.
+- Produtos e clientes são cadastrados no ERP e recebidos pelo aplicativo.
+- A impressão física e o comportamento no Windows do cliente precisam ser conferidos no equipamento. O instalador de teste ainda não possui assinatura digital de certificado comercial.
+- Não há atualização automática do programa; uma atualização posterior pode ser instalada mantendo os dados locais.
 
-## Execução local de desenvolvimento
+## Desenvolvimento
 
-Com Node.js 22 e ambiente Windows: `npm install`, depois `npm start`. O pacote nativo `better-sqlite3` pode exigir rebuild compatível com Electron. **Ainda não é um instalador para clientes.**
+Node.js 22: `npm ci`, `npm run check`, `npm test`. Depois `npm start` (o SQLite nativo precisa corresponder ao ABI do Electron; `npx electron-rebuild -f -w better-sqlite3` prepara a execução desktop). `npm run build:win` gera o instalador no Windows. O workflow da branch `florest-pdv-windows` executa testes e build no Windows e publica um pré-lançamento de teste.
 
-## Próximas entregas
+`src/renderer/pdv.css` e a estrutura principal da tela foram extraídas de `florest-erp/sistema/index.html`. A ponte Electron tem operações permitidas explicitamente; o renderer não recebe tokens de acesso nem credenciais. A sessão usa `safeStorage`, e o banco SQLite usa WAL e transações.
 
-1. Mapear e reaproveitar o PDV original (incluindo atalhos, abertura/fechamento, pagamentos, comandas e regras).
-2. Implementar operações locais transacionais e numeração segura por empresa/terminal.
-3. Implementar envio idempotente de vendas e recebimento incremental de cadastros com autenticação e RLS.
-4. Impressão de comprovante não fiscal, testes offline/reconexão e empacotamento Windows.
+## Servidor
 
-Não emitir NFC-e offline nem alterar tabelas de produção sem revisão e aprovação.
+A migration `supabase/migrations/20261023120715_pdv_desktop_offline.sql` adiciona somente as APIs deste aplicativo e uma tabela privada de recebimentos. As funções verificam usuário ativo, empresa aprovada/desbloqueada e permissão `pdv`. O UUID é serializado por trava transacional e o registro de recebimento é atômico com a venda original. Não altera as funções existentes de venda e caixa.
+
+Verificação do servidor executada em subtransação revertida: contexto por usuário, catálogo sem custo de produto, envio repetido sem duplicidade, baixa única de estoque, rejeição de chave conflitante, rejeição de caixa incorreto e bloqueio de acesso anônimo. Os dados de teste foram revertidos.
