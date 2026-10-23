@@ -1,1 +1,44 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Florest PDV Windows - desenvolvimento</title><style>body{font-family:Arial,sans-serif;background:#f4f7fb;color:#0b2a4d;margin:0}.top{background:#0b2a4d;color:white;padding:20px 28px}main{max-width:900px;margin:36px auto;padding:25px;background:white;border-radius:14px}button{padding:12px 20px;border:0;border-radius:8px;background:#f8c820;color:#0b2a4d;font-weight:700;margin-right:10px}button:disabled{opacity:.5}</style></head><body><div class="top"><strong>Florest PDV Windows</strong> · Base técnica</div><main><h1>Estrutura inicial</h1><p>Esta tela é provisória. O PDV original será incorporado após mapear seus comandos e regras. Nenhuma venda pode ser realizada nesta versão.</p><p id="status">Verificando banco local...</p><button disabled>Enviar atualizações</button><button disabled>Receber atualizações</button><p>Sincronização ainda não implementada. Os botões ficam desativados para evitar operações incorretas.</p></main><script>window.florestDesktop.status().then(s=>{document.getElementById('status').textContent='Banco SQLite local: '+(s.localDb?'pronto':'indisponível')+' · Pendências: '+s.pending;}).catch(()=>{document.getElementById('status').textContent='Não foi possível verificar o banco local.';});</script></body></html>
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Florest PDV Windows — desenvolvimento</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#102b49;background:#f3f5f8}*{box-sizing:border-box}body{margin:0}
+header{background:#102c50;color:white;padding:16px 22px;display:flex;align-items:center;justify-content:space-between}
+header strong{font-size:20px}header small{opacity:.8}.wrap{padding:16px;max-width:1650px;margin:auto}
+.caixa{background:#e9f8ec;color:#1e6a38;border:1px solid #a7d5b2;padding:12px 16px;border-radius:9px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+button{cursor:pointer;background:#f5c62b;border:0;border-radius:7px;padding:10px 13px;color:#122d4f;font-weight:700}button:disabled{cursor:not-allowed;opacity:.5}
+.at{background:white;border:1px solid #dde3eb;border-radius:9px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;min-height:57px}.at b{margin-right:8px}
+.grid{display:grid;grid-template-columns:minmax(275px,1fr) minmax(350px,1.35fr) minmax(250px,.9fr);gap:12px}
+section{background:white;border:1px solid #dde3eb;border-radius:10px;overflow:hidden;min-height:430px}
+section h2{background:#f5f7fa;border-bottom:1px solid #e2e6ec;font-size:15px;margin:0;padding:14px}
+.inner{padding:14px}.field{margin-bottom:12px}label{display:block;font-size:12px;font-weight:700;color:#50647c;margin-bottom:6px}input{width:100%;border:1px solid #cbd5e1;border-radius:7px;padding:11px;font-size:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.buttons{display:flex;flex-wrap:wrap;gap:7px}.secondary{background:#e7ecf2}.danger{background:#fbe4e4;color:#9c3434}
+.empty{height:225px;display:grid;place-items:center;color:#8996a7;text-align:center;padding:15px}
+.total{border-top:1px solid #e2e6ec;padding:18px 14px;display:flex;justify-content:space-between;font-size:21px;font-weight:800}
+.pay{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pay button{min-height:53px}
+footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:white;border:1px solid #dde3eb;border-radius:9px;padding:12px;flex-wrap:wrap}
+.notice{margin:0 0 12px;padding:11px 14px;background:#fff6d8;border:1px solid #e9d080;border-radius:8px;color:#75570d;font-size:13px}
+.status{font-size:12px;color:#607086}.sync{display:flex;gap:8px}
+@media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}.grid section:last-child{grid-column:1/-1;min-height:200px}}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.grid section:last-child{grid-column:auto}}
+</style></head>
+<body>
+<header><strong>Florest ERP <span style="color:#f5c62b">PDV</span></strong><small>Aplicativo Windows · Desenvolvimento</small></header>
+<div class="wrap">
+<p class="notice"><b>Protótipo visual, ainda sem operação comercial.</b> Os botões de venda, pagamento e sincronização estão bloqueados até a integração segura com o PDV original e o Supabase.</p>
+<div class="caixa"><b>Caixa não iniciado</b><button disabled>CAIXA</button></div>
+<div class="at"><b>ATALHOS</b><span class="status">Os atalhos serão recebidos do Florest ERP.</span></div>
+<div class="grid">
+<section><h2>Produtos</h2><div class="inner">
+<div class="field"><label>Código de barras</label><input placeholder="Leia ou digite o código" disabled></div>
+<div class="field"><label>Pesquisar produto</label><input placeholder="Nome ou código do produto" disabled></div>
+<div class="two"><div class="field"><label>Quantidade</label><input value="1" disabled></div><div class="field"><label>Preço unitário</label><input placeholder="R$ 0,00" disabled></div></div>
+<div class="buttons"><button disabled>Adicionar ao cupom</button><button class="secondary" disabled>COMANDAS</button><button class="danger" disabled>Cancelar</button></div>
+</div></section>
+<section><h2>CUPOM DE VENDA</h2><div class="empty">Nenhum item adicionado.<br>As vendas serão habilitadas após a integração.</div><div class="total"><span>TOTAL</span><span>R$ 0,00</span></div></section>
+<section><h2>Pagamento</h2><div class="inner"><div class="field"><label>Valor recebido</label><input placeholder="R$ 0,00" disabled></div><div class="pay"><button disabled>Dinheiro</button><button disabled>Pix</button><button disabled>Débito</button><button disabled>Crédito</button><button disabled>Outras formas</button><button disabled>Finalizar (F9)</button></div></div></section>
+</div>
+<footer><div><b>Cliente (F2):</b> Não selecionado <span class="status"> · Desconto (F5) · F9 Finalizar · ESC Cancelar</span></div><div class="sync"><button disabled>Enviar atualizações</button><button disabled>Receber atualizações</button></div><span class="status" id="status">Verificando banco local...</span></footer>
+</div>
+<script>window.florestDesktop.status().then(s=>{document.getElementById('status').textContent='SQLite: '+(s.localDb?'pronto':'indisponível')+' · Vendas pendentes: '+s.pending;}).catch(()=>{document.getElementById('status').textContent='Não foi possível verificar o banco local.';});</script>
+</body></html>
