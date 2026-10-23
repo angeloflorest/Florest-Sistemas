@@ -78,6 +78,7 @@ const SENHA_MAX = 18;   // regra única: de 6 a 18 caracteres, sem exigir maiús
 // lista é só um filtro defensivo ANTES de chamar o banco — a validação real e definitiva é sempre
 // private.usuarios_normalizar_permissoes(), dentro de usuarios_preparar_criacao/usuarios_vincular.
 const MODULOS = new Set([
+  "maria_acessar",
   "dashboard", "clientes", "produtos", "estoque", "pdv", "fornecedores",
   "notas_entrada", "financeiro", "fiscal", "relatorios", "configuracoes", "usuarios",
   "pets", "agenda", "pacotes",

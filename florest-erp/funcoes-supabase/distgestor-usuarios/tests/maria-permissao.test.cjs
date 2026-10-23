@@ -1,0 +1,13 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{stripTypeScriptTypes}=require('node:module'),{createHash}=require('node:crypto');
+const source=fs.readFileSync(path.join(__dirname,'../index.ts'),'utf8');
+const modules=source.slice(source.indexOf('const MODULOS ='),source.indexOf('const UUID_RE ='));
+const start=source.indexOf('function validarPermissoes(');
+const validator=source.slice(start,source.indexOf('// ---------------------------------------------------------------------',start));
+const ctx=vm.createContext({});vm.runInContext(stripTypeScriptTypes(modules+validator),ctx);
+const validar=p=>{const r=ctx.validarPermissoes(p);return r===null?null:Array.from(r)};
+test('aceita MARIA quando marcada junto ao módulo operacional',()=>assert.deepEqual(validar(['bar_visualizar','bar_mesas','maria_acessar']),['bar_visualizar','bar_mesas','maria_acessar']));
+test('não acrescenta MARIA quando não marcada',()=>{assert.deepEqual(validar(['bar_visualizar']),['bar_visualizar']);assert.deepEqual(validar([]),[])});
+test('mantém todas as permissões anteriores',()=>{const anteriores=Array.from(vm.runInContext('Array.from(MODULOS)',ctx)).filter(p=>p!=='maria_acessar');assert.equal(anteriores.length,29);assert.deepEqual(validar(anteriores),anteriores)});
+test('continua recusando permissões desconhecidas e tipos inválidos',()=>{for(const p of [['maria_admin'],['service_role'],['maria_acessar',null],null,'maria_acessar',[7]])assert.equal(validar(p),null)});
+test('mantém deduplicação e limite da lista',()=>{assert.deepEqual(validar(['maria_acessar','maria_acessar']),['maria_acessar']);assert.equal(validar(Array(31).fill('maria_acessar')),null)});
+test('única alteração é aceitar a permissão: autenticação, senhas e demais ações intactas',()=>{const original=source.replace('  "maria_acessar",\n','').trimEnd()+'\n\n';const sha=createHash('sha1').update('blob '+Buffer.byteLength(original)+'\0').update(original).digest('hex');assert.equal(sha,'220a1f62a37cc9127f359c5bd37608509ed4f9ef')});
