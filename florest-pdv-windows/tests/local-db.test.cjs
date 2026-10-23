@@ -32,3 +32,23 @@ test('vendas offline recebem ids distintos, numeração por empresa e confirmaç
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('catálogo local permite pesquisa por nome e código sem misturar empresas', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'florest-produtos-test-'));
+  const storage = openLocalDatabase(dir);
+  try {
+    storage.atualizarProdutos('empresa-a', [
+      { id: '1', nome: 'Coca-Cola 2L', codigo_barras: '789000001' },
+      { id: '2', nome: 'Água mineral', codigo_barras: '789000002' }
+    ]);
+    storage.atualizarProdutos('empresa-b', [{ id: '1', nome: 'Outro produto' }]);
+    assert.equal(storage.buscarProdutos('empresa-a', 'coca').length, 1);
+    assert.equal(storage.buscarProdutos('empresa-a', '789000002')[0].nome, 'Água mineral');
+    assert.equal(storage.buscarProdutos('empresa-b', 'coca').length, 0);
+    assert.throws(() => storage.atualizarProdutos('empresa-a', [{ nome: 'Sem ID' }]), /Produto sem ID/);
+    assert.equal(storage.buscarProdutos('empresa-a').length, 2);
+  } finally {
+    storage.fechar();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
