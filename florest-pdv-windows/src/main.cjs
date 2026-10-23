@@ -26,11 +26,11 @@ let db,
   blocked = null,
   cashClosing = false;
 const smokeTest = process.argv.includes("--smoke-test");
-if (smokeTest)
-  app.setPath(
-    "userData",
-    require("node:os").tmpdir() + "/florest-pdv-smoke-" + process.pid,
-  );
+if (smokeTest) {
+  const profile = path.join(require("node:os").tmpdir(), "florest-pdv-smoke-" + process.pid);
+  fs.mkdirSync(profile, { recursive: true });
+  app.setPath("userData", profile);
+}
 const lock = app.requestSingleInstanceLock();
 if (!lock) app.quit();
 function secretFile(k) {

@@ -98,3 +98,13 @@ test("botões e rodada automática simultâneos não enviam duas vezes", async (
   await sync.stop();
   await assert.rejects(sync.run(), /encerrada/);
 });
+
+test('Enviar durante recebimento aguarda e executa o envio solicitado', async () => {
+  const f=fixture();let release;let receives=0;
+  f.transport.receiveCatalog=()=>{receives++;return new Promise(resolve=>{release=()=>resolve({empresaId:'empresa-a',produtos:[],clientes:[]});});};
+  const sync=createSync({...f,empresaId:'empresa-a'});
+  const first=sync.run({enviar:false,receber:true});
+  const send=sync.run({enviar:true,receber:false});
+  release();await first;await send;
+  assert.equal(f.confirmations.length,1);assert.equal(receives,1);await sync.stop();
+});

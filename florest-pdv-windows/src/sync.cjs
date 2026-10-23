@@ -12,6 +12,7 @@ function createSync({
   if (!empresaId || !storage || !transport)
     throw new Error("Sincronização incompleta");
   let running = null;
+  let active = null;
   let timer = null;
   let stopped = false;
   const report = (status) => {
@@ -78,11 +79,18 @@ function createSync({
 
   function run(options) {
     if (stopped) return Promise.reject(new Error("Sincronização encerrada"));
-    // Chamadas simultâneas, inclusive dos botões, compartilham a execução atual.
-    if (!running)
-      running = execute(options).finally(() => {
-        running = null;
-      });
+    const requested = { enviar: options?.enviar ?? true, receber: options?.receber ?? true };
+    // Compartilha a rodada; se o botão pedir uma etapa não incluída nela, executa depois.
+    if (running) {
+      if ((requested.enviar && !active.enviar) || (requested.receber && !active.receber))
+        return running.then(() => run(requested));
+      return running;
+    }
+    active = requested;
+    running = execute(requested).finally(() => {
+      running = null;
+      active = null;
+    });
     return running;
   }
   function start() {
