@@ -1,0 +1,26 @@
+async function florestAutorizar(operacao,alvo,parametros){
+  const dados=await florestDialog('Autorização do proprietário',`
+    <p>A autorização vale somente para esta operação. Sua conta continuará conectada.</p>
+    <label>Usuário ou e-mail individual do proprietário<input name="identificacao" autocomplete="off" maxlength="254" required></label>
+    <label>Senha do proprietário<input name="senha" type="password" autocomplete="off" maxlength="128" required></label>`,'Autorizar');
+  if(!dados)return null;
+  try{
+    const r=await supabase.functions.invoke('florest-autorizar-operacao',{body:{operacao,alvo_id:alvo,parametros,...dados}});
+    if(r.error||!r.data?.ok)throw Error(await florestMensagemEdge(r.error,r.data));
+    return r.data.token;
+  }finally{dados.senha='';}
+}
+const florestCancelamentos=new Map();
+async function florestCancelarComAutorizacao(operacao,alvo,motivo){
+  const chave=JSON.stringify([acesso.userId,operacao,alvo,motivo]);
+  try{
+    let token=florestCancelamentos.get(chave);
+    if(!token){token=await florestAutorizar(operacao,alvo,{motivo});if(!token)return {error:{message:'Operação não autorizada.'}};florestCancelamentos.set(chave,token);}
+    const r=await supabase.rpc('florest_bar_cancelar',{p_token:token,p_operacao:operacao,p_alvo:alvo,p_motivo:motivo});
+    if(r.error){if(/expirada|já utilizada|não corresponde/i.test(r.error.message||''))florestCancelamentos.delete(chave);return r;} // mantém token para recuperar resultado se a resposta se perdeu.
+    if(!r.data?.ok){florestCancelamentos.delete(chave);return {error:{message:r.data?.mensagem||'Cancelamento recusado.'}};}
+    florestCancelamentos.delete(chave);return r;
+  }catch(e){return {error:{message:e.message||'Falha ao autorizar.'}};}
+}
+
+// Lista proprietários

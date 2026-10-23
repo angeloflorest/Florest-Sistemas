@@ -1,0 +1,181 @@
+REVISÃO CORRETIVA DA FASE B3 — FLOREST PRINT AGENT 1.0.0
+=========================================================
+
+LEIA PRIMEIRO (declaração de honestidade)
+-----------------------------------------
+Este ambiente NÃO tem o SDK do .NET e a política de rede da organização BLOQUEIA o download do SDK e dos pacotes NuGet.
+Por isso, os itens 1 e 9 do pedido (dotnet restore / build / test / publish REAIS) NÃO FORAM EXECUTADOS.
+Eu não contornei o bloqueio (nada de proxies, espelhos ou downloads por outros meios) e não instalei nada no seu computador,
+conforme a regra "não execute instalação na máquina do usuário".
+
+  Resultado de cada comando pedido:
+    dotnet restore FlorestPrintAgent.sln ........................ NÃO EXECUTADO (sem dotnet; NuGet bloqueado)
+    dotnet build FlorestPrintAgent.sln -c Release ............... NÃO EXECUTADO
+    dotnet test tests/.../FlorestPrintAgent.Tests.csproj -c Release  NÃO EXECUTADO
+    dotnet publish win-x64 self-contained (Service e Tray) ...... NÃO EXECUTADO
+
+  Números pedidos (restore/build/warnings/erros/testes passou-falhou): NÃO EXISTEM — nada foi compilado.
+  Não afirmo que "deve compilar". O que existe, e só isso, é:
+    - Verificação de sintaxe C# com analisador sintático (tree-sitter): 61 arquivos .cs, 0 erros de sintaxe
+      (rodada final depois de todas as correções desta revisão).
+    - Revisão de leitura, por agente independente, atuando como "compilador humano" (usings, assinaturas, membros,
+      acessibilidade, async) em todos os arquivos alterados e nos testes: nenhum erro de compilação encontrado.
+    - Rastreio manual, teste a teste, dos testes novos e alterados contra a implementação: nenhum falharia/travaria.
+    - Revisão de segurança independente (achados e o que foi feito, abaixo).
+  Isso NÃO substitui compilar. Comandos para obter os resultados reais no Windows (sem instalar nada além do SDK de
+  desenvolvimento, na máquina de desenvolvimento, quando você autorizar):
+      powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1        (restore + build Release + test)
+      powershell -ExecutionPolicy Bypass -File .\scripts\publish.ps1      (publish win-x64 self-contained; confere os 2 .exe)
+
+EXEs REALMENTE GERADOS: NENHUM. FlorestPrintAgent.Service.exe e FlorestPrintAgent.Tray.exe NÃO foram gerados.
+Nenhum instalador foi gerado e nenhum comando de instalação foi pedido.
+
+Tamanho do projeto: 61 arquivos .cs; 278 métodos de teste marcados [Fact]/[Theory] (cada [Theory] com várias linhas
+de dados executa mais casos do que o contador de métodos).
+
+
+1) CORREÇÕES FEITAS (sem redesenhar; sem Migration; sem tocar Supabase/Edge Function; sem impressão/fila/ESC-POS)
+------------------------------------------------------------------------------------------------------------------
+Autorização do Named Pipe (itens 3, 4, 5)
+  - Quem chama vem do WINDOWS: RunAsClient + WindowsIdentity (SID, grupo Administradores com token ELEVADO, SYSTEM) e
+    GetNamedPipeClientSessionId (sessão). Nada no JSON da mensagem define identidade (campo "sessao" REMOVIDO do protocolo).
+    Cliente anônimo/convidado, ou sem número de sessão, é recusado (falha fechada). O Tray conecta com nível de
+    representação "Identification" (o serviço consulta, mas não age em nome do usuário).
+  - Token NUNCA trafega pelo pipe (nenhum DTO de IPC carrega token; testado). Continua sem TCP/HTTP local.
+  - ACL do pipe movida para Core/Ipc/PipeSecurityFactory.cs (testável): nega NETWORK; SYSTEM, Administradores e a conta do
+    processo = controle total; usuários INTERATIVOS = só leitura/escrita + Synchronize (não criam instâncias, não alteram ACL).
+    O Tray funciona SEM Administrador.
+  - Pareamento em 2 etapas, preso ao chamador: PairVerify guarda (só em memória, 5 min) {código, usuário+sessão}.
+    PairConfirm só vale para o MESMO usuário+sessão e o MESMO código verificado; sem verificação prévia => erro
+    "pareamento_nao_verificado" sem chamar o servidor. Outro usuário/sessão que tente verificar durante o pareamento de
+    alguém recebe "pareamento_em_andamento". O código nunca vai a disco nem a log (testado: arquivos e logs varridos).
+    Recusa definitiva do servidor invalida a verificação; falha de rede mantém (nova tentativa).
+  - Desvincular: só SYSTEM, Administrador elevado ou o usuário que fez o pareamento (SID gravado em estado.json,
+    campo pareado_por_sid). Outro usuário => "acesso_negado" ANTES de qualquer chamada ao servidor. Mantido: a credencial
+    local só é apagada DEPOIS do sucesso no servidor; offline/5xx/429 => erro, vínculo mantido, sem fingir desvínculo.
+    "Forçar" (remoção só local) exige quem pode desvincular E credencial recusada pelo servidor (ou identidade inválida).
+    Estado antigo sem pareado_por_sid: só administrador/SYSTEM desvincula (falha segura).
+  - SubmitUserPrinters: a lista é da sessão do chamador (SID#sessão do Windows), não do que a mensagem diz.
+  - Buscar impressoras: no máx. 1 a cada 5 s (limite global).
+Identidade da instalação (item 6)
+  - Instalação limpa continua usando Guid.NewGuid() (+ backup instalacao.json.bak).
+  - Identidade e backup ilegíveis/ausentes COM vínculo existente => IdentityProblemException e ESTADO DE ERRO RECUPERÁVEL:
+    nenhuma identidade nova é criada, nada é movido/sobrescrito, o agente NÃO fala com o servidor (evita instalacao_divergente)
+    e mostra "identidade inválida". Erro temporário de leitura (arquivo bloqueado): tenta de novo a cada 30 s sozinho.
+    Saída explícita: remoção local do vínculo por quem tem permissão, que então permite recriar a identidade.
+  - Evidência de vínculo no Program.cs agora usa File.GetAttributes (só "não encontrado" = sem vínculo; qualquer outro
+    erro conta como "há vínculo"), em vez de File.Exists (que devolve false em erro de acesso).
+Outras correções de revisão (rodada anterior + esta)
+  - CredentialStore: leitura em 3 estados + retentativa (Ok/Missing/Corrupt/Unreadable); erro temporário nunca apaga vínculo.
+  - EdgeApiClient: prazo também na leitura do corpo da resposta; 4xx sem "erro" => resposta inválida.
+  - PipeSecurity sem direito Synchronize faltando (cliente não conseguia conectar) — corrigido.
+  - Serviço: mutex global só em modo console (como serviço o Windows já garante instância única; um usuário comum poderia
+    criar o mutex antes e impedir o serviço de iniciar). Primeira instância do pipe com FirstPipeInstance (pipe ocupado =>
+    falha e aviso limitado a 1/min, em vez de atender num pipe alheio). Recusa iniciar se Root/data/logs forem links
+    (junction/symlink), pois roda como SYSTEM e ajustaria permissões do destino.
+  - Impressoras: para a MESMA impressora a versão do Service SEMPRE vale; usuário comum não sobrescreve IP/porta de impressora
+    que o Service enxerga (o identificador é público/determinístico). Entre sessões de usuário vale a mais completa.
+  - Verify: reconferência de "já vinculado" após a chamada ao servidor; AgentPaths: variável de desenvolvimento só em Debug.
+  - Instalador/scripts (item 10): ver seção 5.
+
+2) WINDOWS NO .NET 8 (item 2) — o que está confirmado e o que NÃO está
+-----------------------------------------------------------------------
+Usados no código: NamedPipeServerStreamAcl, PipeSecurity, PipeAccessRule (Core/Ipc/PipeSecurityFactory.cs, Service/IpcServer.cs);
+DirectorySecurity, FileSystemAccessRule, DirectoryInfo.SetAccessControl (Core/Security/FileSecurity.cs);
+ProtectedData.Protect/Unprotect (Core/Security/ISecretProtector.cs).
+  - ProtectedData (DPAPI): NÃO faz parte do framework compartilhado; o projeto Core referencia o pacote oficial
+    System.Security.Cryptography.ProtectedData 8.0.0. (Escolha mantida; é o pacote que a Microsoft documenta.)
+  - NamedPipeServerStreamAcl/PipeSecurity/PipeAccessRule e DirectorySecurity/FileSystemAccessRule/SetAccessControl: segundo a
+    documentação oficial do .NET 8 pertencem ao framework (System.IO.Pipes.AccessControl / System.IO.FileSystem.AccessControl),
+    sem pacote extra. ISTO É O QUE A DOCUMENTAÇÃO DIZ — NÃO FOI CONFIRMADO POR COMPILAÇÃO AQUI. Se o build real acusar
+    referência faltando, o ajuste é acrescentar o pacote oficial correspondente ao .csproj (nenhum foi adicionado "por precaução").
+  - As APIs Windows estão marcadas [SupportedOSPlatform("windows")]; o Core é net8.0 e o Service/Tray net8.0-windows.
+    A revisão de leitura não encontrou uso sem a devida marcação (aviso CA1416 não deve aparecer; também não confirmado por build).
+
+3) HTTP x EDGE REAL (item 8)
+----------------------------
+Base: https://etulhyboogqhyyevpnlo.supabase.co/functions/v1/florest-print-agent/ (constante única AgentConstants.EdgeBaseUrl,
+só HTTPS, validação TLS padrão). Rotas relativas no cliente: pair/verify, pair/confirm, agent/heartbeat, agent/sync,
+agent/renew, agent/unlink — TODAS POST, idênticas à tabela de rotas do index.ts da Edge Function (linhas 649-654) e aos
+formatos de corpo do cabeçalho de cada rota. Nenhum corpo contém apikey, service_role, empresa_id, estacao_id ou JWT do ERP.
+IMPORTANTE: isto foi confirmado por COMPARAÇÃO DE CÓDIGO com o index.ts publicado; NENHUMA chamada foi feita à Edge Function
+real (o ambiente não tem .NET para rodar o cliente e eu não improvisei chamadas manuais em produção).
+
+4) CONFIRMAÇÕES DO ITEM 7 (por leitura do código e por testes escritos — não executados)
+-----------------------------------------------------------------------------------------
+  - Service funciona sem usuário logado: laço do AgentCoordinator/AgentWorker não depende do Tray nem de sessão.
+  - Fechar o Tray não para o Service (Sair/X só fecham o Tray; processos separados).
+  - Tray não tem token: não há código de token no projeto Tray; DTOs de IPC não o carregam (teste de vazamento varre as respostas).
+  - Só o Service fala autenticado com a Edge (único com credencial DPAPI).
+  - Impressoras do Service + Tray são unidas sem duplicar (identificador SHA-256; Service prevalece); limite 100.
+  - Falha de descoberta NUNCA envia []: SyncOnceAsync retorna antes do envio; lista vazia só após varredura completa bem-sucedida.
+  - Falha de descoberta no Tray também não envia lista.
+
+5) INSTALADOR E SCRIPTS (item 10) — revisados, NÃO executados, nada instalado
+-----------------------------------------------------------------------------
+Conferido e/ou ajustado em installer/FlorestPrintAgent.iss e scripts/*.ps1 (UTF-8 com BOM verificado byte a byte):
+  - Serviço: LocalSystem; início automático ATRASADO (start= delayed-auto); depende do Spooler (depend= Spooler);
+    recuperação automática (restart 5 s / 5 s / 30 s, reset 1 dia) + failureflag 1 (vale também para saída com código de erro).
+    No script PowerShell, falha de sc.exe config/failure agora interrompe com erro explícito.
+  - Tray no login: HKLM\...\Run "FlorestPrintAgentTray" = "<exe>" --minimized (instalador sempre; script com -WithTrayAutostart).
+  - Desinstalar: fecha o Tray, para o serviço esperando de verdade (detecção de "parado" endurecida: só STOPPED ou serviço
+    inexistente conta como parado; START_PENDING/STOP_PENDING esperam) e remove o serviço.
+  - Atualização não destrói identidade/credencial: a atualização só troca arquivos em Program Files e recria o serviço;
+    ProgramData NÃO é tocado.
+  - ProgramData preservado por padrão: [Dirs] com uninsneveruninstall; só é apagado se o usuário responder Sim à pergunta final
+    (desinstalação silenciosa NÃO apaga). Script: -RemoveData exige digitar APAGAR.
+  - Não gerado nem executado: o .iss não foi compilado (sem Inno Setup/Windows aqui).
+
+6) TESTES NOVOS (item 11) — escritos, NÃO executados
+-----------------------------------------------------
+  AuthorizationTests.cs ......... isolamento de pareamento por usuário/sessão (confirmar sem verificar; outro usuário; outra
+                                  sessão do mesmo usuário; outro código; expiração; recusa invalida; falha de rede mantém);
+                                  Unlink não autorizado (negado antes do servidor, inclusive "forçar"); dono, Administrador e
+                                  SYSTEM autorizados; offline não finge; dono sobrevive a reinício; token ausente de TODA
+                                  resposta IPC; código de pareamento ausente de disco e de log; CallerIdentity.
+  IdentityRecoveryTests.cs ...... instalação limpa (GUID novo); identidade recuperada do backup; principal ausente + backup
+                                  válido; identidade+backup corrompidos COM vínculo => erro recuperável sem criar nada;
+                                  sem vínculo => regenera guardando evidência; verificação de vínculo que falha => assume vínculo;
+                                  coordenador sem chamada ao servidor durante o problema; remoção local autorizada recria a
+                                  identidade; problema transitório se resolve sozinho.
+  PipeSecurityTests.cs .......... ACL do pipe (nega NETWORK; sem Everyone/Users/Authenticated/Anonymous; controle total só
+                                  SYSTEM/Admins/processo; Interactive só leitura/escrita; negações antes das permissões) e
+                                  identidade/sessão REAIS do cliente num pipe real. SÓ EXECUTAM NO WINDOWS (em outro SO
+                                  retornam sem verificar — "passou" ali não prova nada).
+  PrinterTests.cs ............... usuário não sobrescreve impressora do Service (anti-forja de IP).
+  Sincronização vazia só após descoberta bem-sucedida: já coberta em AgentCoordinatorTests.cs (ajustado às novas assinaturas).
+
+7) ACHADOS DA REVISÃO DE SEGURANÇA INDEPENDENTE (e destino)
+-----------------------------------------------------------
+  CORRIGIDOS: usuário forjando impressora do Service (M1); mutex global bloqueando o serviço (M2); pipe sem FirstPipeInstance e
+  log de aceite sem limite (M3, parcial); pasta de dados via junction (M4, parcial); sessão do pipe fail-open (L4);
+  reconferência no Verify (L3, parcial); evidência de vínculo com File.Exists (L7, parcial).
+  NÃO CORRIGIDOS (registrados em Limitações): ver seção 8.
+
+8) LIMITAÇÕES REMANESCENTES (honestas)
+--------------------------------------
+  1. NADA foi compilado, testado ou publicado (itens 1 e 9). Pode haver erros de compilação; a primeira rodada real deve ser
+     build.ps1. Os testes que dependem do Windows só provam algo no Windows.
+  2. Tray não verifica se o outro lado do pipe é realmente o Service (PID/SID SYSTEM). Pipe squatting só é mitigado no lado do
+     servidor (FirstPipeInstance). Há uma janela após o boot (serviço de início atrasado) em que um processo local malicioso
+     poderia ocupar o nome do pipe antes do Service e receber o código de pareamento digitado no Tray.
+  3. Pasta de dados: instalador cria ProgramData com herança padrão; o Service restringe data\ na 1ª execução, mas não valida o
+     dono de arquivos pré-existentes (ex.: estado.json plantado por usuário antes da 1ª execução poderia influenciar
+     pareado_por_sid). Falha de ACL não aborta a inicialização (só recusa links).
+  4. Sem limite por usuário nas conexões ao pipe (8 simultâneas, 15 s para a primeira mensagem) e sem limite local por usuário
+     em PairVerify; um usuário local malicioso consegue atrapalhar o Tray (disponibilidade). Buscar impressoras: limite global
+     de 5 s (não por usuário) e SubmitUserPrinters sem limite de frequência por usuário.
+  5. Um usuário que mantém um código válido pode renovar a verificação e manter "pareamento em andamento" para outros.
+  6. Remoção local forçada durante problema de identidade TRANSITÓRIO é aceita para quem tem permissão.
+  7. Credencial: DPAPI LocalMachine com entropia fixa; a proteção real é a ACL de data\. Serviço roda como LocalSystem completo.
+  8. Impressoras informadas só por uma sessão de usuário (que o Service não enxerga) são aceitas e ficam 7 dias; o ERP deve tratar
+     IP/porta como dado informado pelo computador.
+  9. Binários e instalador sem assinatura de código (SmartScreen pode avisar). Instalador não compilado.
+ 10. HTTP contra a Edge real: confirmado só por comparação com o index.ts, sem chamada real.
+ 11. Mensagens de log: controle de caracteres de log endurecido apenas para \r e \n (nenhum texto controlado pelo usuário é
+     registrado hoje; só tipos e contagens).
+ 12. -InstallDir nos scripts de teste aceita qualquer pasta; use a padrão em Program Files.
+
+PRÓXIMO PASSO RECOMENDADO (sem instalar o agente): numa máquina de desenvolvimento Windows com .NET 8 SDK, rodar
+.\scripts\build.ps1 e depois .\scripts\publish.ps1, e devolver a saída completa (restore/build/test/publish, contagem de
+warnings/erros e testes) para a próxima revisão. Só depois, com autorização, instalar para teste.

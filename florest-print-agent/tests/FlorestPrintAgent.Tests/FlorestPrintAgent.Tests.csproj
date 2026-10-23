@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>FlorestPrintAgent.Tests</RootNamespace>
+    <AssemblyName>FlorestPrintAgent.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Os testes cobrem o Core (lógica sem dependência de Windows). Service e Tray só rodam no Windows. -->
+    <ProjectReference Include="..\..\src\FlorestPrintAgent.Core\FlorestPrintAgent.Core.csproj" />
+  </ItemGroup>
+
+</Project>

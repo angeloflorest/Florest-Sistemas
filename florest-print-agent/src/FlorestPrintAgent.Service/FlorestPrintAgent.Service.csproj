@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>FlorestPrintAgent.Service</RootNamespace>
+    <AssemblyName>FlorestPrintAgent.Service</AssemblyName>
+    <!-- O serviço não tem janela: nenhum Windows Forms aqui. -->
+    <UseWindowsForms>false</UseWindowsForms>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pacotes oficiais Microsoft (hospedagem e integração com o Gerenciador de Serviços do Windows) -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlorestPrintAgent.Core\FlorestPrintAgent.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,94 @@
+FLOREST PRINT AGENT — CORREÇÃO DAS 2 FALHAS DE TESTE (rodada após a execução real no Windows 10)
+===================================================================================================
+
+Resultado real informado pela equipe (Windows 10, .NET SDK 8.0.425):
+  dotnet build FlorestPrintAgent.sln -c Release ........ 0 erros, 7 avisos
+  dotnet test (--no-build) ............................. 382 testes: 380 aprovados, 2 falharam, 0 ignorados
+
+DECLARAÇÃO DE HONESTIDADE: eu NÃO consegui executar .NET no meu ambiente (sem SDK; NuGet bloqueado). As correções abaixo
+foram feitas por análise do código e conferidas apenas com verificação de sintaxe (61 arquivos .cs, 0 erros de sintaxe).
+NÃO afirmo que os 382 testes passam: a validação real será a de vocês.
+
+Restrições respeitadas: nenhum banco/Supabase/Edge Function alterado; nenhuma Migration; nada da Fase C; PrinterMerger
+NÃO foi enfraquecido; nenhuma segurança do pipe foi reduzida.
+
+--------------------------------------------------------------------------------------------------
+FALHA 1 — SyncTests.MergesServiceAndUserPrintersAndDeduplicatesKeepingTheMostComplete
+--------------------------------------------------------------------------------------------------
+Causa: o teste (em AgentCoordinatorTests.cs) ainda esperava o comportamento ANTERIOR: a versão "mais completa" enviada pelo
+Tray (kitchenRich) sobrescrevia a versão pobre do Service (kitchenPoor). Isso contradiz a política de segurança vigente do
+PrinterMerger ("a versão do Service SEMPRE vale"; usuário comum nunca sobrescreve impressora que o Service enxerga), criada
+justamente para impedir que um usuário calcule o identificador determinístico e injete outro IP/porta. O teste estava
+desatualizado; o código estava correto. PrinterMerger.cs NÃO foi alterado nesta rodada.
+
+Correção (somente teste): o teste antigo foi substituído por 5 testes que descrevem a política atual
+(tests/FlorestPrintAgent.Tests/AgentCoordinatorTests.cs):
+  1. ServiceRemainsTheAuthorityForAPrinterAlsoReportedByTheTray
+       mesma impressora vista por Service + Tray: vale a versão do Service (Conexão "outro", status "desconhecido").
+  2. TrayCannotReplaceIpPortStatusOrConnectionOfAPrinterSeenByTheService
+       Tray (mais "completo" e com tudo diferente) NÃO substitui IP, porta, status, conexão nem porta do Windows.
+  3. APrinterOnlyTheTrayCanSeeStillEntersNormally
+       impressora que SÓ o Tray enxerga entra normalmente, com os dados enviados.
+  4. SamePrinterFromTwoUserSessionsNotSeenByTheServiceUsesTheMostCompleteVersion
+       mesma impressora em duas sessões de usuário, não vista pelo Service: usa a mais completa.
+  5. DeduplicationStillWorksAcrossServiceAndSeveralTraySessions
+       Service + 2 sessões do Tray com impressoras repetidas: 3 impressoras, 3 identificadores distintos, sem duplicata.
+(Os testes de PrinterMerger em PrinterTests.cs — incluindo AUserCanNeverOverwriteAPrinterTheServiceSees — já passavam e
+ continuam valendo.) Total de testes: 382 - 1 + 5 = 386 (assumindo que o total de 382 contava as linhas de [Theory]).
+
+--------------------------------------------------------------------------------------------------
+FALHA 2 — PipeSecurityTests.ServerSeesTheRealWindowsIdentityAndSessionOfTheConnectedClient (OperationCanceledException)
+--------------------------------------------------------------------------------------------------
+Causa raiz: PROBLEMA NA CONSTRUÇÃO DO TESTE, não no código real do pipe.
+  O teste criava o servidor com NamedPipeServerStreamAcl.Create(..., inBufferSize: 0, outBufferSize: 0, ...). Num pipe com
+  buffer ZERO, uma escrita só termina quando o outro lado a LÊ (encontro síncrono). O teste fazia, em sequência:
+      await client.WriteAsync(...)    <- linha 134: só termina quando o servidor ler
+      await client.FlushAsync(...)
+      await server.ReadAsync(...)     <- só era chamado depois: deadlock
+  Ninguém lia enquanto o cliente esperava a escrita terminar; o token de cancelamento (20 s) acabou e gerou a
+  OperationCanceledException. (A linha ~134 do relatório de vocês é exatamente a escrita do cliente.)
+
+  Itens investigados e descartados como causa:
+    - ACL (PipeSecurityFactory.Create): se a ACL negasse o acesso, ConnectAsync falharia com UnauthorizedAccessException;
+      a conexão foi estabelecida (o travamento foi depois dela). A ACL concede ao usuário INTERATIVO ReadWrite|Synchronize
+      e o teste roda com o token do próprio usuário (SID do processo tem FullControl).
+    - TokenImpersonationLevel.Identification / RunAsClient: nem chegaram a ser executados (o teste travou antes de
+      Identify). A leitura da primeira mensagem ANTES de RunAsClient continua sendo exigida e continua sendo feita.
+    - PipeOptions.Asynchronous e os overloads async: o IpcServer/IpcClient reais usam o mesmo modo e já funcionam nos
+      testes de ida e volta de IpcTests.
+    - Código de produção: IpcServer usa buffers de 64 KB e lê a primeira mensagem antes de qualquer espera do cliente; o
+      Tray lê a resposta só depois de enviar o pedido. O deadlock não existe no fluxo real.
+
+Correção (teste + uma constante; segurança inalterada):
+  - tests/FlorestPrintAgent.Tests/PipeSecurityTests.cs: o servidor agora é criado com os MESMOS buffers do serviço real
+    (AgentConstants.IpcPipeBufferBytes); o cliente escreve e o servidor lê AO MESMO TEMPO (Task de escrita + leitura) usando
+    o mesmo enquadramento do uso real (IpcFraming.WriteFrameAsync / ReadFrameAsync); só então chama
+    PipeCallerIdentity.Identify(server). O prazo de 30 s foi mantido apenas como proteção contra travar a suíte (não foi
+    "aumentado para esconder"): com a causa corrigida, o teste conclui em milissegundos.
+  - src/FlorestPrintAgent.Core/AgentConstants.cs: nova constante IpcPipeBufferBytes (64 KB) com comentário "nunca usar 0".
+  - src/FlorestPrintAgent.Service/IpcServer.cs: passa a usar essa constante em vez de dois literais 64 * 1024 (mesmo valor:
+    comportamento idêntico em produção; a constante impede que teste e serviço divirjam de novo).
+
+RISCO RESIDUAL (não verificável aqui): como o teste anterior travou ANTES de PipeCallerIdentity.Identify, esse método
+(RunAsClient + WindowsIdentity + GetNamedPipeClientSessionId) AINDA NÃO foi exercitado em Windows real. Se, ao rodar de novo,
+o teste falhar dentro de Identify, o relatório da falha mostrará a exceção e a correção será no código do Identify. Não há
+como eu antecipar isso sem executar.
+
+--------------------------------------------------------------------------------------------------
+ARQUIVOS ALTERADOS NESTA RODADA
+--------------------------------------------------------------------------------------------------
+  tests/FlorestPrintAgent.Tests/AgentCoordinatorTests.cs ... teste antigo do merge substituído por 5 testes da política atual
+  tests/FlorestPrintAgent.Tests/PipeSecurityTests.cs ....... teste do pipe real corrigido (buffers, leitura/escrita concorrentes,
+                                                             enquadramento real; using System.Text)
+  src/FlorestPrintAgent.Core/AgentConstants.cs ............. + IpcPipeBufferBytes (64 KB)
+  src/FlorestPrintAgent.Service/IpcServer.cs ............... usa AgentConstants.IpcPipeBufferBytes (mesmo valor)
+  README.md ................................................ tabela "estado de verificação" atualizada com o resultado real
+  REVISAO-B3-correcao-testes.txt ........................... este arquivo (novo)
+Nenhum outro arquivo foi tocado (PrinterMerger.cs, PipeSecurityFactory.cs, PipeCallerIdentity.cs permanecem como estavam).
+
+Sobre os 7 avisos do build: não tenho a lista; envie o texto dos avisos se quiser que eu os analise (nada foi alterado por causa deles).
+
+VALIDAÇÃO QUE FICA COM VOCÊS (Windows):
+  dotnet build FlorestPrintAgent.sln -c Release
+  dotnet test tests\FlorestPrintAgent.Tests\FlorestPrintAgent.Tests.csproj -c Release --no-build
+Meta: 0 erros de build e todos os testes aprovados (386 se o total anterior contava os mesmos casos).

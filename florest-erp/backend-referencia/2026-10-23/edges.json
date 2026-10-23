@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "florest-autorizar-operacao",
+    "versao": 5,
+    "hashImplantado": "3b32bfe97172e10faa39c8886637b48177706ffeb590814bb62ced4ed6dda883",
+    "alterado": false
+  },
+  {
+    "slug": "fiscal-xml-contador",
+    "versao": 5,
+    "hashImplantado": "53dd2e2c3ebd87c05e9f58eb9d2a5aaf654654333d6815cf52607f716942eac8",
+    "alterado": false
+  },
+  {
+    "slug": "fiscal-xml-contador-automatico",
+    "versao": 2,
+    "hashImplantado": "014807cf5b0595347e77f74d7f35f684dbe0a0588bdd098ee3cd4039e87796e2",
+    "alterado": false
+  },
+  {
+    "slug": "distgestor-usuarios",
+    "versao": 26,
+    "hashImplantado": "540af3f6be536aee480e9230e54868ad79c93c069b3f3ace4d884ef1a7843bbc",
+    "alterado": false
+  },
+  {
+    "slug": "maria-chat",
+    "versao": 17,
+    "hashImplantado": "09d82772510f7ce451996e0b233e0998a0963f336819b6613ecc798382aa4563",
+    "alterado": false
+  }
+]
