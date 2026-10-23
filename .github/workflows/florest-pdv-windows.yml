@@ -34,6 +34,8 @@ jobs:
           $env:FLOREST_UI_PLAYWRIGHT = Join-Path $uiRuntime 'node_modules/playwright'
           node scripts/ui-keyboard-smoke.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/ui-taxas-web.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run build:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -58,7 +60,7 @@ jobs:
             const release = await github.rest.repos.createRelease({
               ...context.repo, tag_name: tag, target_commitish: context.sha,
               name: `Florest PDV Windows — teste ${context.runNumber}`, prerelease: true,
-              body: 'Florest PDV Windows: busca enquanto digita, seleção com setas e Enter, quantidade e atalhos F4 Dinheiro, F6 Pix, F7 Débito, F8 Crédito. Mantém F2 Cliente, F3 Finalizar, F5 Desconto e F9 Buscar. F1 abre o manual; a opção Outros foi removida. Instale por cima da versão anterior para manter os dados locais. O primeiro acesso e a abertura/fechamento de caixa precisam de conexão. Não emite documento fiscal. Inclui manual HTML para consulta offline e impressão.'
+              body: 'Versão 0.2.2: controle opcional de taxas por empresa, recebido do Financeiro do ERP, bandeiras no débito/crédito à vista e snapshot na fila offline. Use Receber atualizações após configurar. Florest PDV Windows: busca enquanto digita, seleção com setas e Enter, quantidade e atalhos F4 Dinheiro, F6 Pix, F7 Débito, F8 Crédito. Mantém F2 Cliente, F3 Finalizar, F5 Desconto e F9 Buscar. F1 abre o manual; a opção Outros foi removida. Instale por cima da versão anterior para manter os dados locais. O primeiro acesso e a abertura/fechamento de caixa precisam de conexão. Não emite documento fiscal. Inclui manual HTML para consulta offline e impressão.'
             });
             for (const name of fs.readdirSync('florest-pdv-windows/dist').filter(n => n.endsWith('.exe') || n === 'Manual-Florest-PDV.html')) {
               const file = path.join('florest-pdv-windows/dist', name);

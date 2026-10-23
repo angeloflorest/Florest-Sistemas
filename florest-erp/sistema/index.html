@@ -6884,6 +6884,7 @@ export function abrirImportador(config){
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { instalarTaxasPagamento, agruparDespesasTaxas } from './taxas-pagamento.js';
 // O importador vai embutido neste mesmo arquivo (bloco <script id="importador-src"> abaixo), para o index.html
 // abrir com duplo clique (file://) e em qualquer hospedagem, sem depender de importador.js ao lado.
 const { abrirImportador, somenteDigitos, chaveGtin, variantesGtin } = await import(
@@ -6908,6 +6909,7 @@ const SUPABASE_CONFIGURADO =
   SUPABASE_ANON_KEY.length > 40 && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
 
 const supabase = SUPABASE_CONFIGURADO ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+instalarTaxasPagamento(supabase);
 
 const $ = (id) => document.getElementById(id);
 
@@ -13283,7 +13285,7 @@ async function carregarFinanceiro(){
 
   const { data: despesasData, error: erroDespesas } = await buscarTodos(() => supabase
     .from('despesas')
-    .select('id, descricao, categoria, valor, data, cp_lote, origem_caixa')
+    .select('id, descricao, categoria, valor, data, cp_lote, origem_caixa, taxas_automaticas')
     .gte('data', inicio.toISOString().slice(0,10))
     .lte('data', fim.toISOString().slice(0,10))
     .order('data', { ascending: true })
@@ -13312,12 +13314,12 @@ async function carregarFinanceiro(){
       valor: Number(v.total),
       id: null
     })),
-    ...(despesasData || []).map(d => ({
+    ...agruparDespesasTaxas(despesasData || []).map(d => ({
       tipo: 'despesa',
       data: new Date(d.data + 'T12:00:00'),
       descricao: d.descricao + (d.categoria ? ` (${d.categoria})` : ''),
       valor: Number(d.valor),
-      id: d.cp_lote || d.origem_caixa ? null : d.id
+      id: d.cp_lote || d.origem_caixa || d.taxas_automaticas ? null : d.id
     }))
   ].sort((a, b) => b.data - a.data);
 
@@ -16107,14 +16109,14 @@ async function relatorioClientesMaisCompraram(filtros){
 async function relatorioDespesasPeriodo(filtros){
   const { data, error } = await buscarTodos(() => supabase
     .from('despesas')
-    .select('id, descricao, categoria, valor, data')
+    .select('id, descricao, categoria, valor, data, taxas_automaticas')
     .gte('data', filtros.dataInicio)
     .lte('data', filtros.dataFim)
     .order('data', { ascending: true })
     .order('id', { ascending: true }));
   if(error) throw error;
 
-  const despesas = data || [];
+  const despesas = agruparDespesasTaxas(data || []);
   const total = despesas.reduce((s, d) => s + Number(d.valor), 0);
   return {
     titulo: 'Despesas por período',

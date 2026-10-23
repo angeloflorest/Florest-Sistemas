@@ -1,12 +1,12 @@
 {
   "name": "florest-pdv-windows",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Florest PDV Windows — vendas offline e sincronização com o Florest ERP",
   "main": "src/main.cjs",
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/local-db.cjs && node --check src/sync.cjs && node --check src/sale.cjs && node --check src/receipt.cjs && node --check src/renderer/app.js && node --check src/renderer/keyboard.js && node --check scripts/build-manual.cjs && node --check scripts/ui-keyboard-smoke.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/local-db.cjs && node --check src/sync.cjs && node --check src/sale.cjs && node --check src/receipt.cjs && node --check src/renderer/app.js && node --check src/renderer/keyboard.js && node --check scripts/build-manual.cjs && node --check scripts/ui-keyboard-smoke.cjs && node --check src/renderer/taxas-core.js",
     "test": "node --test tests/*.test.cjs",
     "build:win": "npm run build:manual && electron-builder --win nsis --x64 --publish never",
     "build:manual": "node scripts/build-manual.cjs"

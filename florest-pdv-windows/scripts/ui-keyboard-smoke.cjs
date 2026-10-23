@@ -7,7 +7,8 @@ const {validarVenda}=require("../src/sale.cjs");
  const browser=await chromium.launch({channel:"chrome",headless:true});
  const page=await browser.newPage({viewport:{width:1366,height:900}});
  const errors=[];page.on("pageerror",e=>errors.push(e.message));
- let saved=0;
+ let saved=0,lastSale=null;
+ const configId="12345678-1234-4234-8234-123456789abc";
  const state={context:{empresaId:"e",userId:"u",empresa:"Florest - Teste",operador:"Operador teste",papel:"proprietario",permitirSemEstoque:false},
  caixa:{aberto:true,pode_operar:true,caixa:{id:"cx",numero:1,valor_inicial:0},resumo:{}},
  online:false,lastSync:null,produtos:[
@@ -19,7 +20,7 @@ const {validarVenda}=require("../src/sale.cjs");
  await page.exposeFunction("bridge",async(name,arg)=>{
   if(name==="state")return state;
   if(name==="draft"){state.draft=arg;return true;}
-  if(name==="sale"){const dados=validarVenda(arg,state.produtos,{...state.context,caixaId:"cx"});saved++;state.draft=null;return{idLocal:"sale-"+saved,numeroLocal:saved,dados};}
+  if(name==="sale"){const dados=validarVenda(arg,state.produtos,{...state.context,caixaId:"cx"});saved++;lastSale=dados;state.draft=null;return{idLocal:"sale-"+saved,numeroLocal:saved,dados};}
   if(name==="print")return true;if(name==="history")return[];if(name==="sync")return state;
   throw new Error("Operação inesperada: "+name);
  });
@@ -73,6 +74,25 @@ const {validarVenda}=require("../src/sale.cjs");
  assert.equal(await page.locator("#pdv-resultados .is-active").count(),1);
  fs.mkdirSync(path.resolve(__dirname,"../dist"),{recursive:true});
  await page.screenshot({path:path.resolve(__dirname,"../dist/pdv-busca-teclado.png")});
+ // A mesma venda offline guarda bandeira e versão após confirmação, sem alterar o bruto.
+ state.context.taxas_pagamento={id:configId,ativo:true,regras:[{forma:"Cartão de Débito",bandeira:"Visa",percentual:2},{forma:"Cartão de Débito",bandeira:"Elo",percentual:0}]};
+ state.draft=null;
+ await page.reload();await page.locator("#view-pdv:not(.hidden)").waitFor();
+ await page.locator("#pdv-busca-produto").fill("7891234567890");await page.keyboard.press("Enter");
+ await page.keyboard.press("F7");
+ await page.locator('[data-tax-brand="0"]').waitFor();
+ assert.equal(await page.locator("[data-tax-brand]").count(),2);
+ await page.keyboard.press("Escape");
+ assert.equal(await page.locator("[data-pay-remove]").count(),0);
+ await page.keyboard.press("F7");await page.locator('[data-tax-brand="0"]').waitFor();
+ await page.keyboard.press("ArrowDown");await page.keyboard.press("Enter");
+ await page.locator('[data-pay-remove="0"]').waitFor();
+ await page.keyboard.press("F3");await page.locator("#receipt-cancel").waitFor();
+ assert.equal(lastSale.pagamentos[0].taxas.config_id,configId);
+ assert.equal(lastSale.pagamentos[0].taxas.bandeira,"Elo");
+ assert.equal(lastSale.total,lastSale.pagamentos[0].valor);
+ await page.locator("#receipt-cancel").click();
+ console.log("UI_TAXAS_OK: seleção, cancelamento, taxa zero e snapshot offline");
  assert.deepEqual(errors,[]);
  console.log("UI_KEYBOARD_OK: busca em tempo real, prefixos, setas, quantidade, foco, F4/F6/F7/F8, F3, F9, F1 e leitura de barras");
  await page.goto(pathToFileURL(path.resolve(__dirname,"../dist/Manual-Florest-PDV.html")).href);

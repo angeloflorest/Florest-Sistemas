@@ -2,6 +2,17 @@
 const api = window.florestDesktop,
   $ = (id) => document.getElementById(id);
 const Keyboard = window.FlorestKeyboard;
+const Taxas = window.FlorestTaxas;
+let cancelarBandeira = null, escolhendoPagamento = false;
+function perguntarBandeira(bandeiras,forma){
+ return new Promise((resolve,reject)=>{
+  modal('Bandeira — '+forma,'<p>Selecione a bandeira utilizada.</p>'+bandeiras.map((b,i)=>'<button type="button" class="result" data-tax-brand="'+i+'">'+esc(b)+'</button>').join(''));
+  cancelarBandeira=()=>reject(new Error('Pagamento cancelado: nenhuma bandeira selecionada.'));
+  const buttons=[...$("modal-body").querySelectorAll('[data-tax-brand]')];
+  buttons.forEach((b,i)=>{b.onclick=()=>{cancelarBandeira=null;closeModal();resolve(bandeiras[i]);};b.onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1))%buttons.length].focus();}};});
+  buttons[0].focus();
+ });
+}
 const brl = (v) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const esc = (v) =>
@@ -45,6 +56,7 @@ function modal(title, html) {
   modalOpen = true;
 }
 function closeModal() {
+  if(cancelarBandeira){const cancelar=cancelarBandeira;cancelarBandeira=null;cancelar();}
   $("modal").classList.add("hidden");
   modalOpen = false;
   $("pdv-busca-produto").focus();
@@ -424,7 +436,8 @@ $("pdx-pag-lista").onclick = (e) => {
     render();
   }
 };
-$("pdx-pagto").onclick = action((e) => {
+$("pdx-pagto").onclick = action(async (e) => {
+  if(escolhendoPagamento)return;
   const b = e.target.closest("button");
   if (!b) return;
   const t = totals();
@@ -445,13 +458,20 @@ $("pdx-pagto").onclick = action((e) => {
     throw new Error("Informe um valor válido.");
   if (valor > remaining && b.dataset.forma !== "Dinheiro")
     throw new Error("O valor excede o restante da venda.");
+  let taxas;
+  escolhendoPagamento=true;
+  try{taxas=await Taxas.preparar(state.context.taxas_pagamento,b.dataset.forma,perguntarBandeira);}finally{escolhendoPagamento=false;}
   payments.push({
     forma_pagamento: b.dataset.forma,
     valor: Math.min(valor, remaining) / 100,
+    taxas,
   });
   if (valor > remaining)
     $("pdv-msg").textContent = "Troco: " + brl((valor - remaining) / 100);
   render();
+  $("pdv-valor-forma").value = ((totals().total-totals().paid)/100).toFixed(2).replace(".",",");
+  if(totals().total>totals().paid)focusPayment();
+  else if(!$("btn-finalizar-venda").disabled)$("btn-finalizar-venda").focus();
 });
 function clientPicker() {
   modal(
@@ -638,7 +658,7 @@ $("login-form").onsubmit = async (e) => {
   }
 };
 function showManual() {
-  modal("Manual de atalhos - Florest PDV", Keyboard.manualBody());
+  modal("Manual de atalhos - Florest PDV", Keyboard.manualBody()+'<h3>Taxas de pagamento</h3><p>Configure em Financeiro → Formas de pagamento no ERP e use Receber atualizações. Com controle ativo e taxas cadastradas, selecione a bandeira com as setas e Enter. Esc cancela. Sem conexão, vale a última configuração recebida. O caixa mantém o valor integral; a taxa aparece como Despesa administrativa de cartões.</p>');
 }
 $("shortcut-help").onclick = showManual;
 for (const shortcut of Keyboard.shortcuts.filter(s => s.action === "payment")) {
@@ -676,6 +696,7 @@ document.addEventListener("keydown", (event) => {
     if (!button || button.disabled) return;
     button.focus({preventScroll:true});
     button.click();
+    if(modalOpen||escolhendoPagamento)return;
     if (totals().total > totals().paid) focusPayment();
     else if (!$("btn-finalizar-venda").disabled) $("btn-finalizar-venda").focus();
   }
@@ -690,7 +711,14 @@ api
   .catch((e) => {
     $("login-error").textContent = e.message;
   });
-const remote = (name, args = {}) => api.remote({ name, args });
+const remote = async (name, args = {}) => {
+  if(name==="pdv_comanda_finalizar"&&Array.isArray(args.p_pagamentos)){
+    const pagamentos=[];
+    for(const p of args.p_pagamentos)pagamentos.push({...p,taxas:await Taxas.preparar(state.context.taxas_pagamento,p.forma_pagamento,perguntarBandeira)});
+    args={...args,p_pagamentos:pagamentos};
+  }
+  return api.remote({name,args});
+};
 let cmdBusy = false;
 function cmdAction(fn) {
   return action(async (...args) => {

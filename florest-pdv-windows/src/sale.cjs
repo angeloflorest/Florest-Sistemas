@@ -91,7 +91,16 @@ function validarVenda(input, produtos, contexto) {
     )
       throw new Error("Pagamento inválido.");
     recebido += valor;
-    return { forma_pagamento: p.forma_pagamento, valor: valor / 100 };
+    const normalizado={ forma_pagamento: p.forma_pagamento, valor: valor / 100 };
+    if(p.taxas!=null){
+      const config_id=p.taxas.config_id??null,bandeira=p.taxas.bandeira??null;
+      if(config_id!==null&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(config_id))
+        throw new Error("Configuração de taxas inválida.");
+      if(bandeira!==null&&!require("./renderer/taxas-core.js").bandeiras.includes(bandeira))
+        throw new Error("Bandeira inválida.");
+      normalizado.taxas={config_id,bandeira};
+    }
+    return normalizado;
   });
   if (!prazo && recebido !== totalCentavos)
     throw new Error("Pagamentos devem ser iguais ao total.");
