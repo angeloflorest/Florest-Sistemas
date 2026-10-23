@@ -58,6 +58,29 @@ function openLocalDatabase(userDataPath) {
     db.prepare("UPDATE vendas_locais SET estado_sync = 'erro', erro_sync = ? WHERE empresa_id = ? AND id_local = ? AND estado_sync <> 'sincronizada'").run(String(mensagem || 'Falha de sincronização').slice(0, 500), empresaId, idLocal);
   }
 
-  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, fechar: () => db.close() };
+  // Atualização atômica do catálogo local, isolada por empresa.
+  const atualizarProdutos = db.transaction((empresaId, produtos) => {
+    if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
+    if (!Array.isArray(produtos)) throw new Error('Produtos inválidos');
+    const gravar = db.prepare('INSERT INTO produtos_cache (empresa_id, produto_id, dados_json, atualizado_em) VALUES (?, ?, ?, ?) ON CONFLICT(empresa_id, produto_id) DO UPDATE SET dados_json=excluded.dados_json, atualizado_em=excluded.atualizado_em');
+    const agora = new Date().toISOString();
+    for (const produto of produtos) {
+      if (!produto || (typeof produto.id !== 'string' && typeof produto.id !== 'number')) throw new Error('Produto sem ID');
+      gravar.run(empresaId, String(produto.id), JSON.stringify(produto), agora);
+    }
+    return produtos.length;
+  });
+
+  function buscarProdutos(empresaId, termo = '', limite = 30) {
+    if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
+    const busca = String(termo).trim().toLowerCase();
+    const itens = db.prepare('SELECT dados_json FROM produtos_cache WHERE empresa_id = ? ORDER BY produto_id').all(empresaId);
+    return itens.map(item => JSON.parse(item.dados_json)).filter(p => {
+      if (!busca) return true;
+      return [p.nome, p.descricao, p.codigo_barras, p.gtin, p.codigo].some(v => String(v ?? '').toLowerCase().includes(busca));
+    }).slice(0, Math.max(1, Math.min(100, Math.trunc(limite) || 30)));
+  }
+
+  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, atualizarProdutos, buscarProdutos, fechar: () => db.close() };
 }
 module.exports = { openLocalDatabase };
