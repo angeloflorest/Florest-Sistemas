@@ -52,3 +52,24 @@ test('catálogo local permite pesquisa por nome e código sem misturar empresas'
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('clientes offline ficam isolados por empresa e pendências têm resumo correto', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'florest-clientes-test-'));
+  const storage = openLocalDatabase(dir);
+  try {
+    storage.atualizarClientes('empresa-a', [{ id: 'c1', nome: 'Maria Silva', cpf: '12345678900', telefone: '34999990000' }]);
+    storage.atualizarClientes('empresa-b', [{ id: 'c1', nome: 'João Souza', cpf: '98765432100' }]);
+    assert.equal(storage.buscarClientes('empresa-a', '12345678900')[0].nome, 'Maria Silva');
+    assert.equal(storage.buscarClientes('empresa-a', 'João').length, 0);
+    assert.equal(storage.buscarClientes('empresa-b', 'João').length, 1);
+    assert.throws(() => storage.atualizarClientes('empresa-a', [{ nome: 'Sem ID' }]), /Cliente sem ID/);
+    const venda = storage.registrarVenda({ empresaId: 'empresa-a', dados: { total: 10 } });
+    assert.equal(storage.resumoPendencias('empresa-a').pendente, 1);
+    assert.deepEqual(storage.resumoPendencias('empresa-b'), {});
+    storage.registrarErro({ empresaId: 'empresa-a', idLocal: venda.idLocal, mensagem: 'Sem conexão' });
+    assert.equal(storage.resumoPendencias('empresa-a').erro, 1);
+  } finally {
+    storage.fechar();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
