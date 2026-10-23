@@ -4,15 +4,16 @@ Base: main 2982e31148810be309cb353f0141a38c05fa469b. A publicação deste pacote
 
 ## Frontend
 
-Filtro Ativos/Inativos/Todos (padrão Ativos) e recuperação completa da aba XMLs para Contadores: cadastro, conferência, download, envio com confirmação e histórico. Mantido o campo atual de usuário/e-mail na autorização. Nenhuma correção do cadastro com maria_acessar foi aplicada: o item 3 ficou sem resposta.
+Filtro Ativos/Inativos/Todos (padrão Ativos) e recuperação completa da aba XMLs para Contadores: cadastro, conferência, download, envio com confirmação e histórico. Mantido o campo atual de usuário/e-mail na autorização. O item 3 foi aprovado depois: maria_acessar foi incluída no cadastro, publicada no Git e aplicada à Edge distgestor-usuarios v27.
 
 O envio real e o agendamento de XMLs dependem do backend e do serviço de e-mail existentes. Não foram enviados e-mails durante a validação.
 
-## Cancelamentos: arquivo pendente de aplicação
+## Cancelamentos: aplicado no Supabase em 23/10/2026
 
 bar_cancelar_itens_antes_da_mesa.sql contém a correção para impedir cancelamento de mesa/comanda com itens válidos. Cancela-se primeiro os itens; depois a mesa/comanda. Preserva cancelamento individual sem limite artificial, proteção de pagamentos/fiscal, token e auditoria.
 
-**Não aplicado no Supabase.** O arquivo está fora de supabase/migrations para não ser aplicado automaticamente. A autorização desta etapa é publicar no Git. Antes da aplicação, revisar o pacote com Angelo. A verificação MD5 bloqueia aplicação sobre uma função diferente da consultada. A versão anterior está em ../backend-referencia/2026-10-23/florest_bar_cancelar.antes.sql; não reverter cegamente se houver alterações posteriores.
+**Aplicado no Supabase em 23/10/2026**, migração 20261023232321_bar_cancelar_itens_antes_da_mesa. O bloqueio de itens válidos e as proteções de pagamentos/fiscal foram conferidos após a aplicação. A versão anterior está em ../backend-referencia/2026-10-23/florest_bar_cancelar.antes.sql para referência. O SQL guardado nesta pasta é histórico: não reaplicar. A migração aplicada está versionada em /supabase/migrations/20261023232321_bar_cancelar_itens_antes_da_mesa.sql.
+
 
 ## Fontes atuais
 
@@ -20,7 +21,7 @@ bar_cancelar_itens_antes_da_mesa.sql contém a correção para impedir cancelame
 
 ## Print Agent
 
-Fontes completos em /florest-print-agent, incluindo Montserrat e licença OFL. Instalador de validação preparado localmente, sem substituir o download de produção nem instalar serviço no computador. Precisa de validação em impressoras reais.
+Fontes completos em /florest-print-agent, incluindo Montserrat e licença OFL. Instalador de validação publicado no GitHub e disponível no portal de aplicativos; SHA-256 conferido. Não foi instalado automaticamente. Precisa de validação em impressoras reais.
 
 ## Verificação
 

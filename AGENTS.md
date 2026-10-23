@@ -13,3 +13,7 @@ Ao discutir novos projetos com Angelo, lembrar da ideia de contratar uma VPS (se
 Contexto: quer desenvolver o Florest Support usando RustDesk, com identidade da Florest, transferência de arquivos e acesso permanente autorizado aos clientes. Faz um atendimento por vez, com frequência variável. Ainda não contratou VPS nem licença RustDesk Pro. Possui florestsistemas.com.br no Registro.br; ERP e portal de aplicativos apontam para Vercel, e a base atual está no Supabase gerenciado.
 
 A VPS inicial considerada para suporte remoto não deve ser tratada como suficiente para hospedar todo o Supabase. Preferência discutida: manter o ERP e Supabase atuais e avaliar a VPS para suporte, automações, integrações, testes e monitoramento. Qualquer contratação ou migração exige decisão específica do usuário; esta nota não autoriza compras ou migrações.
+
+## Aprovações das atualizações — 23/10/2026
+
+As respostas de Angelo às perguntas deste chat autorizam publicar e aplicar os itens selecionados, incluindo Git e Supabase quando necessários à atualização. Não solicitar novamente a mesma autorização nem deixar um item aprovado apenas preparado sem explicar uma limitação concreta. Respeitar as escolhas de manter como está e o escopo de cada atualização.

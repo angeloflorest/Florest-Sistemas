@@ -1,4 +1,4 @@
--- Proposta aprovada para versionamento; NÃO aplicada no Supabase.
+-- HISTÓRICO: APLICADO no Supabase em 23/10/2026. Não reaplicar.
 BEGIN;
 SET LOCAL lock_timeout='5s';
 DO $guard$
