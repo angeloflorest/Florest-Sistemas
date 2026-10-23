@@ -4,7 +4,7 @@ Aplicativo de teste Windows do PDV principal do Florest ERP. O layout é derivad
 
 ## Instalação e conferência
 
-1. Execute `Florest-PDV-Setup-0.2.0.exe` no Windows 10/11 de 64 bits.
+1. Execute `Florest-PDV-Setup-0.2.1.exe` no Windows 10/11 de 64 bits.
 2. Com internet, entre com e-mail da empresa, usuário e senha do Florest ERP. Os produtos, clientes e atalhos são recebidos automaticamente.
 3. Abra o Caixa PDV. A abertura e o fechamento precisam de conexão.
 4. Faça uma venda. O aplicativo salva primeiro no SQLite local e oferece **Imprimir comprovante não fiscal** ou **Cancelar impressão**.
@@ -12,6 +12,24 @@ Aplicativo de teste Windows do PDV principal do Florest ERP. O layout é derivad
 6. Confira a venda no ERP e o histórico local. Antes de fechar o caixa, envie todas as pendências.
 
 O primeiro acesso exige internet. A sessão é protegida pelo Windows; o próximo início pode continuar sem conexão. Revogação de acesso e mudanças de permissão são verificadas quando o servidor volta a responder. A versão não emite documentos fiscais.
+
+## Busca e atalhos de teclado (0.2.1)
+
+Digite parte do nome (ex.: BR); a busca aparece enquanto você digita e reconhece prefixos de palavras, como BRAHMA em CERVEJA BRAHMA. Use as setas para escolher, Enter para abrir a quantidade, digite 2 e Enter para adicionar. O foco passa ao valor do pagamento. O leitor de código de barras mantém a entrada direta dos produtos comuns.
+
+| Tecla | Ação |
+| --- | --- |
+| F1 | Manual de atalhos |
+| F2 | Cliente |
+| F3 | Finalizar a venda |
+| F4 | Dinheiro |
+| F5 | Desconto |
+| F6 | Pix |
+| F7 | Cartão de débito |
+| F8 | Cartão de crédito |
+| F9 | Buscar produto |
+
+A opção Outros foi removida das vendas e comandas desta versão. F10 fica livre. Os pagamentos não finalizam a venda automaticamente. O manual usa a mesma lista de atalhos do aplicativo e é gerado por `npm run build:manual`, em `dist/Manual-Florest-PDV.html`.
 
 ## Funcionalidades
 

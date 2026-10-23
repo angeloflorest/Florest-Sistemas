@@ -6393,3 +6393,17 @@ tr.produto-inativo td:last-child {
   grid-template-columns: minmax(90px, 1fr) 55px 75px 80px 24px;
   gap: 6px;
 }
+
+/* Busca por teclado, preservando o layout do PDV. */
+#view-pdv .pdx-esq { overflow: visible; }
+.pdx-busca-wrap { position: relative; z-index: 10; }
+#view-pdv #pdv-resultados { position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:min(45vh,340px); overflow-y:auto; z-index:70; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 8px 20px #0b2a4d26; }
+#view-pdv #pdv-resultados .search-result-item { display:block; width:100%; text-align:left; background:white; color:#0b2a4d; border:0; border-bottom:1px solid #e2e8f0; cursor:pointer; font-family:inherit; padding:10px 12px; }
+#view-pdv #pdv-resultados .sr-nome { display:block; font-weight:700; white-space:normal; }
+#view-pdv #pdv-resultados .sr-meta { display:block; font-size:11px; color:#526478; margin-top:4px; }
+#view-pdv #pdv-resultados .search-result-item.is-active,
+#view-pdv #pdv-resultados .search-result-item:hover,
+.result.is-active { background:#fff2bf !important; outline:2px solid #e6b812; outline-offset:-2px; }
+#product-list { max-height:55vh; overflow-y:auto; margin-top:10px; }
+.pdx-pg { position:relative; }
+#view-pdv .pdx-pg .payment-key { position:absolute; top:4px; right:5px; font-size:10px; padding:1px 4px; }

@@ -259,9 +259,6 @@
               >
                 <i>&#9645;</i>Cartão Crédito
               </button>
-              <button type="button" class="pdx-pg" data-forma="Outros">
-                <i>&hellip;</i>Outros
-              </button>
               <button
                 type="button"
                 class="pdx-pg"
@@ -322,11 +319,7 @@
           />
           <span class="pdx-cpf-nota-erro" id="pdx-cpf-nota-erro"></span>
         </div>
-        <div class="pdx-teclas">
-          <kbd>F2</kbd> Cliente &nbsp; <kbd>F3</kbd> Finalizar &nbsp;
-          <kbd>F5</kbd> Desconto &nbsp; <kbd>F9</kbd> Buscar produto &nbsp;
-          <kbd>ESC</kbd> Cancelar
-        </div>
+        <div class="pdx-teclas"><kbd>F1</kbd> Manual &nbsp; <kbd>F2</kbd> Cliente &nbsp; <kbd>F3</kbd> Finalizar &nbsp; <kbd>F5</kbd> Desconto &nbsp; <kbd>F9</kbd> Buscar</div>
         <button
           type="button"
           class="pdx-btn-mini pdx-btn-mini-perigo"
@@ -339,7 +332,8 @@
         <span id="sync-status" role="status">Carregando...</span
         ><button id="send">Enviar atualizações</button
         ><button id="receive">Receber atualizações</button
-        ><button id="history">Histórico / pendências</button>
+        ><button id="shortcut-help">Manual (F1)</button>
+          <button id="history">Histórico / pendências</button>
       </div>
     </div>
     <div id="modal" class="desktop-modal hidden">
@@ -350,6 +344,7 @@
         <p id="modal-error" class="error" role="alert"></p>
       </div>
     </div>
+    <script src="keyboard.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

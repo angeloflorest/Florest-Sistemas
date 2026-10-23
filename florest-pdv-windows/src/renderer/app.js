@@ -1,6 +1,7 @@
 "use strict";
 const api = window.florestDesktop,
   $ = (id) => document.getElementById(id);
+const Keyboard = window.FlorestKeyboard;
 const brl = (v) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const esc = (v) =>
@@ -35,6 +36,7 @@ function error(e) {
   $("pdv-msg").style.color = "#b42318";
 }
 function modal(title, html) {
+  hideLiveResults();
   $("modal-body").onclick = null;
   $("modal-title").textContent = title;
   $("modal-body").innerHTML = html;
@@ -220,6 +222,7 @@ function choose(p) {
     (p.venda_granel ? " / " + (p.unidade_comercial || "KG") : "");
 }
 function add(p, q = 1) {
+  hideLiveResults();
   if (!state.caixa?.aberto) throw new Error("Abra o caixa antes de vender.");
   if (
     !Number.isFinite(q) ||
@@ -253,103 +256,159 @@ function add(p, q = 1) {
   render();
   $("pdv-busca-produto").focus();
 }
-function addOrWeigh(p, q = 1) {
-  if (!p.venda_granel) {
-    add(p, q);
-    return;
-  }
+
+function focusPayment() {
+  const field = $("pdv-valor-forma");
+  if (!field.disabled) { field.focus(); field.select(); }
+}
+function askQuantity(p, q = 1) {
+  choose(p);
   modal(
-    "Quantidade / peso",
-    `<p><b>${esc(p.nome)}</b> · ${brl(p.preco_venda)} / ${esc(p.unidade_comercial || "KG")}</p><input id="weight" inputmode="decimal" value="${q}"><button id="weight-add" class="primary">Adicionar ao cupom</button>`,
+    p.venda_granel ? "Quantidade / peso" : "Quantidade",
+    `<p><b>${esc(p.nome)}</b> · ${brl(p.preco_venda)}${p.venda_granel ? " / " + esc(p.unidade_comercial || "KG") : " por unidade"}</p><label for="weight">Quantidade</label><input id="weight" inputmode="decimal" value="${Number.isFinite(q) && q > 0 ? q : 1}" autocomplete="off"><button id="weight-add" class="primary">Adicionar ao cupom</button>`
   );
   $("weight-add").onclick = action(() => {
     add(p, parse($("weight").value));
     closeModal();
+    focusPayment();
   });
   $("weight").focus();
   $("weight").select();
   $("weight").onkeydown = (e) => {
-    if (e.key === "Enter") $("weight-add").click();
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.repeat) $("weight-add").click();
   };
+}
+function addOrWeigh(p, q = 1) {
+  if (p.venda_granel) askQuantity(p, q);
+  else add(p, q);
 }
 function search(term) {
-  const t = term
-    .trim()
-    .toLocaleLowerCase("pt-BR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  return state.produtos
-    .filter((p) =>
-      [p.nome, p.codigo, p.gtin].some((v) =>
-        String(v || "")
-          .toLocaleLowerCase("pt-BR")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .includes(t),
-      ),
-    )
-    .slice(0, 100);
+  return Keyboard.filterProducts(state.produtos, term);
 }
-function productPicker(list = state.produtos, title = "Buscar produto") {
-  modal(
-    title,
-    '<input id="product-query" placeholder="Nome, código ou código de barras" style="width:100%"><div id="product-list"></div>',
-  );
-  const show = () => {
-    const term = $("product-query").value.toLowerCase();
-    const found = list
-      .filter((p) =>
-        [p.nome, p.codigo, p.gtin].some((v) =>
-          String(v || "")
-            .toLowerCase()
-            .includes(term),
-        ),
-      )
-      .slice(0, 100);
-    $("product-list").innerHTML =
-      found
-        .map(
-          (p, n) =>
-            `<button class="result" data-product="${n}"><b>${esc(p.nome)}</b> · ${brl(p.preco_venda)} <small>Estoque ${Number(p.quantidade_estoque).toLocaleString("pt-BR")}</small></button>`,
-        )
-        .join("") || "<p>Nenhum produto encontrado.</p>";
-    $("product-list").onclick = action((e) => {
-      const b = e.target.closest("[data-product]");
-      if (!b) return;
-      const p = found[Number(b.dataset.product)];
-      closeModal();
-      addOrWeigh(p, parse($("pdv-qtd").value));
-    });
-  };
-  $("product-query").oninput = show;
-  show();
-  $("product-query").focus();
+let liveProducts = [], liveIndex = -1;
+const liveInput = $("pdv-busca-produto");
+const liveBox = $("pdv-resultados");
+liveInput.setAttribute("role", "combobox");
+liveInput.setAttribute("aria-autocomplete", "list");
+liveInput.setAttribute("aria-controls", "pdv-resultados");
+liveInput.setAttribute("aria-expanded", "false");
+liveBox.setAttribute("role", "listbox");
+function hideLiveResults() {
+  liveBox.classList.add("hidden");
+  liveInput.setAttribute("aria-expanded", "false");
+  liveInput.removeAttribute("aria-activedescendant");
+  liveProducts = [];
+  liveIndex = -1;
 }
-$("pdv-busca-produto").onkeydown = action((e) => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-  const text = $("pdv-busca-produto").value.trim();
-  const digits = text.replace(/^0+/, "");
-  const p = state.produtos.find(
-    (p) =>
-      p.codigo === text ||
-      p.gtin === text ||
-      (/^\d{8,14}$/.test(text) &&
-        String(p.gtin || "").replace(/^0+/, "") === digits),
-  );
-  if (p) {
-    addOrWeigh(p, parse($("pdv-qtd").value));
-  } else productPicker(search(text));
+function highlightLive() {
+  liveBox.querySelectorAll("[data-live-product]").forEach((button, n) => {
+    button.classList.toggle("is-active", n === liveIndex);
+    button.setAttribute("aria-selected", String(n === liveIndex));
+  });
+  const button = liveBox.querySelector(`[data-live-product="${liveIndex}"]`);
+  if (button) {
+    liveInput.setAttribute("aria-activedescendant", button.id);
+    button.scrollIntoView({ block: "nearest" });
+    choose(liveProducts[liveIndex]);
+  }
+}
+function showLiveResults() {
+  selected = null;
+  liveIndex = -1;
+  const term = liveInput.value.trim();
+  if (!term) { hideLiveResults(); return; }
+  liveProducts = search(term);
+  liveBox.innerHTML = liveProducts.map((p,n) =>
+    `<button type="button" class="search-result-item" role="option" aria-selected="false" id="live-product-${n}" data-live-product="${n}"><span class="sr-nome">${esc(p.nome)}</span><span class="sr-meta">${esc(p.codigo || p.gtin || "")} · ${brl(p.preco_venda)} · Estoque ${Number(p.quantidade_estoque).toLocaleString("pt-BR")}</span></button>`
+  ).join("") || '<div class="pdx-vazio" role="status">Nenhum produto encontrado.</div>';
+  liveBox.classList.remove("hidden");
+  liveInput.setAttribute("aria-expanded","true");
+  liveInput.removeAttribute("aria-activedescendant");
+  if (liveProducts.length === 1) choose(liveProducts[0]);
+}
+liveBox.onclick = action((event) => {
+  const button = event.target.closest("[data-live-product]");
+  if (!button) return;
+  const product = liveProducts[Number(button.dataset.liveProduct)];
+  hideLiveResults();
+  askQuantity(product, parse($("pdv-qtd").value));
 });
+liveInput.oninput = showLiveResults;
+liveInput.onkeydown = action((event) => {
+  if (event.key === "Escape" && !liveBox.classList.contains("hidden")) {
+    event.preventDefault(); event.stopPropagation(); hideLiveResults(); return;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault(); event.stopPropagation();
+    if (liveBox.classList.contains("hidden")) showLiveResults();
+    liveIndex = Keyboard.nextIndex(liveIndex, event.key === "ArrowDown" ? 1 : -1, liveProducts.length);
+    highlightLive(); return;
+  }
+  if (event.key !== "Enter") return;
+  event.preventDefault(); event.stopPropagation();
+  if (event.repeat) return;
+  const text = liveInput.value.trim();
+  if (!text) { productPicker(); return; }
+  const digits = text.replace(/^0+/, "");
+  const barcode = /^\d{8,14}$/.test(text) ? state.produtos.find(p => p.gtin === text || (p.gtin && String(p.gtin).replace(/^0+/, "") === digits)) : null;
+  if (barcode) { hideLiveResults(); addOrWeigh(barcode, parse($("pdv-qtd").value)); return; }
+  const exactCode = state.produtos.find(p => p.codigo === text);
+  const product = liveProducts[liveIndex < 0 ? 0 : liveIndex] || exactCode || search(text)[0];
+  if (!product) throw new Error("Nenhum produto encontrado.");
+  hideLiveResults();
+  askQuantity(product, parse($("pdv-qtd").value));
+});
+document.addEventListener("pointerdown", event => {
+  if (!event.target.closest(".pdx-busca-wrap")) hideLiveResults();
+});
+function productPicker(list = state.produtos, title = "Buscar produto") {
+  modal(title, '<input id="product-query" role="combobox" aria-autocomplete="list" aria-controls="product-list" aria-expanded="true" placeholder="Nome, código ou código de barras" style="width:100%"><div id="product-list" role="listbox"></div>');
+  let found = [], index = -1;
+  const input = $("product-query"), box = $("product-list");
+  function highlight() {
+    box.querySelectorAll("[data-product]").forEach((button,n) => {
+      button.classList.toggle("is-active", n === index);
+      button.setAttribute("aria-selected",String(n === index));
+    });
+    const active = box.querySelector(`[data-product="${index}"]`);
+    if (active) { input.setAttribute("aria-activedescendant",active.id); active.scrollIntoView({block:"nearest"}); }
+  }
+  function pick(n) {
+    if (!found[n]) return;
+    const product = found[n];
+    askQuantity(product, parse($("pdv-qtd").value));
+  }
+  function show() {
+    found = Keyboard.filterProducts(list,input.value);
+    index = -1;
+    input.removeAttribute("aria-activedescendant");
+    box.innerHTML = found.map((p,n) =>
+      `<button type="button" class="result" role="option" aria-selected="false" id="picker-product-${n}" data-product="${n}"><b>${esc(p.nome)}</b> · ${brl(p.preco_venda)} <small>Estoque ${Number(p.quantidade_estoque).toLocaleString("pt-BR")}</small></button>`
+    ).join("") || "<p>Nenhum produto encontrado.</p>";
+  }
+  input.oninput = show;
+  input.onkeydown = action(event => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault(); event.stopPropagation();
+      index = Keyboard.nextIndex(index,event.key === "ArrowDown" ? 1 : -1,found.length); highlight();
+    } else if (event.key === "Enter") {
+      event.preventDefault(); event.stopPropagation();
+      if (!event.repeat) pick(index < 0 ? 0 : index);
+    }
+  });
+  box.onclick = action(event => {
+    const button = event.target.closest("[data-product]");
+    if (button) pick(Number(button.dataset.product));
+  });
+  show(); input.focus();
+}
 $("btn-adicionar-pdv").onclick = action(() => {
   if (selected) addOrWeigh(selected, parse($("pdv-qtd").value));
-  else productPicker(search($("pdv-busca-produto").value));
+  else productPicker(search(liveInput.value));
 });
-$("pdv-busca-produto").oninput = () => {
-  selected = null;
-  const found = search($("pdv-busca-produto").value);
-  if (found.length === 1) choose(found[0]);
-};
 $("pdv-carrinho").onclick = action((e) => {
   const b = e.target.closest("[data-remove]");
   if (!b) return;
@@ -578,24 +637,47 @@ $("login-form").onsubmit = async (e) => {
     $("login-submit").disabled = false;
   }
 };
-document.addEventListener("keydown", (e) => {
-  if (!state?.context) return;
-  if (e.key === "Escape") {
-    e.preventDefault();
-    if (modalOpen) closeModal();
+function showManual() {
+  modal("Manual de atalhos - Florest PDV", Keyboard.manualBody());
+}
+$("shortcut-help").onclick = showManual;
+for (const shortcut of Keyboard.shortcuts.filter(s => s.action === "payment")) {
+  const button = document.querySelector(`#pdx-pagto [data-forma="${shortcut.forma}"]`);
+  if (button) {
+    const hint = document.createElement("kbd");
+    hint.textContent = shortcut.key;
+    hint.className = "payment-key";
+    button.appendChild(hint);
+    button.title = shortcut.label + " (" + shortcut.key + ")";
+    button.setAttribute("aria-keyshortcuts", shortcut.key);
+  }
+}
+document.addEventListener("keydown", (event) => {
+  if (!state?.context || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (!liveBox.classList.contains("hidden")) hideLiveResults();
+    else if (modalOpen) closeModal();
     else $("btn-pdx-cancelar").click();
     return;
   }
-  if (modalOpen) return;
-  const keys = {
-    F2: clientPicker,
-    F3: () => $("btn-finalizar-venda").click(),
-    F5: () => $("pdv-desconto").focus(),
-    F9: () => productPicker(),
-  };
-  if (keys[e.key]) {
-    e.preventDefault();
-    keys[e.key]();
+  const shortcut = Keyboard.shortcuts.find(item => item.key === event.key);
+  if (!shortcut) return;
+  // Intercepta F1/F10 inclusive em janelas internas, sem disparar ações fora delas.
+  event.preventDefault();
+  if (modalOpen || event.repeat || busy) return;
+  if (shortcut.action === "help") showManual();
+  else if (shortcut.action === "client") clientPicker();
+  else if (shortcut.action === "finish") $("btn-finalizar-venda").click();
+  else if (shortcut.action === "discount") { $("pdv-desconto").focus(); $("pdv-desconto").select(); }
+  else if (shortcut.action === "search") productPicker();
+  else if (shortcut.action === "payment") {
+    const button = document.querySelector(`#pdx-pagto [data-forma="${shortcut.forma}"]`);
+    if (!button || button.disabled) return;
+    button.focus({preventScroll:true});
+    button.click();
+    if (totals().total > totals().paid) focusPayment();
+    else if (!$("btn-finalizar-venda").disabled) $("btn-finalizar-venda").focus();
   }
 });
 setInterval(() => {
@@ -726,7 +808,7 @@ async function comanda(id) {
   $("cmd-finish").onclick = () => {
     modal(
       "Receber comanda " + c.numero,
-      `<p>Total: <b>${brl(c.total)}</b></p><select id="cmd-payment"><option>Dinheiro</option><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Outros</option><option>Nota a Prazo</option></select><button id="cmd-confirm" class="primary">Confirmar recebimento</button><p>A finalização é registrada no ERP com proteção contra repetição.</p>`,
+      `<p>Total: <b>${brl(c.total)}</b></p><select id="cmd-payment"><option>Dinheiro</option><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Nota a Prazo</option></select><button id="cmd-confirm" class="primary">Confirmar recebimento</button><p>A finalização é registrada no ERP com proteção contra repetição.</p>`,
     );
     $("cmd-confirm").onclick = cmdAction(async () => {
       const forma = $("cmd-payment").value;
