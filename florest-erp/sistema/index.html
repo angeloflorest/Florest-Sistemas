@@ -9581,12 +9581,12 @@ let viewAtual = null;       // view aberta no momento (null = nenhuma / fora do 
 let mariaEnviando = false;  // trava contra envio duplo
 let mariaSeq = 0;           // muda a cada reinício; descarta respostas que chegam depois de logout/novo login
 
-// "X" do atalho: esconde o atalho em TODO o ERP por 3 minutos (só o atalho — a tela da MARIA continua no menu).
+// "X" do atalho: esconde o atalho em TODO o ERP por 3 horas (só o atalho — a tela da MARIA continua no menu).
 // O instante de volta fica em sessionStorage ('maria_oculta_ate', ms desde 1970): sobrevive a F5/troca de módulo,
 // some ao fechar a aba. Se o navegador bloquear o sessionStorage, vale uma variável em memória.
 // Um ÚNICO temporizador reexibe o atalho; ele só reavalia — nunca sobrepõe a regra de tela (MARIA_FLUTUANTE_OCULTA_EM).
 const MARIA_OCULTA_CHAVE = 'maria_oculta_ate';
-const MARIA_OCULTA_MS = 3 * 60 * 1000;
+const MARIA_OCULTA_MS = 3 * 60 * 60 * 1000;
 let mariaOcultaMem = 0;       // reserva, usada só se o sessionStorage não estiver disponível
 let mariaOcultaUsaMem = false;
 let mariaOcultaTimer = null;  // no máximo UM pendente
@@ -9630,7 +9630,7 @@ function mariaOcultarPorTempo(){
   atualizarMariaFlutuante();
 }
 document.addEventListener('visibilitychange', () => { if(!document.hidden) atualizarMariaFlutuante(); });
-mariaAgendarReaparecer();     // se a aba foi recarregada dentro dos 3 minutos, o temporizador volta a existir
+mariaAgendarReaparecer();     // se a aba foi recarregada dentro das 3 horas, o temporizador volta a existir
 
 function mariaAplicarAvatar(){
   const box = $('maria-fab-avatar');
