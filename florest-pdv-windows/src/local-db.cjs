@@ -102,12 +102,31 @@ function openLocalDatabase(userDataPath) {
       .slice(0, Math.max(1, Math.min(100, Math.trunc(limite) || 30)));
   }
 
+  // Só publica a nova fotografia depois de validar os dois cadastros completos.
+  // Evita manter produtos excluídos/inativos de um catálogo anterior.
+  const atualizarCatalogo = db.transaction((empresaId, catalogo) => {
+    if (!catalogo || catalogo.empresaId !== empresaId || !Array.isArray(catalogo.produtos) || !Array.isArray(catalogo.clientes))
+      throw new Error('Catálogo incompleto ou de outra empresa');
+    for (const lista of [catalogo.produtos, catalogo.clientes]) {
+      const ids = new Set();
+      for (const item of lista) {
+        if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id) ||
+          (item.empresa_id != null && item.empresa_id !== empresaId)) throw new Error('Cadastro inválido ou de outra empresa');
+        ids.add(item.id);
+      }
+    }
+    db.prepare('DELETE FROM produtos_cache WHERE empresa_id = ?').run(empresaId);
+    db.prepare('DELETE FROM clientes_cache WHERE empresa_id = ?').run(empresaId);
+    atualizarProdutos(empresaId, catalogo.produtos);
+    atualizarClientes(empresaId, catalogo.clientes);
+  });
+
   function resumoPendencias(empresaId) {
     if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
     const linhas = db.prepare('SELECT estado_sync, COUNT(*) AS total FROM vendas_locais WHERE empresa_id = ? GROUP BY estado_sync').all(empresaId);
     return Object.fromEntries(linhas.map(l => [l.estado_sync, l.total]));
   }
 
-  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, atualizarProdutos, buscarProdutos, atualizarClientes, buscarClientes, resumoPendencias, fechar: () => db.close() };
+  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, atualizarCatalogo, atualizarProdutos, buscarProdutos, atualizarClientes, buscarClientes, resumoPendencias, fechar: () => db.close() };
 }
 module.exports = { openLocalDatabase };

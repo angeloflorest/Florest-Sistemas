@@ -73,3 +73,18 @@ test('clientes offline ficam isolados por empresa e pendências têm resumo corr
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('catálogo completo remove excluídos e falha sem apagar dados anteriores', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'florest-catalogo-'));
+  const storage = openLocalDatabase(dir);
+  try {
+    storage.atualizarProdutos('a', [{ id: 'antigo', nome: 'Antigo' }]);
+    storage.atualizarProdutos('b', [{ id: 'outro', nome: 'Outra empresa' }]);
+    storage.atualizarCatalogo('a', { empresaId: 'a', produtos: [{ id: 'novo', nome: 'Novo' }], clientes: [{ id: 'c' }] });
+    assert.equal(storage.buscarProdutos('a')[0].id, 'novo');
+    assert.equal(storage.buscarProdutos('b')[0].id, 'outro');
+    assert.throws(() => storage.atualizarCatalogo('a', { empresaId: 'a', produtos: [], clientes: [{ id: 'x', empresa_id: 'b' }] }));
+    assert.equal(storage.buscarProdutos('a')[0].id, 'novo');
+    assert.equal(storage.buscarClientes('a')[0].id, 'c');
+  } finally { storage.fechar(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
