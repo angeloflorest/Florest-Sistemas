@@ -2597,22 +2597,20 @@
 
   /* FLOREST — tabela de consumo: ações sempre acessíveis, mesmo com nomes longos. */
   #bar-mesa-consumo-scroll{ width:100%; max-width:100%; overflow-x:auto; overflow-y:visible; overscroll-behavior-x:contain; scrollbar-width:auto; }
-  #bar-mesa-consumo-scroll table{ width:100%; min-width:650px; table-layout:fixed; }
+  #bar-mesa-consumo-scroll table{ width:100%; min-width:560px; table-layout:fixed; }
   #bar-mesa-consumo-scroll th, #bar-mesa-consumo-scroll td{ padding:9px 6px; font-size:12px; overflow-wrap:anywhere; vertical-align:middle; }
-  #bar-mesa-consumo-scroll th:nth-child(1){width:29%;}
-  #bar-mesa-consumo-scroll th:nth-child(2){width:7%;}
-  #bar-mesa-consumo-scroll th:nth-child(3){width:12%;}
-  #bar-mesa-consumo-scroll th:nth-child(4){width:12%;}
-  #bar-mesa-consumo-scroll th:nth-child(5){width:11%;}
-  #bar-mesa-consumo-scroll th:nth-child(6){width:11%;}
-  #bar-mesa-consumo-scroll th:nth-child(7){width:18%;}
+  #bar-mesa-consumo-scroll th:nth-child(1){width:38%;}
+  #bar-mesa-consumo-scroll th:nth-child(2){width:9%;}
+  #bar-mesa-consumo-scroll th:nth-child(3){width:14%;}
+  #bar-mesa-consumo-scroll th:nth-child(4){width:14%;}
+  #bar-mesa-consumo-scroll th:nth-child(5){width:12%;}
+  #bar-mesa-consumo-scroll th:nth-child(6){width:13%;}
   #bar-mesa-consumo-scroll th:last-child, #bar-mesa-consumo-scroll td:last-child{ position:sticky; right:0; z-index:2; background:#fff; box-shadow:-3px 0 7px rgba(11,42,77,.10); }
   #bar-mesa-consumo-scroll th:last-child{ background:var(--florest-bg); z-index:3; }
   #bar-mesa-consumo-scroll td:last-child button{ display:block; width:100%; min-height:32px; padding:5px 3px; margin:2px 0; font-size:11px; line-height:1.25; white-space:normal; text-align:center; border-radius:5px; }
   #bar-mesa-consumo-scroll td:last-child [data-cancelar-item]{ background:#fff0ed; color:#a72820; }
-  #bar-mesa-consumo-scroll td:last-child [data-florest-cancelar-pedido]{ background:#f2f4f8; color:#243956; }
   #bar-mesa-consumo-scroll tbody tr:hover td:last-child{background:#fff;}
-  @media(max-width:760px){ #modal-bar-mesa .modal-card-mesa{padding:12px;} #bar-mesa-consumo-scroll table{min-width:610px;} }
+  @media(max-width:760px){ #modal-bar-mesa .modal-card-mesa{padding:12px;} #bar-mesa-consumo-scroll table{min-width:560px;} }
 
   /* ---------- Mesa/Comanda como "mini PDV" (Fase 2) ---------- */
   .bar-mesa-cabecalho{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
@@ -2624,6 +2622,14 @@
   .bar-mesa-col-esquerda, .bar-mesa-col-direita{ min-width:0; }
   @media (max-width: 920px){ .bar-mesa-grid{ grid-template-columns:1fr; } }
   .bar-mesa-busca-wrap{ position:relative; }
+  /* Busca de produto do Caixa Bar com dimensões de campo de PDV. */
+  #bar-mesa-busca-produto{
+    display:block; width:100%; min-height:46px; padding:11px 14px;
+    font:500 15px var(--font-body); color:var(--ink);
+    background:#fff; border:1.5px solid var(--border); border-radius:9px;
+    outline:none;
+  }
+  #bar-mesa-busca-produto:focus{ border-color:var(--florest-yellow); box-shadow:0 0 0 3px rgba(248,200,32,.18); }
   .bar-mesa-item-selecionado{ border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:10px; background:#FAFBF9; }
   .bar-mesa-item-selecionado-nome{ font-weight:600; font-size:14.5px; margin-bottom:10px; }
   .bar-saldo-resumo-vertical{ flex-direction:column; gap:10px; }
@@ -5706,7 +5712,7 @@
         <div class="table-card" style="margin-top:8px;">
           <div id="bar-mesa-consumo-scroll" role="region" aria-label="Consumo da mesa; role para os lados para ver os dados">
             <table>
-              <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Status</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th><th>Destino</th><th>Ações</th></tr></thead>
               <tbody id="bar-mesa-itens-body"></tbody>
             </table>
           </div>
@@ -20982,9 +20988,10 @@ async function atualizarSaldoEItensMesa(){
   renderResumoFinanceiroMesa();
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
+  // A conta usa os itens já carregados; sua impressão não depende do histórico de pagamentos.
+  atualizarBotaoRelatorioMesa();
   await carregarHistoricoPagamentosMesa();
   atualizarBotaoCancelarMesa();
-  atualizarBotaoRelatorioMesa();
   atualizarBotaoTransferirMesa();
 }
 
@@ -21169,7 +21176,10 @@ $('btn-bar-mesa-add-carrinho').addEventListener('click', () => {
   $('bar-mesa-item-selecionado').classList.add('hidden');
   $('bar-mesa-escolhas').innerHTML = '';
   renderCarrinhoMesa();
-  $('bar-mesa-busca-produto').focus();
+  // Após adicionar, mostrar o novo pedido sem reabrir a lista de produtos.
+  $('bar-mesa-busca-resultados').classList.add('hidden');
+  $('bar-mesa-busca-produto').blur();
+  $('bar-mesa-carrinho-wrap').scrollIntoView({block:'nearest', behavior:'smooth'});
 });
 
 function renderCarrinhoMesa(){
@@ -21236,6 +21246,7 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
   }
   barMesaCarrinho = [];
   renderCarrinhoMesa();
+  $('bar-mesa-busca-resultados').classList.add('hidden');
   $('bar-mesa-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
   await atualizarSaldoEItensMesa();
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
@@ -21246,9 +21257,6 @@ function renderItensComandaMesa(itens, nomesPorId){
   $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
   corpo.innerHTML = itens.map(it => {
     const subtotal = Number(it.quantidade) * Number(it.preco_unitario);
-    let status = 'Em aberto', statusClasse = 'status-neutro';
-    if(it.estornado){ status = 'Cancelado'; statusClasse = 'status-baixo'; }
-    else if(it.pagamento_id){ status = 'Pago'; statusClasse = 'status-ok'; }
     const podeCancelar = !it.estornado && !it.pagamento_id && !!modulosComerciais.bar;
     // Requisito #6 (herdado): um composto do modelo novo não tem destino próprio
     // (destino_operacional='sem_destino' na linha comercial) — quem carrega o destino são as
@@ -21278,8 +21286,7 @@ function renderItensComandaMesa(itens, nomesPorId){
       <td>${formatarReais(it.preco_unitario)}</td>
       <td>${formatarReais(subtotal)}</td>
       <td>${destinoTexto}</td>
-      <td><span class="status-badge ${statusClasse}">${status}</span></td>
-      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button> <button type="button" class="link-btn" data-florest-cancelar-pedido="${it.pedido_id}">Cancelar pedido</button>` : ''}</td>
+      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button>` : ''}</td>
     </tr>`;
   }).join('');
   corpo.querySelectorAll('[data-cancelar-item]').forEach(btn => btn.addEventListener('click', () => abrirModalCancelarItem(btn.dataset.cancelarItem)));
