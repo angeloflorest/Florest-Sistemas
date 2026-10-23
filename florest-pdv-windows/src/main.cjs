@@ -9,9 +9,9 @@ function createWindow() {
 }
 app.whenReady().then(() => {
   db = openLocalDatabase(app.getPath('userData'));
-  ipcMain.handle('pdv:status', () => ({ localDb: true, pending: db.prepare("SELECT COUNT(*) AS n FROM vendas_locais WHERE estado_sync IN ('pendente','erro')").get().n }));
+  ipcMain.handle('pdv:status', () => ({ localDb: true, pending: db.db.prepare("SELECT COUNT(*) AS n FROM vendas_locais WHERE estado_sync IN ('pendente','erro')").get().n }));
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => { if (db) db.close(); });
+app.on('before-quit', () => { if (db) db.fechar(); });
