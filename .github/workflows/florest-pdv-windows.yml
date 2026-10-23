@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   installer:
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         working-directory: florest-pdv-windows
