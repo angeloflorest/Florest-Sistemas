@@ -81,6 +81,33 @@ function openLocalDatabase(userDataPath) {
     }).slice(0, Math.max(1, Math.min(100, Math.trunc(limite) || 30)));
   }
 
-  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, atualizarProdutos, buscarProdutos, fechar: () => db.close() };
+  const atualizarClientes = db.transaction((empresaId, clientes) => {
+    if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
+    if (!Array.isArray(clientes)) throw new Error('Clientes inválidos');
+    const gravar = db.prepare('INSERT INTO clientes_cache (empresa_id, cliente_id, dados_json, atualizado_em) VALUES (?, ?, ?, ?) ON CONFLICT(empresa_id, cliente_id) DO UPDATE SET dados_json=excluded.dados_json, atualizado_em=excluded.atualizado_em');
+    const agora = new Date().toISOString();
+    for (const cliente of clientes) {
+      if (!cliente || (typeof cliente.id !== 'string' && typeof cliente.id !== 'number')) throw new Error('Cliente sem ID');
+      gravar.run(empresaId, String(cliente.id), JSON.stringify(cliente), agora);
+    }
+    return clientes.length;
+  });
+
+  function buscarClientes(empresaId, termo = '', limite = 30) {
+    if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
+    const busca = String(termo).trim().toLowerCase();
+    return db.prepare('SELECT dados_json FROM clientes_cache WHERE empresa_id = ? ORDER BY cliente_id').all(empresaId)
+      .map(row => JSON.parse(row.dados_json))
+      .filter(c => !busca || [c.nome, c.cpf, c.cnpj, c.telefone, c.email].some(v => String(v ?? '').toLowerCase().includes(busca)))
+      .slice(0, Math.max(1, Math.min(100, Math.trunc(limite) || 30)));
+  }
+
+  function resumoPendencias(empresaId) {
+    if (typeof empresaId !== 'string' || !empresaId.trim()) throw new Error('Empresa obrigatória');
+    const linhas = db.prepare('SELECT estado_sync, COUNT(*) AS total FROM vendas_locais WHERE empresa_id = ? GROUP BY estado_sync').all(empresaId);
+    return Object.fromEntries(linhas.map(l => [l.estado_sync, l.total]));
+  }
+
+  return { db, registrarVenda, pendentes, confirmarSincronizacao, registrarErro, atualizarProdutos, buscarProdutos, atualizarClientes, buscarClientes, resumoPendencias, fechar: () => db.close() };
 }
 module.exports = { openLocalDatabase };
