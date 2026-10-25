@@ -1,0 +1,4 @@
+[functions.gastronomia-cardapio]
+verify_jwt = false
+[functions.gastronomia-whatsapp]
+verify_jwt = false
