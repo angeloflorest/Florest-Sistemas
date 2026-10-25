@@ -22818,9 +22818,9 @@ const barHistoricoEstado={offset:0,seq:0,ocupado:false};
 function barHistoricoPode(k){return podeAcessarBar(k);}
 function barHistoricoErro(e){return mensagemBancoAcesso(e)||e?.message||'Não foi possível concluir. Atualize e tente novamente.';}
 async function barHistoricoRpc(nome,args={}){
-  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),20000);
-  try{const r=await supabase.rpc(nome,args).abortSignal(ctrl.signal);if(r.error)throw r.error;return r.data;}
-  finally{clearTimeout(t);}
+  const r=await supabase.rpc(nome,args);
+  if(r.error)throw r.error;
+  return r.data;
 }
 async function barClientesConsultar(busca=''){
   return await barHistoricoRpc('bar_clientes_nota_prazo',{p_busca:busca,p_offset:0})||[];
