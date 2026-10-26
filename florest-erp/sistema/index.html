@@ -21281,6 +21281,7 @@ async function atualizarSaldoEItensMesa(){
   ]);
   if(resumoResp.error || itensResp.error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error))}</div>`;
+    await carregarHistoricoPagamentosMesa();
     return;
   }
   barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
@@ -21915,15 +21916,27 @@ $('btn-bar-mesa-fechar-modal').addEventListener('click', () => $('modal-bar-mesa
 async function carregarHistoricoPagamentosMesa(){
   const wrap = $('bar-mesa-historico-wrap');
   if(!barComandaAtualId){ wrap.classList.add('hidden'); barMesaQtdPagamentos = 0; return; }
-  const { data, error } = await buscarTodos(() => supabase
-    .rpc('bar_comanda_pagamentos_listar', { p_comanda_id: barComandaAtualId })
-    .order('criado_em', { ascending: false }).order('id'));
+  // Uma consulta pequena e independente: não usar paginação de 1000 registros
+  // nem encadear ordenação na RPC. Evita ficar indefinidamente em "Carregando".
+  const comandaConsultada = barComandaAtualId;
+  let data, error;
+  try {
+    const resposta = await Promise.race([
+      supabase.rpc('bar_comanda_pagamentos_listar', { p_comanda_id: comandaConsultada }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('A consulta demorou mais de 10 segundos.')), 10000))
+    ]);
+    data = resposta.data;
+    error = resposta.error;
+  } catch (e) {
+    error = e;
+  }
+  if (comandaConsultada !== barComandaAtualId) return;
   barMesaQtdPagamentos = (!error && data) ? data.length : 0;
   atualizarBotaoTransferirMesa();
   // Nunca ocultar silenciosamente o histórico: informar falhas e ausência de pagamentos.
   wrap.classList.remove('hidden');
   if(error){
-    $('bar-mesa-historico-body').innerHTML = `<tr><td colspan="5"><span class="msg error">Não foi possível consultar os pagamentos: ${escapeHtml(mensagemBancoAcesso(error))}</span> <button type="button" class="btn-secondary" id="bar-mesa-historico-tentar">Tentar novamente</button></td></tr>`;
+    $('bar-mesa-historico-body').innerHTML = `<tr><td colspan="5"><span class="msg error">Não foi possível consultar os pagamentos: ${escapeHtml(mensagemBancoAcesso(error) || error.message || 'Falha na consulta.')}</span> <button type="button" class="btn-secondary" id="bar-mesa-historico-tentar">Tentar novamente</button></td></tr>`;
     $('bar-mesa-historico-tentar').addEventListener('click', carregarHistoricoPagamentosMesa);
     return;
   }
