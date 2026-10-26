@@ -21916,11 +21916,17 @@ async function carregarHistoricoPagamentosMesa(){
     .order('criado_em', { ascending: false }).order('id'));
   barMesaQtdPagamentos = (!error && data) ? data.length : 0;
   atualizarBotaoTransferirMesa();
-  if(error || !data || data.length === 0){
-    wrap.classList.add('hidden');
+  // Nunca ocultar silenciosamente o histórico: informar falhas e ausência de pagamentos.
+  wrap.classList.remove('hidden');
+  if(error){
+    $('bar-mesa-historico-body').innerHTML = `<tr><td colspan="5"><span class="msg error">Não foi possível consultar os pagamentos: ${escapeHtml(mensagemBancoAcesso(error))}</span> <button type="button" class="btn-secondary" id="bar-mesa-historico-tentar">Tentar novamente</button></td></tr>`;
+    $('bar-mesa-historico-tentar').addEventListener('click', carregarHistoricoPagamentosMesa);
     return;
   }
-  wrap.classList.remove('hidden');
+  if(!data || data.length === 0){
+    $('bar-mesa-historico-body').innerHTML = '<tr><td colspan="5">Nenhum pagamento encontrado nesta comanda. Se a mesa mostra valor já pago, verifique o registro financeiro antes de tentar cancelar.</td></tr>';
+    return;
+  }
   const podeEstornar = podeAcessarBar('bar_estornar_pagamento');
   $('bar-mesa-historico-body').innerHTML = data.map(p => {
     const formas = (p.bar_pagamentos_formas || []).map(f => `${escapeHtml(f.forma_pagamento)} (${formatarReais(f.valor)})`).join(', ');
