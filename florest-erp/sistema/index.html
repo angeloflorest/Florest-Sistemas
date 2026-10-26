@@ -1735,6 +1735,27 @@
     border-bottom:1px solid var(--border);
     font-size:13px;
   }
+  /* Notas de Entrada — layout da conferência do XML: vínculo e conversão em linha própria. */
+  #modal-importar-nota .modal-card-wide{max-width:1000px;width:calc(100% - 16px);box-sizing:border-box;}
+  #modal-importar-nota .ne-item-row{grid-template-columns:minmax(0,2fr) minmax(48px,.45fr) minmax(75px,.65fr) minmax(75px,.65fr);align-items:start;}
+  #modal-importar-nota .ne-item-row > span{min-width:0;overflow-wrap:anywhere;}
+  #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5){grid-column:1/-1;min-width:0;padding:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;}
+  #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5)::before{content:'Vínculo do produto e conversão de embalagem';display:block;font-weight:700;margin-bottom:10px;color:var(--florest-navy);}
+  #modal-importar-nota .ne-pesquisa-produto{display:grid;gap:6px;min-width:0;}
+  #modal-importar-nota .ne-pesquisa-produto > div{min-width:0;}
+  #modal-importar-nota .ne-conversao-embalagem{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 14px;margin-top:12px;}
+  #modal-importar-nota .ne-conversao-embalagem > label{font-size:12px;align-self:center;}
+  #modal-importar-nota .ne-conversao-embalagem > input{min-width:0;margin:0!important;}
+  #modal-importar-nota .ne-conversao-embalagem > p{grid-column:1/-1;margin:7px 0;line-height:1.5;}
+  #modal-importar-nota .ne-conversao-embalagem > label:has(input[type=checkbox]){grid-column:1/-1;display:flex;align-items:flex-start;gap:8px;}
+  #modal-importar-nota .ne-conversao-embalagem input[type=checkbox]{width:auto;flex:none;}
+  #modal-importar-nota .ne-status-vinculo{margin-top:8px;overflow-wrap:anywhere;}
+  @media(max-width:640px){
+    #modal-importar-nota.modal-overlay{padding:8px;}
+    #modal-importar-nota .modal-card{padding:14px;max-height:94vh;}
+    #modal-importar-nota .ne-item-row{grid-template-columns:minmax(0,1.6fr) 45px 66px 66px;gap:5px;font-size:11px;}
+    #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5){padding:9px;}
+  }
   .ne-item-row:last-child{ border-bottom:none; }
   .ne-item-row input, .ne-item-row select{
     width:100%;
@@ -4759,7 +4780,7 @@
 
       <div class="modal-section-label">Produtos</div>
       <div class="ne-item-row" style="font-weight:700; font-size:11px; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--border);">
-        <span>Descrição / GTIN</span><span>Qtd.</span><span>Vl. unit.</span><span>Vl. total</span><span>Vínculo</span>
+        <span>Descrição / GTIN</span><span>Qtd.</span><span>Vl. unit.</span><span>Vl. total</span>
       </div>
       <div id="ne-itens-lista"></div>
 
