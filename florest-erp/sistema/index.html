@@ -19529,6 +19529,7 @@ $('btn-registrar-emitente').addEventListener('click', async () => {
 });
 
 // ---------- Notas de Entrada ----------
+let neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,neMontarPesquisa,neMontarConversao;
 let notaEmConferencia = null;
 
 // Formata quantidade decimal sem arredondar (mantém até 4 casas, removendo zeros à direita desnecessários)
@@ -19597,7 +19598,7 @@ async function abrirDetalheNotaEntrada(notaId){
   html += '<div class="modal-section-label">Produtos</div>';
   html += '<div class="ne-item-row" style="font-weight:700; font-size:11px; text-transform:uppercase; color:var(--ink-soft);"><span>Descrição</span><span>Qtd.</span><span>Vl. unit.</span><span>Vl. total</span><span>Estoque</span></div>';
   (itens || []).forEach(it => {
-    html += `<div class="ne-item-row"><span>${escapeHtml(it.descricao)}</span><span>${formatarQuantidade(it.quantidade)}</span><span>${formatarReais(it.valor_unitario)}</span><span>${formatarReais(it.valor_total)}</span><span>${formatarQuantidade(it.quantidade_estoque_anterior)} → ${formatarQuantidade(it.quantidade_estoque_nova)}</span></div>`;
+    html += `<div class="ne-item-row"><span>${escapeHtml(it.descricao)}${it.fator_conversao!=null?'<br><small>Estoque: '+formatarQuantidade(it.quantidade_recebida)+' '+escapeHtml(it.unidade_compra)+' × '+Number(it.fator_conversao).toLocaleString('pt-BR',{maximumFractionDigits:6})+' = '+formatarQuantidade(it.quantidade_estoque_entrada)+' '+escapeHtml(it.unidade_estoque)+' · Custo por unidade: R$ '+Number(it.custo_unitario_estoque).toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})+'</small>':''}</span><span>${formatarQuantidade(it.quantidade)}</span><span>${formatarReais(it.valor_unitario)}</span><span>${formatarReais(it.valor_total)}</span><span>${formatarQuantidade(it.quantidade_estoque_anterior)} → ${formatarQuantidade(it.quantidade_estoque_nova)}</span></div>`;
   });
 
   html += '<div class="modal-section-label">Financeiro</div>';
@@ -19773,33 +19774,16 @@ $('ne-arquivo-xml').addEventListener('change', async (e) => {
     dados.fornecedor.id = fornecedorEncontrado ? fornecedorEncontrado.id : null;
     dados.fornecedor.nomeEncontrado = fornecedorEncontrado ? fornecedorEncontrado.razao_social : null;
 
-    // Produtos: procura cada item pelo GTIN, e busca todos os produtos (com unidade) para vínculo manual
-    const gtins = dados.itens.map(i => i.gtin).filter(Boolean);
-    let produtosPorGtin = {};
-    if(gtins.length > 0){
-      const { data: produtosData } = await supabase.from('produtos').select('id, nome, gtin, quantidade_estoque, preco_venda, unidade_comercial' + (recursos.produtoAtivo ? ', ativo' : '')).in('gtin', gtins);
-      (produtosData || []).forEach(p => { produtosPorGtin[p.gtin] = p; });
-    }
-    // produtos inativos não entram na lista de vínculo; só ficam se o GTIN do XML bateu com um (aparece marcado, e a confirmação é bloqueada)
-    const { data: todosProdutosBrutos } = await supabase.from('produtos').select('id, nome, quantidade_estoque, preco_venda, unidade_comercial' + (recursos.produtoAtivo ? ', ativo' : '')).order('nome');
-    const idsInativosComGtin = new Set(Object.values(produtosPorGtin).filter(p => p.ativo === false).map(p => p.id));
-    const todosProdutos = (todosProdutosBrutos || []).filter(p => p.ativo !== false || idsInativosComGtin.has(p.id));
-
-    const produtosPorId = {};
-    (todosProdutos || []).forEach(p => { produtosPorId[p.id] = p; });
-
-    dados.itens = dados.itens.map(item => {
-      const match = item.gtin ? produtosPorGtin[item.gtin] : null;
-      return {
-        ...item,
-        produto_id: match ? match.id : null,
-        preco_venda_novo: item.valor_unitario, // sugestão inicial: sem margem, o usuário ajusta
-      };
-    });
+    // Verifica compatibilidade antes de aceitar a prévia de conversão.
+    ({neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,neMontarPesquisa,neMontarConversao}=await import('./notas-entrada.js'));
+    await neBuscarProdutos(supabase);
+    const produtosPorGtin=await neCarregarGtins(supabase,dados.itens),produtosPorId={};
+    for(const p of Object.values(produtosPorGtin))produtosPorId[p.id]=p;
+    dados.itens=dados.itens.map(item=>{const match=item.gtin?produtosPorGtin[item.gtin.replace(/^0+/,'')]:null;return {...item,produto_id:match?.id||null,preco_venda_novo:item.valor_unitario,quantidade_recebida:item.quantidade,unidade_compra:item.unidade_comercial,fator_conversao:1,unidade_estoque:match?.unidade_comercial||item.unidade_comercial,conversao_confirmada:false}});
 
     notaEmConferencia = dados;
     notaEmConferenciaProdutosPorId = produtosPorId;
-    renderConferenciaNota(todosProdutos || []);
+    renderConferenciaNota();
   } catch(err){
     $('ne-msg').innerHTML = `<div class="msg error">${escapeHtml(err.message || 'Não foi possível ler o arquivo XML.')}</div>`;
   }
@@ -19807,7 +19791,7 @@ $('ne-arquivo-xml').addEventListener('change', async (e) => {
 
 let notaEmConferenciaProdutosPorId = {};
 
-function renderConferenciaNota(todosProdutos){
+function renderConferenciaNota(){
   const d = notaEmConferencia;
 
   $('ne-passo-arquivo').classList.add('hidden');
@@ -19841,15 +19825,10 @@ function renderConferenciaNota(todosProdutos){
     const row = document.createElement('div');
     row.className = 'ne-item-row';
 
-    const opcoesProdutos = todosProdutos.map(p => `<option value="${p.id}" ${item.produto_id === p.id ? 'selected' : ''} ${p.ativo === false ? 'disabled' : ''}>${escapeHtml(p.nome)}${p.ativo === false ? ' (INATIVO)' : ''}</option>`).join('');
-    const vinculoHtml = `
-      <select class="ne-select-produto" data-idx="${idx}">
-        <option value="" ${!item.produto_id ? 'selected' : ''}>+ Cadastrar novo produto</option>
-        ${opcoesProdutos}
-      </select>
-      <input type="number" step="0.01" class="ne-preco-venda-novo" data-idx="${idx}" placeholder="Preço de venda" value="${item.valor_unitario}" style="margin-top:4px; ${item.produto_id ? 'display:none;' : ''}">
-      <div class="ne-status-vinculo" data-idx="${idx}"></div>
-    `;
+    const vinculoHtml=`<div class="ne-pesquisa-produto"></div>
+      <label class="ne-label-preco" style="${item.produto_id?'display:none;':''}">Preço de venda por unidade de estoque (produto novo)</label>
+      <input type="number" step="0.01" class="ne-preco-venda-novo" data-idx="${idx}" placeholder="Preço de venda" value="${item.preco_venda_novo??item.valor_unitario}" style="margin-top:4px; ${item.produto_id?'display:none;':''}">
+      <div class="ne-conversao-embalagem"></div><div class="ne-status-vinculo" data-idx="${idx}"></div>`;
 
     row.innerHTML = `
       <span>${escapeHtml(item.descricao)}${item.gtin ? '<br><span style="font-size:11px;color:var(--ink-soft);">GTIN: '+escapeHtml(item.gtin)+'</span>' : ''}</span>
@@ -19860,14 +19839,9 @@ function renderConferenciaNota(todosProdutos){
     `;
     listaItens.appendChild(row);
 
-    const select = row.querySelector('.ne-select-produto');
-    select.addEventListener('change', (e) => {
-      const produtoId = e.target.value || null;
-      notaEmConferencia.itens[idx].produto_id = produtoId;
-      row.querySelector('.ne-preco-venda-novo').style.display = produtoId ? 'none' : '';
-      avaliarVinculoItem(idx, row);
-      atualizarResumoNota();
-    });
+    const getProduct=()=>notaEmConferenciaProdutosPorId[item.produto_id];
+    neMontarPesquisa(row.querySelector('.ne-pesquisa-produto'),{client:supabase,selected:getProduct(),isCurrent:()=>notaEmConferencia===d&&row.isConnected,onSelect:p=>{if(p)notaEmConferenciaProdutosPorId[p.id]=p;item.produto_id=p?.id||null;row.querySelector('.ne-preco-venda-novo').style.display=p?'none':'';row.querySelector('.ne-label-preco').style.display=p?'none':'';conversion.reset();}});
+    const conversion=neMontarConversao(row.querySelector('.ne-conversao-embalagem'),item,{getProduct,onChange:()=>{avaliarVinculoItem(idx,row);atualizarResumoNota()}});
 
     const precoInput = row.querySelector('.ne-preco-venda-novo');
     precoInput.addEventListener('input', (e) => {
@@ -19887,36 +19861,11 @@ function renderConferenciaNota(todosProdutos){
   atualizarResumoNota();
 }
 
-// Recalcula o status de vínculo de um item (produto existente com unidade compatível,
-// produto existente com unidade DIFERENTE — bloqueia, sem conversão automática —,
-// ou produto novo, que usa a unidade do XML diretamente).
-function avaliarVinculoItem(idx, row){
-  const item = notaEmConferencia.itens[idx];
-  const statusEl = row.querySelector('.ne-status-vinculo');
-
-  if(!item.produto_id){
-    item.unidade_bloqueante = false;
-    statusEl.innerHTML = '';
-    return;
-  }
-
-  const produto = notaEmConferenciaProdutosPorId[item.produto_id];
-  const unidadeProduto = produto ? produto.unidade_comercial : null;
-  const unidadeXml = item.unidade_comercial;
-  const divergente = !!(unidadeProduto && unidadeXml && unidadeProduto !== unidadeXml);
-
-  item.unidade_bloqueante = divergente;
-  item.estoque_atual = produto ? produto.quantidade_estoque : 0;
-
-  if(divergente){
-    statusEl.innerHTML = `<div class="ne-divergencia" style="margin-top:6px; padding:8px;">
-      A unidade do XML (${escapeHtml(unidadeXml)}) é diferente da unidade cadastrada neste produto (${escapeHtml(unidadeProduto)}). Vincule o item a um produto com a mesma unidade ou ajuste o cadastro antes de confirmar a entrada.
-    </div>`;
-  } else {
-    const estoqueAtualNum = Number(item.estoque_atual) || 0;
-    const estoqueNovoNum = estoqueAtualNum + Number(item.quantidade);
-    statusEl.innerHTML = `<span style="font-size:11px; color:var(--ink-soft);">Estoque: ${formatarQuantidade(estoqueAtualNum)} → ${formatarQuantidade(estoqueNovoNum)}</span>`;
-  }
+// A quantidade e o valor fiscal do item permanecem intactos; a entrada usa a conversão separada.
+function avaliarVinculoItem(idx,row){
+ const item=notaEmConferencia.itens[idx],produto=notaEmConferenciaProdutosPorId[item.produto_id],status=row.querySelector('.ne-status-vinculo');
+ try{const c=neCalcularConversao(item,produto);if(produto?.ativo===false)throw Error('Produto inativo. Vincule um produto ativo ou reative o cadastro.');item.unidade_bloqueante=c.exigeConfirmacao&&!item.conversao_confirmada;item.estoque_atual=produto?.quantidade_estoque||0;status.textContent=item.unidade_bloqueante?'Confirme a conversão de embalagem após conferir o cálculo.':'Entrada deste item: '+c.quantidade+' '+c.unidadeEstoque+(produto?' · Estoque atual: '+formatarQuantidade(item.estoque_atual):' · Novo produto.');}
+ catch(e){item.unidade_bloqueante=true;status.textContent=e.message}
 }
 
 function ativarAbaPagamento(qual){
@@ -20012,7 +19961,7 @@ function atualizarResumoNota(){
     `Fornecedor: <strong>${escapeHtml(d.fornecedor.id ? d.fornecedor.nomeEncontrado : d.fornecedor.razao_social)}</strong><br>
      ${d.itens.length} item(ns) — ${d.itens.length - novos} localizado(s), ${novos} novo(s) a cadastrar<br>
      Pagamento: <strong>${ehAvista ? 'À vista' : 'A prazo (' + coletarParcelasAtuais().length + ' parcela(s))'}</strong> — ${formatarReais(somaPagamento)}
-     ${unidadesBloqueando ? '<br><span style="color:var(--danger); font-weight:600;">Resolva a divergência de unidade acima antes de continuar.</span>' : ''}`;
+     ${unidadesBloqueando ? '<br><span style="color:var(--danger); font-weight:600;">Confira as quantidades, unidades e conversões dos itens antes de continuar.</span>' : ''}`;
 }
 
 $('btn-confirmar-entrada').addEventListener('click', async () => {
@@ -20069,6 +20018,7 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
       cfop: item.cfop || null,
       unidade_comercial: item.unidade_comercial || null,
       quantidade: item.quantidade,
+      ...neDadosConversao(item,notaEmConferenciaProdutosPorId[item.produto_id]),
       valor_unitario: item.valor_unitario,
       valor_total: item.valor_total,
       origem_mercadoria: item.origem_mercadoria || null,
