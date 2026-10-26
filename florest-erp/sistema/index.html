@@ -5802,6 +5802,16 @@
           <div class="bar-saldo-resumo-item bar-saldo-resumo-destaque">Falta pagar<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
         </div>
 
+        <div id="bar-mesa-historico-wrap" class="hidden">
+          <div class="modal-section-label" style="margin-top:18px;">Pagamentos realizados</div>
+          <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
+            <table>
+              <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
+              <tbody id="bar-mesa-historico-body"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="modal-section-label" style="margin-top:0;">Receber pagamento</div>
         <p class="modal-section-hint" id="bar-mesa-pagamento-dica" style="margin-top:-6px;"></p>
         <p class="cx-aviso hidden" id="bar-mesa-caixa-aviso" style="margin:0 0 10px;"></p>
@@ -5843,15 +5853,7 @@
           </div>
         </div>
 
-        <div id="bar-mesa-historico-wrap" class="hidden">
-          <div class="modal-section-label" style="margin-top:18px;">Pagamentos realizados</div>
-          <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
-            <table>
-              <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
-              <tbody id="bar-mesa-historico-body"></tbody>
-            </table>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -21926,7 +21928,7 @@ async function carregarHistoricoPagamentosMesa(){
       ? `<span class="status-badge status-neutro">Estornado</span>`
       : `<span class="status-badge status-ok">Confirmado</span>`;
     const acao = (!p.estornado && podeEstornar)
-      ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}">Estornar</button>`
+      ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}">Cancelar pagamento</button>`
       : '';
     return `<tr>
       <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
