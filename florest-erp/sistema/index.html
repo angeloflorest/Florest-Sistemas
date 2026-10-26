@@ -5802,12 +5802,12 @@
           <div class="bar-saldo-resumo-item bar-saldo-resumo-destaque">Falta pagar<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
         </div>
 
-        <div id="bar-mesa-historico-wrap" class="hidden">
+        <div id="bar-mesa-historico-wrap">
           <div class="modal-section-label" style="margin-top:18px;">Pagamentos realizados</div>
           <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
             <table>
               <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
-              <tbody id="bar-mesa-historico-body"></tbody>
+              <tbody id="bar-mesa-historico-body"><tr><td colspan="5">Carregando pagamentos da mesa...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -21242,6 +21242,10 @@ async function abrirModalMesa(mesa){
     .forEach(id => $(id).classList.toggle('hidden', !podeReceber));
 
   $('modal-bar-mesa').classList.remove('hidden');
+  if(barComandaAtualId){
+    $('bar-mesa-historico-wrap').classList.remove('hidden');
+    $('bar-mesa-historico-body').innerHTML = '<tr><td colspan="5">Carregando pagamentos da mesa...</td></tr>';
+  }
   await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
 }
 
@@ -21947,6 +21951,9 @@ async function carregarHistoricoPagamentosMesa(){
   $('bar-mesa-historico-body').querySelectorAll('[data-estornar-pagamento]').forEach(btn => btn.addEventListener('click', () => {
     abrirModalEstornarPagamento(btn.dataset.estornarPagamento, async () => {
       await atualizarSaldoEItensMesa();
+      const saldo = Number(barMesaResumoAtual?.subtotal_aberto || 0);
+      $('bar-mesa-pagamento-valor').value = saldo > 0 ? saldo.toFixed(2) : '';
+      $('bar-mesa-msg').innerHTML = '<div class="msg success">Pagamento cancelado. Saldo da mesa atualizado; você pode receber o valor restante.</div>';
       if(barSubViewAtual === 'mesas') await carregarBarMesas();
     });
   }));
