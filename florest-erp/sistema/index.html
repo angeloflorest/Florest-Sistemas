@@ -21941,7 +21941,9 @@ async function carregarHistoricoPagamentosMesa(){
     return;
   }
   if(!data || data.length === 0){
-    $('bar-mesa-historico-body').innerHTML = '<tr><td colspan="5">Nenhum pagamento encontrado nesta comanda. Se a mesa mostra valor já pago, verifique o registro financeiro antes de tentar cancelar.</td></tr>';
+    // Sem pagamentos: não exibir tabela ou aviso desnecessário.
+    wrap.classList.add('hidden');
+    $('bar-mesa-historico-body').innerHTML = '';
     return;
   }
   const podeEstornar = podeAcessarBar('bar_estornar_pagamento');
