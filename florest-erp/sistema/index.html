@@ -9966,7 +9966,7 @@ async function gsSendPending(){
    // Uma única solicitação por clique, sem limite artificial de 25 segundos e sem repetição automática.
    const result=await gsRPC(p.acao,p.dados,p.chave);
    GS.pending=null;GS.formDirty=false;
-   if(!mesaPayment&&$('gs-dialog').open)$('gs-dialog').close();
+   if(!mesaPayment&&!(GS.area==='mesas'&&$('gs-dialog').classList.contains('gs-mesa-dialog')&&['adicionar','mesa_lancar'].includes(p.acao))&&$('gs-dialog').open)$('gs-dialog').close();
    gsNotice('');
    try{await gsReload(true)}catch(e){GS.needsRefresh=true;gsNotice('Recebimento registrado, mas a atualização da tela falhou. Atualize os dados antes de continuar.')}
    if(p.acao==='criar'&&!GS.needsRefresh)gsDetail(result.id);
