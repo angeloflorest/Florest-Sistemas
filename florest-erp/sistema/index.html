@@ -23058,7 +23058,6 @@ async function barHistoricoDetalhar(id){
     const bloqueio=!!d.fiscal_bloqueado,acoes=['<option value="consulta">Somente consulta</option>'];
     if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_editar'))acoes.push('<option value="editar">Editar venda / cliente / pagamento</option>');
     if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_cancelar'))acoes.push('<option value="cancelar">Excluir venda (cancelamento com estorno)</option>');
-    if(barHistoricoPode('bar_venda_refazer'))acoes.push('<option value="refazer">Refazer como nova venda em mesa livre</option>');
     for(const doc of d.documentos||[])acoes.push(`<option value="doc:${escapeHtml(doc.id)}">Documento ${(doc.tipo_documento||'').toUpperCase()} ${escapeHtml(doc.numero||'—')} · ${escapeHtml(doc.status)}</option>`);
     let html=`<p>Mesa ${escapeHtml(String(c?.mesa_numero??'—'))} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Cliente: ${escapeHtml(d.cliente_nome||'—')} · Pagamento: ${escapeHtml(v.forma_pagamento)} · ${v.cancelada_em?'Cancelada':c?.status==='aberta'?'Em aberto':'Concluída'}</p><p>Total: <strong>${formatarReais(v.total)}</strong> · Desconto: ${formatarReais(c?.desconto||0)} · Acréscimo: ${formatarReais(c?.acrescimo||0)} · Taxa: ${formatarReais(c?.taxa_servico||0)}</p>`;
     html+='<table><thead><tr><th>Produto/serviço</th><th>Quantidade</th><th>Valor</th><th>Subtotal</th></tr></thead><tbody>'+(d.itens||[]).map(i=>`<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(String(i.quantidade))}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`).join('')+'</tbody></table>';
@@ -23073,13 +23072,6 @@ async function barHistoricoDetalhar(id){
     if(choice.acao==='cancelar'){
       const f=await florestDialog('Cancelar venda nº '+v.numero_venda,'<p>O número e o histórico serão preservados. Os recebimentos elegíveis e o estoque serão estornados na mesma transação. Caixa fechado, título recebido ou documento fiscal impedem esta operação.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Confirmar cancelamento');
       if(f)await barHistoricoMutacao('bar_historico_cancelar',{p_venda:id,p_motivo:f.motivo.trim()});
-    }
-    if(choice.acao==='refazer'){
-      if(!barHistoricoPode('bar_pedidos'))throw Error('Refazer exige também permissão para lançar pedidos.');
-      const e=await obterEmpresaId(),r=await supabase.from('bar_mesas').select('id,numero').eq('empresa_id',e).eq('status','livre').order('numero');if(r.error)throw r.error;
-      if(!r.data?.length)throw Error('Nenhuma mesa livre para uma nova venda.');
-      const f=await florestDialog('Refazer venda nº '+v.numero_venda,'<p>Cria uma nova venda com novo número e pedido em mesa livre, usando os preços e a disponibilidade atuais do cardápio. O original permanece intacto. Não registra pagamento nem emite documento fiscal.</p><label>Mesa<select name="mesa" required>'+r.data.map(m=>`<option value="${escapeHtml(m.id)}">Mesa ${m.numero}</option>`).join('')+'</select></label><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Criar nova venda');
-      if(f){const result=await barHistoricoMutacao('bar_historico_refazer',{p_venda:id,p_mesa:f.mesa,p_motivo:f.motivo.trim()});alert('Nova venda nº '+result.numero_venda+' criada, sem pagamento e sem emissão fiscal.');}
     }
     await carregarBarHistorico();
   }catch(e){alert(barHistoricoErro(e));}
