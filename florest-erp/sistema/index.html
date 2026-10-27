@@ -21157,30 +21157,41 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
     return;
   }
   const origem = barMesaAtual.numero;
-  const operacao = prompt('Mesa '+origem+' — escolha a operação:\n1 - Transferir para mesa LIVRE\n2 - Juntar com mesa OCUPADA (libera a Mesa '+origem+')', '1');
+  const operacao = prompt('Mesa '+origem+' — escolha a operação:\n1 - Transferir para mesa LIVRE\n2 - Juntar outra mesa OCUPADA nesta Mesa '+origem+' (libera a outra mesa)', '1');
   if(operacao === null) return;
   if(!['1','2'].includes(operacao.trim())){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Escolha 1 para transferir ou 2 para juntar.</div>'; return; }
   const juntar = operacao.trim() === '2';
-  const resposta = prompt(juntar ? `Juntar a Mesa ${origem} a qual mesa OCUPADA? A Mesa ${origem} ficará livre.` : `Transferir a Mesa ${origem} para qual número de mesa LIVRE?`);
+  const resposta = prompt(juntar ? `Qual mesa OCUPADA deseja juntar na Mesa ${origem}? A outra mesa ficará livre.` : `Transferir a Mesa ${origem} para qual número de mesa LIVRE?`);
   if(resposta === null) return;
   const destino = Number(resposta.trim());
   if(!Number.isSafeInteger(destino) || destino <= 0 || destino === origem){
     $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe o número de outra mesa válida.</div>';
     return;
   }
-  if(!confirm(juntar ? `JUNTAR Mesa ${origem} na Mesa ${destino}? Itens e pagamentos serão incorporados com origem identificada, e a Mesa ${origem} ficará LIVRE.` : `Transferir TODOS os pedidos e pagamentos da Mesa ${origem} para a Mesa ${destino}? A mesa antiga ficará livre.`)) return;
+  if(!confirm(juntar ? `JUNTAR Mesa ${destino} na Mesa ${origem}? A Mesa ${origem} receberá os itens e pagamentos; a Mesa ${destino} ficará LIVRE.` : `Transferir TODOS os pedidos e pagamentos da Mesa ${origem} para a Mesa ${destino}? A mesa antiga ficará livre.`)) return;
   const btn = $('btn-bar-mesa-transferir');
   barTransferindoMesa = true; btn.disabled = true;
   try {
+    let mesaOrigemId = barMesaAtual.id;
+    let numeroDestino = destino;
+    if(juntar){
+      const { data: mesaIncorporada, error: erroBusca } = await supabase.from('bar_mesas')
+        .select('id,status,comanda_atual_id').eq('numero', destino).single();
+      if(erroBusca) throw erroBusca;
+      if(!mesaIncorporada || mesaIncorporada.status !== 'ocupada' || !mesaIncorporada.comanda_atual_id)
+        throw new Error('A mesa a incorporar precisa estar ocupada e com comanda aberta.');
+      mesaOrigemId = mesaIncorporada.id;
+      numeroDestino = origem;
+    }
     const { data, error } = await supabase.rpc(juntar ? 'bar_mesas_juntar' : 'bar_mesa_transferir', {
-      p_mesa_origem_id: barMesaAtual.id, p_mesa_destino_numero: destino
+      p_mesa_origem_id: mesaOrigemId, p_mesa_destino_numero: numeroDestino
     });
     if(error) throw error;
     if(!data || data.sucesso !== true) throw new Error('Transferência não confirmada pelo servidor.');
     $('modal-bar-mesa').classList.add('hidden');
     barMesaAtual = null; barComandaAtualId = null;
     await carregarBarMesas();
-    $('bar-mesas-msg').innerHTML = juntar ? `<div class="msg success">Mesa ${origem} juntada à Mesa ${destino}. A Mesa ${origem} está livre; produtos e pagamentos incorporados com histórico.</div>` : `<div class="msg success">Mesa ${origem} transferida para Mesa ${destino}. Nenhum pedido foi reimpresso.</div>`;
+    $('bar-mesas-msg').innerHTML = juntar ? `<div class="msg success">Mesa ${destino} juntada à Mesa ${origem}. A Mesa ${destino} está livre; produtos e pagamentos incorporados com histórico.</div>` : `<div class="msg success">Mesa ${origem} transferida para Mesa ${destino}. Nenhum pedido foi reimpresso.</div>`;
   } catch(e) {
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${juntar ? 'Junção' : 'Transferência'} não realizada: ${escapeHtml(e.message || String(e))}</div>`;
   } finally { barTransferindoMesa = false; btn.disabled = false; }
