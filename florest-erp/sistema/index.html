@@ -21157,18 +21157,22 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
     return;
   }
   const origem = barMesaAtual.numero;
-  const resposta = prompt(`Transferir a Mesa ${origem} para qual número de mesa LIVRE?`);
+  const operacao = prompt('Mesa '+origem+' — escolha a operação:\n1 - Transferir para mesa LIVRE\n2 - Juntar com mesa OCUPADA (libera a Mesa '+origem+')', '1');
+  if(operacao === null) return;
+  if(!['1','2'].includes(operacao.trim())){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Escolha 1 para transferir ou 2 para juntar.</div>'; return; }
+  const juntar = operacao.trim() === '2';
+  const resposta = prompt(juntar ? `Juntar a Mesa ${origem} a qual mesa OCUPADA? A Mesa ${origem} ficará livre.` : `Transferir a Mesa ${origem} para qual número de mesa LIVRE?`);
   if(resposta === null) return;
   const destino = Number(resposta.trim());
   if(!Number.isSafeInteger(destino) || destino <= 0 || destino === origem){
     $('bar-mesa-msg').innerHTML = '<div class="msg error">Informe o número de outra mesa válida.</div>';
     return;
   }
-  if(!confirm(`Transferir TODOS os pedidos e pagamentos da Mesa ${origem} para a Mesa ${destino}? A mesa antiga ficará livre.`)) return;
+  if(!confirm(juntar ? `JUNTAR Mesa ${origem} na Mesa ${destino}? Itens e pagamentos serão incorporados com origem identificada, e a Mesa ${origem} ficará LIVRE.` : `Transferir TODOS os pedidos e pagamentos da Mesa ${origem} para a Mesa ${destino}? A mesa antiga ficará livre.`)) return;
   const btn = $('btn-bar-mesa-transferir');
   barTransferindoMesa = true; btn.disabled = true;
   try {
-    const { data, error } = await supabase.rpc('bar_mesa_transferir', {
+    const { data, error } = await supabase.rpc(juntar ? 'bar_mesas_juntar' : 'bar_mesa_transferir', {
       p_mesa_origem_id: barMesaAtual.id, p_mesa_destino_numero: destino
     });
     if(error) throw error;
@@ -21176,9 +21180,9 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
     $('modal-bar-mesa').classList.add('hidden');
     barMesaAtual = null; barComandaAtualId = null;
     await carregarBarMesas();
-    $('bar-mesas-msg').innerHTML = `<div class="msg success">Mesa ${origem} transferida para Mesa ${destino}. Nenhum pedido foi reimpresso.</div>`;
+    $('bar-mesas-msg').innerHTML = juntar ? `<div class="msg success">Mesa ${origem} juntada à Mesa ${destino}. A Mesa ${origem} está livre; produtos e pagamentos incorporados com histórico.</div>` : `<div class="msg success">Mesa ${origem} transferida para Mesa ${destino}. Nenhum pedido foi reimpresso.</div>`;
   } catch(e) {
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">Transferência não realizada: ${escapeHtml(e.message || String(e))}</div>`;
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${juntar ? 'Junção' : 'Transferência'} não realizada: ${escapeHtml(e.message || String(e))}</div>`;
   } finally { barTransferindoMesa = false; btn.disabled = false; }
 });
 
@@ -21255,7 +21259,7 @@ async function atualizarSaldoEItensMesa(){
   // (e não precisa de) coluna própria de autoria: cada lançamento já grava UM bar_pedidos com
   // criado_por=auth.uid(), e todos os itens daquele lançamento apontam para o mesmo pedido_id —
   // é o que já faz dois garçons na mesma mesa ficarem naturalmente separados.
-  const [resumoResp, itensResp, nomesPorId] = await Promise.all([
+  const [resumoResp, itensResp, nomesPorId, juncoesResp] = await Promise.all([
     supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: barComandaAtualId }),
     buscarTodos(() => supabase
       .from('bar_pedidos_itens')
@@ -21263,6 +21267,7 @@ async function atualizarSaldoEItensMesa(){
       .eq('comanda_id', barComandaAtualId)
       .order('criado_em')),
     resolverNomesFuncionariosBar(),
+    supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: barComandaAtualId }),
   ]);
   if(resumoResp.error || itensResp.error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error))}</div>`;
@@ -21271,6 +21276,8 @@ async function atualizarSaldoEItensMesa(){
   }
   barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
   renderResumoFinanceiroMesa();
+  if(juncoesResp.error){ $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível carregar a origem das mesas juntadas: ${escapeHtml(mensagemBancoAcesso(juncoesResp.error))}</div>`; }
+  barMesaJuncoes = !juncoesResp.error && Array.isArray(juncoesResp.data) ? juncoesResp.data : [];
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
   // A conta usa os itens já carregados; sua impressão não depende do histórico de pagamentos.
@@ -21537,6 +21544,14 @@ $('btn-bar-mesa-lancar').addEventListener('click', async () => {
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
 });
 
+let barMesaJuncoes = [];
+function barOrigemDaJuncao(tipo, id){
+  for(const j of barMesaJuncoes){
+    const d = j.detalhes || {};
+    if((d[tipo] || []).some(x => x.id === id)) return d.origem_numero;
+  }
+  return null;
+}
 function renderItensComandaMesa(itens, nomesPorId){
   const corpo = $('bar-mesa-itens-body');
   $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
@@ -21558,6 +21573,7 @@ function renderItensComandaMesa(itens, nomesPorId){
       ? dataLancamento.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       : 'Horário indisponível';
     const lancadoPorTexto = `Lançado por ${escapeHtml(nomeUsuarioBar(autorId, nomesPorId || {}))} • ${escapeHtml(horarioLancamento)}`;
+    const origemJuncao = barOrigemDaJuncao('itens', it.id);
     const nomeLinha = escolhas.length > 0
       ? `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${escolhas.map(e => escapeHtml(e.produto_nome)).join(', ')}</div><div class="modal-section-hint" style="margin:1px 0 0;">${lancadoPorTexto}</div>`
       : `${escapeHtml(it.produtos ? it.produtos.nome : '—')}<div class="modal-section-hint" style="margin:2px 0 0;">${lancadoPorTexto}</div>`;
@@ -21566,7 +21582,7 @@ function renderItensComandaMesa(itens, nomesPorId){
       ? Array.from(new Set(escolhas.map(e => e.destino_operacional))).map(nomeDestino).join(' + ')
       : nomeDestino(it.destino_operacional);
     return `<tr>
-      <td>${nomeLinha}</td>
+      <td>${nomeLinha}${origemJuncao != null ? `<div class="modal-section-hint" style="font-weight:600;">Incorporado da Mesa ${escapeHtml(String(origemJuncao))}</div>` : ''}</td>
       <td>${it.quantidade}</td>
       <td>${formatarReais(it.preco_unitario)}</td>
       <td>${formatarReais(subtotal)}</td>
@@ -21941,9 +21957,10 @@ async function carregarHistoricoPagamentosMesa(){
       ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}">Cancelar pagamento</button>`
       : '';
     const operador = (p.bar_pagamentos_formas || []).find(f => f.operador_nome)?.operador_nome;
+    const origemJuncao = barOrigemDaJuncao('pagamentos', p.id);
     return `<tr data-bar-pagamento-id="${escapeHtml(p.id)}">
       <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}<small style="display:block;max-width:150px;overflow-wrap:anywhere;">ID: ${escapeHtml(p.id)}</small>${operador ? `<small style="display:block">Operador: ${escapeHtml(operador)}</small>` : ''}</td>
-      <td>${formatarReais(p.total)}</td>
+      <td>${formatarReais(p.total)}${origemJuncao != null ? `<small style="display:block">Pagamento incorporado da Mesa ${escapeHtml(String(origemJuncao))}</small>` : ''}</td>
       <td>${formas || '—'}</td>
       <td>${status}</td>
       <td style="text-align:right;">${acao}</td>
