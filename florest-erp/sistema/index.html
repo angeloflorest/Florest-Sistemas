@@ -10038,7 +10038,7 @@ async function gsTools(body){
  const area=GS.area,company=GS.ctx.empresa_id,view=GS.toolsView=crypto.randomUUID();if(!GS.toolsState||GS.toolsState.company!==company)GS.toolsState={company};
  const {mountTools}=await import('./gastronomia-ferramentas.js');if(!body.isConnected||GS.toolsView!==view||GS.area!==area||GS.ctx.empresa_id!==company)return;
  await mountTools(body,{area,company,state:GS.toolsState,catalog:GS.ctx.catalogo,money:gsMoney,current:()=>GS.toolsView===view&&GS.area===area&&GS.ctx?.empresa_id===company,
-  rpc:async(action,data)=>{const r=await supabase.rpc('gastronomia_ferramentas',{p_acao:action,p_dados:data}).abortSignal(AbortSignal.timeout(25000));if(r.error)throw r.error;return r.data},
+  rpc:async(action,data)=>{const r=await supabase.rpc('gastronomia_ferramentas',{p_acao:action,p_dados:data});if(r.error)throw r.error;return r.data},
   createWaiter:async(data)=>{const r=await supabase.functions.invoke('gastronomia-garcons',{body:data});if(r.error||!r.data?.ok)throw Error(await florestMensagemEdge(r.error,r.data));if(r.data.empresa_id!==company)throw Error('A empresa da sessão mudou.');return r.data},
   dialog:gsDialog,closeDialog:()=>$('gs-dialog').close(),notice:gsNotice,refresh:()=>gsReload(true)});
 }
