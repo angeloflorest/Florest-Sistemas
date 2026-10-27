@@ -9939,28 +9939,41 @@ function gsEl(tag,txt,cls){const e=document.createElement(tag);if(txt!==undefine
 function gsBtn(label,fn){const b=gsEl('button',label,'gs-button');b.type='button';b.onclick=()=>Promise.resolve().then(fn).catch(gsNotice);return b}
 function gsHas(p){return GS.ctx?.permissoes.includes('gastronomia_'+p)}
 function gsNotice(e){const message=e?.message||String(e||'');$('gs-feedback').textContent=message;$('gs-feedback').className=e?.message?'msg error':'msg';if($('gs-dialog').open){let box=$('gs-dialog-feedback');if(!box){box=gsEl('p');box.id='gs-dialog-feedback';box.setAttribute('role','status');$('gs-dialog-body').prepend(box)}box.textContent=message}}
-async function gsMesaWait(request){let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('A conexão demorou a responder. Se houve envio de pagamento, use Repetir envio para conferir o mesmo recebimento antes de tentar outro.')),25000)})])}finally{clearTimeout(timer)}}
-async function gsRPC(acao,dados={},chave=null,limited=false){const request=supabase.rpc('gastronomia_rpc',{p_acao:acao,p_dados:dados,p_chave:chave});const {data,error}=await (limited?gsMesaWait(request.abortSignal(AbortSignal.timeout(25000))):request);if(error)throw error;return data}
-async function gsCall(acao,dados){if(GS.busy)throw Error('Aguarde a operação em andamento.');if(GS.needsRefresh)throw Error('A operação anterior foi registrada. Atualize os dados antes de continuar.');if(GS.pending){if(acao==='receber'&&GS.pending.acao==='receber'&&GS.pending.dados.id===dados.id&&GS.ctx?.atendimentos.some(a=>a.id===dados.id&&a.tipo==='mesa'))return gsSendPending();throw Error('Há uma operação anterior sem confirmação. Aguarde a conclusão antes de iniciar outra.')}GS.pending={acao,dados,chave:crypto.randomUUID()};return gsSendPending()}
-async function gsSendPending(){if(!GS.pending||GS.busy)return;GS.busy=true;const p=GS.pending,mesaPayment=p.acao==='receber'&&GS.ctx?.atendimentos.some(a=>a.id===p.dados.id&&a.tipo==='mesa');try{
- let result;
- if(mesaPayment){
-   // Toda tentativa usa a MESMA chave: nunca cria um segundo recebimento.
-   for(let tentativa=0;tentativa<3;tentativa++){
-     try{result=await gsRPC(p.acao,p.dados,p.chave,true);break}
-     catch(e){
-       if(e.code&&e.code!=='PGRST000')throw e; // Erro definitivo do servidor, sem pagamento gravado.
-       if(tentativa===2)throw Error('Não foi possível confirmar este recebimento. Clique novamente em Finalizar pagamento para continuar a mesma operação, sem cobrança duplicada.');
-     }
+async function gsMesaWait(request){return await request}
+async function gsRPC(acao,dados={},chave=null,limited=false){
+ const {data,error}=await supabase.rpc('gastronomia_rpc',{p_acao:acao,p_dados:dados,p_chave:chave});
+ if(error)throw error;
+ return data;
+}
+async function gsCall(acao,dados){
+ if(GS.busy)throw Error('Aguarde a operação em andamento.');
+ if(GS.needsRefresh)throw Error('A operação anterior foi registrada. Atualize os dados antes de continuar.');
+ if(GS.pending){
+   if(acao==='receber'&&GS.pending.acao==='receber'&&GS.pending.dados.id===dados.id&&GS.ctx?.atendimentos.some(a=>a.id===dados.id&&a.tipo==='mesa')){
+     // Não substituir a chave nem os valores do recebimento anterior.
+     return gsSendPending();
    }
- }else result=await gsRPC(p.acao,p.dados,p.chave,false);
- GS.pending=null;GS.formDirty=false;
- if(!mesaPayment&&$('gs-dialog').open)$('gs-dialog').close();
- gsNotice('');
- try{await gsReload(true,mesaPayment)}catch{GS.needsRefresh=true;gsNotice('Operação registrada, mas não foi possível atualizar os dados. Aguarde a conexão antes de receber novamente.')}
- if(p.acao==='criar'&&!GS.needsRefresh)gsDetail(result.id);
- return result;
+   throw Error('Há uma operação anterior sem confirmação. Aguarde a conclusão antes de iniciar outra.');
+ }
+ GS.pending={acao,dados,chave:crypto.randomUUID()};
+ return gsSendPending();
+}
+async function gsSendPending(){
+ if(!GS.pending||GS.busy)return;
+ GS.busy=true;
+ const p=GS.pending,mesaPayment=p.acao==='receber'&&GS.ctx?.atendimentos.some(a=>a.id===p.dados.id&&a.tipo==='mesa');
+ try{
+   // Uma única solicitação por clique, sem limite artificial de 25 segundos e sem repetição automática.
+   const result=await gsRPC(p.acao,p.dados,p.chave);
+   GS.pending=null;GS.formDirty=false;
+   if(!mesaPayment&&$('gs-dialog').open)$('gs-dialog').close();
+   gsNotice('');
+   try{await gsReload(true)}catch(e){GS.needsRefresh=true;gsNotice('Recebimento registrado, mas a atualização da tela falhou. Atualize os dados antes de continuar.')}
+   if(p.acao==='criar'&&!GS.needsRefresh)gsDetail(result.id);
+   return result;
  }catch(e){
+   // Falha definitiva devolvida pelo servidor: mostrar o erro original e permitir nova operação.
+   // Falha de transporte sem resposta: preservar a mesma chave para não duplicar pagamentos.
    if(e.code&&e.code!=='PGRST000')GS.pending=null;
    gsNotice(e);
    if(GS.pending&&!mesaPayment){
@@ -9968,7 +9981,8 @@ async function gsSendPending(){if(!GS.pending||GS.busy)return;GS.busy=true;const
      if($('gs-dialog').open)$('gs-dialog-body').append(gsBtn('Repetir envio',()=>gsSendPending().catch(gsNotice)));
    }
    throw e;
- }finally{GS.busy=false;}}
+ }finally{GS.busy=false;}
+}
 
 async function gsReload(force=false,limited=false){if(GS.loading){await (limited?gsMesaWait(GS.loading):GS.loading);if(!force)return GS.ctx}const run=(async()=>{const ctx=await gsRPC('contexto',{},null,limited);if(ctx.cardapio_versao!=='cardapio_20261025_v1')throw Error('Aplique primeiro a migration nova de Cardápio e Pedidos.');GS.ctx=ctx;GS.needsRefresh=false;if((force || (GS.area!=='configuracao' && !GS.formDirty))&&!$('gs-dialog').open)gsRender();return ctx})();GS.loading=run;try{return await run}finally{if(GS.loading===run)GS.loading=null}}
 
