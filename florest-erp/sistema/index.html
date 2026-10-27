@@ -5824,7 +5824,7 @@
         </div>
 
         <div id="bar-mesa-historico-wrap">
-          <div class="modal-section-label" style="margin-top:18px;">Pagamentos realizados</div>
+          <div class="modal-section-label" style="margin-top:18px;">Recebimentos individuais</div>
           <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
             <table>
               <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
@@ -21940,8 +21940,9 @@ async function carregarHistoricoPagamentosMesa(){
     const acao = (!p.estornado && podeEstornar)
       ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}">Cancelar pagamento</button>`
       : '';
-    return `<tr>
-      <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+    const operador = (p.bar_pagamentos_formas || []).find(f => f.operador_nome)?.operador_nome;
+    return `<tr data-bar-pagamento-id="${escapeHtml(p.id)}">
+      <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}<small style="display:block;max-width:150px;overflow-wrap:anywhere;">ID: ${escapeHtml(p.id)}</small>${operador ? `<small style="display:block">Operador: ${escapeHtml(operador)}</small>` : ''}</td>
       <td>${formatarReais(p.total)}</td>
       <td>${formas || '—'}</td>
       <td>${status}</td>
