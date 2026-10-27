@@ -21157,7 +21157,7 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
     return;
   }
   const origem = barMesaAtual.numero;
-  const operacao = prompt('Mesa '+origem+' — escolha a operação:\n1 - Transferir para mesa LIVRE\n2 - Juntar outra mesa OCUPADA nesta Mesa '+origem+' (libera a outra mesa)', '1');
+  const operacao = prompt('O QUE DESEJA FAZER COM A MESA '+origem+'?\n\n1 = TRANSFERIR para uma mesa LIVRE\n2 = JUNTAR outra mesa OCUPADA na Mesa '+origem+'\n\nDigite 1 ou 2:', '2');
   if(operacao === null) return;
   if(!['1','2'].includes(operacao.trim())){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Escolha 1 para transferir ou 2 para juntar.</div>'; return; }
   const juntar = operacao.trim() === '2';
@@ -21174,14 +21174,17 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
   try {
     let mesaOrigemId = barMesaAtual.id;
     let numeroDestino = destino;
+    const { data: mesaSelecionada, error: erroBusca } = await supabase.from('bar_mesas')
+      .select('id,status,comanda_atual_id').eq('numero', destino).single();
+    if(erroBusca) throw erroBusca;
+    if(!mesaSelecionada) throw new Error('Mesa informada não encontrada.');
     if(juntar){
-      const { data: mesaIncorporada, error: erroBusca } = await supabase.from('bar_mesas')
-        .select('id,status,comanda_atual_id').eq('numero', destino).single();
-      if(erroBusca) throw erroBusca;
-      if(!mesaIncorporada || mesaIncorporada.status !== 'ocupada' || !mesaIncorporada.comanda_atual_id)
-        throw new Error('A mesa a incorporar precisa estar ocupada e com comanda aberta.');
-      mesaOrigemId = mesaIncorporada.id;
+      if(mesaSelecionada.status !== 'ocupada' || !mesaSelecionada.comanda_atual_id)
+        throw new Error('Para JUNTAR, a outra mesa precisa estar OCUPADA com uma comanda aberta.');
+      mesaOrigemId = mesaSelecionada.id;
       numeroDestino = origem;
+    } else if(mesaSelecionada.status !== 'livre' || mesaSelecionada.comanda_atual_id){
+      throw new Error('A Mesa '+destino+' está ocupada. Para unir duas mesas ocupadas, escolha a opção 2 — JUNTAR, e não 1 — TRANSFERIR.');
     }
     const { data, error } = await supabase.rpc(juntar ? 'bar_mesas_juntar' : 'bar_mesa_transferir', {
       p_mesa_origem_id: mesaOrigemId, p_mesa_destino_numero: numeroDestino
