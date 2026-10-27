@@ -10004,7 +10004,7 @@ async function gsAtualizarSilencioso(){
  GS.ctx=ctx;
  if(!mudou)return;
  if($('gs-dialog').open){
-   if(mesaAberta&&!GS.formDirty&&!GS.mesaLaunchDirty&&!document.activeElement?.closest('#gs-dialog input,#gs-dialog textarea,#gs-dialog select,#gs-dialog button')){
+   if(mesaAberta&&!GS.formDirty&&!GS.mesaLaunchDirty&&!document.activeElement?.closest('#gs-dialog input,#gs-dialog textarea,#gs-dialog select')){
      await gsOpenMesa(mesaAberta);
    }
    return;
