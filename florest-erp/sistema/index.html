@@ -5823,11 +5823,17 @@
           <div class="bar-saldo-resumo-item bar-saldo-resumo-destaque">Falta pagar<strong id="bar-mesa-total-aberto">R$ 0,00</strong></div>
         </div>
 
+        <style>
+          .bar-mesa-historico-compacto th,.bar-mesa-historico-compacto td{padding:5px 2px!important;font-size:10px!important;line-height:1.2!important;vertical-align:middle;white-space:normal;overflow-wrap:break-word;}
+          .bar-mesa-historico-compacto th{font-size:9px!important;letter-spacing:0;}
+          .bar-mesa-historico-compacto .status-badge{font-size:9px!important;padding:2px 3px!important;white-space:normal;}
+          .bar-mesa-historico-compacto button[data-estornar-pagamento]{font-size:10px!important;padding:4px 2px!important;white-space:normal;line-height:1.15;text-align:center;}
+          </style>
         <div id="bar-mesa-historico-wrap">
           <div class="modal-section-label" style="margin-top:18px;">Recebimentos individuais</div>
-          <div class="table-card" style="margin-top:8px; max-height:160px; overflow:auto;">
-            <table>
-              <thead><tr><th>Quando</th><th>Total</th><th>Formas</th><th>Status</th><th></th></tr></thead>
+          <div class="table-card bar-mesa-historico-compacto" style="margin-top:8px; max-height:160px; overflow-y:auto; overflow-x:hidden;">
+            <table style="width:100%;table-layout:fixed;border-collapse:collapse;">
+              <thead><tr><th style="width:24%;">Quando</th><th style="width:18%;">Total</th><th style="width:21%;">Formas</th><th style="width:15%;">Status</th><th style="width:22%;">Ação</th></tr></thead>
               <tbody id="bar-mesa-historico-body"><tr><td colspan="5">Carregando pagamentos da mesa...</td></tr></tbody>
             </table>
           </div>
@@ -21963,21 +21969,21 @@ async function carregarHistoricoPagamentosMesa(){
   }
   const podeEstornar = podeAcessarBar('bar_estornar_pagamento');
   $('bar-mesa-historico-body').innerHTML = data.map(p => {
-    const formas = (p.bar_pagamentos_formas || []).map(f => `${escapeHtml(f.forma_pagamento)} (${formatarReais(f.valor)})`).join(', ');
+    const formas = (p.bar_pagamentos_formas || []).map(f => escapeHtml(f.forma_pagamento)).join(', ');
     const status = p.estornado
       ? `<span class="status-badge status-neutro">Estornado</span>`
       : `<span class="status-badge status-ok">Confirmado</span>`;
     const acao = (!p.estornado && podeEstornar)
-      ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}">Cancelar pagamento</button>`
+      ? `<button type="button" class="link-btn" data-estornar-pagamento="${p.id}" title="Cancelar pagamento" aria-label="Cancelar pagamento">Cancelar</button>`
       : '';
     const operador = (p.bar_pagamentos_formas || []).find(f => f.operador_nome)?.operador_nome;
     const origemJuncao = barOrigemDaJuncao('pagamentos', p.id);
     return `<tr data-bar-pagamento-id="${escapeHtml(p.id)}">
-      <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}<small style="display:block;max-width:150px;overflow-wrap:anywhere;">ID: ${escapeHtml(p.id)}</small>${operador ? `<small style="display:block">Operador: ${escapeHtml(operador)}</small>` : ''}</td>
+      <td>${new Date(p.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${operador ? `<small style="display:block;color:#64748b;line-height:1.15;">${escapeHtml(operador)}</small>` : ''}</td>
       <td>${formatarReais(p.total)}${origemJuncao != null ? `<small style="display:block">Pagamento incorporado da Mesa ${escapeHtml(String(origemJuncao))}</small>` : ''}</td>
       <td>${formas || '—'}</td>
       <td>${status}</td>
-      <td style="text-align:right;">${acao}</td>
+      <td style="text-align:center;">${acao}</td>
     </tr>`;
   }).join('');
   $('bar-mesa-historico-body').querySelectorAll('[data-estornar-pagamento]').forEach(btn => btn.addEventListener('click', () => {
