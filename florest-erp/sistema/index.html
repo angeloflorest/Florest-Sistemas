@@ -9986,10 +9986,37 @@ async function gsSendPending(){
 
 async function gsReload(force=false,limited=false){if(GS.loading){await (limited?gsMesaWait(GS.loading):GS.loading);if(!force)return GS.ctx}const run=(async()=>{const ctx=await gsRPC('contexto',{},null,limited);if(ctx.cardapio_versao!=='cardapio_20261025_v1')throw Error('Aplique primeiro a migration nova de Cardápio e Pedidos.');GS.ctx=ctx;GS.needsRefresh=false;if((force || (GS.area!=='configuracao' && !GS.formDirty))&&!$('gs-dialog').open)gsRender();return ctx})();GS.loading=run;try{return await run}finally{if(GS.loading===run)GS.loading=null}}
 
+
+// Atualização silenciosa exclusiva das abas Mesas e Pedidos da Gastronomia.
+function gsPollingPermitido(){return GS.ctx&&!document.hidden&&!$('view-gastronomia').classList.contains('hidden')&&['mesas','pedidos'].includes(GS.area)&&!GS.busy&&!GS.pending&&!GS.loading}
+function gsSnapshotArea(ctx,area){
+ if(area==='mesas')return JSON.stringify({mesas:ctx.mesas.map(m=>[m.id,m.numero,m.status]),atendimentos:ctx.atendimentos.filter(a=>a.tipo==='mesa').map(a=>[a.id,a.mesa_id,a.estado,a.versao,a.total,a.pago,a.itens?.map(i=>[i.id,i.quantidade,i.cancelado])])});
+ return JSON.stringify(ctx.atendimentos.filter(a=>a.tipo!=='mesa').map(a=>[a.id,a.estado,a.versao,a.total,a.pago,a.itens?.length,a.expedicao]));
+}
+async function gsAtualizarSilencioso(){
+ if(!gsPollingPermitido())return;
+ const area=GS.area,anterior=gsSnapshotArea(GS.ctx,area),mesaAberta=area==='mesas'&&$('gs-dialog').open&&$('gs-dialog').classList.contains('gs-mesa-dialog')?GS.mesaCurrent:null;
+ // Não sobrescrever formulários, seleção, valores digitados ou operações em andamento.
+ const ctx=await gsRPC('contexto');
+ if(!gsPollingPermitido()||GS.area!==area)return;
+ if(ctx.cardapio_versao!==GS.ctx.cardapio_versao)return;
+ const mudou=anterior!==gsSnapshotArea(ctx,area);
+ GS.ctx=ctx;
+ if(!mudou)return;
+ if($('gs-dialog').open){
+   if(mesaAberta&&!GS.formDirty&&!GS.mesaLaunchDirty&&!document.activeElement?.closest('#gs-dialog input,#gs-dialog textarea,#gs-dialog select,#gs-dialog button')){
+     await gsOpenMesa(mesaAberta);
+   }
+   return;
+ }
+ if(GS.formDirty)return;
+ gsRender();
+}
+
 function gsPrep(a){const states=a.itens.filter(i=>!i.cancelado).flatMap(i=>i.preparo.map(p=>p.estado));if(!states.length)return 'Sem itens';if(states.every(s=>s==='pronto'))return 'Pronto';if(states.some(s=>s==='pronto'))return 'Parcialmente pronto';if(states.some(s=>s==='em_preparo'))return 'Em preparo';return 'Novo'}
 function gsPayment(a){return Number(a.pago)<=0?'Pendente':Number(a.pago)<Number(a.total)?'Parcial':'Pago'}
-async function iniciarGastronomia(){try{gsNotice('');await gsReload();clearInterval(GS.pollTimer);GS.pollTimer=setInterval(()=>{if(!$('view-gastronomia').classList.contains('hidden')&&!GS.busy&&!GS.loading)gsReload().catch(gsNotice)},5000);gsRender();const e=GS.ctx.empresa_id;if(GS.channel)await supabase.removeChannel(GS.channel);GS.channel=supabase.channel('gastronomia:'+e).on('postgres_changes',{event:'*',schema:'public',table:'gastronomia_sinais',filter:'empresa_id=eq.'+e},()=>{clearTimeout(GS.refreshTimer);GS.refreshTimer=setTimeout(()=>{if(!$('view-gastronomia').classList.contains('hidden'))gsReload().catch(gsNotice)},350)}).subscribe(s=>{$('gs-connection').textContent=s==='SUBSCRIBED'?'Atualização entre terminais ativa':'Atualize ao reconectar'});}catch(e){gsNotice(e)}}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&GS.ctx&&!$('view-gastronomia').classList.contains('hidden'))gsReload().catch(gsNotice)});
+async function iniciarGastronomia(){try{gsNotice('');await gsReload();clearInterval(GS.pollTimer);GS.pollTimer=setInterval(()=>{gsAtualizarSilencioso().catch(()=>{})},5000);gsRender();const e=GS.ctx.empresa_id;if(GS.channel)await supabase.removeChannel(GS.channel);GS.channel=supabase.channel('gastronomia:'+e).on('postgres_changes',{event:'*',schema:'public',table:'gastronomia_sinais',filter:'empresa_id=eq.'+e},()=>{clearTimeout(GS.refreshTimer);GS.refreshTimer=setTimeout(()=>{if(gsPollingPermitido())gsAtualizarSilencioso().catch(()=>{})},350)}).subscribe(s=>{$('gs-connection').textContent=s==='SUBSCRIBED'?'Atualização entre terminais ativa':'Atualize ao reconectar'});}catch(e){gsNotice(e)}}
+document.addEventListener('visibilitychange',()=>{if(gsPollingPermitido())gsAtualizarSilencioso().catch(()=>{})});
 document.addEventListener('click',()=>{if(GS.channel&&$('view-gastronomia').classList.contains('hidden')){supabase.removeChannel(GS.channel);GS.channel=null;clearTimeout(GS.refreshTimer)}});
 $('gs-refresh').onclick=()=>gsReload().catch(gsNotice);$('gs-new').onclick=()=>gsNew();$('gs-dialog').querySelector('.gs-close').onclick=()=>{if($('gs-dialog').classList.contains('gs-mesa-dialog'))gsCloseMesa();else{$('gs-dialog').close();GS.selected=null}};
 
@@ -10136,7 +10163,7 @@ function gsReceiveInto(a,parent){
 
 document.addEventListener('input',event=>{if(event.target.closest('#gs-dialog,#view-gastronomia'))GS.formDirty=true});
 document.addEventListener('change',event=>{if(event.target.closest('#gs-dialog,#view-gastronomia'))GS.formDirty=true});
-setInterval(()=>{if(GS.ctx&&!GS.busy&&!GS.pending&&!GS.formDirty&&!document.hidden&&!$('view-gastronomia').classList.contains('hidden')&&GS.area!=='configuracao')gsReload().catch(gsNotice)},30000);
+// A atualização periódica da Gastronomia é feita exclusivamente pelo polling silencioso de Mesas e Pedidos.
 
 // Complemento do Financeiro: razão de recebimentos, inclusive parcelas monetárias ainda sem venda quitada.
 const gsFinanceiroOriginal=CARREGADORES_VIEW.financeiro;
