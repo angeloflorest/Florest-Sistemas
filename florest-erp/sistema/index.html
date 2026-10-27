@@ -4345,7 +4345,7 @@
           <button class="btn-accent" id="btn-novo-produto-bar">+ Criar produto composto</button>
         </div>
         <div class="search-row">
-          <input type="text" id="bar-produtos-busca" placeholder="Buscar por nome do produto...">
+          <input type="text" id="bar-produtos-busca" name="bar_busca_produtos_compostos" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Buscar por nome do produto...">
         </div>
         <div id="bar-produtos-msg"></div>
         <div class="table-card">
@@ -22238,7 +22238,10 @@ async function carregarBarProdutos(){
   const req = ++barProdutosListaReq;
   const empresaId = await obterEmpresaId();
   $('bar-produtos-msg').innerHTML = '';
-  const termo = termoSeguro($('bar-produtos-busca').value).toLowerCase();
+  const buscaCompostos = $('bar-produtos-busca');
+  // Evita que URLs de cardápio preenchidas pelo navegador apareçam na busca do Módulo Bar.
+  if (/^(?:https?:\/\/|.*\/cardapio\.html(?:[?#]|$))/i.test(buscaCompostos.value.trim())) buscaCompostos.value = '';
+  const termo = termoSeguro(buscaCompostos.value).toLowerCase();
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
     .select('id, produtos ( nome, preco_venda ), bar_produto_grupos ( id, nome )')
