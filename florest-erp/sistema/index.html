@@ -21288,6 +21288,8 @@ $('btn-bar-mesa-transferir').addEventListener('click', async () => {
 // (bar_mesa_abrir_interna, dentro de bar_pedido_lancar) quando o primeiro pedido é lançado.
 async function abrirModalMesa(mesa){
   barMesaAtual = mesa;
+  barReaberturaAtual = null;
+  barReaberturaPainel();
   barComandaAtualId = mesa.comanda_atual_id || null;
   barMesaResumoAtual = null;
   barMesaItemSelecionado = null;
@@ -21340,6 +21342,7 @@ async function abrirModalMesa(mesa){
 // estornar) e pelo Realtime.
 async function atualizarSaldoEItensMesa(){
   if(!barComandaAtualId){
+    barReaberturaAtual=null;barReaberturaPainel();
     barMesaResumoAtual = { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
     renderResumoFinanceiroMesa();
     renderItensComandaMesa([]);
@@ -21374,6 +21377,7 @@ async function atualizarSaldoEItensMesa(){
   renderResumoFinanceiroMesa();
   if(juncoesResp.error){ $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível carregar a origem das mesas juntadas: ${escapeHtml(mensagemBancoAcesso(juncoesResp.error))}</div>`; }
   barMesaJuncoes = !juncoesResp.error && Array.isArray(juncoesResp.data) ? juncoesResp.data : [];
+  try{await barReaberturaConsultar();barReaberturaPainel();}catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);return;}
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
   // A conta usa os itens já carregados; sua impressão não depende do histórico de pagamentos.
@@ -21653,7 +21657,7 @@ function renderItensComandaMesa(itens, nomesPorId){
   $('bar-mesa-itens-empty').classList.toggle('hidden', itens.length > 0);
   corpo.innerHTML = itens.map(it => {
     const subtotal = Number(it.quantidade) * Number(it.preco_unitario);
-    const podeCancelar = !it.estornado && !it.pagamento_id && !!modulosComerciais.bar;
+    const podeCancelar = !barReaberturaAtual?.ativa && !it.estornado && !it.pagamento_id && !!modulosComerciais.bar;
     // Requisito #6 (herdado): um composto do modelo novo não tem destino próprio
     // (destino_operacional='sem_destino' na linha comercial) — quem carrega o destino são as
     // escolhas gravadas em bar_pedidos_itens_escolhas. Mostra as escolhas embaixo do nome e o(s)
@@ -21683,9 +21687,10 @@ function renderItensComandaMesa(itens, nomesPorId){
       <td>${formatarReais(it.preco_unitario)}</td>
       <td>${formatarReais(subtotal)}</td>
       <td>${destinoTexto}</td>
-      <td>${podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button>` : ''}</td>
+      <td>${barReaberturaAtual?.ativa&&!it.estornado&&barHistoricoPode('bar_venda_editar')?`<button type="button" class="link-btn" data-reeditar-item="${it.id}" data-quantidade="${it.quantidade}">Editar quantidade / cancelar</button>`:podeCancelar ? `<button type="button" class="link-btn" data-cancelar-item="${it.id}">Cancelar item</button>` : ''}</td>
     </tr>`;
   }).join('');
+  corpo.querySelectorAll('[data-reeditar-item]').forEach(btn=>btn.addEventListener('click',()=>barReaberturaQuantidade(btn.dataset.reeditarItem,btn.dataset.quantidade)));
   corpo.querySelectorAll('[data-cancelar-item]').forEach(btn => btn.addEventListener('click', () => abrirModalCancelarItem(btn.dataset.cancelarItem)));
 }
 
@@ -21952,7 +21957,8 @@ async function receberPagamentoMesaComForma(forma){
     // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
     // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
     // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
-    const { data, error } = await supabase.rpc('bar_comanda_pagar_valor', {
+    const barReceberRpc=async args=>{if(!barReaberturaAtual?.ativa)return supabase.rpc('bar_comanda_pagar_valor',args);const {p_idempotencia,...dados}=args;try{return{data:await barHistoricoMutacao('bar_comanda_pagar_valor',dados),error:null}}catch(error){return{data:null,error}}};
+    const { data, error } = await barReceberRpc({
       p_comanda_id: comandaDoPagamento,
       p_valor: valor,
       p_formas: [{ forma_pagamento: forma, valor }],
@@ -22092,9 +22098,9 @@ $('btn-bar-estornar-pagamento-confirmar').addEventListener('click', async () => 
   }
   const btn = $('btn-bar-estornar-pagamento-confirmar');
   btn.disabled = true; btn.textContent = 'Estornando...';
-  const { error } = await supabase.rpc('bar_pagamento_estornar', {
+  const { error } = await (barReaberturaAtual?.ativa?barReaberturaEstornar(barEstornoPagamentoId,motivo):supabase.rpc('bar_pagamento_estornar', {
     p_pagamento_id: barEstornoPagamentoId, p_motivo: motivo,
-  });
+  }));
   btn.disabled = false; btn.textContent = 'Estornar pagamento';
   if(error){
     $('bar-estornar-pagamento-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
@@ -23055,15 +23061,15 @@ async function barHistoricoDetalhar(id){
   if(barHistoricoEstado.ocupado)return;barHistoricoEstado.ocupado=true;
   try{
     const d=await barHistoricoRpc('florest_venda_detalhar',{p_venda:id}),v=d.venda,c=d.comanda;
-    const bloqueio=!!d.fiscal_bloqueado,acoes=['<option value="consulta">Somente consulta</option>'];
-    if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_editar'))acoes.push('<option value="editar">Editar venda / cliente / pagamento</option>');
+    const bloqueio=!!d.fiscal_bloqueado||(d.documentos||[]).length>0,acoes=['<option value="consulta">Somente consulta</option>'];
+    if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_editar'))acoes.push('<option value="editar">Editar e voltar para a mesa</option>');
     for(const doc of d.documentos||[])acoes.push(`<option value="doc:${escapeHtml(doc.id)}">Documento ${(doc.tipo_documento||'').toUpperCase()} ${escapeHtml(doc.numero||'—')} · ${escapeHtml(doc.status)}</option>`);
     let html=`<p>Mesa ${escapeHtml(String(c?.mesa_numero??'—'))} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Cliente: ${escapeHtml(d.cliente_nome||'—')} · Pagamento: ${escapeHtml(v.forma_pagamento)} · ${v.cancelada_em?'Cancelada':c?.status==='aberta'?'Em aberto':'Concluída'}</p><p>Total: <strong>${formatarReais(v.total)}</strong> · Desconto: ${formatarReais(c?.desconto||0)} · Acréscimo: ${formatarReais(c?.acrescimo||0)} · Taxa: ${formatarReais(c?.taxa_servico||0)}</p>`;
     html+='<table><thead><tr><th>Produto/serviço</th><th>Quantidade</th><th>Valor</th><th>Subtotal</th></tr></thead><tbody>'+(d.itens||[]).map(i=>`<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(String(i.quantidade))}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`).join('')+'</tbody></table>';
     html+='<h4>Pagamentos</h4>'+(d.pagamentos||[]).map(p=>`<p>${escapeHtml(p.forma_pagamento)}: ${formatarReais(p.valor)}${p.estornado?' (estornado)':''}</p>`).join('');
     html+='<h4>Contas a receber</h4>'+(d.titulos||[]).map(t=>`<p>${escapeHtml(t.status)} · Original ${formatarReais(t.valor_original)} · Saldo ${formatarReais(t.saldo_aberto)} · Vencimento ${escapeHtml(t.vencimento)}</p>`).join('');
     html+='<h4>Documentos fiscais</h4><p>'+escapeHtml(barHistoricoFiscalTexto(d.documentos))+'</p>';
-    if(bloqueio)html+='<p class="msg error">Documento fiscal emitido, reservado ou em processamento: edição e cancelamento comuns bloqueados. Utilize o procedimento fiscal próprio. Refazer cria outra venda e preserva integralmente esta.</p>';
+    if(bloqueio)html+='<p class="msg error">Documento fiscal vinculado: reabertura bloqueada. Utilize somente consulta e o procedimento fiscal próprio.</p>';
     html+='<label>Ação<select name="acao">'+acoes.join('')+'</select></label>';
     const choice=await florestDialog('Venda nº '+v.numero_venda,html,'Continuar');if(!choice||choice.acao==='consulta')return;
     if(choice.acao.startsWith('doc:')){await barHistoricoDocumento(choice.acao.slice(4));return;}
@@ -23072,27 +23078,52 @@ async function barHistoricoDetalhar(id){
   }catch(e){alert(barHistoricoErro(e));}
   finally{barHistoricoEstado.ocupado=false;}
 }
-async function barHistoricoEditar(d){
-  const v=d.venda,c=d.comanda,pagos=(d.pagamentos||[]).filter(p=>!p.estornado),permiteItens=!pagos.length;
-  const [clientes,catalogo]=await Promise.all([barClientesConsultar(''),barHistoricoRpc('bar_historico_catalogo')]);
-  const choices=['<option value="manter">Manter cliente atual</option>','<option value="">Sem cliente</option>',...clientes.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.nome)}</option>`)];
-  let html='<p>Itens e valores exigem ausência de pagamentos liquidados; títulos já recebidos e caixas encerrados impedem a correção. Compostos mantêm sua receita original. Para adicionar itens ou alterar a composição, use Refazer venda e o fluxo normal de pedidos.</p><label>Cliente<select name="cliente">'+choices.join('')+'</select></label>';
-  for(const i of d.itens||[]){
-    html+=`<fieldset><legend>${escapeHtml(i.nome)}</legend><label>Produto<select name="produto_${i.id}" ${permiteItens?'':'disabled'}><option value="">Manter produto e composição</option>${(catalogo||[]).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)}</option>`).join('')}</select></label><label>Quantidade<input name="q_${i.id}" type="number" min="0.0001" step="0.0001" value="${i.quantidade}" ${permiteItens?'':'disabled'} required></label><label>Preço<input name="p_${i.id}" type="number" min="0" step="0.01" value="${i.preco_unitario}" ${permiteItens?'':'disabled'} required></label></fieldset>`;
-  }
-  html+=`<label>Desconto<input name="desconto" type="number" min="0" step="0.01" value="${c?.desconto||0}" ${permiteItens?'':'disabled'} required></label>`;
-  for(const p of pagos)html+=`<fieldset><legend>Recebido: ${formatarReais(p.valor)}</legend><label>Forma<select name="forma_${p.id}">${[...new Set([p.forma_pagamento,...FORMAS_PAGAMENTO_BAR])].map(f=>`<option ${f===p.forma_pagamento?'selected':''}>${escapeHtml(f)}</option>`).join('')}</select></label></fieldset>`;
-  html+='<label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>';
-  const f=await florestDialog('Editar venda nº '+v.numero_venda,html,'Salvar correção');if(!f)return;
-  const alteracoes={};
-  if(f.cliente!=='manter')alteracoes.cliente_id=f.cliente||null;
-  const itens=[];
-  if(permiteItens){for(const i of d.itens||[]){const p=f['produto_'+i.id],q=Number(f['q_'+i.id]),preco=Number(f['p_'+i.id]);if(p||q!==Number(i.quantidade)||preco!==Number(i.preco_unitario))itens.push({id:i.id,quantidade:q,preco_unitario:preco,...(p?{bar_produto_id:p}:{})});}if(itens.length)alteracoes.itens=itens;if(Number(f.desconto)!==Number(c?.desconto||0))alteracoes.desconto=Number(f.desconto);}
-  const pagamentos=pagos.filter(p=>f['forma_'+p.id]!==p.forma_pagamento).map(p=>({id:p.id,forma_pagamento:f['forma_'+p.id]}));if(pagamentos.length)alteracoes.pagamentos=pagamentos;
-  if(!Object.keys(alteracoes).length){alert('Nenhuma alteração informada.');return;}
-  await barHistoricoMutacao('florest_venda_corrigir',{p_venda:v.id,p_alteracoes:alteracoes,p_motivo:f.motivo.trim()});
-  alert('Correção salva e auditada.');await carregarBarHistorico();
+// Fluxo exclusivo de reedição do Histórico do Bar. O servidor decide elegibilidade e saldo.
+let barReaberturaAtual=null;
+async function barReaberturaConsultar(){
+ const id=barComandaAtualId;if(!id){barReaberturaAtual=null;return;}
+ const {data,error}=await supabase.rpc('bar_historico_mesa_editar',{p_comanda_id:id,p_acao:'contexto'});
+ if(id!==barComandaAtualId)return;
+ if(error){barReaberturaAtual=null;throw error;}
+ barReaberturaAtual=data?.ativa?{...data,comanda_id:id}:null;
 }
+async function barReaberturaOperar(acao,dados,motivo){
+ const atual=barReaberturaAtual;if(!atual?.ativa)throw Error('Atualize a mesa antes de continuar.');
+ return barHistoricoMutacao('bar_historico_mesa_editar',{p_comanda_id:atual.comanda_id,p_acao:acao,p_dados:{...dados,versao:atual.versao},p_motivo:motivo});
+}
+function barReaberturaPainel(){
+ let panel=$('bar-reabertura-painel');if(!panel){panel=document.createElement('div');panel.id='bar-reabertura-painel';$('bar-mesa-titulo').after(panel);}
+ panel.replaceChildren();panel.hidden=!barReaberturaAtual?.ativa;if(panel.hidden)return;
+ const msg=document.createElement('p');msg.textContent='Venda reaberta: recebimentos anteriores preservados. Ajustes exigem motivo e caixa original aberto.';panel.append(msg);
+ const close=document.createElement('button');close.type='button';close.className='btn-secondary';close.textContent='Concluir edição e fechar mesa';
+ close.onclick=async()=>{close.disabled=true;try{const d=await florestDialog('Concluir edição','<p>A conta deve estar quitada. O número original da venda será mantido.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Fechar mesa');if(!d)return;await barReaberturaOperar('fechar',{},d.motivo.trim());$('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barReaberturaAtual=null;await carregarBarMesas();}catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);}finally{close.disabled=false;}};
+ panel.append(close);
+}
+async function barReaberturaQuantidade(itemId,quantidade){
+ try{
+ const f=await florestDialog('Editar quantidade / cancelar','<p>Informe zero para cancelar. O estoque será ajustado somente pela diferença comprovada nas baixas deste item. Se houver pagamento excedente, estorne primeiro o recebimento correspondente.</p><label>Nova quantidade<input type="number" name="quantidade" min="0" max="100000" step="0.0001" value="'+escapeHtml(String(quantidade))+'" required></label><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Salvar alteração');
+ if(!f)return;await barReaberturaOperar('quantidade',{item_id:itemId,quantidade:Number(f.quantidade)},f.motivo.trim());
+ await atualizarSaldoEItensMesa();if(barSubViewAtual==='mesas')await carregarBarMesas();
+ }catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);}
+}
+async function barReaberturaEstornar(pagamentoId,motivo){
+ try{
+ const {data,error}=await supabase.rpc('bar_comanda_pagamentos_listar',{p_comanda_id:barComandaAtualId});if(error)throw error;
+ const p=(data||[]).find(x=>x.id===pagamentoId&&!x.estornado);if(!p)throw Error('Recebimento indisponível. Atualize a mesa.');
+ const formas=(p.bar_pagamentos_formas||[]).map(x=>escapeHtml(x.forma_pagamento)+' '+formatarReais(x.valor)).join(' + ');
+ const f=await florestDialog('Estornar recebimento integral','<p>Valor: '+formatarReais(p.total)+' · '+formas+'</p><p>Este estorno abrange todas as formas deste recebimento. Os demais recebimentos permanecem válidos. O registro interno não realiza devolução de Pix ou cartão.</p><label>Confirme o valor integral<input name="valor" type="number" min="0.01" step="0.01" required></label>','Confirmar estorno');
+ if(!f)return{error:{message:'Estorno não confirmado.'}};
+ await barReaberturaOperar('estornar_pagamento',{pagamento_id:pagamentoId,valor_confirmado:Number(f.valor)},motivo);return{error:null};
+ }catch(error){return{error};}
+}
+async function barHistoricoEditar(d){
+ const c=d.comanda;if(!c?.id)throw Error('Comanda original não identificada.');
+ const f=await florestDialog('Editar e voltar para a mesa','<p>A operação preserva produtos e pagamentos. Exige caixa original aberto, mesa original livre e não reutilizada, ausência de documentos fiscais e consistência dos registros.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Reabrir mesa');if(!f)return;
+ const r=await barHistoricoMutacao('bar_historico_mesa_editar',{p_comanda_id:c.id,p_acao:'reabrir',p_dados:{},p_motivo:f.motivo.trim()});
+ await abrirSubViewBar('mesas');const {data:mesa,error}=await supabase.from('bar_mesas').select('*').eq('id',r.mesa_id).single();if(error)throw error;
+ await abrirModalMesa(mesa);
+}
+
 async function barHistoricoDocumento(id){
   const d=await barHistoricoRpc('bar_historico_documento',{p_documento:id});
   let opts='<option value="consulta">Somente consulta</option>';
