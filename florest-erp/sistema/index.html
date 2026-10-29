@@ -6993,7 +6993,7 @@ export function abrirImportador(config){
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { instalarTaxasPagamento, agruparDespesasTaxas } from './taxas-pagamento.js';
+import { instalarTaxasPagamento, agruparDespesasTaxas, prepararTaxasRecebimentoMesa } from './taxas-pagamento.js';
 // O importador vai embutido neste mesmo arquivo (bloco <script id="importador-src"> abaixo), para o index.html
 // abrir com duplo clique (file://) e em qualquer hospedagem, sem depender de importador.js ao lado.
 const { abrirImportador, somenteDigitos, chaveGtin, variantesGtin } = await import(
@@ -9940,7 +9940,51 @@ function gsBtn(label,fn){const b=gsEl('button',label,'gs-button');b.type='button
 function gsHas(p){return GS.ctx?.permissoes.includes('gastronomia_'+p)}
 function gsNotice(e){const message=e?.message||String(e||'');$('gs-feedback').textContent=message;$('gs-feedback').className=e?.message?'msg error':'msg';if($('gs-dialog').open){let box=$('gs-dialog-feedback');if(!box){box=gsEl('p');box.id='gs-dialog-feedback';box.setAttribute('role','status');$('gs-dialog-body').prepend(box)}box.textContent=message}}
 async function gsMesaWait(request){return await request}
+// Discriminação de recebimentos apenas nas mesas; o motor financeiro permanece o existente.
+const MP={bar:null,gastronomia:null};
+const mpMoney=v=>formatarReais(Number(v)||0);
+function mpStorageKey(modulo,id){return 'florest-mesa-produtos:'+acesso.userId+':'+modulo+':'+id}
+function mpPending(modulo,id){try{return JSON.parse(sessionStorage.getItem(mpStorageKey(modulo,id))||'null')}catch{return null}}
+function mpClearConfirmed(modulo,id){const p=mpPending(modulo,id);if(p?.confirmado)try{sessionStorage.removeItem(mpStorageKey(modulo,id))}catch{}}
+function mpAcknowledge(modulo,id,ctx){const p=mpPending(modulo,id);if(p?.confirmado&&(ctx.recebimentos||[]).some(r=>r.id===p.pagamento_id)){mpClearConfirmed(modulo,id);return true}return false}
+async function mpRead(modulo,id){const r=await supabase.rpc('mesas_pagamento_produtos',{p_modulo:modulo,p_acao:'consultar',p_atendimento_id:id});if(r.error)throw r.error;return r.data}
+async function mpPay(modulo,id,dados,chave=null,mesaId=null){
+ let pending=mpPending(modulo,id);if(pending&&JSON.stringify(pending.dados)!==JSON.stringify(dados))throw Error('Há um recebimento por produtos pendente. Use Recuperar recebimento antes de iniciar outro.');
+ pending=pending||{dados,chave:chave||crypto.randomUUID(),mesa_id:mesaId};
+ try{sessionStorage.setItem(mpStorageKey(modulo,id),JSON.stringify(pending))}catch{throw Error('Não foi possível guardar a chave do recebimento. Verifique o armazenamento da sessão antes de receber.')}
+ const clear=()=>{try{sessionStorage.removeItem(mpStorageKey(modulo,id))}catch{}};
+ const {data,error}=await supabase.rpc('mesas_pagamento_produtos',{p_modulo:modulo,p_acao:'receber',p_atendimento_id:id,p_dados:pending.dados,p_chave:pending.chave});
+ if(error){if(!pending.confirmado&&['P0001','40001','22003','22P02','23503','23514','23502'].includes(error.code))clear();throw error}if(modulo==='bar'){pending.confirmado=true;pending.pagamento_id=data?.[0]?.pagamento_id;try{sessionStorage.setItem(mpStorageKey(modulo,id),JSON.stringify(pending))}catch{}}else clear();return data;
+}
+function mpSelected(modulo,id){const state=MP[modulo];if(!state||state.id!==id)return[];const rows=[];for(const x of state.fields){if(!x.check.checked||!x.check.isConnected)continue;const valor=Number(x.value.value);if(!x.value.checkValidity()||!Number.isFinite(valor)||valor<=0||Math.abs(valor*100-Math.round(valor*100))>1e-7||valor>Number(x.item.pendente))throw Error('Confira os valores selecionados dos produtos.');rows.push({item_id:x.item.item_id,valor:Math.round(valor*100)/100})}return rows}
+function mpDetails(receipt){const detail=document.createElement('details');detail.className='mp-discriminacao';detail.style.fontSize='.85em';const summary=document.createElement('summary');summary.textContent='Produtos · '+mpMoney(receipt.valor)+(receipt.estornado?' · Estornado':'');detail.append(summary);for(const i of receipt.itens){const line=document.createElement('div');line.textContent=i.nome+' · '+mpMoney(i.valor);detail.append(line)}return detail}
+function mpAttachHistory(root,ctx,bar=false){if(!root?.isConnected)return;for(const p of ctx.recebimentos||[]){const node=[...root.querySelectorAll(bar?'[data-bar-pagamento-id]':'[data-mp-pagamento]')].find(x=>(bar?x.dataset.barPagamentoId:x.dataset.mpPagamento)===p.id);if(!node)continue;node.querySelector('.mp-discriminacao')?.remove();(bar?node.cells[1]:node).append(mpDetails(p))}}
+function mpEnhance(modulo,id,root,ctx,amount,allow){
+ const fields=[],state={id,fields,ctx};MP[modulo]=state;const acknowledged=mpAcknowledge(modulo,id,ctx);if(amount){amount.readOnly=false;if(acknowledged)amount.value=Number(ctx.saldo_financeiro).toFixed(2)}
+ const note=document.createElement('div');note.className='mp-nota';note.style.fontSize='.85em';note.style.margin='6px 0';note.textContent=ctx.habilitado?'Selecione os lançamentos a receber. Descontos e taxas são rateados somente no saldo de quitação.':'Seleção indisponível nesta conta legada; o recebimento existente foi preservado.';
+ if(Number(ctx.sem_discriminacao)>0)note.append(document.createTextNode(' Há '+mpMoney(ctx.sem_discriminacao)+' recebidos sem discriminação; nenhuma atribuição foi presumida.'));
+ if((ctx.itens||[]).some(i=>Number(i.pago)>Number(i.limite)||(i.cancelado&&Number(i.pago)>0)))note.append(document.createTextNode(' Há discriminação anterior em lançamento corrigido ou cancelado. O histórico foi preservado; utilize o estorno existente para regularizar a atribuição, quando necessário.'));
+ const table=root.tagName==='TBODY'?root.closest('table'):root.querySelector('table');if(table){table.parentElement.querySelector('.mp-nota')?.remove();table.after(note)}
+ const sum=()=>{try{const selected=mpSelected(modulo,id),cents=selected.reduce((n,x)=>n+Math.round(x.valor*100),0);if(amount){amount.readOnly=selected.length>0;amount.value=(selected.length?cents/100:Number(ctx.saldo_financeiro)).toFixed(2)}note.dataset.mpTotal=String(cents);if(cents>Math.round(Number(ctx.saldo_financeiro)*100))note.textContent='A seleção supera o saldo financeiro. Ajuste os valores antes de receber.';}catch(e){note.textContent=e.message}};
+ for(const item of ctx.itens||[]){const row=[...root.querySelectorAll('[data-mp-item]')].find(x=>x.dataset.mpItem===item.item_id);if(!row||item.cancelado)continue;const cell=row.cells[0];cell.querySelector('.mp-produto')?.remove();const box=document.createElement('div');box.className='mp-produto';box.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.85em';const paid=Number(item.limite)>0&&Number(item.pago)>=Number(item.limite);row.style.opacity=paid?'.5':'';
+ const status=document.createElement('span');status.textContent=paid?'Pago':Number(item.pago)>0?'Pago '+mpMoney(item.pago)+' · Falta '+mpMoney(item.pendente):'Pendente '+mpMoney(item.pendente);box.append(status);
+ if(allow&&amount&&ctx.habilitado){const check=document.createElement('input');check.type='checkbox';check.setAttribute('aria-label','Selecionar '+item.nome+' '+item.item_id);check.disabled=paid||Number(item.pendente)<=0||Number(ctx.saldo_financeiro)<=0;const value=document.createElement('input');value.type='number';value.min='.01';value.max=item.pendente;value.step='.01';value.value=Number(item.pendente).toFixed(2);value.style.width='84px';value.disabled=true;value.setAttribute('aria-label','Valor de '+item.nome+' '+item.item_id);fields.push({item,check,value});check.onchange=()=>{value.disabled=!check.checked;sum()};value.oninput=sum;box.prepend(check,value)}cell.append(box);
+ }
+ mpAttachHistory(root,ctx,modulo==='bar');return state;
+}
+async function mpBarEnhance(id,root){MP.bar=null;if(!id)return;try{const ctx=await mpRead('bar',id);if(id!==barComandaAtualId||!root.isConnected)return;mpEnhance('bar',id,root,ctx,$('bar-mesa-pagamento-valor'),podeAcessarBar('bar_caixa'));}catch(e){if(id===barComandaAtualId)$('bar-mesa-msg').textContent='Discriminação indisponível: '+(e.message||e)}}
+async function mpBarHistory(id,root){try{const ctx=await mpRead('bar',id);if(id===barComandaAtualId)mpAttachHistory(root,ctx,true)}catch(e){if(root.isConnected){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=5;cell.textContent='Não foi possível consultar a discriminação dos produtos.';row.append(cell);root.append(row)}}}
+async function mpGastroEnhance(a,body){MP.gastronomia=null;if(!a.id){mpRecoveryNotice('gastronomia',a.mesa_id,body);return}try{const ctx=await mpRead('gastronomia',a.id);if(!body.isConnected||GS.selected!==a.id)return;mpEnhance('gastronomia',a.id,body,ctx,body.querySelector('[data-mp-amount]'),gsHas('caixa'));mpRecoveryNotice('gastronomia',a.mesa_id,body);}catch(e){if(body.isConnected)body.append(gsEl('p','Discriminação indisponível: '+(e.message||e),'gs-meta'))}}
+async function mpBarReceive(args){const selected=mpSelected('bar',args.p_comanda_id),pending=mpPending('bar',args.p_comanda_id);if(!selected.length){if(pending)throw Error('Há um recebimento por produtos pendente. Use Recuperar recebimento antes de iniciar outro.');return null}const dados={valor:args.p_valor,formas:args.p_formas,desconto:args.p_desconto,acrescimo:args.p_acrescimo,taxa_servico:args.p_taxa_servico,produtos_selecionados:selected};if(pending){const normal=p=>({...p,formas:p.formas.map(({taxas,...f})=>f)});if(JSON.stringify(normal(pending.dados))!==JSON.stringify(normal(dados)))throw Error('Há um recebimento pendente com outros valores. Use Recuperar recebimento.');return mpPay('bar',args.p_comanda_id,pending.dados,pending.chave,pending.mesa_id)}dados.formas=await prepararTaxasRecebimentoMesa(supabase,dados.formas);return mpPay('bar',args.p_comanda_id,dados,null,barMesaAtual?.id)}
+async function mpGastroReceive(dados,chave){return mpPay('gastronomia',dados.id,dados,chave,GS.mesaCurrent)}
+function mpRecoveryNotice(modulo,mesaId,root){
+ if(!mesaId||!root?.isConnected)return;const prefix='florest-mesa-produtos:'+acesso.userId+':'+modulo+':';let pending=[];try{for(let n=0;n<sessionStorage.length;n++){const key=sessionStorage.key(n);if(!key.startsWith(prefix))continue;const p=JSON.parse(sessionStorage.getItem(key));if(p.mesa_id===mesaId)pending.push({id:key.slice(prefix.length),...p})}}catch{}
+ root.querySelector('.mp-recuperar')?.remove();if(!pending.length)return;const box=document.createElement('div');box.className='mp-recuperar';box.style.fontSize='.85em';box.append(document.createTextNode('Recebimento por produtos com resposta pendente. '));for(const p of pending){const button=document.createElement('button');button.type='button';button.className='btn-secondary';button.textContent='Recuperar recebimento';button.onclick=async()=>{button.disabled=true;let confirmed=false;try{const result=await mpPay(modulo,p.id,p.dados,p.chave,mesaId);confirmed=true;if(modulo==='bar'){const{data,error}=await supabase.from('bar_mesas').select('*').eq('id',mesaId).single();if(error)throw error;if(barMesaAtual?.id===mesaId){barMesaAtual=data;barComandaAtualId=data.comanda_atual_id||null;await atualizarSaldoEItensMesa();}await carregarBarMesas();if(barComandaAtualId!==p.id)mpClearConfirmed('bar',p.id);}else{await gsReload(true);await gsMesaAfterMutation(result)}box.remove();}catch(e){if(modulo==='gastronomia'&&confirmed){GS.needsRefresh=true;p.confirmado=true;try{sessionStorage.setItem(mpStorageKey(modulo,p.id),JSON.stringify(p))}catch{}}box.append(document.createTextNode(' '+(e.message||e)))}finally{button.disabled=false}};box.append(button)}root.append(box);
+}
+async function mpClosedHistory(modulo,id){if(!id)return'';try{const ctx=await mpRead(modulo,id);if(!ctx.recebimentos?.length)return'';return '<h4>Discriminação dos recebimentos</h4>'+ctx.recebimentos.map(p=>'<details><summary>'+escapeHtml(p.forma||'Recebimento')+' · '+mpMoney(p.valor)+(p.estornado?' · Estornado':'')+'</summary>'+p.itens.map(i=>'<div>'+escapeHtml(i.nome)+' · '+mpMoney(i.valor)+'</div>').join('')+'</details>').join('')}catch{return '<p>Discriminação dos recebimentos temporariamente indisponível.</p>'}}
+
 async function gsRPC(acao,dados={},chave=null,limited=false){
+ if(acao==='receber'&&(dados.produtos_selecionados?.length||mpPending('gastronomia',dados.id)))return mpGastroReceive(dados,chave);
  const {data,error}=await supabase.rpc('gastronomia_rpc',{p_acao:acao,p_dados:dados,p_chave:chave});
  if(error)throw error;
  return data;
@@ -10187,9 +10231,10 @@ function gsMesaPanel(account,mesa){
  const grid=gsEl('div','','gs-workspace gs-mesa-workspace'),left=gsEl('div','','gs-panel'),right=gsEl('div','','gs-panel');grid.append(left,right);body.append(grid);
  if(['rascunho','aberto'].includes(a.estado)&&gsHas('pedidos'))gsAddInto(a,gsSection(left,'Lançar produto na mesa'));
  const consumption=gsSection(left,'Consumo da mesa'),wrap=gsEl('div','','gs-table-wrap'),table=gsEl('table','','gs-mesa-tabela'),head=gsEl('thead'),tr=gsEl('tr');for(const h of ['Produto','Qtd.','Preço','Subtotal','Destino','Lançado por','Ações'])tr.append(gsEl('th',h));head.append(tr);table.append(head);const tbody=gsEl('tbody');table.append(tbody);wrap.append(table);consumption.append(wrap);
- for(const i of a.itens){const row=gsEl('tr'),product=gsEl('td');product.append(gsEl('b',i.snapshot.produto_nome+(i.cancelado?' · Cancelado':'')));if(i.snapshot.observacao)product.append(gsEl('div',i.snapshot.observacao,'gs-meta'));for(const choice of i.snapshot.escolhas_resolvidas||[])product.append(gsEl('div',choice.grupo_nome+': '+choice.produto_nome,'gs-meta'));const author=gsEl('td');author.append(gsEl('span',i.autor_nome||(i.snapshot.autor_publico?i.snapshot.autor_publico+' · Cardápio':'Usuário não identificado')),gsEl('div',new Date(i.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),'gs-meta'));const dest=[...new Set((i.preparo||[]).map(p=>p.setor))].map(s=>s==='cozinha'?'Cozinha':'Bar').join(' + '),actions=gsEl('td','','gs-mesa-item-acoes');if(!i.cancelado&&['aberto','em_ajuste'].includes(a.estado)&&gsHas('cancelar'))actions.append(gsBtn('Cancelar item',()=>gsMesaNavigate(()=>gsAuthorize('cancelar_item',a,{item_id:i.id}))),gsBtn('Corrigir',()=>gsMesaNavigate(()=>gsEditItem(a,i))));row.append(product,gsEl('td',i.quantidade),gsEl('td',gsMoney(i.preco_unitario)),gsEl('td',gsMoney(Number(i.quantidade)*Number(i.preco_unitario))),gsEl('td',dest||'Não informado'),author,actions);tbody.append(row)}if(!a.itens.length)consumption.append(gsEl('p','Nenhum produto lançado. A conta só será aberta ao confirmar o primeiro lançamento.','gs-meta'));
+ for(const i of a.itens){const row=gsEl('tr'),product=gsEl('td');row.dataset.mpItem=i.id;product.append(gsEl('b',i.snapshot.produto_nome+(i.cancelado?' · Cancelado':'')));if(i.snapshot.observacao)product.append(gsEl('div',i.snapshot.observacao,'gs-meta'));for(const choice of i.snapshot.escolhas_resolvidas||[])product.append(gsEl('div',choice.grupo_nome+': '+choice.produto_nome,'gs-meta'));const author=gsEl('td');author.append(gsEl('span',i.autor_nome||(i.snapshot.autor_publico?i.snapshot.autor_publico+' · Cardápio':'Usuário não identificado')),gsEl('div',new Date(i.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),'gs-meta'));const dest=[...new Set((i.preparo||[]).map(p=>p.setor))].map(s=>s==='cozinha'?'Cozinha':'Bar').join(' + '),actions=gsEl('td','','gs-mesa-item-acoes');if(!i.cancelado&&['aberto','em_ajuste'].includes(a.estado)&&gsHas('cancelar'))actions.append(gsBtn('Cancelar item',()=>gsMesaNavigate(()=>gsAuthorize('cancelar_item',a,{item_id:i.id}))),gsBtn('Corrigir',()=>gsMesaNavigate(()=>gsEditItem(a,i))));row.append(product,gsEl('td',i.quantidade),gsEl('td',gsMoney(i.preco_unitario)),gsEl('td',gsMoney(Number(i.quantidade)*Number(i.preco_unitario))),gsEl('td',dest||'Não informado'),author,actions);tbody.append(row)}if(!a.itens.length)consumption.append(gsEl('p','Nenhum produto lançado. A conta só será aberta ao confirmar o primeiro lançamento.','gs-meta'));
  const totals=gsSection(right,'Resumo da conta');gsTotals(totals,a);if(a.id&&['aberto','em_ajuste'].includes(a.estado)&&gsHas('caixa')){const adjust=gsEl('details');adjust.append(gsEl('summary','Ajustar desconto, acréscimo e serviço'));gsAdjustInto(a,adjust);totals.append(adjust);gsMesaReceber(a,gsSection(right,'Receber na mesa'))}
- if((a.pagamentos||[]).length){const payments=gsSection(right,'Pagamentos recebidos');for(const payment of a.pagamentos){const line=gsEl('div','','gs-item');line.append(gsEl('b',payment.forma+' · '+gsMoney(payment.valor)),gsEl('div',new Date(payment.criado_em).toLocaleString('pt-BR')+(payment.estornado?' · Estornado':''),'gs-meta'));if(!payment.estornado&&gsHas('estornar'))line.append(gsBtn('Estornar com autorização',()=>gsMesaNavigate(()=>gsAuthorize('estornar',a,{pagamento_id:payment.id}))));payments.append(line)}}
+ if((a.pagamentos||[]).length){const payments=gsSection(right,'Pagamentos recebidos');for(const payment of a.pagamentos){const line=gsEl('div','','gs-item');line.dataset.mpPagamento=payment.id;line.append(gsEl('b',payment.forma+' · '+gsMoney(payment.valor)),gsEl('div',new Date(payment.criado_em).toLocaleString('pt-BR')+(payment.estornado?' · Estornado':''),'gs-meta'));if(!payment.estornado&&gsHas('estornar'))line.append(gsBtn('Estornar com autorização',()=>gsMesaNavigate(()=>gsAuthorize('estornar',a,{pagamento_id:payment.id}))));payments.append(line)}}
+ mpGastroEnhance(a,body);
 }
 function gsCloseMesa(){GS.closeMesaAfterSave=false;GS.formDirty=false;GS.mesaLaunchDirty=false;GS.selected=null;GS.mesaCurrent=null;$('gs-dialog').close();$('gs-dialog').classList.remove('gs-mesa-dialog');GS.area='mesas';gsRender()}
 
@@ -10201,7 +10246,7 @@ async function gsMesaAfterMutation(r){if(!$('gs-dialog').open)return;if(GS.needs
 
 function gsMesaReceber(a,parent){
  const saldo=Math.max(0,Number(a.total)-Number(a.pago));if(saldo<=0){parent.append(gsEl('p','A conta está quitada.','gs-meta'));if(Number(a.total)>0)parent.append(gsPrimary('Encerrar mesa quitada',async()=>{const r=await gsCall('finalizar',{id:a.id,versao:a.versao});await gsMesaAfterMutation(r)}));return}
- const form=gsEl('form');parent.append(form);const amount=gsField(form,'Valor a receber agora (R$)','number',saldo.toFixed(2));amount.min='.01';amount.max=saldo;amount.step='.01';amount.required=true;
+ const form=gsEl('form');parent.append(form);const amount=gsField(form,'Valor a receber agora (R$)','number',saldo.toFixed(2));amount.min='.01';amount.max=saldo;amount.step='.01';amount.required=true;amount.dataset.mpAmount='1';
  const method=gsSelect(form,'Forma de pagamento',[['Dinheiro','Dinheiro'],['Pix','Pix'],['Cartão de Débito','Débito'],['Cartão de Crédito','Crédito']]),brand=gsSelect(form,'Bandeira / taxa',[]);
  function brands(){brand.replaceChildren();const rules=GS.ctx.taxas?.ativo?(GS.ctx.taxas.regras||[]).filter(r=>r.forma===method.value):[];for(const r of rules){const option=gsEl('option',(r.bandeira||'Padrão')+' · '+r.percentual+'%');option.value=r.bandeira||'';brand.append(option)}brand.parentElement.hidden=!rules.length}method.onchange=brands;brands();
  const status=gsEl('p','','gs-meta');status.setAttribute('role','status');form.append(status);
@@ -10210,7 +10255,7 @@ function gsMesaReceber(a,parent){
   if(!form.reportValidity())return;const value=Number(amount.value);if(!Number.isFinite(value)||value<=0||value>saldo)throw Error('Informe um valor válido, até o saldo da mesa.');
   const payment={forma_pagamento:method.value,valor:value};if(GS.ctx.taxas?.id)payment.taxas={config_id:GS.ctx.taxas.id,bandeira:brand.value||null};
   for(const f of [amount,method,brand])f.disabled=true;status.textContent='Registrando recebimento…';
-  try{const r=await gsCall('receber',{id:a.id,versao:a.versao,formas:[payment]});await gsMesaAfterMutation(r);if(!GS.needsRefresh&&r.estado!=='finalizado')gsNotice('Recebimento de '+gsMoney(value)+' registrado. Saldo '+gsMoney(Number(r.total)-Number(r.pago))+'.')}
+  try{const r=await gsCall('receber',{id:a.id,versao:a.versao,formas:[payment],...(mpSelected('gastronomia',a.id).length?{produtos_selecionados:mpSelected('gastronomia',a.id)}:{})});await gsMesaAfterMutation(r);if(!GS.needsRefresh&&r.estado!=='finalizado')gsNotice('Recebimento de '+gsMoney(value)+' registrado. Saldo '+gsMoney(Number(r.total)-Number(r.pago))+'.')}
   catch(e){status.textContent=e.message||'Não foi possível registrar o recebimento.';throw e}
   finally{for(const f of [amount,method,brand])f.disabled=false;if(status.textContent==='Registrando recebimento…')status.textContent=''}
  },'Finalizar pagamento');submit.classList.add('gs-primary');form.append(gsEl('p','Confirme somente após receber o valor. Pagamentos parciais mantêm o saldo aberto; a quitação libera a mesa.','gs-meta'));
@@ -21334,6 +21379,7 @@ async function abrirModalMesa(mesa){
     $('bar-mesa-historico-body').innerHTML = '<tr><td colspan="5">Carregando pagamentos da mesa...</td></tr>';
   }
   await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
+  mpRecoveryNotice('bar',mesa.id,$('bar-mesa-msg'));
 }
 
 // Recarrega saldo (bar_comanda_resumo_financeiro — sempre recalculado no banco a partir dos itens
@@ -21681,7 +21727,7 @@ function renderItensComandaMesa(itens, nomesPorId){
     const destinoTexto = escolhas.length > 0
       ? Array.from(new Set(escolhas.map(e => e.destino_operacional))).map(nomeDestino).join(' + ')
       : nomeDestino(it.destino_operacional);
-    return `<tr>
+    return `<tr data-mp-item="${escapeHtml(it.id)}">
       <td>${nomeLinha}${origemJuncao != null ? `<div class="modal-section-hint" style="font-weight:600;">Incorporado da Mesa ${escapeHtml(String(origemJuncao))}</div>` : ''}</td>
       <td>${it.quantidade}</td>
       <td>${formatarReais(it.preco_unitario)}</td>
@@ -21692,6 +21738,7 @@ function renderItensComandaMesa(itens, nomesPorId){
   }).join('');
   corpo.querySelectorAll('[data-reeditar-item]').forEach(btn=>btn.addEventListener('click',()=>barReaberturaQuantidade(btn.dataset.reeditarItem,btn.dataset.quantidade)));
   corpo.querySelectorAll('[data-cancelar-item]').forEach(btn => btn.addEventListener('click', () => abrirModalCancelarItem(btn.dataset.cancelarItem)));
+  mpBarEnhance(barComandaAtualId,corpo);
 }
 
 function abrirModalCancelarItem(itemId){
@@ -21957,7 +22004,7 @@ async function receberPagamentoMesaComForma(forma){
     // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
     // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
     // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
-    const barReceberRpc=async args=>{if(!barReaberturaAtual?.ativa)return supabase.rpc('bar_comanda_pagar_valor',args);const {p_idempotencia,...dados}=args;try{return{data:await barHistoricoMutacao('bar_comanda_pagar_valor',dados),error:null}}catch(error){return{data:null,error}}};
+    const barReceberRpc=async args=>{try{const novo=await mpBarReceive(args);if(novo)return{data:novo,error:null}}catch(error){return{data:null,error}}if(!barReaberturaAtual?.ativa)return supabase.rpc('bar_comanda_pagar_valor',args);const {p_idempotencia,...dados}=args;try{return{data:await barHistoricoMutacao('bar_comanda_pagar_valor',dados),error:null}}catch(error){return{data:null,error}}};
     const { data, error } = await barReceberRpc({
       p_comanda_id: comandaDoPagamento,
       p_valor: valor,
@@ -21988,7 +22035,7 @@ async function receberPagamentoMesaComForma(forma){
     mesaFoiLiberada = !!mesaAtualizada && mesaAtualizada.status === 'livre';
     if(mesaAtualizada) barMesaAtual = mesaAtualizada;
     atualizarBotaoTransferirMesa();
-    if(mesaFoiLiberada) barComandaAtualId = null;
+    if(mesaFoiLiberada){barComandaAtualId=null;mpClearConfirmed('bar',comandaDoPagamento);}
 
     await atualizarSaldoEItensMesa();
     // "Valor a receber agora" sempre volta preenchido com o NOVO saldo restante (vazio se zerou) —
@@ -22068,6 +22115,7 @@ async function carregarHistoricoPagamentosMesa(){
       <td style="text-align:center;">${acao}</td>
     </tr>`;
   }).join('');
+  mpBarHistory(comandaConsultada,$('bar-mesa-historico-body'));
   $('bar-mesa-historico-body').querySelectorAll('[data-estornar-pagamento]').forEach(btn => btn.addEventListener('click', () => {
     abrirModalEstornarPagamento(btn.dataset.estornarPagamento, async () => {
       await atualizarSaldoEItensMesa();
@@ -23067,6 +23115,7 @@ async function barHistoricoDetalhar(id){
     let html=`<p>Mesa ${escapeHtml(String(c?.mesa_numero??'—'))} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Cliente: ${escapeHtml(d.cliente_nome||'—')} · Pagamento: ${escapeHtml(v.forma_pagamento)} · ${v.cancelada_em?'Cancelada':c?.status==='aberta'?'Em aberto':'Concluída'}</p><p>Total: <strong>${formatarReais(v.total)}</strong> · Desconto: ${formatarReais(c?.desconto||0)} · Acréscimo: ${formatarReais(c?.acrescimo||0)} · Taxa: ${formatarReais(c?.taxa_servico||0)}</p>`;
     html+='<table><thead><tr><th>Produto/serviço</th><th>Quantidade</th><th>Valor</th><th>Subtotal</th></tr></thead><tbody>'+(d.itens||[]).map(i=>`<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(String(i.quantidade))}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`).join('')+'</tbody></table>';
     html+='<h4>Pagamentos</h4>'+(d.pagamentos||[]).map(p=>`<p>${escapeHtml(p.forma_pagamento)}: ${formatarReais(p.valor)}${p.estornado?' (estornado)':''}</p>`).join('');
+    html+=await mpClosedHistory('bar',c?.id);
     html+='<h4>Contas a receber</h4>'+(d.titulos||[]).map(t=>`<p>${escapeHtml(t.status)} · Original ${formatarReais(t.valor_original)} · Saldo ${formatarReais(t.saldo_aberto)} · Vencimento ${escapeHtml(t.vencimento)}</p>`).join('');
     html+='<h4>Documentos fiscais</h4><p>'+escapeHtml(barHistoricoFiscalTexto(d.documentos))+'</p>';
     if(bloqueio)html+='<p class="msg error">Documento fiscal vinculado: reabertura bloqueada. Utilize somente consulta e o procedimento fiscal próprio.</p>';

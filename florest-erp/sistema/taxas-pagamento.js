@@ -73,3 +73,9 @@ export function instalarTaxasPagamento(client){
  };
  menu.appendChild(b);
 }
+
+// Preparação das mesmas taxas para o recebimento único por produtos das mesas do Bar.
+export async function prepararTaxasRecebimentoMesa(client,formas){
+ const {data:config,error}=await client.rpc('taxas_pagamento_obter');if(error)throw error;
+ const lista=[];for(const p of formas)lista.push({...p,taxas:p.taxas||await Core.preparar(config,p.forma_pagamento,escolher)});return lista;
+}
