@@ -4602,6 +4602,9 @@
 
         <div class="pdv-panel" style="margin-top:20px;">
           <h3>NFC-e</h3>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <input type="checkbox" id="cf-emite-nota-fiscal" checked disabled style="width:auto;"> Empresa emite nota fiscal?
+          </label>
           <div class="modal-section-hint" id="cf-nfce-aviso-ambiente" style="background:var(--accent-soft); padding:10px 12px; border-radius:8px; margin:-4px 0 14px; color:var(--ink);">
             ⚠️ Ambiente de Homologação — documentos emitidos aqui não têm validade fiscal.
           </div>
@@ -12657,7 +12660,7 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   $('pdv-busca-produto').focus();
 
   if(vendaId && numeroVenda){
-    abrirModalVendaConcluida(vendaId, numeroVenda);   // o pedido só imprime se o operador clicar em "Imprimir pedido"
+    await abrirModalVendaConcluida(vendaId, numeroVenda);   // o pedido só imprime se o operador clicar em "Imprimir pedido"
   } else {
     impEnfileirarRecibo('venda', vendaId);            // sem modal não há botão: mantém o recibo não fiscal como antes
   }
@@ -13553,7 +13556,28 @@ let vendaConcluidaAtualId = null;
 let vendaEmissaoEmAndamento = false;                 // trava contra duplo clique / dupla emissão
 let pedidoImpressao = { vendaId: null, enviados: 0, ocupado: false };
 
-function abrirModalVendaConcluida(vendaId, numeroVenda){
+// Consulta nova a cada fechamento: não compartilha preferência entre empresas ou sessões.
+async function fiscalEmissaoCaixaPermitida(){
+  const empresaId = await obterEmpresaId();
+  const { data, error } = await supabase.rpc('fiscal_emissao_caixa_obter');
+  if(error) throw error;
+  if(!data || data.empresa_id !== empresaId || typeof data.emite_nota_fiscal !== 'boolean' || await obterEmpresaId() !== empresaId){
+    throw new Error('Não foi possível confirmar a configuração fiscal da empresa.');
+  }
+  return data.emite_nota_fiscal;
+}
+
+async function abrirModalVendaConcluida(vendaId, numeroVenda){
+  try {
+    if(!await fiscalEmissaoCaixaPermitida()){
+      pdvFecharModalVendaConcluida();
+      return;
+    }
+  } catch(e){
+    pdvFecharModalVendaConcluida();
+    pdvMensagem('Venda registrada. Não foi possível consultar a configuração fiscal. Confira a emissão na tela Fiscal.');
+    return;
+  }
   vendaConcluidaAtualId = vendaId;
   vendaEmissaoEmAndamento = false;
   pedidoImpressao = { vendaId, enviados: 0, ocupado: false };
@@ -19279,6 +19303,7 @@ let configuracaoFiscalId = null;
 
 async function carregarConfiguracoesFiscais(){
   $('config-fiscal-msg').innerHTML = '';
+  $('cf-emite-nota-fiscal').disabled = true;
 
   const { data, error } = await supabase
     .from('configuracoes_fiscais')
@@ -19293,6 +19318,7 @@ async function carregarConfiguracoesFiscais(){
   if(!data){
     configuracaoFiscalId = null;
     $('form-config-fiscal').reset();
+    $('cf-emite-nota-fiscal').disabled = false;
     definirAmbienteFiscalNaTela(null);
     $('cert-info').classList.add('hidden');
     atualizarStatusIntegracao(null);
@@ -19300,6 +19326,8 @@ async function carregarConfiguracoesFiscais(){
   }
 
   configuracaoFiscalId = data.id;
+  $('cf-emite-nota-fiscal').checked = data.emite_nota_fiscal !== false;
+  $('cf-emite-nota-fiscal').disabled = false;
   $('cf-razao-social').value = data.razao_social || '';
   $('cf-nome-fantasia').value = data.nome_fantasia || '';
   $('cf-cnpj').value = data.cnpj || '';
@@ -19426,8 +19454,13 @@ function renderIntegracaoGeral(){
 
 $('form-config-fiscal').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if($('cf-emite-nota-fiscal').disabled){
+    $('config-fiscal-msg').textContent = 'Aguarde o carregamento das configurações antes de salvar.';
+    return;
+  }
 
   const payload = {
+    emite_nota_fiscal: $('cf-emite-nota-fiscal').checked,
     razao_social: $('cf-razao-social').value.trim() || null,
     nome_fantasia: $('cf-nome-fantasia').value.trim() || null,
     cnpj: $('cf-cnpj').value.trim() || null,
@@ -19458,8 +19491,9 @@ $('form-config-fiscal').addEventListener('submit', async (e) => {
   btn.textContent = 'Salvando...';
 
   let error;
+  try {
   if(configuracaoFiscalId){
-    ({ error } = await supabase.from('configuracoes_fiscais').update(payload).eq('id', configuracaoFiscalId));
+    ({ error } = await supabase.from('configuracoes_fiscais').update(payload).eq('id', configuracaoFiscalId).eq('empresa_id', await obterEmpresaId()).select('id').single());
   } else {
     const { data: perfil } = await supabase
       .from('perfis')
@@ -19468,6 +19502,7 @@ $('form-config-fiscal').addEventListener('submit', async (e) => {
       .single();
     ({ error } = await supabase.from('configuracoes_fiscais').insert({ ...payload, empresa_id: perfil.empresa_id }));
   }
+  } catch(e){ error = e; }
 
   btn.disabled = false;
   btn.textContent = 'Salvar configurações';
@@ -22292,6 +22327,15 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
 // lógica provisória que coletava vários venda_id (um por pagamento), avisava "serão emitidas N
 // notas" e percorria várias vendas em loop não existe mais.
 async function abrirModalBarPagamentoConcluido(comandaId, mesaInfo){
+  $('modal-bar-pagamento-concluido').classList.add('hidden');
+  barFiscalComandaAtual = null;
+  barFiscalVendaIdAtual = null;
+  try {
+    if(!await fiscalEmissaoCaixaPermitida()) return;
+  } catch(e){
+    $('bar-mesa-msg').textContent = 'Pagamento registrado. Não foi possível consultar a configuração fiscal. Confira a emissão na tela Fiscal.';
+    return;
+  }
   const { data: comanda, error } = await supabase
     .from('bar_comandas')
     .select('venda_id')
