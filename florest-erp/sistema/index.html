@@ -3783,6 +3783,7 @@
           <h2>Fiscal</h2>
           <p>Emissão de documentos fiscais das vendas. A emissão real depende da integração com a Dados Jah, ainda não conectada.</p>
         </div>
+        <button type="button" class="btn-secondary hidden" id="btn-fiscal-configuracoes">Configurações</button>
       </div>
 
       <div class="fcp-tabs" role="tablist">
@@ -17328,8 +17329,14 @@ async function fiscalAbrirVendaDaLista(numeroVenda){
 }
 // Depois de emitir/cancelar/consultar, as telas chamam carregarFiscal(): refaz SOMENTE a última pesquisa (se houver). Nunca carrega tudo.
 async function carregarFiscal(){
+  $('btn-fiscal-configuracoes').classList.toggle('hidden', !podeAcessar('configuracoes'));
   if(FPQ.args) await fiscalPesquisar(FPQ.pagina, true);
 }
+$('btn-fiscal-configuracoes').addEventListener('click', () => {
+  if(!podeAcessar('configuracoes')) return;
+  abrirView('configuracoes');
+  $('cf-emite-nota-fiscal').scrollIntoView({ block: 'center' });
+});
 $('fpq-form').addEventListener('submit', (ev) => { ev.preventDefault(); fiscalPesquisar(0, false); });
 $('btn-fpq-limpar').addEventListener('click', fpqResetar);
 $('btn-fpq-ant').addEventListener('click', () => fiscalPesquisar(FPQ.pagina - 1, true));
