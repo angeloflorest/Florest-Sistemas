@@ -23013,16 +23013,26 @@ $('btn-bar-config-mesas-salvar').addEventListener('click', async () => {
 })();
 
 // Melhorias locais Florest — usa a mesma instância Supabase e a mesma sessão do ERP.
-function florestDialog(titulo,conteudo,confirmar='Confirmar'){
+function florestDialog(titulo,conteudo,confirmar='Confirmar',aoConfirmar=null){
   return new Promise(resolve=>{
     const overlay=document.createElement('div');overlay.className='modal-overlay';overlay.style.zIndex='10050';
     overlay.innerHTML=`<div class="modal-card" style="max-width:900px;max-height:90vh;overflow:auto"><h3>${escapeHtml(titulo)}</h3><form><div class="florest-dialog-msg" role="alert"></div>${conteudo}<div class="modal-actions"><button type="button" class="btn-secondary" data-voltar>Voltar</button><button type="submit" class="btn-accent">${escapeHtml(confirmar)}</button></div></form></div>`;
     document.body.appendChild(overlay);
-    const form=overlay.querySelector('form');
+    const form=overlay.querySelector('form');let enviando=false;
     const terminar=v=>{overlay.querySelectorAll('input[type=password]').forEach(i=>i.value='');overlay.remove();resolve(v);};
-    overlay.querySelector('[data-voltar]').onclick=()=>terminar(null);
-    form.onsubmit=e=>{e.preventDefault();terminar(Object.fromEntries(new FormData(form)));};
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape')terminar(null);});
+    overlay.querySelector('[data-voltar]').onclick=()=>{if(!enviando)terminar(null);};
+    form.onsubmit=async e=>{
+      e.preventDefault();
+      const valores=Object.fromEntries(new FormData(form));
+      if(!aoConfirmar){terminar(valores);return;}
+      const btn=form.querySelector('button[type=submit]');if(btn.disabled)return;
+      enviando=true;btn.disabled=true;overlay.querySelector('[data-voltar]').disabled=true;const texto=btn.textContent;btn.textContent='Aguarde...';
+      const msg=form.querySelector('.florest-dialog-msg');msg.textContent='';
+      try{await aoConfirmar(valores);terminar(valores);}
+      catch(erro){msg.textContent=erro.message||String(erro);msg.className='florest-dialog-msg msg error';msg.scrollIntoView({block:'nearest'});}
+      finally{enviando=false;btn.disabled=false;overlay.querySelector('[data-voltar]').disabled=false;btn.textContent=texto;}
+    };
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'&&!enviando)terminar(null);});
     setTimeout(()=>overlay.querySelector('input,textarea,select')?.focus(),0);
   });
 }
@@ -23208,9 +23218,13 @@ async function barHistoricoDetalhar(id){
     html+='<h4>Documentos fiscais</h4><p>'+escapeHtml(barHistoricoFiscalTexto(d.documentos))+'</p>';
     if(bloqueio)html+='<p class="msg error">Documento fiscal vinculado: reabertura bloqueada. Utilize somente consulta e o procedimento fiscal próprio.</p>';
     html+='<label>Ação<select name="acao">'+acoes.join('')+'</select></label>';
-    const choice=await florestDialog('Venda nº '+v.numero_venda,html,'Continuar');if(!choice||choice.acao==='consulta')return;
+    if(acoes.some(a=>a.includes('value="editar"')))html+='<label>Motivo para editar e voltar para a mesa<textarea name="motivo" maxlength="200" placeholder="Preencha ao escolher Editar e voltar para a mesa"></textarea></label><p>A reabertura preserva produtos e pagamentos e exige caixa original aberto, mesa original disponível e ausência de impedimento fiscal. O botão Continuar abre a mesa após a confirmação do banco.</p>';
+    let reabertura=null;
+    const choice=await florestDialog('Venda nº '+v.numero_venda,html,'Continuar',async valores=>{
+      if(valores.acao==='editar')await barHistoricoEditar(d,valores.motivo,reabertura,r=>{reabertura=r;});
+    });if(!choice||choice.acao==='consulta')return;
     if(choice.acao.startsWith('doc:')){await barHistoricoDocumento(choice.acao.slice(4));return;}
-    if(choice.acao==='editar'){await barHistoricoEditar(d);return;}
+    if(choice.acao==='editar')return;
     await carregarBarHistorico();
   }catch(e){alert(barHistoricoErro(e));}
   finally{barHistoricoEstado.ocupado=false;}
@@ -23253,12 +23267,20 @@ async function barReaberturaEstornar(pagamentoId,motivo){
  await barReaberturaOperar('estornar_pagamento',{pagamento_id:pagamentoId,valor_confirmado:Number(f.valor)},motivo);return{error:null};
  }catch(error){return{error};}
 }
-async function barHistoricoEditar(d){
+async function barHistoricoEditar(d,motivo,retorno=null,confirmada=()=>{}){
  const c=d.comanda;if(!c?.id)throw Error('Comanda original não identificada.');
- const f=await florestDialog('Editar e voltar para a mesa','<p>A operação preserva produtos e pagamentos. Exige caixa original aberto, mesa original livre e não reutilizada, ausência de documentos fiscais e consistência dos registros.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Reabrir mesa');if(!f)return;
- const r=await barHistoricoMutacao('bar_historico_mesa_editar',{p_comanda_id:c.id,p_acao:'reabrir',p_dados:{},p_motivo:f.motivo.trim()});
- await abrirSubViewBar('mesas');const {data:mesa,error}=await supabase.from('bar_mesas').select('*').eq('id',r.mesa_id).single();if(error)throw error;
+ const empresaId=await obterEmpresaId();
+ if(!retorno && (typeof motivo!=='string'||motivo.trim().length<3||motivo.trim().length>200))throw Error('Informe o motivo da reabertura (3 a 200 caracteres).');
+ const r=retorno||await barHistoricoMutacao('bar_historico_mesa_editar',{p_comanda_id:c.id,p_acao:'reabrir',p_dados:{},p_motivo:motivo.trim()});
+ if(!r?.ok||!r.mesa_id||r.comanda_id!==c.id)throw Error('Resposta de reabertura incompleta. Confira o histórico antes de repetir.');
+ confirmada(r); // Se só o carregamento falhar, repetir Continuar recupera a mesa sem outra mutação.
+ if(await obterEmpresaId()!==empresaId)throw Error('A empresa da sessão mudou. Atualize os dados.');
+ const {data:mesa,error}=await supabase.from('bar_mesas').select('*').eq('empresa_id',empresaId).eq('id',r.mesa_id).single();if(error)throw error;
+ if(!mesa||mesa.status!=='ocupada'||mesa.comanda_atual_id!==c.id)throw Error('A reabertura foi registrada, mas o vínculo da mesa não foi confirmado. Atualize os dados antes de continuar.');
+ await abrirSubViewBar('mesas');
+ if(barSubViewAtual!=='mesas')throw Error('Sem acesso à tela de mesas. A reabertura foi registrada; confira as permissões.');
  await abrirModalMesa(mesa);
+ if(barComandaAtualId!==c.id)throw Error('Não foi possível carregar a comanda reaberta. Clique em Continuar para recuperar.');
 }
 
 async function barHistoricoDocumento(id){
