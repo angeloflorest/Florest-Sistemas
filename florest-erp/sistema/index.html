@@ -15814,6 +15814,7 @@ async function crConfirmarCancelar(){
 // ---- ligações (registradas UMA vez) ----
 $('fin-aba-resumo').addEventListener('click', () => finSelecionarAba('resumo'));
 $('fin-aba-receber').addEventListener('click', () => finSelecionarAba('receber'));
+$('fin-aba-historico').addEventListener('click', () => finSelecionarAba('historico'));
 $('cr-busca').addEventListener('input', debounce(() => { if(!crClienteAtual) crCarregarResumo(); }, 300));
 $('cr-clientes').addEventListener('click', (e) => {
   const b = e.target.closest('.cr-cliente');
