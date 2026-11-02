@@ -18,6 +18,11 @@ test("busca ignora acentos e aceita prefixo de código e GTIN",()=>{
   assert.equal(K.filterProducts(products,"000002")[0].id,"1");
   assert.equal(K.filterProducts(products,"789111")[0].id,"1");
 });
+test("referência numérica localiza o produto sem alterar o código interno",()=>{
+  const list=[...products,{id:"6",nome:"Refrigerante",codigo:"000099",referencia:"1019"}];
+  assert.equal(K.filterProducts(list,"1019")[0].id,"6");
+  assert.equal(K.filterProducts(list,"101")[0].id,"6");
+});
 test("todos os produtos que correspondem ao prefixo são retornados",()=>{
   const all=Array.from({length:140},(_,n)=>({id:String(n),nome:"Brahma "+n}));
   assert.equal(K.filterProducts(all,"br").length,140);
