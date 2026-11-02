@@ -27,7 +27,7 @@
       if (name.startsWith(query)) return 0;
       const words = name.split(/[^a-z0-9]+/).filter(Boolean);
       if (words.some((_, index) => parts.every((part, offset) => words[index + offset]?.startsWith(part)))) return 1;
-      if ([p.codigo, p.gtin].some(v => normalize(v).startsWith(query))) return 2;
+      if ([p.codigo, p.gtin, p.referencia].some(v => normalize(v).startsWith(query))) return 2;
       return -1;
     }
     return products.map(p => ({ p, rank: rank(p) })).filter(item => item.rank >= 0)
