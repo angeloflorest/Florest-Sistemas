@@ -180,7 +180,7 @@ function openLocalDatabase(userDataPath) {
       .map((item) => JSON.parse(item.dados_json))
       .filter((p) => {
         if (!busca) return true;
-        return [p.nome, p.descricao, p.codigo_barras, p.gtin, p.codigo].some(
+        return [p.nome, p.descricao, p.codigo_barras, p.gtin, p.codigo, p.referencia].some(
           (v) =>
             String(v ?? "")
               .toLowerCase()
