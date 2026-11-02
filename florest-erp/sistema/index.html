@@ -5048,6 +5048,8 @@
         <div class="field">
           <label>Nome do produto</label>
           <input type="text" id="produto-nome" required>
+          <label for="produto-referencia">Referência (opcional, somente números)</label>
+          <input type="text" id="produto-referencia" inputmode="numeric" pattern="[0-9]*" maxlength="30" autocomplete="off" placeholder="Ex.: 1019">
         </div>
       </div>
       <div class="field-row">
@@ -10108,7 +10110,7 @@ async function gsDetail(id){
 }
 
 async function gsAction(action,a,extra={}){try{await gsCall(action,{id:a.id,versao:a.versao,...extra});if(GS.ctx.atendimentos.some(x=>x.id===a.id))gsDetail(a.id)}catch(e){gsNotice(e)}}
-function gsAdd(a){const body=gsDialog('Adicionar produto · #'+a.numero),form=gsEl('form');body.append(form);const available=GS.ctx.catalogo.filter(p=>p.bar_produto_id&&p.ativo_cardapio),select=gsSelect(form,'Produto',available.map(p=>[p.id,p.nome+' · '+gsMoney(p.preco_venda)])),quantity=gsField(form,'Quantidade','number',1);quantity.min='.0001';quantity.step='.0001';quantity.required=true;const groups=gsEl('div');form.append(groups);const obs=gsField(form,'Observação','textarea');obs.maxLength=150;let fields=[];function update(){groups.replaceChildren();fields=[];const p=available.find(p=>p.id===select.value);for(const g of p?.grupos||[]){const wrap=gsEl('div');groups.append(wrap);wrap.append(gsEl('h4',g.nome+' · escolha '+g.quantidade_escolhas));for(let i=0;i<g.quantidade_escolhas;i++){const f=gsSelect(wrap,'Escolha '+(i+1),(g.opcoes||[]).map(o=>[o.produto_id,o.nome]));fields.push({g:g.id,f})}}}const search=gsField(form,'Buscar produto pelo nome');form.insertBefore(search.previousSibling,select.previousSibling);form.insertBefore(search,select.previousSibling);search.oninput=()=>{const prior=select.value;select.replaceChildren(...available.filter(p=>p.nome.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(p=>{const o=gsEl('option',p.nome+' · '+gsMoney(p.preco_venda));o.value=p.id;return o}));if([...select.options].some(o=>o.value===prior))select.value=prior;update()};select.onchange=update;update();gsSubmit(form,async()=>{const p=available.find(p=>p.id===select.value);if(!p)throw Error('Configure os produtos no cardápio da operação.');await gsCall('adicionar',{id:a.id,versao:a.versao,itens:[{bar_produto_id:p.bar_produto_id,quantidade:Number(quantity.value),observacao:obs.value,escolhas:fields.map(x=>({grupo_id:x.g,produto_id:x.f.value}))}]});gsDetail(a.id)},'Enviar para preparo')}
+function gsAdd(a){const body=gsDialog('Adicionar produto · #'+a.numero),form=gsEl('form');body.append(form);const available=GS.ctx.catalogo.filter(p=>p.bar_produto_id&&p.ativo_cardapio),select=gsSelect(form,'Produto',available.map(p=>[p.id,p.nome+' · '+gsMoney(p.preco_venda)])),quantity=gsField(form,'Quantidade','number',1);quantity.min='.0001';quantity.step='.0001';quantity.required=true;const groups=gsEl('div');form.append(groups);const obs=gsField(form,'Observação','textarea');obs.maxLength=150;let fields=[];function update(){groups.replaceChildren();fields=[];const p=available.find(p=>p.id===select.value);for(const g of p?.grupos||[]){const wrap=gsEl('div');groups.append(wrap);wrap.append(gsEl('h4',g.nome+' · escolha '+g.quantidade_escolhas));for(let i=0;i<g.quantidade_escolhas;i++){const f=gsSelect(wrap,'Escolha '+(i+1),(g.opcoes||[]).map(o=>[o.produto_id,o.nome]));fields.push({g:g.id,f})}}}const search=gsField(form,'Buscar produto pelo nome');form.insertBefore(search.previousSibling,select.previousSibling);form.insertBefore(search,select.previousSibling);search.oninput=()=>{const prior=select.value;select.replaceChildren(...available.filter(p=>p.nome.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())||(p.referencia||'').includes(search.value.trim())).map(p=>{const o=gsEl('option',p.nome+' · '+gsMoney(p.preco_venda));o.value=p.id;return o}));if([...select.options].some(o=>o.value===prior))select.value=prior;update()};select.onchange=update;update();gsSubmit(form,async()=>{const p=available.find(p=>p.id===select.value);if(!p)throw Error('Configure os produtos no cardápio da operação.');await gsCall('adicionar',{id:a.id,versao:a.versao,itens:[{bar_produto_id:p.bar_produto_id,quantidade:Number(quantity.value),observacao:obs.value,escolhas:fields.map(x=>({grupo_id:x.g,produto_id:x.f.value}))}]});gsDetail(a.id)},'Enviar para preparo')}
 function gsReceive(a){const body=gsDialog('Receber · #'+a.numero),form=gsEl('form');body.append(form);const value=gsField(form,'Valor a receber agora (R$)','number',Math.max(0,Number(a.total)-Number(a.pago)).toFixed(2));value.min='.01';value.step='.01';value.required=true;const method=gsSelect(form,'Forma de pagamento',[['Dinheiro','Dinheiro'],['Pix','Pix'],['Cartão de Débito','Cartão de Débito'],['Cartão de Crédito','Cartão de Crédito']]),brand=gsSelect(form,'Bandeira / taxa cadastrada',[]);function brands(){brand.replaceChildren();const config=GS.ctx.taxas;const rules=config?.ativo?(config.regras||[]).filter(r=>r.forma===method.value):[];for(const r of rules){const option=gsEl('option',(r.bandeira||'Padrão')+' · '+r.percentual+'%');option.value=r.bandeira||'';brand.append(option)}brand.hidden=brand.previousSibling.hidden=!rules.length}method.onchange=brands;brands();form.append(gsEl('p','Para dividir entre formas, registre um recebimento parcial de cada vez. Não há parcelamento de cartão.'));gsSubmit(form,async()=>{const pagamento={forma_pagamento:method.value,valor:Number(value.value)};if(GS.ctx.taxas?.id)pagamento.taxas={config_id:GS.ctx.taxas.id,bandeira:brand.value||null};await gsCall('receber',{id:a.id,versao:a.versao,formas:[pagamento]});gsDetail(a.id)},'Confirmar recebimento')}
 function gsAdjust(a){const body=gsDialog('Ajustar valores · #'+a.numero),form=gsEl('form');body.append(form);const fields=['desconto','acrescimo','taxa_servico',...(a.tipo==='entrega'?['taxa_entrega']:[])].map(k=>{const f=gsField(form,k.replaceAll('_',' ')+' (R$)','number',a[k]);f.min=0;f.step='.01';return [k,f]});gsSubmit(form,async()=>{await gsCall('ajustar',{id:a.id,versao:a.versao,...Object.fromEntries(fields.map(([k,f])=>[k,Number(f.value)]))});gsDetail(a.id)})}
 function gsDispatch(a){const body=gsDialog('Responsável pela entrega'),form=gsEl('form');body.append(form);const f=gsField(form,'Entregador','text',a.entregador);f.required=true;gsSubmit(form,async()=>{await gsCall('expedicao',{id:a.id,versao:a.versao,estado:'saiu_entrega',entregador:f.value});gsDetail(a.id)},'Confirmar saída')}
@@ -10204,7 +10206,7 @@ function gsAddInto(a,parent){
  function activate(n){index=Math.max(0,Math.min(n,items.length-1));for(const [k,el]of [...list.children].entries()){el.setAttribute('aria-selected',String(k===index));el.classList.toggle('active',k===index)}const active=list.children[index];if(active){search.setAttribute('aria-activedescendant',active.id);active.scrollIntoView({block:'nearest'})}}
  function choose(p){if(!p)return;sequence++;clearTimeout(timer);const details=GS.ctx.catalogo.find(x=>x.id===p.id);if(!details){gsNotice(Error('O catálogo mudou. Atualize antes de selecionar o produto.'));return}selected={...details,...p};search.value=p.nome;selectedLabel.textContent=p.nome+' · '+gsMoney(p.preco_venda)+(p.codigo?' · Cód. '+p.codigo:'');hide();groups.replaceChildren();fields=[];fields=gsChoices(groups,selected);qty.disabled=obs.disabled=false;submit.disabled=false;dirty();GS.formDirty=true;qty.focus();qty.select()}
  function render(data){items=data;list.replaceChildren();if(!items.length){list.append(gsEl('div','Nenhum produto publicado na operação para essa busca.','gs-produto-vazio'));index=-1}else for(const [k,p]of items.entries()){const option=gsEl('div','','gs-produto-opcao');option.id=list.id+'-'+k;option.setAttribute('role','option');option.append(gsEl('b',p.nome),gsEl('span',gsMoney(p.preco_venda)),gsEl('small',[p.codigo?'Cód. '+p.codigo:'',p.gtin?'Barras '+p.gtin:''].filter(Boolean).join(' · ')));option.onmousedown=e=>e.preventDefault();option.onclick=()=>choose(p);list.append(option)}list.hidden=false;search.setAttribute('aria-expanded','true');if(items.length)activate(0)}
- async function find(enter=false){const term=search.value.trim();if(!term)return hide();const seq=++sequence;lastSearch=term;const prior=cache.get(term);let rows;if(prior&&Date.now()-prior.time<10000)rows=prior.rows;else{list.replaceChildren(gsEl('div','Buscando produtos…','gs-produto-vazio'));list.hidden=false;search.setAttribute('aria-expanded','true');try{const r=await gsRPC('produtos_buscar',{busca:term});rows=r.itens||[];cache.set(term,{rows,time:Date.now()})}catch(e){if(seq===sequence){hide();gsNotice(e)}return}}if(seq!==sequence||search.value.trim()!==term||!search.isConnected)return;render(rows);if(enter&&rows.length){const exact=rows.filter(p=>p.codigo===term||p.gtin===term);choose(exact.length===1?exact[0]:rows[0])}}
+ async function find(enter=false){const term=search.value.trim();if(!term)return hide();const seq=++sequence;lastSearch=term;const prior=cache.get(term);let rows;if(prior&&Date.now()-prior.time<10000)rows=prior.rows;else{list.replaceChildren(gsEl('div','Buscando produtos…','gs-produto-vazio'));list.hidden=false;search.setAttribute('aria-expanded','true');try{const r=await gsRPC('produtos_buscar',{busca:term});rows=r.itens||[];cache.set(term,{rows,time:Date.now()})}catch(e){if(seq===sequence){hide();gsNotice(e)}return}}if(seq!==sequence||search.value.trim()!==term||!search.isConnected)return;render(rows);if(enter&&rows.length){const exact=rows.filter(p=>p.codigo===term||p.gtin===term||p.referencia===term);choose(exact.length===1?exact[0]:rows[0])}}
  search.oninput=()=>{dirty();sequence++;clearTimeout(timer);hide();items=[];index=-1;selected=null;submit.disabled=true;qty.disabled=obs.disabled=true;groups.replaceChildren();selectedLabel.textContent='Selecione um produto para lançar.';if(search.value.trim().length<1){hide();return}timer=setTimeout(()=>find().catch(gsNotice),220)};
  search.onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(items.length&&!list.hidden)activate(index+(e.key==='ArrowDown'?1:-1));else{clearTimeout(timer);find().catch(gsNotice)}}else if(e.key==='Enter'){e.preventDefault();clearTimeout(timer);if(!list.hidden&&items.length&&lastSearch===search.value.trim())choose(items[index<0?0:index]);else find(true).catch(gsNotice)}else if(e.key==='Escape'&&!list.hidden){e.preventDefault();e.stopPropagation();hide()}};
  form.addEventListener('input',dirty);form.addEventListener('change',dirty);
@@ -10981,7 +10983,7 @@ async function carregarProdutos(pagina = 1){
 
   $('filtro-produto-situacao').classList.toggle('hidden', !recursos.produtoAtivo);
   let q = aplicarFiltroSituacao(supabase.from('produtos').select('*', { count: 'exact' }), produtosSituacao);
-  if(t) q = q.or(`nome.ilike.%${t}%,codigo.ilike.%${t}%,gtin.ilike.%${t}%`);
+  if(t) q = q.or(`nome.ilike.%${t}%,codigo.ilike.%${t}%,gtin.ilike.%${t}%,referencia.ilike.%${t}%`);
   const { data, error, count } = await q
     .order('nome', { ascending: true })
     .order('id', { ascending: true })
@@ -11021,6 +11023,7 @@ function abrirModalProduto(produto){
     $('produto-id').value = produto.id;
     $('produto-codigo').value = produto.codigo || '';
     $('produto-nome').value = produto.nome || '';
+    $('produto-referencia').value = produto.referencia || '';
     $('produto-preco-venda').value = produto.preco_venda ?? '';
     $('produto-preco-custo').value = produto.preco_custo ?? '';
 
@@ -11133,12 +11136,19 @@ $('form-produto').addEventListener('submit', async (e) => {
   const id = $('produto-id').value;
   const tipoFiscal = $('produto-tipo-fiscal').value;
 
+  const referencia = $('produto-referencia').value.trim();
+  if(referencia && !/^[0-9]+$/.test(referencia)){
+    $('produto-msg').textContent = 'A referência deve conter somente números.';
+    return;
+  }
+
   // Estoque (quantidade_estoque/estoque_minimo) não faz parte deste formulário: fica de fora
   // do payload tanto no insert (o banco grava quantidade_estoque = 0 por padrão) quanto no
   // update (não altera o que já está salvo). Ajuste de estoque é feito só pela tela de Estoque,
   // por Nota Fiscal de Entrada ou pelas vendas.
   const payload = {
     nome: $('produto-nome').value.trim(),
+    referencia: $('produto-referencia').value.trim() || null,
     preco_venda: parseFloat($('produto-preco-venda').value),
     preco_custo: $('produto-preco-custo').value ? parseFloat($('produto-preco-custo').value) : null,
     tipo_fiscal: tipoFiscal,
@@ -11763,8 +11773,8 @@ async function pdvConsultarProdutos({ ids, gtins, codigo, busca, limite } = {}){
   } else {
     const filtros = [];
     if(gtins && gtins.length) filtros.push(`gtin.in.(${gtins.join(',')})`);
-    if(codigo) filtros.push(`codigo.eq.${valorFiltro(codigo)}`);
-    if(busca){ const t = termoSeguro(busca); if(t) filtros.push(`nome.ilike.%${t}%`, `codigo.ilike.%${t}%`, `gtin.ilike.%${t}%`); }
+    if(codigo) filtros.push(`codigo.eq.${valorFiltro(codigo)}`, `referencia.eq.${valorFiltro(codigo)}`);
+    if(busca){ const t = termoSeguro(busca); if(t) filtros.push(`nome.ilike.%${t}%`, `codigo.ilike.%${t}%`, `gtin.ilike.%${t}%`, `referencia.ilike.%${t}%`); }
     if(!filtros.length) return [];
     q = q.or(filtros.join(',')).order('nome', { ascending: true }).limit(limite || 10);
   }
@@ -11784,7 +11794,7 @@ async function buscarProdutoPorCodigo(texto){
   const variantes = chaveG ? variantesGtin(texto) : [];
   const lista = await pdvConsultarProdutos({ gtins: variantes, codigo: texto, limite: 10 });
   // o código de barras tem prioridade sobre o código interno
-  const produto = (chaveG && lista.find(p => p.gtin && chaveGtin(p.gtin) === chaveG)) || lista.find(p => p.codigo === texto) || null;
+  const produto = (chaveG && lista.find(p => p.gtin && chaveGtin(p.gtin) === chaveG)) || lista.find(p => p.codigo === texto) || lista[0] || null;
   if(produto) pdvCacheSet(produto);
   return produto;
 }
@@ -21551,7 +21561,7 @@ function renderResumoFinanceiroMesa(){
 async function carregarCardapioBar(){
   const { data, error } = await buscarTodos(() => supabase
     .from('bar_produtos')
-    .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda${recursos.produtoAtivo ? ', ativo' : ''} ),
+    .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda, referencia${recursos.produtoAtivo ? ', ativo' : ''} ),
              bar_produto_grupos ( id, nome, quantidade_escolhas, ordem,
                bar_produto_grupo_opcoes ( produto_id, ordem, produtos ( nome${recursos.produtoAtivo ? ', ativo' : ''} ) ) )`)
     .eq('ativo_cardapio', true)
@@ -21600,7 +21610,7 @@ function filtrarCardapioBusca(termo){
   const t = termo.trim().toLowerCase();
   const lista = t === ''
     ? barCardapioCache
-    : barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(t));
+    : barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(t) || (bp.produtos?.referencia || '').includes(t));
   renderResultadosBuscaItemMesa(lista.slice(0, 30));
 }
 
@@ -21616,7 +21626,7 @@ $('bar-mesa-busca-produto').addEventListener('keydown', (e) => {
     e.preventDefault();
     const termo = e.target.value.trim().toLowerCase();
     if(!termo) return;
-    const encontrados = barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(termo));
+    const encontrados = barCardapioCache.filter(bp => (bp.produtos ? bp.produtos.nome : '').toLowerCase().includes(termo) || (bp.produtos?.referencia || '').includes(termo));
     if(encontrados.length === 1) selecionarItemCardapioMesa(encontrados[0]);
   }
 });
