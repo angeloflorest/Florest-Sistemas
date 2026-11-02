@@ -367,7 +367,7 @@ liveInput.onkeydown = action((event) => {
   const digits = text.replace(/^0+/, "");
   const barcode = /^\d{8,14}$/.test(text) ? state.produtos.find(p => p.gtin === text || (p.gtin && String(p.gtin).replace(/^0+/, "") === digits)) : null;
   if (barcode) { hideLiveResults(); addOrWeigh(barcode, parse($("pdv-qtd").value)); return; }
-  const exactCode = state.produtos.find(p => p.codigo === text);
+  const exactCode = state.produtos.find(p => p.codigo === text || String(p.referencia ?? "") === text);
   const product = liveProducts[liveIndex < 0 ? 0 : liveIndex] || exactCode || search(text)[0];
   if (!product) throw new Error("Nenhum produto encontrado.");
   hideLiveResults();
@@ -377,7 +377,7 @@ document.addEventListener("pointerdown", event => {
   if (!event.target.closest(".pdx-busca-wrap")) hideLiveResults();
 });
 function productPicker(list = state.produtos, title = "Buscar produto") {
-  modal(title, '<input id="product-query" role="combobox" aria-autocomplete="list" aria-controls="product-list" aria-expanded="true" placeholder="Nome, código ou código de barras" style="width:100%"><div id="product-list" role="listbox"></div>');
+  modal(title, '<input id="product-query" role="combobox" aria-autocomplete="list" aria-controls="product-list" aria-expanded="true" placeholder="Nome, código, referência ou código de barras" style="width:100%"><div id="product-list" role="listbox"></div>');
   let found = [], index = -1;
   const input = $("product-query"), box = $("product-list");
   function highlight() {
