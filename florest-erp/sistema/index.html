@@ -10035,7 +10035,7 @@ async function gsSendPending(){
  }finally{GS.busy=false;}
 }
 
-async function gsReload(force=false,limited=false){if(GS.loading){await (limited?gsMesaWait(GS.loading):GS.loading);if(!force)return GS.ctx}const run=(async()=>{const ctx=await gsRPC('contexto',{},null,limited);if(ctx.cardapio_versao!=='cardapio_20261025_v1')throw Error('Aplique primeiro a migration nova de Cardápio e Pedidos.');GS.ctx=ctx;GS.needsRefresh=false;if((force || (GS.area!=='configuracao' && !GS.formDirty))&&!$('gs-dialog').open)gsRender();return ctx})();GS.loading=run;try{return await run}finally{if(GS.loading===run)GS.loading=null}}
+async function gsReload(force=false,limited=false){if(GS.loading){await (limited?gsMesaWait(GS.loading):GS.loading);if(!force)return GS.ctx}const run=(async()=>{const ctx=await gsRPC('contexto',{},null,limited);if(ctx.cardapio_versao!=='cardapio_20261025_v1')throw Error('Aplique primeiro a migration nova de Cardápio e Pedidos.');GS.ctx=ctx;window.GSFotos?.setPhotos(ctx.configuracao?.opcoes?.cardapio?.produtos||[]);GS.needsRefresh=false;if((force || (GS.area!=='configuracao' && !GS.formDirty))&&!$('gs-dialog').open)gsRender();return ctx})();GS.loading=run;try{return await run}finally{if(GS.loading===run)GS.loading=null}}
 
 
 // Atualização silenciosa exclusiva das abas Mesas e Pedidos da Gastronomia.
