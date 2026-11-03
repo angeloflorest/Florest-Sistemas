@@ -11,6 +11,9 @@ for (const name of [
   "remote",
   "print",
   "history",
+  "fiscal",
+  "printFiscal",
+  "update",
 ])
   api[name] = (arg) => ipcRenderer.invoke("pdv:" + name, arg);
 api.onChange = (callback) => {

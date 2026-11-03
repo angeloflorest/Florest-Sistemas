@@ -196,3 +196,17 @@ test("confirmação atualiza estoque uma vez mesmo sem receber catálogo e cliqu
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('backup e reabertura preservam pendências e número definitivo confirmado',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'florest-upgrade-'));let s;
+ try{
+  s=openLocalDatabase(dir);const v=s.registrarVenda({empresaId:'e',dados:{total:10}});
+  s.db.prepare("UPDATE vendas_locais SET estado_sync='enviando' WHERE id_local=?").run(v.idLocal);
+  assert.equal(s.pendentes('e').length,1);
+  const backup=path.join(dir,'backup.sqlite');await s.db.backup(backup);s.fechar();s=openLocalDatabase(dir);
+  assert.equal(s.pendentes('e')[0].id_local,v.idLocal);
+  s.confirmarSincronizacao({empresaId:'e',idLocal:v.idLocal,idRemoto:'remoto',numeroVenda:987});s.fechar();s=openLocalDatabase(dir);
+  assert.equal(s.db.prepare('SELECT numero_remoto FROM vendas_locais WHERE id_local=?').get(v.idLocal).numero_remoto,987);
+  const copy=require('better-sqlite3')(backup);assert.equal(copy.prepare('SELECT estado_sync FROM vendas_locais').get().estado_sync,'enviando');copy.close();
+ }finally{s?.fechar();fs.rmSync(dir,{recursive:true,force:true});}
+});

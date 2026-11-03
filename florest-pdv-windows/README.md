@@ -64,3 +64,16 @@ Verificação do servidor executada em subtransação revertida: contexto por us
 ## Taxas de pagamento (0.2.2)
 
 No ERP: **Financeiro → Formas de pagamento**. O controle inicia desativado por empresa. Cadastre Pix e as bandeiras Visa, Mastercard, Elo, American Express, Hipercard e Diners no débito e crédito à vista. Campo em branco não configura a bandeira; 0% configura. No executável atualizado, use **Receber atualizações**. A seleção aparece somente para formas com bandeiras configuradas e controle ativo. O pagamento mantém a versão da configuração na fila local, inclusive offline; o servidor calcula a taxa daquela versão e consolida a **Despesa administrativa de cartões**, preservando o bruto do caixa. Cancelamento e estorno revertem a contribuição. Não há parcelas nesta configuração.
+
+
+## Versão 0.3.0 — validação Windows
+
+Preserva número definitivo retornado pelo ERP e identificador local UUID, preços do cupom durante sincronização e recebido/troco no comprovante. Inclui histórico do ERP com operações autorizadas pelas RPCs existentes, detalhamento de caixa e pagamentos divididos de comandas. Cadastros continuam no ERP.
+
+Emissão NFC-e somente por ação explícita do operador, após sincronizar a venda e confirmar a configuração da empresa. Reutiliza fiscal_emitir_nota e fiscal-emitir-documento; DANFE derivado do gerador do navegador e apenas XML autorizado. Contingência ativa é tratada posteriormente no ERP, sem emissão offline pelo Windows.
+
+Atualização via electron-updater/GitHub Releases: download sob demanda, verificação SHA-512, bloqueio com venda em andamento e backup SQLite antes de instalar. Publicar também latest.yml e blockmap. O instalador de testes não inclui certificado privado de assinatura.
+
+Para preparar dependências em ambiente restrito: npm ci --ignore-scripts; node node_modules/electron/install.js. better-sqlite3 13 usa binários N-API incluídos no pacote; npmRebuild fica desativado.
+
+Validação automatizada local: testes Node, interface Chromium com transporte simulado e abertura do executável empacotado. Login, emissão real, impressora física e troca efetiva entre duas versões instaladas precisam de validação integrada com conta e ambiente de testes.

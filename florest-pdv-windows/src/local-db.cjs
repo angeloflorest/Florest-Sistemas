@@ -39,6 +39,9 @@ function openLocalDatabase(userDataPath) {
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_venda_operacao ON vendas_locais(empresa_id,chave_operacao)",
   );
 
+  if (!db.prepare("PRAGMA table_info(vendas_locais)").all().some(c => c.name === "numero_remoto"))
+    db.exec("ALTER TABLE vendas_locais ADD COLUMN numero_remoto INTEGER");
+
   // Criação atômica: número local e venda são gravados juntos, sem depender de internet.
   const registrarVenda = db.transaction(
     ({ empresaId, dados, chaveOperacao }) => {
@@ -92,14 +95,14 @@ function openLocalDatabase(userDataPath) {
     if (!empresaId) throw new Error("Empresa obrigatória");
     return db
       .prepare(
-        "SELECT id_local, numero_local, dados_json, criada_em, estado_sync FROM vendas_locais WHERE empresa_id = ? AND estado_sync IN ('pendente','erro') ORDER BY numero_local LIMIT ?",
+        "SELECT id_local, numero_local, dados_json, criada_em, estado_sync FROM vendas_locais WHERE empresa_id = ? AND estado_sync IN ('pendente','erro','enviando') ORDER BY numero_local LIMIT ?",
       )
       .all(empresaId, Math.max(1, Math.min(100, Math.trunc(limite) || 50)));
   }
 
   // Só marcar sincronizada após confirmação do servidor de que o mesmo id_local foi aceito.
   const confirmarSincronizacao = db.transaction(
-    ({ empresaId, idLocal, idRemoto }) => {
+    ({ empresaId, idLocal, idRemoto, numeroVenda = null }) => {
       if (!empresaId || !idLocal || !idRemoto)
         throw new Error("Confirmação incompleta");
       const anterior = db
@@ -109,9 +112,9 @@ function openLocalDatabase(userDataPath) {
         .get(empresaId, idLocal);
       const result = db
         .prepare(
-          "UPDATE vendas_locais SET estado_sync = 'sincronizada', id_remoto = ?, erro_sync = NULL WHERE empresa_id = ? AND id_local = ? AND (id_remoto IS NULL OR id_remoto = ?)",
+          "UPDATE vendas_locais SET estado_sync = 'sincronizada', id_remoto = ?, numero_remoto = coalesce(?,numero_remoto), erro_sync = NULL WHERE empresa_id = ? AND id_local = ? AND (id_remoto IS NULL OR id_remoto = ?)",
         )
-        .run(idRemoto, empresaId, idLocal, idRemoto);
+        .run(idRemoto, numeroVenda, empresaId, idLocal, idRemoto);
       if (result.changes !== 1)
         throw new Error("Venda inexistente ou confirmação conflitante");
       if (anterior.estado_sync !== "sincronizada") {

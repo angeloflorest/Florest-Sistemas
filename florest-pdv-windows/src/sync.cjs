@@ -6,7 +6,7 @@ function createSync({
   storage,
   transport,
   empresaId,
-  intervalMs = 60000,
+  intervalMs = 15000,
   onStatus = () => {},
 }) {
   if (!empresaId || !storage || !transport)
@@ -46,6 +46,7 @@ function createSync({
             empresaId,
             idLocal: venda.id_local,
             idRemoto: result.idRemoto,
+            numeroVenda: result.numeroVenda,
           });
           status.enviados++;
         } catch (error) {

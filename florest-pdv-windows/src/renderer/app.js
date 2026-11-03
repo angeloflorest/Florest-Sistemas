@@ -161,6 +161,7 @@ function render() {
 }
 function applyState(next, initial = false) {
   state = next;
+  renderUpdate();
   $("login").classList.toggle("hidden", !!state.context);
   $("view-pdv").classList.toggle("hidden", !state.context);
   if (!state.context) return;
@@ -464,6 +465,7 @@ $("pdx-pagto").onclick = action(async (e) => {
   payments.push({
     forma_pagamento: b.dataset.forma,
     valor: Math.min(valor, remaining) / 100,
+    ...(b.dataset.forma === "Dinheiro" ? {recebido:valor/100} : {}),
     taxas,
   });
   if (valor > remaining)
@@ -534,6 +536,7 @@ $("btn-finalizar-venda").onclick = action(async () => {
   clearTimeout(draftTimer);
   render();
   try {
+    await api.draft(draft());
     const receipt = await api.sale({
       itens: cart,
       desconto: Number($("pdv-desconto").value) || 0,
@@ -550,6 +553,18 @@ $("btn-finalizar-venda").onclick = action(async () => {
       "Venda registrada",
       `<p>Pedido local <b>nº ${receipt.numeroLocal}</b> · ${brl(receipt.dados.total)}</p><p>A venda está salva neste computador.</p><div class="receipt-actions"><button id="receipt-cancel">Cancelar impressão</button><button id="receipt-print" class="primary">Imprimir comprovante não fiscal</button></div>`,
     );
+    if (state.context.emiteNotaFiscal === true) {
+      const button = document.createElement("button");
+      button.textContent = "Emitir NFC-e";
+      button.id = "receipt-fiscal";
+      $("modal-body").appendChild(button);
+      button.onclick = action(async () => {
+        button.disabled = true;
+        try { const r = await api.fiscal({idLocal: receipt.idLocal}); $("modal-error").textContent = r.mensagem || r.xMotivo || r.status; if (r.status === "autorizada") await api.printFiscal({idLocal:receipt.idLocal}); }
+        finally { button.disabled = false; }
+      });
+      if (!state.online) { const p = document.createElement("p"); p.textContent = "Sem conexão: emissão posterior pelo histórico, mediante confirmação."; $("modal-body").appendChild(p); }
+    }
     $("receipt-cancel").onclick = closeModal;
     $("receipt-print").onclick = action(async () => {
       await api.print(receipt.idLocal);
@@ -579,8 +594,9 @@ async function cashPanel() {
   const r = c.resumo || {};
   modal(
     "Caixa PDV nº " + c.caixa.numero,
-    `<p>Aberto por ${esc(c.caixa.aberto_por_nome)} · Inicial ${brl(c.caixa.valor_inicial)}</p><p>Recebido no ERP: ${brl(r.total_recebido || 0)}</p><p>Dinheiro esperado no ERP: ${brl(r.saldo_dinheiro_esperado || 0)}</p><p>Vendas locais pendentes precisam ser enviadas antes do fechamento.</p><button id="refresh-cash">Atualizar</button><button id="close-cash">Fechar caixa</button>`,
+    `<p>Aberto por ${esc(c.caixa.aberto_por_nome)} · Inicial ${brl(c.caixa.valor_inicial)}</p><p>Recebido no ERP: ${brl(r.total_recebido || 0)}</p><p>Dinheiro esperado no ERP: ${brl(r.saldo_dinheiro_esperado || 0)}</p><div>${(r.por_forma || []).map(f => `<p>${esc(f.forma)}: ${brl(f.total)}</p>`).join("")}</div><p>A prazo: ${brl(r.vendas_prazo?.total || 0)} · Saídas: ${brl(r.saidas_contas_pagar?.total || 0)}</p><p>Vendas locais pendentes precisam ser enviadas antes do fechamento.</p><button id="cash-history">Histórico de caixas</button><button id="refresh-cash">Atualizar</button><button id="close-cash">Fechar caixa</button>`,
   );
+  $("cash-history").onclick = action(cashHistory);
   $("refresh-cash").onclick = action(async () => {
     await api.cash({ action: "atualizar" });
     applyState(await api.state());
@@ -613,11 +629,14 @@ $("history").onclick = action(async () => {
   const list = await api.history();
   modal(
     "Histórico / pendências",
-    `<table><thead><tr><th>Pedido local</th><th>Valor</th><th>Envio</th><th></th></tr></thead><tbody>${list.map((r, n) => `<tr><td>${r.numero_local}<br><small>${esc(r.criada_em)}</small></td><td>${brl(r.total)}</td><td>${esc(r.estado_sync)}${r.erro_sync ? '<br><small class="error">' + esc(r.erro_sync) + "</small>" : ""}</td><td><button data-print="${n}">Imprimir</button></td></tr>`).join("")}</tbody></table>`,
+    `<button id="history-erp">Histórico de vendas do ERP</button><table><thead><tr><th>Pedido local</th><th>Valor</th><th>Envio / venda ERP</th><th></th></tr></thead><tbody>${list.map((r, n) => `<tr><td>${r.numero_local}<br><small>${esc(r.criada_em)}</small></td><td>${brl(r.total)}</td><td>${esc(r.estado_sync)}${r.numero_remoto ? " · ERP nº " + esc(r.numero_remoto) : ""}${r.erro_sync ? '<br><small class="error">' + esc(r.erro_sync) + "</small>" : ""}</td><td><button data-print="${n}">Imprimir</button>${state.context.emiteNotaFiscal === true ? `<button data-fiscal="${n}">Emitir NFC-e</button>` : ""}</td></tr>`).join("")}</tbody></table>`,
   );
   $("modal-body").onclick = action(async (e) => {
+    if (e.target.closest("#history-erp")) { await openErpHistory(); return; }
     const b = e.target.closest("[data-print]");
     if (b) await api.print(list[Number(b.dataset.print)].id_local);
+    const f = e.target.closest("[data-fiscal]");
+    if (f) { f.disabled = true; try { const r = await api.fiscal({idLocal:list[Number(f.dataset.fiscal)].id_local}); $("modal-error").textContent = r.mensagem || r.xMotivo || r.status; if (r.status === "autorizada") await api.printFiscal({idLocal:list[Number(f.dataset.fiscal)].id_local}); } finally { f.disabled = false; } }
   });
 });
 $("pdx-atalhos-lista").onclick = action((e) => {
@@ -834,22 +853,34 @@ async function comanda(id) {
     await comandas();
   });
   $("cmd-finish").onclick = () => {
+    const parts = [];
+    const total = Math.round(Number(c.total)*100);
     modal(
       "Receber comanda " + c.numero,
-      `<p>Total: <b>${brl(c.total)}</b></p><select id="cmd-payment"><option>Dinheiro</option><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Nota a Prazo</option></select><button id="cmd-confirm" class="primary">Confirmar recebimento</button><p>A finalização é registrada no ERP com proteção contra repetição.</p>`,
+      `<p>Total: <b>${brl(c.total)}</b></p><select id="cmd-payment"><option>Dinheiro</option><option>Pix</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Nota a Prazo</option></select><input id="cmd-value" inputmode="decimal" value="${(total/100).toFixed(2).replace(".",",")}"><button id="cmd-add-payment">Adicionar pagamento</button><div id="cmd-payments"></div><button id="cmd-confirm" class="primary">Confirmar recebimento</button><p>A finalização é registrada no ERP com proteção contra repetição.</p>`,
     );
+    $("cmd-add-payment").onclick = action(() => {
+      const forma = $("cmd-payment").value;
+      if (forma === "Nota a Prazo") throw new Error("Nota a Prazo não recebe pagamentos.");
+      const value = Math.round(parse($("cmd-value").value)*100);
+      const rest = total - parts.reduce((sum,p)=>sum+Math.round(p.valor*100),0);
+      if (!Number.isSafeInteger(value) || value<=0 || value>rest || parts.length>=10) throw new Error("Pagamento inválido.");
+      parts.push({forma_pagamento:forma,valor:value/100});
+      $("cmd-payments").textContent = parts.map(p=>p.forma_pagamento+": "+brl(p.valor)).join(" + ");
+      $("cmd-value").value = ((rest-value)/100).toFixed(2).replace(".",",");
+    });
     $("cmd-confirm").onclick = cmdAction(async () => {
       const forma = $("cmd-payment").value;
       if (!confirm("Confirmar " + brl(c.total) + " em " + forma + "?")) return;
+      if (forma === "Nota a Prazo" && parts.length) throw new Error("Remova os pagamentos antes de escolher Nota a Prazo. Reabra o recebimento.");
+      if (parts.length && parts.reduce((sum,p)=>sum+Math.round(p.valor*100),0) !== total) throw new Error("Complete os pagamentos da comanda.");
       const r = await remote("pdv_comanda_finalizar", {
         p_sessao_id: c.sessao_id,
         p_nota_prazo: forma === "Nota a Prazo",
         ...(forma === "Nota a Prazo"
           ? {}
           : {
-              p_pagamentos: [
-                { forma_pagamento: forma, valor: Number(c.total) },
-              ],
+              p_pagamentos: parts.length ? parts : [{ forma_pagamento: forma, valor: Number(c.total) }],
             }),
       });
       modal(
@@ -861,82 +892,37 @@ async function comanda(id) {
         closeModal();
       });
       $("cmd-result-cancel").onclick = closeModal;
+      if (state.context.emiteNotaFiscal === true) {
+        const b=document.createElement("button"); b.textContent="Emitir NFC-e"; $("modal-body").appendChild(b);
+        b.onclick=cmdAction(async()=>{const result=await api.fiscal({idLocal:r.idLocal});$("modal-error").textContent=result.mensagem || result.xMotivo || result.status;if(result.status==="autorizada")await api.printFiscal({idLocal:r.idLocal});});
+      }
       applyState(await api.state());
     });
   };
 }
 $("btn-pdv-comandas").onclick = action(comandas);
-$("btn-pdx-config-atalhos").onclick = () => {
-  const groups = structuredClone(state.atalhos);
-  const draw = () => {
-    modal(
-      "Configurar atalhos",
-      `<p>Grupos compartilhados com o PDV do navegador.</p><div>${groups.map((g, n) => `<p><b>${esc(g.nome)}</b> (${g.produtos.length} produtos) <button data-edit-group="${n}">Editar</button><button data-remove-group="${n}">Excluir</button></p>`).join("")}</div><input id="group-name" placeholder="Nome do novo grupo"><button id="group-add">Adicionar grupo</button><button id="group-save" class="primary">Salvar no ERP</button>`,
-    );
-    $("group-add").onclick = () => {
-      const nome = $("group-name").value.trim();
-      if (!nome) return;
-      groups.push({
-        id: crypto.randomUUID(),
-        nome,
-        imagem: null,
-        produtos: [],
-      });
-      draw();
-    };
-    $("modal-body")
-      .querySelectorAll("[data-remove-group]")
-      .forEach(
-        (b) =>
-          (b.onclick = () => {
-            groups.splice(Number(b.dataset.removeGroup), 1);
-            draw();
-          }),
-      );
-    $("modal-body")
-      .querySelectorAll("[data-edit-group]")
-      .forEach(
-        (b) =>
-          (b.onclick = () => {
-            const g = groups[Number(b.dataset.editGroup)],
-              ids = new Set(g.produtos.map((p) => p.produto_id));
-            modal(
-              "Produtos de " + g.nome,
-              `<input id="group-query" placeholder="Buscar produto" style="width:100%"><div id="group-products"></div><button id="group-done" class="primary">Concluir seleção</button>`,
-            );
-            const show = () => {
-              const found = search($("group-query").value);
-              $("group-products").innerHTML = found
-                .map(
-                  (p) =>
-                    `<label style="display:block;padding:8px"><input type="checkbox" data-group-product="${esc(p.id)}" ${ids.has(p.id) ? "checked" : ""}> ${esc(p.nome)}</label>`,
-                )
-                .join("");
-              $("group-products").onchange = (e) => {
-                const id = e.target.dataset.groupProduct;
-                if (e.target.checked) ids.add(id);
-                else ids.delete(id);
-              };
-            };
-            $("group-query").oninput = show;
-            show();
-            $("group-done").onclick = () => {
-              g.produtos = [...ids].map(
-                (produto_id) =>
-                  g.produtos.find((p) => p.produto_id === produto_id) || {
-                    produto_id,
-                    imagem: null,
-                  },
-              );
-              draw();
-            };
-          }),
-      );
-    $("group-save").onclick = action(async () => {
-      await remote("pdv_atalhos_salvar", { p_atalhos: groups });
-      applyState(await api.state());
-      closeModal();
-    });
-  };
-  draw();
-};
+$("btn-pdx-config-atalhos").onclick = () => modal("Atalhos", "<p>Altere os atalhos no Florest ERP. As alterações são recebidas automaticamente.</p>");
+window.florestHasSale = () => busy || escolhendoPagamento || cmdBusy || cart.length > 0;
+function renderUpdate() {
+  let button = $("update-app");
+  if (!button) { button=document.createElement("button");button.id="update-app";document.body.prepend(button); }
+  button.hidden = !state?.update || !["available","downloading","ready","error"].includes(state.update.status);
+  button.textContent = state?.update?.status === "downloading" ? "Baixando atualização…" : state?.update?.status === "error" ? "Atualização: " + state.update.message : "Nova versão disponível — Atualizar agora";
+  button.disabled = state?.update?.status === "downloading";
+  button.onclick = action(async () => { if (window.florestHasSale()) throw new Error("Conclua ou cancele a venda antes de atualizar."); await api.update(); });
+}
+window.addEventListener("online", () => { if (state?.context) api.sync().then(applyState).catch(error); });
+
+async function cashHistory() {
+ const data = await remote("caixa_listar", {p_tipo:"PDV", p_limite:30});
+ const rows = data.itens || [];
+ modal("Histórico de caixas PDV", rows.map((entry,n) => '<button class="result" data-cash="'+n+'">Caixa nº '+esc(entry.caixa.numero)+' · '+esc(entry.caixa.status)+' · '+brl(entry.resumo?.total_recebido || 0)+'</button>').join("") || "<p>Nenhum caixa encontrado.</p>");
+ $("modal-body").onclick = action(async e => {
+  const b = e.target.closest("[data-cash]"); if (!b) return;
+  const detail = await remote("caixa_detalhe", {p_caixa_id:rows[Number(b.dataset.cash)].caixa.id});
+  const r = detail.resumo || detail.caixa.fechamento_resumo || {};
+  modal("Caixa nº "+detail.caixa.numero, '<p>Total recebido: '+brl(r.total_recebido || 0)+'</p><p>Dinheiro esperado: '+brl(r.saldo_dinheiro_esperado || 0)+'</p>'+(r.por_forma || []).map(f=>'<p>'+esc(f.forma)+': '+brl(f.total)+'</p>').join('')+'<h3>Movimentos</h3>'+(detail.movimentos || []).map(m=>'<p>'+esc(m.descricao || m.tipo || '')+' · '+brl(m.valor || m.total || 0)+'</p>').join(''));
+ });
+}
+
+for (const type of ["click","keydown","input"]) document.addEventListener(type, e => { if (state?.update?.status === "installing") { e.preventDefault(); e.stopImmediatePropagation(); } }, true);

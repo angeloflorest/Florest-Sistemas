@@ -50,3 +50,9 @@ test("Nota a Prazo exige cliente cadastrado e nenhum pagamento", () => {
   d.clienteId = "c";
   assert.equal(validarVenda(d, produtos, contexto).prazo, true);
 });
+
+test('dinheiro preserva recebido e troco sem enviar excedente como faturamento',()=>{
+ const d=input();d.pagamentos=[{forma_pagamento:'Dinheiro',valor:5,recebido:20}];
+ const sale=validarVenda(d,produtos,contexto);assert.equal(sale.total,5);assert.equal(sale.pagamentos[0].recebido,20);assert.equal(sale.pagamentos[0].troco,15);
+ d.pagamentos[0].forma_pagamento='Pix';assert.throws(()=>validarVenda(d,produtos,contexto),/recebido/);
+});

@@ -92,6 +92,12 @@ function validarVenda(input, produtos, contexto) {
       throw new Error("Pagamento inválido.");
     recebido += valor;
     const normalizado={ forma_pagamento: p.forma_pagamento, valor: valor / 100 };
+    if (p.recebido != null) {
+      const entregue = cents(p.recebido);
+      if (p.forma_pagamento !== "Dinheiro" || !Number.isSafeInteger(entregue) || entregue < valor) throw new Error("Valor recebido inválido.");
+      normalizado.recebido = entregue / 100;
+      normalizado.troco = (entregue - valor) / 100;
+    }
     if(p.taxas!=null){
       const config_id=p.taxas.config_id??null,bandeira=p.taxas.bandeira??null;
       if(config_id!==null&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(config_id))

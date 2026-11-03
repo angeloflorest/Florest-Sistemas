@@ -14,6 +14,7 @@ const { openLocalDatabase } = require("./local-db.cjs");
 const { createSync } = require("./sync.cjs");
 const { validarVenda } = require("./sale.cjs");
 const config = require("./config.cjs");
+let fiscal;
 let db,
   client,
   win,
@@ -24,7 +25,11 @@ let db,
   online = false,
   quitting = false,
   blocked = null,
-  cashClosing = false;
+  cashClosing = false,
+  updating = false,
+  updateSyncStopped = false,
+  activeOperations = 0,
+  updater = null;
 const smokeTest = process.argv.includes("--smoke-test");
 if (smokeTest) {
   const profile = path.join(require("node:os").tmpdir(), "florest-pdv-smoke-" + process.pid);
@@ -159,6 +164,14 @@ async function refreshContext() {
     (context.empresaId !== next.empresaId || context.userId !== next.userId)
   )
     throw new Error("Sessão alterada. Reinicie o aplicativo.");
+  try {
+    const fiscal = await rpc("fiscal_emissao_caixa_obter");
+    if (fiscal?.empresa_id !== next.empresaId || typeof fiscal.emite_nota_fiscal !== "boolean") throw new Error("Configuração fiscal inválida");
+    next.emiteNotaFiscal = fiscal.emite_nota_fiscal;
+  } catch (e) {
+    if (isNetwork(e)) throw e;
+    next.emiteNotaFiscal = null;
+  }
   context = next;
   blocked = null;
   secrets.setItem("context", JSON.stringify(next));
@@ -311,11 +324,21 @@ const handlers = {
   },
   draft(draft) {
     needContext();
+    if (updating) throw new Error("Atualização em andamento.");
+    const key = "precos-cupom:" + context.userId;
+    const old = cfg("draft:" + context.userId)?.operacao === draft?.operacao ? cfg(key) || {} : {};
+    const prices = {};
+    for (const item of draft?.cart || []) {
+      const product = products().find(p => p.id === item.produto_id);
+      if (product) prices[product.id] = old[product.id] ?? product.preco_venda;
+    }
+    cfg(key, prices);
     cfg("draft:" + context.userId, draft);
     return true;
   },
   sale(input) {
     needContext();
+    if (updating) throw new Error("Atualização em andamento.");
     if (cashClosing) throw new Error("Aguarde o fechamento do caixa.");
     if (!caixa?.aberto || !caixa?.pode_operar)
       throw new Error("Abra o caixa antes de vender.");
@@ -338,7 +361,9 @@ const handlers = {
         dados,
       };
     }
-    const dados = validarVenda(input, products(), {
+    const savedPrices = cfg("precos-cupom:" + context.userId) || {};
+    const saleProducts = products().map(p => ({...p, preco_venda: savedPrices[p.id] ?? p.preco_venda}));
+    const dados = validarVenda(input, saleProducts, {
       ...context,
       caixaId: caixa.caixa.id,
     });
@@ -351,6 +376,10 @@ const handlers = {
         .get(context.empresaId, dados.clienteId)
     )
       throw new Error("Cliente não encontrado.");
+    if (dados.clienteId) {
+      const customer=db.db.prepare("SELECT dados_json FROM clientes_cache WHERE empresa_id=? AND cliente_id=?").get(context.empresaId,dados.clienteId);
+      dados.clienteNome=customer ? JSON.parse(customer.dados_json).nome : null;
+    }
     dados.solicitacao = JSON.stringify(input);
     const venda = db.registrarVenda({
       empresaId: context.empresaId,
@@ -358,9 +387,18 @@ const handlers = {
       chaveOperacao: input.operacao,
     });
     cfg("draft:" + context.userId, null);
+    cfg("precos-cupom:" + context.userId, null);
     broadcast();
     sync.run().catch(() => {});
     return { ...venda, dados };
+  },
+  async update() {
+    if (!updater) throw new Error("Atualização indisponível.");
+    return updater.install();
+  },
+  async fiscal({idLocal}) {
+    needContext();
+    return fiscal.emit(idLocal);
   },
   async cash(input) {
     needContext();
@@ -398,9 +436,19 @@ const handlers = {
       "pdv_comanda_item_cancelar",
       "pdv_comanda_cancelar",
       "pdv_comanda_finalizar",
-      "pdv_atalhos_salvar",
+      "pdv_historico_listar",
+      "pdv_historico_detalhar",
+      "pdv_historico_alterar",
+      "caixa_listar",
+      "caixa_detalhe",
     ]);
     if (!allowed.has(name)) throw new Error("Operação indisponível");
+    if (name === "caixa_listar") args = {...args, p_tipo: "PDV"};
+    if (name === "caixa_detalhe") {
+      const detail = await rpc(name, args);
+      if (detail?.caixa?.tipo_caixa !== "PDV") throw new Error("Caixa inválido");
+      return detail;
+    }
     if (name === "pdv_comanda_obter") {
       const c = await rpc(name, args);
       if (c.sessao_id) cfg("comanda:" + context.userId + ":" + c.sessao_id, c);
@@ -425,6 +473,7 @@ const handlers = {
         })),
         total: Number(result.total ?? c.total),
         clienteId: c.cliente_id,
+        clienteNome: c.cliente_nome,
         prazo: args.p_nota_prazo,
         pagamentos: args.p_pagamentos || [],
         userId: context.userId,
@@ -439,6 +488,7 @@ const handlers = {
         empresaId: context.empresaId,
         idLocal: v.idLocal,
         idRemoto: result.venda_id,
+        numeroVenda: result.numero_venda,
       });
       sync.run().catch(() => {});
       return { ...result, idLocal: v.idLocal };
@@ -447,6 +497,24 @@ const handlers = {
     if (name === "pdv_atalhos_salvar")
       cfg("atalhos:" + context.empresaId, await rpc("pdv_atalhos_listar"));
     return data;
+  },
+  async printFiscal({idLocal}) {
+    needContext();
+    const row = db.db.prepare("SELECT id_remoto FROM vendas_locais WHERE empresa_id=? AND id_local=?").get(context.empresaId,idLocal);
+    if (!row?.id_remoto) throw new Error("Venda ainda não sincronizada.");
+    const {data:docs,error} = await client.from("documentos_fiscais").select("id,status,numero,serie,valor,chave_acesso,protocolo,tp_ambiente,dh_emissao,dh_recebimento,xml_conteudo").eq("empresa_id",context.empresaId).eq("venda_id",row.id_remoto).eq("tipo_documento","nfce").eq("status","autorizada");
+    if (error) throw error;
+    const doc = docs?.find(d=>d.xml_conteudo);
+    if (!doc) throw new Error("XML autorizado indisponível. Consulte a tela Fiscal do ERP.");
+    const printer = new BrowserWindow({show:false,webPreferences:{sandbox:true,nodeIntegration:false,contextIsolation:true}});
+    printer.webContents.setWindowOpenHandler(()=>({action:"deny"}));
+    try {
+      await printer.loadURL("data:text/html;charset=utf-8,<html><head><meta charset='utf-8'></head><body></body></html>");
+      await printer.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname,"danfe-browser.js"),"utf8"));
+      const html = await printer.webContents.executeJavaScript("(() => {const d=nfceLerDadosDanfe("+JSON.stringify(doc)+"); if (!d || !d.protocolo || !d.qrCode || !/^\\d{44}$/.test(d.chave)) throw Error('XML autorizado incompleto; consulte o ERP'); return nfceMontarDanfeHtml(d,florestQrSvg(d.qrCode,2));})()");
+      await printer.loadURL("data:text/html;charset=utf-8,"+encodeURIComponent(html));
+      return await new Promise((resolve,reject)=>printer.webContents.print({silent:false,printBackground:true,margins:{marginType:"none"}},(ok,reason)=>ok?resolve(true):reason==="cancelled"?resolve(false):reject(new Error(reason))));
+    } finally {printer.destroy();}
   },
   async print(idLocal) {
     needContext();
@@ -491,7 +559,7 @@ const handlers = {
     needContext();
     return db.db
       .prepare(
-        "SELECT id_local,numero_local,criada_em,estado_sync,erro_sync,id_remoto,dados_json FROM vendas_locais WHERE empresa_id=? ORDER BY numero_local DESC LIMIT 100",
+        "SELECT id_local,numero_local,criada_em,estado_sync,erro_sync,id_remoto,numero_remoto,dados_json FROM vendas_locais WHERE empresa_id=? ORDER BY numero_local DESC LIMIT 100",
       )
       .all(context.empresaId)
       .map((r) => ({ ...r, total: JSON.parse(r.dados_json).total }));
@@ -552,9 +620,38 @@ if (lock) {
             event.senderFrame !== win.webContents.mainFrame
           )
             throw new Error("Origem inválida");
-          return handler(arg);
+          const tracks = ["sale","fiscal","cash","remote","print","printFiscal"].includes(name);
+          if (tracks && updating) throw new Error("Atualização em andamento.");
+          if (tracks) activeOperations++;
+          try { return await handler(arg); } finally { if (tracks) activeOperations--; }
         });
+      fiscal = require("./fiscal.cjs").createFiscal({rpc, client, getContext: () => context, storage: db, sync: () => sync?.run()});
       createWindow();
+      if (!smokeTest && app.isPackaged) {
+        updater = require("./update.cjs").createUpdater({
+          autoUpdater: require("electron-updater").autoUpdater,
+          onChange: broadcast,
+          hasSale: async () => activeOperations > 0 || cashClosing || !!(context && cfg("draft:" + context.userId)?.cart?.length) || (win && await win.webContents.executeJavaScript("window.florestHasSale?.() || false")),
+          prepare: async () => {
+            updating = true;
+            if (await win.webContents.executeJavaScript("window.florestHasSale?.() || false")) { updating = false; throw new Error("Venda em andamento."); }
+            if (sync) { await sync.stop(); updateSyncStopped = true; }
+            const dir = path.join(app.getPath("userData"), "backups");
+            fs.mkdirSync(dir, {recursive: true});
+            await db.db.backup(path.join(dir, "antes-atualizacao-" + Date.now() + ".sqlite"));
+            db.db.pragma("wal_checkpoint(FULL)");
+          },
+          install: () => {
+            quitting = true;
+            client?.auth.stopAutoRefresh();
+            db.fechar();
+          },
+          recover: () => { updating = false; if (updateSyncStopped) { updateSyncStopped = false; installSync(); } },
+        });
+        updater.check();
+        const updateTimer = setInterval(() => updater.check(), 3600000);
+        updateTimer.unref();
+      }
     })
     .catch((e) => {
       if (smokeTest) {

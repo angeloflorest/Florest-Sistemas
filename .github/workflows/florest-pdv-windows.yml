@@ -21,7 +21,8 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: florest-pdv-windows/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
+      - run: node node_modules/electron/install.js
       - run: npm run check
       - run: npm test
       - run: npm run build:manual
@@ -34,6 +35,10 @@ jobs:
           $env:FLOREST_UI_PLAYWRIGHT = Join-Path $uiRuntime 'node_modules/playwright'
           node scripts/ui-keyboard-smoke.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/ui-history.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/ui-danfe.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/ui-taxas-web.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run build:win
@@ -42,7 +47,7 @@ jobs:
       - name: Conferir abertura do aplicativo empacotado
         shell: pwsh
         run: |
-          $process = Start-Process -FilePath './dist/win-unpacked/Florest PDV.exe' -ArgumentList '--smoke-test' -Wait -PassThru
+          $process = Start-Process -WindowStyle Hidden -FilePath './dist/win-unpacked/Florest PDV.exe' -ArgumentList '--smoke-test' -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Falha no aplicativo: $($process.ExitCode)" }
       - uses: actions/upload-artifact@v4
         with:
@@ -56,13 +61,14 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const tag = `pdv-windows-teste-${context.runNumber}`;
+            const version = JSON.parse(fs.readFileSync('florest-pdv-windows/package.json')).version;
+            const tag = `pdv-windows-${version}`;
             const release = await github.rest.repos.createRelease({
               ...context.repo, tag_name: tag, target_commitish: context.sha,
-              name: `Florest PDV Windows — teste ${context.runNumber}`, prerelease: true,
-              body: 'Versão 0.2.2: controle opcional de taxas por empresa, recebido do Financeiro do ERP, bandeiras no débito/crédito à vista e snapshot na fila offline. Use Receber atualizações após configurar. Florest PDV Windows: busca enquanto digita, seleção com setas e Enter, quantidade e atalhos F4 Dinheiro, F6 Pix, F7 Débito, F8 Crédito. Mantém F2 Cliente, F3 Finalizar, F5 Desconto e F9 Buscar. F1 abre o manual; a opção Outros foi removida. Instale por cima da versão anterior para manter os dados locais. O primeiro acesso e a abertura/fechamento de caixa precisam de conexão. Não emite documento fiscal. Inclui manual HTML para consulta offline e impressão.'
+              name: `Florest PDV Windows ${version} — testes`, prerelease: true,
+              body: 'Versão 0.3.0 para validação: fluxo fiscal online pelo ERP, número remoto preservado, atualização com validação de checksum e backup SQLite, caixa e proteção do cupom durante sincronização. Ainda exige validação integrada com conta de testes e impressora. Instale por cima para preservar os dados.'
             });
-            for (const name of fs.readdirSync('florest-pdv-windows/dist').filter(n => n.endsWith('.exe') || n === 'Manual-Florest-PDV.html')) {
+            for (const name of fs.readdirSync('florest-pdv-windows/dist').filter(n => n.endsWith('.exe') || n.endsWith('.blockmap') || n === 'latest.yml' || n === 'Manual-Florest-PDV.html')) {
               const file = path.join('florest-pdv-windows/dist', name);
               await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: release.data.id, name, data: fs.readFileSync(file)});
             }
