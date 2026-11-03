@@ -66,13 +66,15 @@ test("catálogo local permite pesquisa por nome e código sem misturar empresas"
   const storage = openLocalDatabase(dir);
   try {
     storage.atualizarProdutos("empresa-a", [
-      { id: "1", nome: "Coca-Cola 2L", codigo_barras: "789000001" },
+      { id: "1", nome: "Coca-Cola 2L", codigo_barras: "789000001", referencia: "1019" },
       { id: "2", nome: "Água mineral", codigo_barras: "789000002" },
     ]);
     storage.atualizarProdutos("empresa-b", [
       { id: "1", nome: "Outro produto" },
     ]);
     assert.equal(storage.buscarProdutos("empresa-a", "coca").length, 1);
+    assert.equal(storage.buscarProdutos("empresa-a", "1019")[0].nome, "Coca-Cola 2L");
+    assert.equal(storage.buscarProdutos("empresa-b", "1019").length, 0);
     assert.equal(
       storage.buscarProdutos("empresa-a", "789000002")[0].nome,
       "Água mineral",
