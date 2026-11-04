@@ -29,12 +29,12 @@ async function upload(supabase,empresaId,produtoId,file){
 }
 function picker(row,initial){
  const container=document.createElement('div');container.className='gs-foto-controle';
- const preview=document.createElement('img');preview.alt='Foto do produto';preview.loading='lazy';preview.style.cssText='width:68px;height:68px;object-fit:cover;border-radius:8px;display:none';
+ const preview=document.createElement('img');preview.alt='Foto do produto';preview.loading='lazy';preview.style.cssText='width:90px;height:90px;object-fit:contain;border-radius:8px;background:#f1f5f9';
  const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.style.display='none';
  const button=document.createElement('button');button.type='button';button.className='gs-button';button.textContent='Escolher foto do computador';
  const remove=document.createElement('button');remove.type='button';remove.className='gs-button';remove.textContent='Remover foto';
  const state={url:initial||'',file:null,previewUrl:null};
- function refresh(){preview.style.display=state.url||state.file?'block':'none';preview.src=state.previewUrl||state.url||''}
+ function refresh(){preview.style.visibility=state.url||state.file?'visible':'hidden';preview.src=state.previewUrl||state.url||''}
  button.onclick=()=>input.click();
  input.onchange=()=>{const file=input.files?.[0];if(!file)return;if(!/^image\/(jpeg|png|webp)$/.test(file.type)){alert('Escolha JPG, PNG ou WebP.');return}if(file.size>15*1024*1024){alert('Imagem acima de 15 MB.');return}if(state.previewUrl)URL.revokeObjectURL(state.previewUrl);state.file=file;state.previewUrl=URL.createObjectURL(file);refresh()};
  remove.onclick=()=>{if(state.previewUrl)URL.revokeObjectURL(state.previewUrl);state.file=null;state.url='';state.previewUrl=null;input.value='';refresh()};
