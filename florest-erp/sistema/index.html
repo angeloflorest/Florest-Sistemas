@@ -21311,13 +21311,51 @@ async function relatorioBarComparativoGarcons(filtros){
 }
 
 
+// Atualização silenciosa exclusiva das Mesas do Bar (5 segundos).
+// Não recarrega a página nem interfere nos campos em edição.
+let barMesasPollingEmAndamento = false;
+setInterval(async () => {
+  if(barMesasPollingEmAndamento || document.hidden ||
+     $('view-bar').classList.contains('hidden') || barSubViewAtual !== 'mesas' ||
+     $('bar-sub-mesas').classList.contains('hidden')) return;
+  barMesasPollingEmAndamento = true;
+  try {
+    const modal = $('modal-bar-mesa');
+    const modalAberto = modal && !modal.classList.contains('hidden');
+    const editando = modalAberto && (
+      barMesaCarrinho.length > 0 ||
+      (modal.contains(document.activeElement) &&
+       document.activeElement.matches('input, textarea, select, [contenteditable="true"]'))
+    );
+    // Durante digitação ou montagem do pedido, preservar integralmente o formulário.
+    if(modalAberto && !editando && barComandaAtualId) {
+      const comandaConsultada = barComandaAtualId;
+      const {data, error} = await supabase.from('bar_mesas')
+        .select('id,status,comanda_atual_id').eq('id',barMesaAtual.id).single();
+      if(!error && barComandaAtualId === comandaConsultada &&
+         !modal.classList.contains('hidden')) {
+        if(data.comanda_atual_id === comandaConsultada && data.status === 'ocupada') {
+          await atualizarSaldoEItensMesa();
+        } else {
+          // Outra estação encerrou a mesa: não permitir mostrar saldo antigo.
+          barMesaAtual = {...barMesaAtual,...data};
+          barComandaAtualId = data.comanda_atual_id || null;
+          await atualizarSaldoEItensMesa();
+        }
+      }
+    }
+    await carregarBarMesas(true);
+  } catch(e) { console.warn('Consulta silenciosa das mesas do Bar:',e); }
+  finally { barMesasPollingEmAndamento = false; }
+}, 5000);
+
 // ---------- Mesas ----------
-async function carregarBarMesas(){
-  $('bar-mesas-msg').innerHTML = '';
+async function carregarBarMesas(silencioso = false){
+  if(!silencioso) $('bar-mesas-msg').innerHTML = '';
   $('btn-bar-estornar-busca').classList.toggle('hidden', !podeAcessarBar('bar_estornar_pagamento'));
   const { data: mesas, error } = await supabase.from('bar_mesas').select('*').order('numero');
   if(error){
-    $('bar-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
+    if(!silencioso) $('bar-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
   const visiveis = (mesas || []).filter(m => m.status !== 'fechada');
@@ -21340,7 +21378,7 @@ async function carregarBarMesas(){
     });
   }
 
-  $('bar-mesas-grid').innerHTML = visiveis.map(m => {
+  const novoHtmlMesas = visiveis.map(m => {
     const saldo = m.comanda_atual_id ? (saldoPorComanda.get(m.comanda_atual_id) || 0) : 0;
     const statusTexto = m.status === 'ocupada' ? `EM ABERTO — ${formatarReais(saldo)}` : 'LIVRE';
     return `
@@ -21349,6 +21387,8 @@ async function carregarBarMesas(){
       <div class="bar-mesa-saldo">${statusTexto}</div>
     </div>`;
   }).join('');
+  if(silencioso && $('bar-mesas-grid').innerHTML === novoHtmlMesas) return;
+  $('bar-mesas-grid').innerHTML = novoHtmlMesas;
   document.querySelectorAll('#bar-mesas-grid .bar-mesa-card').forEach(card => {
     const mesa = (mesas || []).find(x => x.id === card.dataset.mesaId);
     card.addEventListener('click', () => aoClicarMesaBar(mesa));
