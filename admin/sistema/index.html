@@ -426,6 +426,14 @@
         </div>
       </div>
       <div id="modulo-bar-msg"></div>
+      <div class="modulo-toggle-row" id="modulo-gastronomia-row">
+        <input type="checkbox" id="f-modulo-gastronomia">
+        <div>
+          <div class="titulo">GASTRONOMIA</div>
+          <div class="desc">Mesas, pedidos, caixa, garçons, produto composto, histórico de vendas e configurações, incluindo cardápio digital. Desativar não apaga dados.</div>
+        </div>
+      </div>
+      <div id="modulo-gastronomia-msg"></div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
@@ -558,7 +566,13 @@ async function tentarMostrarApp(){
     return;
   }
 
-  clientesCache = (data || []).map(c => ({ ...c, dias_restantes: diasRestantes(c.vencimento) }));
+  const {data: modulosGastronomia, error: erroGastronomia} = await supabase.rpc('admin_listar_gastronomia_modulos');
+  if(erroGastronomia){
+    $('admin-msg').innerHTML = `<div class="msg error">Não foi possível consultar os módulos Gastronomia: ${escapeHtml(traduzErro(erroGastronomia.message))}</div>`;
+    return;
+  }
+  const gastronomiaPorEmpresa = new Map((modulosGastronomia||[]).map(m=>[m.empresa_id,!!m.ativo]));
+  clientesCache = (data || []).map(c => ({ ...c, gastronomia_ativo: gastronomiaPorEmpresa.get(c.empresa_id)||false, dias_restantes: diasRestantes(c.vencimento) }));
   loginScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
   renderClientes(clientesCache);
@@ -619,6 +633,7 @@ function renderClientes(lista){
     let moduloBadge = '';
     if(c.pet_ativo) moduloBadge += '<span class="modulo-chip ativo">PET ativo</span>';
     if(c.bar_ativo) moduloBadge += '<span class="modulo-chip ativo">BAR ativo</span>';
+    if(c.gastronomia_ativo) moduloBadge += '<span class="modulo-chip ativo">GASTRONOMIA ativa</span>';
     if(!moduloBadge) moduloBadge = '<span class="modulo-chip padrao">ERP padrão</span>';
 
     tr.innerHTML = `
@@ -713,7 +728,7 @@ async function reativarEmpresa(c){
 // anterior) e só chama admin_configurar_modulo para o(s) módulo(s) que realmente mudaram.
 // Fechar o modal ou clicar em "Cancelar" nunca grava nada, porque nenhuma chamada de rede
 // acontece antes do Salvar — não há mais nada para "desfazer".
-let moduloOriginal = { pet: false, bar: false };
+let moduloOriginal = { pet: false, bar: false, gastronomia: false };
 
 function abrirModalCliente(c){
   $('modal-msg').innerHTML = '';
@@ -734,11 +749,13 @@ function abrirModalCliente(c){
   $('f-observacoes').value = c.observacoes || '';
 
   // Fonte da verdade: exatamente o que admin_listar_empresas() retornou agora para esta empresa.
-  moduloOriginal = { pet: !!c.pet_ativo, bar: !!c.bar_ativo };
+  moduloOriginal = { pet: !!c.pet_ativo, bar: !!c.bar_ativo, gastronomia: !!c.gastronomia_ativo };
   $('f-modulo-pet').checked = moduloOriginal.pet;
   $('f-modulo-pet').disabled = false;
   $('f-modulo-bar').checked = moduloOriginal.bar;
   $('f-modulo-bar').disabled = false;
+  $('f-modulo-gastronomia').checked = moduloOriginal.gastronomia;
+  $('f-modulo-gastronomia').disabled = false;
 
   $('modal-cliente').classList.remove('hidden');
 }
@@ -758,6 +775,13 @@ $('form-cliente').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Salvando...';
   $('modal-msg').innerHTML = '';
+
+  if($('f-modulo-bar').checked && $('f-modulo-gastronomia').checked && empresaId !== '8b48baee-bb29-45ac-8e4d-b9432c603f38'){
+    $('modal-msg').innerHTML = '<div class="msg error">Selecione somente Bar ou Gastronomia para esta empresa.</div>';
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+    return;
+  }
 
   // 1) Dados comerciais (admin_atualizar_empresa) — inalterado em relação à versão anterior.
   const { error: erroComercial } = await supabase.rpc('admin_atualizar_empresa', {
@@ -781,9 +805,11 @@ $('form-cliente').addEventListener('submit', async (e) => {
   //    modal foi aberto (comparação contra moduloOriginal, nunca os dois incondicionalmente).
   const novoPet = $('f-modulo-pet').checked;
   const novoBar = $('f-modulo-bar').checked;
+  const novoGastronomia = $('f-modulo-gastronomia').checked;
   const mudancasModulo = [];
   if(novoPet !== moduloOriginal.pet) mudancasModulo.push({ modulo: 'pet', ativo: novoPet, label: 'PET' });
   if(novoBar !== moduloOriginal.bar) mudancasModulo.push({ modulo: 'bar', ativo: novoBar, label: 'BAR' });
+  if(novoGastronomia !== moduloOriginal.gastronomia) mudancasModulo.push({ modulo: 'gastronomia', ativo: novoGastronomia, label: 'GASTRONOMIA' });
 
   const errosModulo = [];
   for(const m of mudancasModulo){
