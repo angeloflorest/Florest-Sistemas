@@ -3635,7 +3635,7 @@
         <button type="button" class="fin-aba" id="fin-aba-pagar" data-fin-aba="pagar" role="tab" aria-selected="false">Contas a Pagar</button><button type="button" class="fin-aba" id="fin-aba-historico" data-fin-aba="historico" role="tab" aria-selected="false">Histórico de Vendas — PDV Principal</button>
       </div>
 
-      <div id="fin-pane-historico" class="hidden"><h3>Histórico de Vendas — PDV Principal</h3><p>As vendas sem caixa aberto, com nota fiscal ou vínculos especiais ficam disponíveis somente para consulta.</p><input id="pdvh-busca" placeholder="Número, data, cliente, valor ou pagamento" type="search" style="width:70%"><button class="btn-secondary" id="pdvh-buscar" type="button">Pesquisar</button><div id="pdvh-msg"></div><div id="pdvh-lista"></div><div id="pdvh-detalhe"></div><button class="btn-secondary" id="pdvh-mais" type="button">Mais vendas</button></div><div id="fin-pane-resumo">
+      <div id="fin-pane-historico" class="hidden"><h3>Histórico de Vendas — PDV Principal</h3><p>As vendas sem caixa aberto, com nota fiscal ou vínculos especiais ficam disponíveis somente para consulta.</p><input id="pdvh-busca" placeholder="Número, data, cliente, valor ou pagamento" type="search" style="width:70%"><button class="btn-secondary" id="pdvh-buscar" type="button">Pesquisar</button><div id="pdvh-msg"></div><div id="pdvh-detalhe"></div><div id="pdvh-lista"></div><button class="btn-secondary" id="pdvh-mais" type="button">Mais vendas</button></div><div id="fin-pane-resumo">
 
       <div class="period-tabs">
         <button class="period-tab-btn active" data-periodo="hoje">Hoje</button>
@@ -15468,7 +15468,7 @@ async function pdvhListar(reset){
  }catch(e){pdvhAviso(e.message||e);}
 }
 async function pdvhAbrir(id){
- try{const {data,error}=await supabase.rpc('pdv_historico_detalhar',{p_venda:id});if(error)throw error;pdvhData=data;pdvhItens=(data.itens||[]).map(i=>({produto_id:i.produto_id,nome:i.nome,quantidade:Number(i.quantidade),preco_unitario:Number(i.preco_unitario)}));pdvhPag=(data.pagamentos||[]).map(p=>({forma_pagamento:p.forma_pagamento,valor:Number(p.valor)}));pdvhRender();}catch(e){pdvhAviso(e.message||e);}
+ try{const {data,error}=await supabase.rpc('pdv_historico_detalhar',{p_venda:id});if(error)throw error;pdvhData=data;pdvhItens=(data.itens||[]).map(i=>({produto_id:i.produto_id,nome:i.nome,quantidade:Number(i.quantidade),preco_unitario:Number(i.preco_unitario)}));pdvhPag=(data.pagamentos||[]).map(p=>({forma_pagamento:p.forma_pagamento,valor:Number(p.valor)}));pdvhRender();$('pdvh-detalhe').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){pdvhAviso(e.message||e);}
 }
 function pdvhRender(){
  const d=pdvhData,root=$('pdvh-detalhe');root.replaceChildren();if(!d)return;
