@@ -1,0 +1,52 @@
+name: APK de testes - Florest PDV Movel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'florest-pdv-movel/**'
+      - '.github/workflows/florest-pdv-movel-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  apk-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: florest-pdv-movel
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Gerar projeto Android
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.PDV_MOVEL_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PDV_MOVEL_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_UPDATE_MANIFEST_URL: ${{ secrets.PDV_MOVEL_UPDATE_MANIFEST_URL }}
+        run: npx expo prebuild --platform android --non-interactive --no-install
+      - name: Compilar APK de testes
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: florest-pdv-movel/android
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Florest-PDV-Movel-APK-Testes
+          path: florest-pdv-movel/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
