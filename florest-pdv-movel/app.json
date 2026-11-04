@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Florest PDV Móvel",
+    "slug": "florest-pdv-movel",
+    "scheme": "florestpdvmovel",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "br.com.florestsistemas.pdvmovel",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir leitura de códigos de barras para adicionar produtos."
+        }
+      ]
+    ],
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "updateManifestUrl": ""
+    }
+  }
+}
