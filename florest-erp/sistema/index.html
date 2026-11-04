@@ -15468,22 +15468,65 @@ async function pdvhListar(reset){
  }catch(e){pdvhAviso(e.message||e);}
 }
 async function pdvhAbrir(id){
- try{const {data,error}=await supabase.rpc('pdv_historico_detalhar',{p_venda:id});if(error)throw error;pdvhData=data;pdvhItens=(data.itens||[]).map(i=>({produto_id:i.produto_id,nome:i.nome,quantidade:Number(i.quantidade),preco_unitario:Number(i.preco_unitario)}));pdvhPag=(data.pagamentos||[]).map(p=>({forma_pagamento:p.forma_pagamento,valor:Number(p.valor)}));pdvhRender();$('pdvh-detalhe').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){pdvhAviso(e.message||e);}
+ try{const {data,error}=await supabase.rpc('pdv_historico_detalhar',{p_venda:id});if(error)throw error;pdvhData=data;pdvhItens=(data.itens||[]).map(i=>({produto_id:i.produto_id,nome:i.nome,quantidade:Number(i.quantidade),preco_unitario:Number(i.preco_unitario)}));pdvhPag=(data.pagamentos||[]).map(p=>({forma_pagamento:p.forma_pagamento,valor:Number(p.valor)}));pdvhModo='consulta';pdvhRender();}catch(e){pdvhAviso(e.message||e);}
 }
+let pdvhModo='consulta',pdvhModal=null;
+function pdvhFechar(){if(pdvhModal){pdvhModal.remove();pdvhModal=null;}}
 function pdvhRender(){
  const d=pdvhData,root=$('pdvh-detalhe');root.replaceChildren();if(!d)return;
- root.append(pdvhEl('h3','Venda #'+d.venda.numero_venda),pdvhEl('p','Cliente: '+(d.cliente_nome||'Consumidor')+' · '+pdvhMoney(d.venda.total)));
- if(!d.editavel)root.append(pdvhEl('p','Somente consulta: esta venda não permite edição ou exclusão.'));
- const table=(name,arr,fields)=>{root.append(pdvhEl('h4',name));for(let i=0;i<arr.length;i++){const r=arr[i],line=pdvhEl('div');line.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0';if(name==='Produtos')line.append(pdvhEl('span',r.nome));for(const f of fields){if(!d.editavel)line.append(pdvhEl('span',f+': '+r[f]));else if(f==='forma_pagamento'){const sel=pdvhEl('select');for(const x of ['Dinheiro','Pix','Cartão de Débito','Cartão de Crédito']){const o=pdvhEl('option',x);o.value=x;sel.append(o)}sel.value=r[f];sel.onchange=()=>r[f]=sel.value;line.append(sel);}else{const input=pdvhEl('input');input.type='number';input.min=f==='quantidade'?'0.0001':'0.01';input.step=f==='quantidade'?'0.0001':'0.01';input.value=r[f];input.style.width='100px';input.onchange=()=>r[f]=Number(input.value);line.append(input);}}if(d.editavel){const b=pdvhEl('button','Remover');b.className='btn-secondary';b.onclick=()=>{arr.splice(i,1);pdvhRender()};line.append(b)}root.append(line);}};
- table('Produtos',pdvhItens,['quantidade','preco_unitario']);table('Pagamentos',pdvhPag,['forma_pagamento','valor']);
- if(!d.editavel)return;
- const addP=pdvhEl('button','+ Pagamento');addP.className='btn-secondary';addP.onclick=()=>{pdvhPag.push({forma_pagamento:'Dinheiro',valor:0});pdvhRender()};root.append(addP);
- const search=pdvhEl('input');search.placeholder='Nome ou código do produto';search.type='search';const found=pdvhEl('div');const find=pdvhEl('button','Buscar produto');find.className='btn-secondary';find.onclick=async()=>{const term=search.value.trim().replace(/[%,()]/g,'');if(!term)return;const {data,error}=await supabase.from('produtos').select('id,nome,codigo,preco_venda').or('nome.ilike.%'+term+'%,codigo.ilike.%'+term+'%').limit(15);if(error){pdvhAviso(error.message);return}found.replaceChildren();for(const p of data||[]){const b=pdvhEl('button',p.nome+' · '+pdvhMoney(p.preco_venda));b.className='btn-secondary';b.onclick=()=>{pdvhItens.push({produto_id:p.id,nome:p.nome,quantidade:1,preco_unitario:Number(p.preco_venda)});pdvhRender()};found.append(b)}};root.append(pdvhEl('h4','Adicionar produto'),search,find,found);
- const customer=pdvhEl('input');customer.type='search';customer.placeholder='Buscar cliente (opcional)';const sel=pdvhEl('select');const empty=pdvhEl('option','Consumidor');empty.value='';sel.append(empty);if(d.venda.cliente_id){const op=pdvhEl('option',d.cliente_nome);op.value=d.venda.cliente_id;sel.append(op);sel.value=op.value}
- const cb=pdvhEl('button','Buscar cliente');cb.className='btn-secondary';cb.onclick=async()=>{const t=customer.value.trim().replace(/[%,()]/g,'');const {data,error}=await supabase.from('clientes').select('id,nome').ilike('nome','%'+t+'%').limit(30);if(error){pdvhAviso(error.message);return}sel.replaceChildren(empty);for(const c of data||[]){const op=pdvhEl('option',c.nome);op.value=c.id;sel.append(op)}};root.append(pdvhEl('h4','Cliente'),customer,cb,sel);
- for(const del of [false,true]){const b=pdvhEl('button',del?'Excluir venda':'Salvar alterações');b.className=del?'btn-secondary':'btn-accent';b.style.margin='8px';b.onclick=async()=>{
+ pdvhFechar();
+ const overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;background:rgba(7,25,46,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+ const panel=document.createElement('div');panel.style.cssText='background:white;color:#142b46;width:min(760px,100%);max-height:92vh;overflow:auto;padding:26px;border-radius:16px;box-shadow:0 20px 70px #0006';
+ overlay.append(panel);document.body.append(overlay);pdvhModal=overlay;
+ overlay.onclick=e=>{if(e.target===overlay)pdvhFechar()};
+ const header=pdvhEl('div');header.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px';
+ const heading=pdvhEl('h2',(pdvhModo==='consulta'?'Venda #':'Editar venda #')+d.venda.numero_venda);heading.style.margin='0';
+ const close=pdvhEl('button','Fechar ✕');close.className='btn-secondary';close.onclick=pdvhFechar;header.append(heading,close);panel.append(header);
+ const summary=pdvhEl('div','Cliente: '+(d.cliente_nome||'Consumidor')+'  •  Total: '+pdvhMoney(d.venda.total));
+ summary.style.cssText='background:#edf5ff;padding:16px;border-radius:10px;margin:18px 0;font-weight:bold';panel.append(summary);
+ const content=pdvhEl('div');panel.append(content);
+ const section=(title)=>{const x=pdvhEl('div');x.style.cssText='border:1px solid #d8e1ed;border-radius:12px;padding:15px;margin:14px 0';const h=pdvhEl('h3',title);h.style.margin='0 0 12px';x.append(h);content.append(x);return x};
+ const edit=pdvhModo==='edicao'&&d.editavel;
+ const products=section('Produtos');
+ for(let i=0;i<pdvhItens.length;i++){const item=pdvhItens[i],line=pdvhEl('div');line.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #eee';
+ line.append(pdvhEl('strong',item.nome));
+ if(edit){for(const field of ['quantidade','preco_unitario']){const label=pdvhEl('label',field==='quantidade'?'Quantidade ':'Preço R$ ');const inp=pdvhEl('input');inp.type='number';inp.step=field==='quantidade'?'0.0001':'0.01';inp.min=field==='quantidade'?'0.0001':'0';inp.value=item[field];inp.style.width='100px';inp.oninput=()=>{item[field]=Number(inp.value);updateTotals()};label.append(inp);line.append(label)}
+ const remove=pdvhEl('button','Remover');remove.className='btn-secondary';remove.onclick=()=>{pdvhItens.splice(i,1);pdvhRender()};line.append(remove);
+ }else line.append(pdvhEl('span',item.quantidade+' × '+pdvhMoney(item.preco_unitario)+' = '+pdvhMoney(item.quantidade*item.preco_unitario)));products.append(line)}
+ const payments=section('Pagamentos');
+ for(let i=0;i<pdvhPag.length;i++){const item=pdvhPag[i],line=pdvhEl('div');line.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 0';
+ if(edit){const sel=pdvhEl('select');for(const name of ['Dinheiro','Pix','Cartão de Débito','Cartão de Crédito']){const opt=pdvhEl('option',name);opt.value=name;sel.append(opt)}sel.value=item.forma_pagamento;sel.onchange=()=>item.forma_pagamento=sel.value;
+ const inp=pdvhEl('input');inp.type='number';inp.step='0.01';inp.min='0.01';inp.value=item.valor;inp.style.width='120px';inp.oninput=()=>{item.valor=Number(inp.value);updateTotals()};
+ const remove=pdvhEl('button','Remover');remove.className='btn-secondary';remove.onclick=()=>{pdvhPag.splice(i,1);pdvhRender()};line.append(sel,inp,remove);
+ }else line.append(pdvhEl('span',item.forma_pagamento+' · '+pdvhMoney(item.valor)));payments.append(line)}
+ const totalBox=pdvhEl('div');totalBox.style.cssText='background:#edf5ff;border-radius:10px;padding:15px;margin:16px 0;font-weight:bold';panel.append(totalBox);
+ const updateTotals=()=>{const total=pdvhItens.reduce((n,i)=>n+i.quantidade*i.preco_unitario,0),paid=pdvhPag.reduce((n,p)=>n+p.valor,0);totalBox.textContent='Total dos produtos: '+pdvhMoney(total)+'   |   Pagamentos: '+pdvhMoney(paid)};
+ updateTotals();
+ const feedback=pdvhEl('div');feedback.style.cssText='color:#a61c1c;margin:10px 0';panel.append(feedback);
+ const actions=pdvhEl('div');actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px';panel.append(actions);
+ if(!edit){
+ if(d.editavel){const b=pdvhEl('button','Editar venda');b.className='btn-accent';b.onclick=()=>{pdvhModo='edicao';pdvhRender()};actions.append(b)}
+ else actions.append(pdvhEl('span','Somente consulta: venda protegida pelas regras de caixa, fiscal ou vínculos.'));
+ actions.append(close.cloneNode(true));actions.lastChild.onclick=pdvhFechar;return;
+ }
+ const addPayment=pdvhEl('button','+ Pagamento');addPayment.className='btn-secondary';addPayment.onclick=()=>{pdvhPag.push({forma_pagamento:'Dinheiro',valor:0});pdvhRender()};payments.append(addPayment);
+ const productSearch=section('Adicionar produto'),query=pdvhEl('input'),results=pdvhEl('div');query.placeholder='Nome ou código do produto';
+ const search=pdvhEl('button','Buscar produto');search.className='btn-secondary';search.onclick=async()=>{const term=query.value.trim().replace(/[%,()]/g,'');if(!term)return;const {data,error}=await supabase.from('produtos').select('id,nome,codigo,preco_venda').or('nome.ilike.%'+term+'%,codigo.ilike.%'+term+'%').limit(15);if(error){feedback.textContent=error.message;return}results.replaceChildren();for(const p of data||[]){const b=pdvhEl('button',p.nome+' · '+pdvhMoney(p.preco_venda));b.className='btn-secondary';b.onclick=()=>{pdvhItens.push({produto_id:p.id,nome:p.nome,quantidade:1,preco_unitario:Number(p.preco_venda)});pdvhRender()};results.append(b)}};
+ productSearch.append(query,search,results);
+ const customer=section('Cliente'),customerQuery=pdvhEl('input'),customerSelect=pdvhEl('select');customerQuery.placeholder='Pesquisar cliente';
+ const empty=pdvhEl('option','Consumidor');empty.value='';customerSelect.append(empty);
+ if(d.venda.cliente_id){const opt=pdvhEl('option',d.cliente_nome||'Cliente');opt.value=d.venda.cliente_id;customerSelect.append(opt);customerSelect.value=opt.value}
+ const customerSearch=pdvhEl('button','Buscar cliente');customerSearch.className='btn-secondary';customerSearch.onclick=async()=>{const t=customerQuery.value.trim().replace(/[%,()]/g,'');const {data,error}=await supabase.from('clientes').select('id,nome').ilike('nome','%'+t+'%').limit(30);if(error){feedback.textContent=error.message;return}customerSelect.replaceChildren(empty);for(const c of data||[]){const o=pdvhEl('option',c.nome);o.value=c.id;customerSelect.append(o)}};
+ customer.append(customerQuery,customerSearch,customerSelect);
+ const cancel=pdvhEl('button','Cancelar');cancel.className='btn-secondary';cancel.onclick=()=>{pdvhModo='consulta';pdvhAbrir(d.venda.id)};actions.append(cancel);
+ for(const del of [false,true]){const b=pdvhEl('button',del?'Excluir venda':'Salvar alterações');b.className=del?'btn-secondary':'btn-accent';b.onclick=async()=>{
+ const total=Math.round(pdvhItens.reduce((n,i)=>n+i.quantidade*i.preco_unitario,0)*100),paid=Math.round(pdvhPag.reduce((n,p)=>n+p.valor,0)*100);
+ if(!del&&(pdvhItens.length===0||pdvhPag.length===0||total!==paid)){feedback.textContent='Não é possível salvar: o total dos pagamentos precisa ser igual ao total dos produtos.';return}
+ if(!del&&(pdvhItens.some(i=>!i.produto_id||!(i.quantidade>0)||i.preco_unitario<0)||pdvhPag.some(p=>!(p.valor>0)))){feedback.textContent='Confira quantidades, preços e valores dos pagamentos.';return}
  if(!confirm(del?'Confirma excluir esta venda?':'Confirma salvar as alterações?'))return;
- try{const {error}=await supabase.rpc('pdv_historico_alterar',{p_venda:d.venda.id,p_itens:pdvhItens.map(({produto_id,quantidade,preco_unitario})=>({produto_id,quantidade,preco_unitario})),p_pagamentos:pdvhPag,p_cliente:sel.value||null,p_excluir:del});if(error)throw error;await pdvhListar(true);await pdvhAbrir(d.venda.id);pdvhAviso('Operação concluída.');}catch(e){pdvhAviso(e.message||e)}};root.append(b);}
+ b.disabled=true;feedback.textContent='';
+ try{const {error}=await supabase.rpc('pdv_historico_alterar',{p_venda:d.venda.id,p_itens:pdvhItens.map(({produto_id,quantidade,preco_unitario})=>({produto_id,quantidade,preco_unitario})),p_pagamentos:pdvhPag,p_cliente:customerSelect.value||null,p_excluir:del});if(error)throw error;pdvhFechar();await pdvhListar(true);pdvhAviso(del?'Venda excluída.':'Alterações salvas com sucesso.')}catch(e){feedback.textContent='Não foi possível salvar: '+(e.message||e)}finally{b.disabled=false}
+ };actions.append(b)}
 }
 $('pdvh-buscar').onclick=()=>pdvhListar(true);$('pdvh-mais').onclick=()=>pdvhListar(false);$('pdvh-busca').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pdvhListar(true)}};
 
