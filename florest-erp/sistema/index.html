@@ -17822,8 +17822,7 @@ function nfceMontarDanfeHtml(d, qrSvg){
     .qr{ text-align:center; margin:2mm 0; }
     .qr svg{ width:34mm; height:34mm; display:block; margin:0 auto; }
     @media print{ html,body{ height:auto !important; min-height:0 !important; overflow:visible !important; } }
-  </style></head><body>${pre(blocos[0])}<div class="qr">${qrSvg}</div>${pre(blocos[1])}<script src="./gastronomia-fotos.js" defer></script>
-</body></html>`;
+  </style></head><body>${pre(blocos[0])}<div class="qr">${qrSvg}</div>${pre(blocos[1])}</body></html>`;
 }
 
 // Altura da página = altura REAL do conteúdo. O navegador usa o papel padrão do driver quando o @page não
