@@ -13756,6 +13756,12 @@ $('btn-venda-emitir-sim').addEventListener('click', async () => {
   }
 });
 
+function pdvMovelRotuloVenda(v){
+  if(!v.pdv_movel_caixa_id) return 'PDV Principal';
+  const c=v.pdv_movel_caixas;
+  return 'PDV Móvel · Caixa '+(c?.numero ?? v.pdv_movel_caixa_id)+(c?.aberto_por_nome ? ' · '+c.aberto_por_nome : '');
+}
+
 // ---------- Financeiro ----------
 let periodoFinanceiroAtual = 'hoje';
 
@@ -13791,7 +13797,7 @@ async function carregarFinanceiro(){
 
   const { data: vendasData, error: erroVendas } = await buscarTodos(() => supabase
     .from('vendas')
-    .select('id, total, criado_em')
+    .select('id, total, criado_em, pdv_movel_caixa_id, pdv_movel_caixas(numero, aberto_por_nome)')
     .gte('criado_em', inicio.toISOString())
     .lte('criado_em', fim.toISOString())
     .is('cancelada_em', null)
@@ -13825,7 +13831,7 @@ async function carregarFinanceiro(){
     ...(vendasData || []).map(v => ({
       tipo: 'entrada',
       data: new Date(v.criado_em),
-      descricao: 'Venda',
+      descricao: v.pdv_movel_caixa_id ? pdvMovelRotuloVenda(v) : 'Venda',
       valor: Number(v.total),
       id: null
     })),
@@ -15463,7 +15469,7 @@ async function pdvhListar(reset){
  try{
   if(reset){pdvhOffset=0;$('pdvh-lista').replaceChildren();$('pdvh-detalhe').replaceChildren();}
   const {data,error}=await supabase.rpc('pdv_historico_listar',{p_busca:$('pdvh-busca').value.trim()||null,p_limite:100,p_offset:pdvhOffset});if(error)throw error;
-  for(const v of data||[]){const line=pdvhEl('div');line.style.cssText='padding:10px;border-bottom:1px solid var(--border);display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap';line.append(pdvhEl('span','#'+v.numero_venda+' · '+new Date(v.criado_em).toLocaleString('pt-BR')+' · '+v.cliente_nome+' · '+pdvhMoney(v.total)+(v.cancelada_em?' · Cancelada':'')));const b=pdvhEl('button','Detalhes');b.className='btn-secondary';b.onclick=()=>pdvhAbrir(v.id);line.append(b);$('pdvh-lista').append(line);}
+  for(const v of data||[]){const line=pdvhEl('div');line.style.cssText='padding:10px;border-bottom:1px solid var(--border);display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap';line.append(pdvhEl('span','#'+v.numero_venda+' · '+new Date(v.criado_em).toLocaleString('pt-BR')+' · '+v.cliente_nome+' · '+pdvhMoney(v.total)+(v.origem==='PDV Móvel'?' · PDV Móvel · Caixa móvel #'+v.caixa_numero+' · '+v.operador_nome:'')+(v.cancelada_em?' · Cancelada':'')));const b=pdvhEl('button','Detalhes');b.className='btn-secondary';b.onclick=()=>pdvhAbrir(v.id);line.append(b);$('pdvh-lista').append(line);}
   pdvhOffset+=(data||[]).length;$('pdvh-mais').classList.toggle('hidden',(data||[]).length<100);pdvhAviso('');
  }catch(e){pdvhAviso(e.message||e);}
 }
@@ -15482,7 +15488,7 @@ function pdvhRender(){
  const header=pdvhEl('div');header.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px';
  const heading=pdvhEl('h2',(pdvhModo==='consulta'?'Venda #':'Editar venda #')+d.venda.numero_venda);heading.style.margin='0';
  const close=pdvhEl('button','Fechar ✕');close.className='btn-secondary';close.onclick=pdvhFechar;header.append(heading,close);panel.append(header);
- const summary=pdvhEl('div','Cliente: '+(d.cliente_nome||'Consumidor')+'  •  Total: '+pdvhMoney(d.venda.total));
+ const summary=pdvhEl('div','Cliente: '+(d.cliente_nome||'Consumidor')+'  •  Total: '+pdvhMoney(d.venda.total)+(d.venda.pdv_movel_caixa_id?' · PDV Móvel · Caixa móvel #'+d.venda.caixa_numero+' · '+(d.venda.operador_nome||'') : ''));
  summary.style.cssText='background:#edf5ff;padding:16px;border-radius:10px;margin:18px 0;font-weight:bold';panel.append(summary);
  const content=pdvhEl('div');panel.append(content);
  const section=(title)=>{const x=pdvhEl('div');x.style.cssText='border:1px solid #d8e1ed;border-radius:12px;padding:15px;margin:14px 0';const h=pdvhEl('h3',title);h.style.margin='0 0 12px';x.append(h);content.append(x);return x};
@@ -16226,6 +16232,7 @@ const SECOES_RELATORIOS = [
       { id: 'estoque_posicao', titulo: 'Posição de estoque', descricao: 'Situação atual de todos os produtos cadastrados.', filtros: [], gerar: relatorioEstoquePosicao },
       { id: 'estoque_baixo', titulo: 'Estoque baixo', descricao: 'Até 30 produtos abaixo do estoque mínimo, dos mais críticos.', filtros: [], gerar: relatorioEstoqueBaixo },
       { id: 'estoque_produtos_mais_vendidos', titulo: 'Produtos mais vendidos', descricao: 'Top 10 produtos por quantidade vendida no período.', filtros: ['periodo'], gerar: relatorioProdutosMaisVendidos },
+      { id: 'pdv_movel_produtos_caixa', titulo: 'PDV Móvel — produtos por caixa', descricao: 'Produtos vendidos no celular, com caixa e operador.', filtros: ['periodo'], gerar: relatorioProdutosPdvMovel },
       { id: 'estoque_produtos_cadastrados', titulo: 'Listagem de produtos', descricao: 'Lista de produtos com preço de custo, preço de venda e estoque.', filtros: ['busca'], gerar: relatorioProdutosCadastrados },
     ],
   },
@@ -16546,7 +16553,7 @@ async function buscarVendasPeriodoRelatorio(filtros){
   const { data, error } = await buscarTodos(() => {
     let q = supabase
       .from('vendas')
-      .select('id, numero_venda, total, forma_pagamento, tipo, gastronomia_canal, cliente_id, criado_em, clientes(nome)')
+      .select('id, numero_venda, total, forma_pagamento, tipo, gastronomia_canal, cliente_id, criado_em, pdv_movel_caixa_id, pdv_movel_caixas(numero, aberto_por_nome), clientes(nome)')
       .gte('criado_em', inicioISO)
       .lte('criado_em', fimISO)
       .is('cancelada_em', null);
@@ -16567,7 +16574,7 @@ async function relatorioVendasPeriodo(filtros){
     colunas: ['Data', 'Venda', 'Cliente', 'Forma de pagamento', 'Valor'],
     linhas: vendas.map(v => [
       new Date(v.criado_em).toLocaleDateString('pt-BR'),
-      v.numero_venda ? ('#' + v.numero_venda) : '—',
+      v.numero_venda ? ('#' + v.numero_venda)+(v.pdv_movel_caixa_id ? ' · '+escapeHtml(pdvMovelRotuloVenda(v)) : '') : '—',
       escapeHtml(v.clientes ? v.clientes.nome : '—'),
       escapeHtml(v.forma_pagamento || '—'),
       formatarReais(v.total),
@@ -16587,7 +16594,7 @@ async function relatorioComprasPorCliente(filtros){
     colunas: ['Data', 'Venda', 'Forma de pagamento', 'Valor'],
     linhas: vendas.map(v => [
       new Date(v.criado_em).toLocaleDateString('pt-BR'),
-      v.numero_venda ? ('#' + v.numero_venda) : '—',
+      v.numero_venda ? ('#' + v.numero_venda)+(v.pdv_movel_caixa_id ? ' · '+escapeHtml(pdvMovelRotuloVenda(v)) : '') : '—',
       escapeHtml(v.forma_pagamento || '—'),
       formatarReais(v.total),
     ]),
@@ -16607,7 +16614,9 @@ async function relatorioVendasFormaPagamento(filtros){
   // Relatórios já usava antes desta reorganização (apenas leitura, nada do Módulo Bar é alterado).
   const porForma = {};
   const vendasDivididasIds = [];
+  const movelIds = vendas.filter(v=>v.pdv_movel_caixa_id && v.forma_pagamento!=='Nota a Prazo').map(v=>v.id);
   vendas.forEach(v => {
+    if(v.pdv_movel_caixa_id && v.forma_pagamento!=='Nota a Prazo') return;
     if(v.forma_pagamento === 'dividido'){ vendasDivididasIds.push(v.id); return; }
     const chave = v.forma_pagamento || 'Não informada';
     porForma[chave] = porForma[chave] || { qtd: 0, total: 0 };
@@ -16625,6 +16634,12 @@ async function relatorioVendasFormaPagamento(filtros){
       porForma[chave].total += Number(f.valor);
     });
   }
+  if(movelIds.length){
+    const r=await buscarTodos(()=>supabase.from('vendas_pagamentos').select('venda_id, forma_pagamento, valor').in('venda_id',movelIds).order('id'));
+    if(r.error) throw r.error;
+    const vistos=new Set();
+    for(const p of r.data||[]){const k=p.forma_pagamento;porForma[k]=porForma[k]||{qtd:0,total:0};porForma[k].total+=Number(p.valor);const id=p.venda_id+':'+k;if(!vistos.has(id)){vistos.add(id);porForma[k].qtd++;}}
+  }
   const linhas = Object.entries(porForma).sort((a, b) => b[1].total - a[1].total);
   const total = linhas.reduce((s, [, d]) => s + d.total, 0);
   return {
@@ -16641,7 +16656,7 @@ async function relatorioVendasOrigem(filtros){
   // já usa com 'pacote_novo') — nenhuma coluna nova. tipo=null continua sendo PDV.
   const porOrigem = {};
   vendas.forEach(v => {
-    const chave = v.tipo === 'gastronomia' ? 'Gastronomia — '+({mesa:'Mesas',entrega:'Entregas',retirada:'Retiradas'}[v.gastronomia_canal]||'Operação') : v.tipo === 'bar' ? 'Módulo Bar' : v.tipo === 'pacote_novo' ? 'Pacotes (Módulo Pet)' : 'PDV';
+    const chave = v.pdv_movel_caixa_id ? pdvMovelRotuloVenda(v) : v.tipo === 'gastronomia' ? 'Gastronomia — '+({mesa:'Mesas',entrega:'Entregas',retirada:'Retiradas'}[v.gastronomia_canal]||'Operação') : v.tipo === 'bar' ? 'Módulo Bar' : v.tipo === 'pacote_novo' ? 'Pacotes (Módulo Pet)' : 'PDV';
     porOrigem[chave] = porOrigem[chave] || { qtd: 0, total: 0 };
     porOrigem[chave].qtd += 1;
     porOrigem[chave].total += Number(v.total);
@@ -16856,6 +16871,21 @@ async function relatorioEstoqueBaixo(){
     colunas: ['Produto', 'Estoque', 'Mínimo'],
     linhas: baixos.slice(0, 30).map(p => [escapeHtml(p.nome), formatarQuantidade(p.quantidade_estoque), recursos.estoqueMinimo && p.estoque_minimo ? formatarQuantidade(p.estoque_minimo) : '—']),
   };
+}
+
+async function relatorioProdutosPdvMovel(filtros){
+  const {data,error}=await buscarTodos(()=>supabase.from('itens_venda')
+    .select('quantidade, subtotal, produto_id, produtos(nome), vendas!inner(criado_em, cancelada_em, pdv_movel_caixa_id, pdv_movel_caixas(numero, aberto_por_nome))')
+    .gte('vendas.criado_em',new Date(filtros.dataInicio+'T00:00:00').toISOString())
+    .lte('vendas.criado_em',new Date(filtros.dataFim+'T23:59:59.999').toISOString())
+    .is('vendas.cancelada_em',null).not('vendas.pdv_movel_caixa_id','is',null).order('id'));
+  if(error) throw error;
+  const grupos=new Map();
+  for(const item of data||[]){const v=item.vendas,c=v.pdv_movel_caixas,key=item.produto_id+':'+v.pdv_movel_caixa_id;
+    if(!grupos.has(key))grupos.set(key,{nome:item.produtos?.nome||'Produto',caixa:c?.numero||v.pdv_movel_caixa_id,operador:c?.aberto_por_nome||'Não informado',quantidade:0,total:0});
+    const g=grupos.get(key);g.quantidade+=Number(item.quantidade);g.total+=Number(item.subtotal);}
+  return {titulo:'PDV Móvel — produtos por caixa',colunas:['Produto','Origem','Caixa','Operador','Quantidade','Total'],
+    linhas:[...grupos.values()].map(g=>[escapeHtml(g.nome),'PDV Móvel',escapeHtml(String(g.caixa)),escapeHtml(g.operador),formatarQuantidade(g.quantidade),formatarReais(g.total)])};
 }
 
 async function relatorioProdutosCadastrados(filtros){

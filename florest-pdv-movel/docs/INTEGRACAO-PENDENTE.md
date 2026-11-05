@@ -1,40 +1,25 @@
-# Integração de caixa móvel — proposta, sem execução
+# Integração PDV Móvel — estado após aplicação
 
-## Evidência consultada somente em leitura
+A autorização posterior permitiu implementar o backend real. A migração preparada foi
+aplicada ao projeto etulhyboogqhyyevpnlo em 05/11/2026 com o novo token de escrita.
+O bloqueio antigo de acesso somente leitura foi resolvido.
 
-- `../florest-erp/sistema/index.html`: `obterEmpresaId`, `carregarPerfilEMostrarApp`,
-  `pdvConsultarProdutos`, `buscarProdutoPorCodigo` e controle de caixa Migration 032.
-- `../florest-erp/banco-de-dados/001_estrutura_banco.sql`: perfil possui um `empresa_id`
-  por usuário. Não foi encontrado um fluxo de seleção multiempresa para essa conta.
-- `../florest-erp/banco-de-dados/002_funcoes_banco.sql`: `pdv_produtos_consultar` deriva
-  a empresa de `private.exigir_empresa_ativa()` e exige `private.perm('pdv')`.
-- PDV à vista chama `registrar_venda_mista` com cliente/itens/pagamentos/CPF; não informa
-  chave idempotente ou caixa móvel. O caixa é identificado por tipo `PDV`, não dispositivo.
-- Leitura do esquema remoto via PostgREST/chave pública do ERP: HTTP 401. Não houve
-  autenticação de cliente, acesso privilegiado, DDL, migração ou operação de venda real.
+Implementados: sessões de caixa por empresa/dispositivo, recibos transacionais idempotentes,
+reuso de registrar_venda para estoque/itens/numeração, tabelas canônicas de pagamentos,
+taxas e contas a receber, fechamento e resumo, histórico filtrado no servidor e metadados
+para o ERP. As funções dos demais caixas/módulos não foram alteradas.
 
-## Por que a escrita permanece bloqueada
+Restam validações/limites concretos:
 
-Um toque bloqueado no botão evita concorrência dentro da tela, mas não resolve uma
-venda confirmada no servidor cuja resposta se perdeu. Reenviar poderia duplicar venda
-e baixa de estoque. Também não deve ser aberto/fechado o caixa do computador pelo celular.
-Não é seguro expor essas operações simplesmente trocando o nome da tela.
+1. Teste MANUAL do APK pelo proprietário com usuário/empresa de teste: login, teclado,
+   câmera, abertura, CERVEJA BRAHMA 600ML se cadastrada, venda confirmada, estoque,
+   pagamentos, histórico e fechamento. Nenhuma venda real foi executada automaticamente.
+2. Empresas com emissão fiscal ativa/não confirmada continuam impedidas de vender no
+   móvel. A configuração e a emissão existentes não foram alteradas. Não desabilitar
+   essa configuração para contornar o bloqueio; o fluxo fiscal requer integração própria.
+3. Os ajustes visuais de relatório/histórico do HTML do ERP ainda estão locais. O site
+   servido só exibirá os novos rótulos depois de publicação autorizada.
+4. Os arquivos atuais ainda não foram enviados ao GitHub; commit/push/deploy dependem
+   da autorização posterior exigida pelo proprietário. APK assinado será gerado no Windows.
 
-## Trabalho que exige autorização específica fora do aplicativo
-
-1. Confirmar no banco atual o contrato e o suporte a uma sessão de caixa móvel separada
-   por empresa, vinculada ao operador, com no máximo um caixa móvel aberto por empresa.
-2. Definir operações autenticadas de consulta, abertura e fechamento dessa sessão,
-   com RLS/permissões equivalentes ao ERP e totais calculados no servidor.
-3. Reutilizar a transação de venda/estoque existente, acrescentando associação explícita
-   ao caixa móvel e idempotência por empresa/operação, com chave preservada antes do envio.
-   Uma repetição retorna a mesma venda; nunca cria outra baixa. Permitir consultar o
-   resultado de uma tentativa após timeout/reabertura, sem vendas offline.
-4. Fornecer formas de pagamento autorizadas e totais/estoque/preços confirmados no backend.
-   Dinheiro/Pix/cartões são registros de recebimento externo, sem cobrança integrada.
-5. Validar transações concorrentes, sessão expirada, falta de estoque, empresa diferente,
-   perda de resposta, fechamento simultâneo e reconciliação do histórico.
-
-Os nomes e assinaturas dessas novas operações precisam ser definidos na tarefa de backend;
-este aplicativo não as presume nem chama funções inexistentes. Após aprovação e implementação,
-integrar as telas e executar a matriz de testes real antes de liberar vendas.
+Ver VALIDACAO.md, backend/LEIA-ME.md e COMO_INSTALAR_FLOREST_PDV_MOVEL.txt.

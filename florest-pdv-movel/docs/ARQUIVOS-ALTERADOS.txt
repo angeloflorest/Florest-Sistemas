@@ -1,0 +1,44 @@
+Revisão local 0.3.0; migração aplicada ao Supabase; sem commit/push/deploy.
+
+ M florest-erp/sistema/index.html
+ M florest-pdv-movel/.gitignore
+ M florest-pdv-movel/App.tsx
+ M florest-pdv-movel/COMO_INSTALAR_FLOREST_PDV_MOVEL.txt
+ M florest-pdv-movel/README.md
+ M florest-pdv-movel/VALIDACAO.md
+ M florest-pdv-movel/app.json
+ M florest-pdv-movel/docs/INTEGRACAO-PENDENTE.md
+ M florest-pdv-movel/package-lock.json
+ M florest-pdv-movel/package.json
+ M florest-pdv-movel/scripts/build-release.cjs
+ M florest-pdv-movel/src/api.ts
+ M florest-pdv-movel/src/domain.ts
+ M florest-pdv-movel/tests/api.test.cjs
+ M florest-pdv-movel/tests/helpers.cjs
+?? florest-pdv-movel/backend/INSPECIONAR_ESQUEMA_ATUAL.sql
+?? florest-pdv-movel/backend/LEIA-ME.md
+?? florest-pdv-movel/backend/aplicar_migracao.py
+?? florest-pdv-movel/backend/inspecionar_supabase.py
+?? florest-pdv-movel/backend/migrations/20261105_pdv_movel.sql
+?? florest-pdv-movel/backend/migrations/20261105_precondicoes.sql
+?? florest-pdv-movel/backend/migrations/20261105_rollback_sem_dados.sql
+?? florest-pdv-movel/backend/tests/base_isolada.sql
+?? florest-pdv-movel/backend/tests/concorrencia.py
+?? florest-pdv-movel/backend/tests/erp-integration.test.cjs
+?? florest-pdv-movel/backend/tests/funcoes_inspecionadas.sql
+?? florest-pdv-movel/backend/tests/permissoes.sql
+?? florest-pdv-movel/backend/tests/run_isolado.py
+?? florest-pdv-movel/backend/tests/transacoes.sql
+?? florest-pdv-movel/docs/ARQUIVOS-ALTERADOS.txt
+?? florest-pdv-movel/src/CommercePanels.tsx
+?? florest-pdv-movel/src/KeyboardForm.tsx
+?? florest-pdv-movel/src/MobileCashPanel.tsx
+?? florest-pdv-movel/src/commerce.ts
+?? florest-pdv-movel/src/deviceIdentity.ts
+?? florest-pdv-movel/src/mobileGateway.ts
+?? florest-pdv-movel/src/mobileOperations.ts
+?? florest-pdv-movel/src/useMobilePOS.ts
+?? florest-pdv-movel/tests/commerce.test.cjs
+?? florest-pdv-movel/tests/device.test.cjs
+?? florest-pdv-movel/tests/mobile-gateway.test.cjs
+?? florest-pdv-movel/tests/mobile-operations.test.cjs

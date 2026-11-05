@@ -3,14 +3,14 @@
     "name": "Florest PDV Móvel",
     "slug": "florest-pdv-movel",
     "scheme": "florestpdvmovel",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "android": {
       "package": "br.com.florestsistemas.pdvmovel",
       "permissions": [
         "CAMERA"
       ],
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
@@ -21,7 +21,8 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       [

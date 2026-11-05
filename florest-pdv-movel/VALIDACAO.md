@@ -1,105 +1,79 @@
-# Entrega e validação — 04/11/2026
+# Validação 0.3.0 — migração aplicada — 05/11/2026
 
-## Resultado
+## Resultado real
 
-Preparada revisão 0.2.0 do app, sem publicação. Login/empresa, pesquisa por RPC,
-lista de itens, identidade visual e gerador Windows foram implementados.
-**Operação comercial de caixa não está liberada.** A integração segura exige backend
-separado descrito em `docs/INTEGRACAO-PENDENTE.md`. Não foi gerado APK Release assinado.
+O novo token permitiu escrita como postgres. Permissão de CREATE e DDL temporário com
+rollback foram confirmados antes de aplicar qualquer objeto permanente.
+Migração `backend/migrations/20261105_pdv_movel.sql` aplicada com sucesso no projeto
+`etulhyboogqhyyevpnlo`, após passarem as guardas dos contratos inspecionados.
+Hash SHA-256: f3d6ea4b9b12be1430b6cc024f7ea12d7e00033d4dfd50e7f8880a145731165a.
 
-## Verificações executadas
+A integração de backend está instalada e verificada tecnicamente. NÃO foi executada
+venda real automaticamente. O ciclo completo no APK/empresa de teste ainda precisa
+de validação manual; não é apresentado como já testado. Não houve commit/push/deploy.
 
-- `npm run check`: passou, TypeScript estrito.
-- `npm test`: 11 testes executados, 11 passaram, nenhum ignorado. Cobrem validação de
-  perfil/permissões, ausência de empresa manual nos argumentos da RPC, consulta sem
-  fallback de tabela, código exato/GTIN, quantidade/total, atualização HTTPS, chave
-  pública, persistência segura de sessão (incluindo falha de gravação e Unicode) e plugin
-  de assinatura. Dependências externas nesses testes são simuladas; não provam RLS real.
-- `EXPO_OFFLINE=1 npx expo install --check`: versões compatíveis com o catálogo local
-  do Expo instalado. Consulta online do catálogo falhou por erro de rede; a própria
-  ferramenta alerta que a validação offline é menos confiável.
-- `CI=1 EXPO_OFFLINE=1 npx expo export --platform android --output-dir dist --max-workers 2`:
-  bundle Android Hermes e logo exportados. É empacotamento, não um APK instalável.
-- `CI=1 EXPO_OFFLINE=1 npx expo prebuild --platform android --no-install`: passou,
-  inclusive repetição sobre `android/` existente. Um primeiro erro no plugin de assinatura
-  causado por comentários no template Expo foi corrigido antes da validação final.
-- Inspeção do nativo gerado: nome `Florest PDV Móvel`, versão 0.2.0/versionCode 2,
-  pacote `br.com.florestsistemas.pdvmovel`, ícones adaptativos com margem nativa para preservar a águia e splash gerados,
-  câmera/internet declaradas, microfone/armazenamento externo removidos, backup desativado,
-  Release usa `signingConfigs.florestRelease` e lê credenciais do ambiente.
-- `node --check` nos scripts CJS e `git diff --check`: passaram.
-- Gerador chamado em Linux: recusou o sistema conforme esperado. Isso não valida o .bat
-  nem a execução de Gradle/assinatura/apksigner no Windows.
-- GitHub: leitura de HEAD remoto funcionou. Esquema PostgREST remoto com a chave pública
-  encontrada no HTML: HTTP 401. Não houve acesso autenticado ao banco atual.
+## Preservação e segurança verificadas no projeto remoto
 
-## Matriz de testes solicitados
+- Das 444 funções existentes antes, 442 permaneceram com hash idêntico. Apenas
+  pdv_historico_listar/detalhar receberam os metadados previstos.
+- Funções de caixas, registrar_venda/mista/prazo, estoque, taxas, Bar, Gastronomia,
+  PET e Fiscal preservadas. Índices e restrições de public.caixas idênticos ao catálogo.
+- Colunas novas em vendas opcionais, sem default; não reescreveram registros anteriores.
+- Duas tabelas novas com RLS. Cliente autenticado não pode inserir diretamente;
+  operações privadas nem sequer podem ser lidas diretamente pelo cliente.
+- Seis RPCs públicas móveis security definer com EXECUTE para authenticated, recusado
+  para anon; empresa/usuário/permissão são exigidos no servidor.
+- Teste remoto em READ ONLY sob papel authenticated sem JWT foi recusado por sessão
+  ausente, antes de abrir caixa/registrar operação. Nenhum usuário de teste foi criado.
+- Verificação remota após aplicação: zero caixas móveis, zero operações móveis e zero
+  vendas móveis naquele instante. Nenhum dado de clientes/produtos/vendas foi alterado
+  por testes automáticos. A configuração fiscal não foi modificada.
 
-| Item | Situação real |
-| --- | --- |
-| Abertura do aplicativo | Bundle/prebuild passaram; abertura no celular não executada |
-| Login e-mail/senha | Implementado; login real não executado por ausência de conta de teste |
-| Empresa automática | Lógica de perfil e falhas testadas com mocks; vínculo real não validado |
-| Isolamento entre empresas | App não aceita ID manual; contrato RPC revisado no SQL; RLS real não testada |
-| Pesquisa de produtos | Argumentos/RPC e erros testados; consulta autenticada real não executada |
-| Leitura de código de barras | Correspondência/zeros testados; câmera/leitor físico não executados |
-| Inclusão/remoção/edição de itens | Implementadas; interação touch no dispositivo não executada |
-| Cálculo total | Testado por item com quantidade decimal e centavos |
-| Abertura de caixa | Bloqueada por falta de contrato de caixa móvel independente |
-| Registro de pagamentos | Bloqueado; nenhuma cobrança ou registro realizado |
-| Finalização de venda | Bloqueada; nenhum comprovante ou sucesso fictício |
-| Baixa de estoque | Não realizada; depende da transação confirmada do backend |
-| Prevenção de venda duplicada | Escrita indisponível; idempotência transacional futura não validada |
-| Fechamento de caixa | Bloqueado; não fecha o caixa do computador |
-| Totais por forma de pagamento | Não exibidos como valores reais; dependem de relatório móvel do servidor |
-| Nome/ícone | Assets/configuração/nativo verificados; launcher do aparelho não testado |
-| APK Release sem Metro | Bundle exportado; APK final/instalação sem Metro não executados |
-| Assinatura compatível | Verificador preparado; depende do keystore e APK anteriores no Windows |
+## Testes executados
 
-Não há SDK Android/adb configurado, keystore original nem APK anterior nesta instância.
-O Java encontrado é 21, enquanto o gerador Windows exige o JDK 17 do proprietário.
-A tarefa admite geração no Windows nessas condições; use o .bat e as instruções anexas.
-Não foram solicitadas senhas em chat nem criadas chaves substitutas.
+- `npm run check`: TypeScript estrito passou.
+- `npm test`: 33 testes do aplicativo passaram, nenhum ignorado.
+- `node --test backend/tests/erp-integration.test.cjs`: 3 passaram.
+- `python3 backend/tests/run_isolado.py`: passou no PostgreSQL 16 sintético local,
+  incluindo RLS/grants, abertura por dispositivo, venda/itens/estoque, pagamentos separados,
+  rollback, preço adulterado, falta de estoque, recibos, prazo e fechamento consistente.
+- `backend/tests/concorrencia.py`: seis chamadas simultâneas da mesma chave retornaram
+  uma venda/pagamento/baixa; corrida venda/fechamento manteve o resumo correto.
+- Bundle Android Hermes exportado com logo; prebuild e catálogo Expo offline aprovados.
+- Android: pacote preservado, versionCode 3, versão 0.3.0, adjustResize e assinatura
+  Release explícita conferidos. Não foi gerado/assinado APK neste Linux.
+- Diff revisado com core.whitespace=cr-at-eol para preservar o HTML original em CRLF.
 
-## Arquivos alterados (todos sob `florest-pdv-movel/`)
+Os testes locais usam snapshots de funções reais e helpers fixture; não equivalem a
+executar todas as integrações de taxas/fiscal no projeto remoto nem substituir o teste
+no aparelho. Os testes de APIs do aplicativo usam mocks, com teste adicional do bloqueio
+real de sessão no projeto. Não foi feita autenticação com senha de cliente.
 
-Modificados:
-- `.env.example`
-- `App.tsx`
-- `README.md`
-- `app.json`
-- `package.json`
+## Implementação e limites
 
-Criados:
-- `.gitignore`
-- `COMO_INSTALAR_FLOREST_PDV_MOVEL.txt`
-- `GERAR_APK_FLOREST_PDV_MOVEL.bat`
-- `VALIDACAO.md`
-- `assets/icon.png` (cópia do favicon oficial quadrado)
-- `assets/logo-florest.png` (logo oficial)
-- `assets/logo-florest-icone.png` (asset oficial preservado)
-- `docs/INTEGRACAO-PENDENTE.md`
-- `package-lock.json`
-- `plugins/with-release-signing.cjs`
-- `plugins/with-brand-icons.cjs`
-- `scripts/build-release.cjs`
-- `src/api.ts`
-- `src/domain.ts`
-- `src/secureStorage.ts`
-- `tests/api.test.cjs`
-- `tests/domain.test.cjs`
-- `tests/helpers.cjs`
-- `tests/storage-signing.test.cjs`
+Caixa exclusivo da instalação, confirmação/rejeição idempotente, estoque pela função
+central existente, pagamentos canônicos separados, taxas existentes, título a prazo,
+fechamento e resumo calculado do banco. Histórico móvel tem filtros no servidor e
+permissão por operador/financeiro. Auditoria de ajustes e título são exibidos nos detalhes.
 
-Saídas locais ignoradas: `node_modules/`, `android/`, `dist/` e eventuais caches Expo.
-Nenhum arquivo do ERP/Bar/Gastronomia/PET/Fiscal/portal/Print Agent/workflows foi alterado.
-Nenhuma tabela, função, trigger, política RLS ou dado de produção foi alterado.
-Nenhum commit, push, deploy, publicação de ambiente ou upload de APK foi feito.
+A emissão fiscal NÃO foi alterada. O móvel recusa vendas se emite_nota_fiscal=true ou
+não confirmada, enquanto o fluxo fiscal existente não estiver integrado ao app. Não
+modificar essa configuração para liberar o celular. Esse caso permanece uma limitação.
 
-## Próximos passos do proprietário
+Pontos visuais do ERP (origem/caixa/operador e produtos por caixa) foram preparados em
+florest-erp/sistema/index.html, mas NÃO publicados. As consultas gerais continuam usando
+as mesmas tabelas canônicas, sem contabilidade paralela ou soma duplicada de venda móvel.
+É necessário publicar os ajustes locais autorizados para que os novos rótulos apareçam
+no site servido; não declarar essa publicação concluída pela aplicação SQL.
 
-1. Revisar as alterações do app. Não há publicação automática.
-2. Configurar valores públicos, keystore original e APK anterior no Windows; executar o .bat.
-3. Testar o APK no aparelho e com usuários de teste de empresas diferentes antes de distribuir.
-4. Definir uma tarefa separada, com autorização específica, para o backend de caixa móvel.
-   A versão atual não deve substituir um caixa de vendas até essa integração ser concluída.
+## Arquivos e procedimento
+
+Lista exata em docs/ARQUIVOS-ALTERADOS.txt. Somente aplicativo/backend/testes e os pontos
+de relatório/histórico autorizados do HTML do ERP foram alterados. Sem Vercel/workflows.
+Migração reversível apenas antes de existir qualquer operação móvel: rollback aborta se
+há dados, em vez de apagá-los. Migração aplicada não deve ser executada novamente.
+
+Windows: manter .env.local, keystore original e APK anterior; executar
+GERAR_APK_FLOREST_PDV_MOVEL.bat na pasta do app. Exigir BUILD SUCCESSFUL e APK RELEASE
+verificado. Saída APK-GERADO/Florest-PDV-Movel.apk. Instalar por cima, sem desinstalar.
+A distribuição dos arquivos atuais/GitHub aguarda autorização de commit/push.

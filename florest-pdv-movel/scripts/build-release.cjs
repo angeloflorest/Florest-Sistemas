@@ -68,6 +68,8 @@ function main() {
   if (!fs.existsSync(keystore) || !fs.existsSync(previous)) fail('Keystore ou APK anteriormente instalado não encontrado.');
   if (keystore.startsWith(root + path.sep)) fail('Guarde o keystore fora da pasta do aplicativo e do Git.');
   process.env.FLOREST_KEYSTORE_PATH = keystore;
+  const nativeRoot = path.join(root, 'android') + path.sep;
+  if (previous.toLowerCase().startsWith(nativeRoot.toLowerCase())) fail('Mantenha o APK anterior fora de android\\ antes de compilar, por exemplo em APK-GERADO. O original não será sobrescrito.');
   // Paths are env-expanded inside fixed cmd commands, enclosed in quotes.
   // Reject cmd metacharacters rather than interpolating user-controlled commands.
   for (const p of [tools, previous, root]) if (/["%\r\n!&|<>^]/.test(p)) fail('Use caminhos sem caracteres especiais de CMD para o projeto, SDK e APK anterior.');

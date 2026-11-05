@@ -7,7 +7,7 @@ function load(name, mocks = {}) {
     if (Object.hasOwn(mocks, key)) return mocks[key];
     if (key.startsWith('./')) return load(key.slice(2), mocks);
     throw Error('Unexpected module: ' + key);
-  }, console, URL, AbortController, setTimeout, clearTimeout, fetch: global.fetch, atob, process: { env: {} } };
+  }, console, URL, AbortController, setTimeout, clearTimeout, fetch: mocks.$fetch || global.fetch, atob, process: { env: mocks.$env || {} } };
   vm.runInNewContext(code, context, { filename });
   return exports;
 }

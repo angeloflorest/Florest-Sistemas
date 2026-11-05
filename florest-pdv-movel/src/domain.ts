@@ -3,7 +3,7 @@ export type Product = {
   preco_venda: number; quantidade_estoque?: number; unidade_comercial?: string;
   venda_granel?: boolean; ativo?: boolean;
 };
-export type CartItem = { product: Product; quantity: number };
+export type CartItem = { product: Product; quantity: number; discountCents?: number; surchargeCents?: number };
 export type Profile = {
   id: string; empresa_id: string; nome: string; papel: string; permissoes: string[]; ativo: boolean;
   empresas: { nome: string; bloqueado: boolean; status_conta: string };

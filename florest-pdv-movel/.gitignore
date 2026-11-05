@@ -12,3 +12,8 @@ APK-GERADO/
 *.apk
 *.aab
 build-release.log
+
+backend/local/
+
+__pycache__/
+*.pyc
