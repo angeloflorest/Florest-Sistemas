@@ -1,0 +1,34 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { load } = require('./helpers.cjs');
+const { configureRelease } = require('../plugins/with-release-signing.cjs');
+const { certificate, packageInfo } = require('../scripts/build-release.cjs');
+test('sessão grande usa blocos, troca atômica e remoção; falha mantém sessão anterior íntegra', async () => {
+  const store = new Map(); let writes = 0, failAt = Infinity;
+  const storage = load('secureStorage', { 'expo-secure-store': { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'locked', getItemAsync: async k => store.get(k) ?? null, setItemAsync: async (k, v) => { if (++writes === failAt) throw Error('disk full'); store.set(k, v); }, deleteItemAsync: async k => { store.delete(k); } } }).secureStorage;
+  const large = 'á🦅'.repeat(2000);
+  await storage.setItem('session', large);
+  assert.equal(await storage.getItem('session'), large);
+  assert.ok([...store.values()].every(v => Buffer.byteLength(v) < 2048));
+  assert.ok([...store.values()].every(v => v.isWellFormed()));
+  failAt = writes + 2;
+  await assert.rejects(() => storage.setItem('session', 'new'.repeat(1000)));
+  assert.equal(await storage.getItem('session'), large);
+  failAt = Infinity;
+  await Promise.all([storage.setItem('session', 'one'), storage.setItem('session', 'two')]);
+  assert.equal(await storage.getItem('session'), 'two');
+  await storage.removeItem('session');
+  assert.equal(await storage.getItem('session'), null);
+  assert.equal(store.size, 0);
+});
+test('plugin remove assinatura debug de Release, é repetível e recusa formato desconhecido', () => {
+  const before = 'android { signingConfigs { debug { } } buildTypes { debug { signingConfig signingConfigs.debug } release { signingConfig signingConfigs.debug } } }';
+  const after = configureRelease(before);
+  assert.match(after, /release \{ signingConfig signingConfigs.florestRelease/);
+  assert.match(after, /debug \{ signingConfig signingConfigs.debug/);
+  assert.equal(configureRelease(after), after);
+  assert.throws(() => configureRelease('android {}'));
+  assert.match(configureRelease('signingConfigs { debug {} } buildTypes { release {\n // Expo comment\n signingConfig signingConfigs.debug\n} }'), /signingConfig signingConfigs.florestRelease/);
+  assert.equal(certificate('Signer #1 certificate SHA-256 digest: abc123'), 'abc123');
+  assert.equal(packageInfo("package: name='br.com.florestsistemas.pdvmovel' versionCode='2'").versionCode, 2);
+});

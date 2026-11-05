@@ -3,32 +3,52 @@
     "name": "Florest PDV Móvel",
     "slug": "florest-pdv-movel",
     "scheme": "florestpdvmovel",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "android": {
       "package": "br.com.florestsistemas.pdvmovel",
       "permissions": [
         "CAMERA"
+      ],
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "plugins": [
       [
         "expo-camera",
         {
-          "cameraPermission": "Permitir leitura de códigos de barras para adicionar produtos."
+          "cameraPermission": "Permitir leitura de códigos de barras para adicionar produtos.",
+          "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo-florest.png",
+          "imageWidth": 280,
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "./plugins/with-release-signing.cjs",
+      "./plugins/with-brand-icons.cjs"
     ],
     "updates": {
-      "enabled": true,
-      "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
+      "enabled": false
     },
     "extra": {
       "updateManifestUrl": ""
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }

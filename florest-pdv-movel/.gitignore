@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+android/
+ios/
+dist/
+APK-GERADO/
+.env
+.env.local
+*.keystore
+*.jks
+*.p12
+*.apk
+*.aab
+build-release.log

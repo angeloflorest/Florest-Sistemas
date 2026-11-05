@@ -1,0 +1,101 @@
+FLOREST PDV MÓVEL — GERAR E INSTALAR NO ANDROID
+Versão preparada: 0.2.0 | pacote preservado: br.com.florestsistemas.pdvmovel
+
+ANTES DE COMEÇAR
+Esta revisão permite login, identificação da empresa, pesquisa e seleção de itens.
+Ainda NÃO registra vendas/pagamentos nem abre/fecha o caixa. A integração de um
+caixa exclusivo do celular e de confirmação segura depende de trabalho separado
+no backend, que não foi autorizado nesta tarefa. Não utilize como caixa de vendas.
+
+1. PREPARAR NO WINDOWS
+Abra a pasta do aplicativo. No computador informado:
+C:\Users\Usuario\Desktop\apk\Florest-Sistemas\florest-pdv-movel
+O gerador funciona também em outra pasta: usa sua própria localização.
+Use JDK 17, Node.js 20.19 ou superior, npm e Android SDK.
+Configure JAVA_HOME e PATH para o mesmo JDK 17; ANDROID_HOME para o SDK.
+Instale os componentes SDK solicitados pelo Expo/Gradle e SDK Build-Tools.
+É necessária internet para instalar dependências e baixar componentes de build.
+
+Copie .env.example para .env.local nesta pasta e preencha:
+EXPO_PUBLIC_SUPABASE_URL: URL real do mesmo projeto do ERP.
+EXPO_PUBLIC_SUPABASE_ANON_KEY: chave PUBLICÁVEL ou anon desse projeto.
+Não use service_role, sb_secret ou senhas nesses campos.
+EXPO_PUBLIC_UPDATE_MANIFEST_URL é opcional. Deixe vazio se não existir manifesto
+oficial publicado. Não copie um endereço de exemplo.
+Esses valores públicos são incorporados ao APK no momento da compilação.
+
+2. PRESERVAR A ASSINATURA DA INSTALAÇÃO EXISTENTE
+É obrigatório ter o APK da versão anteriormente instalada e o keystore usado
+para assiná-lo. Não crie outro keystore para contornar um erro.
+Mantenha o keystore fora do projeto/Git. Em variáveis de ambiente do Windows,
+configure os seguintes nomes (os valores são particulares; não envie senhas no chat):
+FLOREST_KEYSTORE_PATH: caminho absoluto do keystore original.
+FLOREST_KEYSTORE_PASSWORD: senha desse keystore.
+FLOREST_KEY_ALIAS: alias da chave original.
+FLOREST_KEY_PASSWORD: senha dessa chave.
+FLOREST_EXISTING_APK: caminho absoluto do APK anteriormente instalado.
+Reabra a janela após configurar as variáveis. Não grave senhas no .bat ou no Git.
+Se o instalador anterior foi assinado com debug.keystore, é necessário preservar
+EXATAMENTE esse arquivo e certificado. Gerar outro arquivo com o mesmo nome não basta.
+O gerador compara os certificados SHA-256 do APK antigo e do novo, e interrompe
+se forem diferentes. Ele também impede mudança de pacote e versão não crescente.
+Se o APK anterior já tem versionCode >= 2, aumente android.versionCode em app.json
+para um inteiro maior antes de compilar. Preserve o identificador do pacote.
+
+3. GERAR O APK
+Clique duas vezes em GERAR_APK_FLOREST_PDV_MOVEL.bat.
+A janela mostra as etapas e fica aberta no fim.
+O processo instala o lockfile, verifica TypeScript/testes/versões Expo, gera o
+projeto Android e executa assembleRelease com assinatura explícita.
+Verifica assinatura, pacote, versão, câmera e bundle JavaScript dentro do APK.
+Não precisa deixar Metro aberto para instalar ou usar o APK Release.
+Se aparecer ERRO, leia a mensagem e corrija o requisito indicado.
+Não instale arquivos intermediários de android\app\build quando o gerador falhar.
+Um APK anterior válido em APK-GERADO é preservado em caso de falha.
+Em caso de sucesso, um APK anterior nessa pasta recebe cópia de segurança.
+
+4. ENCONTRAR E TRANSFERIR
+O arquivo final fica em:
+florest-pdv-movel\APK-GERADO\Florest-PDV-Movel.apk
+O gerador também mostra o caminho completo.
+Transfira esse arquivo por USB ou por um canal de sua confiança para o celular.
+Nenhum upload, alteração no portal ou publicação é feito automaticamente.
+
+5. INSTALAR OU ATUALIZAR
+Abra o APK no gerenciador de arquivos do Android.
+Se solicitado, autorize "Instalar apps desconhecidos" APENAS para o aplicativo
+usado para abrir o arquivo. Depois da instalação, você pode revogar essa permissão.
+Confirme a instalação/atualização. Com pacote e assinatura compatíveis, a atualização
+normalmente preserva os dados. Não desinstale a versão anterior por conta de um erro.
+Se a assinatura for incompatível, recupere o keystore original primeiro.
+Uma desinstalação pode ser necessária se o proprietário decidir trocar de assinatura,
+mas isso remove os dados locais e exige confirmação dele. Nada é desinstalado automaticamente.
+
+6. CONFERIR A INSTALAÇÃO
+O nome deve ser "Florest PDV Móvel" e o ícone deve mostrar a águia oficial azul-marinho
+com amarelo. A abertura e o login devem apresentar a logo Florest ERP PDV.
+Abra sem Metro e sem conexão com o computador. O app abre de forma independente,
+mas exige internet para autenticação e consultas.
+Entre com e-mail e senha da conta Supabase Auth usada no ERP.
+A empresa deve aparecer automaticamente: nunca é solicitado ID manual.
+Usuários de login por nome interno/empresa precisam do e-mail Auth correspondente;
+este aplicativo não inventa outra forma de autenticação.
+Confira nome/código de produtos, câmera, quantidades, remoção e total.
+Permita câmera quando solicitado; leitura física ainda precisa ser testada no aparelho.
+Sair da conta descarta a lista de itens e remove a sessão deste dispositivo.
+
+7. ERROS DE CONEXÃO
+Confira Wi-Fi/dados móveis, data/hora do celular e acesso à internet.
+401/sessão expirada: saia e entre novamente; confira URL e chave pública na compilação.
+Acesso negado: peça ao administrador para conferir o perfil e a permissão PDV no ERP.
+Empresa não identificada: confira o vínculo do usuário no ERP. Não informe outro ID.
+Produto não encontrado: confira nome, código, código de barras e situação no ERP.
+Erro de RPC indisponível: o administrador deve verificar a função existente
+pdv_produtos_consultar; não execute SQL nem migrações por causa deste instalador.
+
+VALIDAÇÃO REALIZADA NO CODEX
+TypeScript, testes automatizados isolados, exportação do bundle Android e prebuild
+nativo foram executados. Consulte VALIDACAO.md para os resultados e limites.
+O APK final e o .bat NÃO foram executados no Windows nesta tarefa.
+Login real, empresa, isolamento RLS e câmera NÃO foram testados em celular autenticado.
+Não foi gerado APK Release assinado: faltam SDK Android e assinatura original no ambiente.
