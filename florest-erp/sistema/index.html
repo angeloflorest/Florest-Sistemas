@@ -13797,7 +13797,7 @@ async function carregarFinanceiro(){
 
   const { data: vendasData, error: erroVendas } = await buscarTodos(() => supabase
     .from('vendas')
-    .select('id, total, criado_em, pdv_movel_caixa_id, pdv_movel_caixas(numero, aberto_por_nome)')
+    .select('id, total, criado_em')
     .gte('criado_em', inicio.toISOString())
     .lte('criado_em', fim.toISOString())
     .is('cancelada_em', null)
@@ -13831,7 +13831,7 @@ async function carregarFinanceiro(){
     ...(vendasData || []).map(v => ({
       tipo: 'entrada',
       data: new Date(v.criado_em),
-      descricao: v.pdv_movel_caixa_id ? pdvMovelRotuloVenda(v) : 'Venda',
+      descricao: 'Venda',
       valor: Number(v.total),
       id: null
     })),
