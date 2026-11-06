@@ -1,0 +1,128 @@
+{
+  "UFEmitente": "{{UFEmitente}}",
+  "finNFe": "{{finNFe}}",
+  "det": [
+    {
+      "nItem": "{{nItem}}",
+      "pesoL": "{{pesoL}}",
+      "pesoB": "{{pesoB}}",
+      "prod": {
+        "indTot": "{{indTot}}",
+        "produtoServico": "{{produtoServico}}",
+        "NCM": "{{NCM}}",
+        "qCom": "{{qCom}}",
+        "vUnCom": "{{vUnCom}}",
+        "vProd": "{{vProd}}",
+        "vFrete": "{{vFrete}}",
+        "vSeg": "{{vSeg}}",
+        "vDesc": "{{vDesc}}",
+        "vOutro": "{{vOutro}}",
+        "comb": {
+          "qBCProd": "{{qBCProd}}",
+          "vAliqProd": "{{vAliqProd}}"
+        },
+        "gCred": [
+          {
+            "vBCCredPresumido": "{{vBCCredPresumido}}",
+            "pCredPresumido": "{{pCredPresumido}}"
+          }
+        ]
+      },
+      "imposto": {
+        "II": {
+          "vBC": "{{vBC}}",
+          "pAliqII": "{{pAliqII}}",
+          "vII": "{{vII}}"
+        },
+        "IPI": {
+          "CST": "{{CST}}",
+          "tipoCalculoIPI": "{{tipoCalculoIPI}}",
+          "vBC": "{{vBC}}",
+          "qUnid": "{{qUnid}}",
+          "pIPI": "{{pIPI}}",
+          "vUnid": "{{vUnid}}"
+        },
+        "ISSQN": {
+          "vBC": "{{vBC}}",
+          "vAliq": "{{vAliq}}",
+          "vDeducao": "{{vDeducao}}",
+          "vOutro": "{{vOutro}}",
+          "vDescIncond": "{{vDescIncond}}",
+          "vDescCond": "{{vDescCond}}",
+          "vISSRet": "{{vISSRet}}"
+        },
+        "ICMS": {
+          "orig": "{{orig}}",
+          "CST": "{{CST}}",
+          "excluirDescBaseICMS": "{{excluirDescBaseICMS}}",
+          "IncluirValorIPIBaseICMS": "{{IncluirValorIPIBaseICMS}}",
+          "IncluirValorIPIBaseICMSST": "{{IncluirValorIPIBaseICMSST}}",
+          "pFCP": "{{pFCP}}",
+          "adRemICMS": "{{adRemICMS}}",
+          "pDif": "{{pDif}}",
+          "pFCPDif": "{{pFCPDif}}",
+          "pRedBC": "{{pRedBC}}",
+          "pICMS": "{{pICMS}}",
+          "pMVAST": "{{pMVAST}}",
+          "pRedBCST": "{{pRedBCST}}",
+          "pICMSST": "{{pICMSST}}",
+          "pST": "{{pST}}",
+          "pFCPST": "{{pFCPST}}",
+          "adRemICMSReten": "{{adRemICMSReten}}",
+          "adRemICMSRet": "{{adRemICMSRet}}",
+          "vICMSDeson": "{{vICMSDeson}}",
+          "vFCPSTRet": "{{vFCPSTRet}}",
+          "qBCMonoRet": "{{qBCMonoRet}}",
+          "qBCMonoReten": "{{qBCMonoReten}}",
+          "pCredSN": "{{pCredSN}}",
+          "vBC": "{{vBC}}",
+          "vBCSTRet": "{{vBCSTRet}}",
+          "qBCMono": "{{qBCMono}}",
+          "vBCFCPST": "{{vBCFCPST}}",
+          "vBCST": "{{vBCST}}",
+          "vBCFCP": "{{vBCFCP}}"
+        },
+        "ICMSUFDest": {
+          "pICMSUFDest": "{{pICMSUFDest}}",
+          "pICMSInter": "{{pICMSInter}}"
+        },
+        "PIS": {
+          "CST": "{{CST}}",
+          "vBC": "{{vBC}}",
+          "qBCProd": "{{qBCProd}}",
+          "pPIS": "{{pPIS}}",
+          "vAliqProd": "{{vAliqProd}}",
+          "tipoCalculoPIS": "{{tipoCalculoPIS}}",
+          "excluirValorICMSBasePIS": "{{excluirValorICMSBasePIS}}",
+          "excluirValorICMSSTBasePIS": "{{excluirValorICMSSTBasePIS}}"
+        },
+        "PISST": {
+          "indSomaPISST": "{{indSomaPISST}}",
+          "tipoCalculoPISST": "{{tipoCalculoPISST}}",
+          "pPIS": "{{pPIS}}",
+          "vAliqProd": "{{vAliqProd}}",
+          "vBC": "{{vBC}}",
+          "qBCProd": "{{qBCProd}}"
+        },
+        "COFINS": {
+          "CST": "{{CST}}",
+          "vBC": "{{vBC}}",
+          "qBCProd": "{{qBCProd}}",
+          "pCOFINS": "{{pCOFINS}}",
+          "vAliqProd": "{{vAliqProd}}",
+          "tipoCalculoCOFINS": "{{tipoCalculoCOFINS}}",
+          "excluirValorICMSBaseCOFINS": "{{excluirValorICMSBaseCOFINS}}",
+          "excluirValorICMSSTBaseCOFINS": "{{excluirValorICMSSTBaseCOFINS}}"
+        },
+        "COFINSST": {
+          "indSomaCOFINSST": "{{indSomaCOFINSST}}",
+          "tipoCalculoCOFINSST": "{{tipoCalculoCOFINSST}}",
+          "pCOFINS": "{{pCOFINS}}",
+          "vAliqProd": "{{vAliqProd}}",
+          "vBC": "{{vBC}}",
+          "qBCProd": "{{qBCProd}}"
+        }
+      }
+    }
+  ]
+}

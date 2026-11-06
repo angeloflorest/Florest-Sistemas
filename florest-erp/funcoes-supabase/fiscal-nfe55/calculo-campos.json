@@ -1,0 +1,95 @@
+{
+  "II": [
+    "vBC",
+    "pAliqII",
+    "vII"
+  ],
+  "IPI": [
+    "CST",
+    "tipoCalculoIPI",
+    "vBC",
+    "qUnid",
+    "pIPI",
+    "vUnid"
+  ],
+  "ISSQN": [
+    "vBC",
+    "vAliq",
+    "vDeducao",
+    "vOutro",
+    "vDescIncond",
+    "vDescCond",
+    "vISSRet"
+  ],
+  "ICMS": [
+    "orig",
+    "CST",
+    "excluirDescBaseICMS",
+    "IncluirValorIPIBaseICMS",
+    "IncluirValorIPIBaseICMSST",
+    "pFCP",
+    "adRemICMS",
+    "pDif",
+    "pFCPDif",
+    "pRedBC",
+    "pICMS",
+    "pMVAST",
+    "pRedBCST",
+    "pICMSST",
+    "pST",
+    "pFCPST",
+    "adRemICMSReten",
+    "adRemICMSRet",
+    "vICMSDeson",
+    "vFCPSTRet",
+    "qBCMonoRet",
+    "qBCMonoReten",
+    "pCredSN",
+    "vBC",
+    "vBCSTRet",
+    "qBCMono",
+    "vBCFCPST",
+    "vBCST",
+    "vBCFCP"
+  ],
+  "ICMSUFDest": [
+    "pICMSUFDest",
+    "pICMSInter"
+  ],
+  "PIS": [
+    "CST",
+    "vBC",
+    "qBCProd",
+    "pPIS",
+    "vAliqProd",
+    "tipoCalculoPIS",
+    "excluirValorICMSBasePIS",
+    "excluirValorICMSSTBasePIS"
+  ],
+  "PISST": [
+    "indSomaPISST",
+    "tipoCalculoPISST",
+    "pPIS",
+    "vAliqProd",
+    "vBC",
+    "qBCProd"
+  ],
+  "COFINS": [
+    "CST",
+    "vBC",
+    "qBCProd",
+    "pCOFINS",
+    "vAliqProd",
+    "tipoCalculoCOFINS",
+    "excluirValorICMSBaseCOFINS",
+    "excluirValorICMSSTBaseCOFINS"
+  ],
+  "COFINSST": [
+    "indSomaCOFINSST",
+    "tipoCalculoCOFINSST",
+    "pCOFINS",
+    "vAliqProd",
+    "vBC",
+    "qBCProd"
+  ]
+}

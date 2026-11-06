@@ -3790,6 +3790,7 @@
         <button type="button" class="fcp-tab active" id="fiscal-aba-btn-docs" role="tab">Documentos fiscais</button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-corrigir" role="tab">Corrigir Produtos <span class="fcp-tab-badge hidden" id="fcp-tab-badge">0</span></button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-contingencia" role="tab">Notas em contingência <span class="fcp-tab-badge hidden" id="ctg-tab-badge">0</span></button>
+        <button type="button" class="fcp-tab" id="fiscal-aba-btn-nfe55" role="tab" aria-controls="fiscal-aba-nfe55">Emitir NF-e (55)</button>
         <button type="button" class="fcp-tab" id="fiscal-aba-btn-xml-contador" role="tab">XMLs para Contadores</button>
       </div>
 
@@ -3996,6 +3997,30 @@
             </div>
           </div>
         </div>
+      </div>
+      <div id="fiscal-aba-nfe55" class="hidden" role="tabpanel" aria-labelledby="fiscal-aba-btn-nfe55">
+        <div class="subsection">
+          <div class="subsection-header"><div><h3>Emitir NF-e — modelo 55</h3><p>Conferir uma venda existente usando o cadastro fiscal da empresa conectada.</p></div></div>
+          <div class="msg warning" role="note">NF-e modelo 55 em Produção, com série configurada para esta empresa. Confira os dados fiscais antes de emitir. A transmissão exige confirmação explícita; não gera outra venda nem movimenta estoque ou financeiro.</div>
+          <div class="fpq-grid">
+            <label>Modelo<input value="55 — NF-e" readonly aria-label="Modelo fixo 55"></label>
+            <label>Série<input id="nfe55-serie" value="" readonly aria-label="Série da NF-e configurada"></label>
+          </div>
+          <div id="nfe55-emitente" aria-live="polite"></div>
+        </div>
+        <div class="subsection">
+          <h3>Selecionar venda existente</h3>
+          <form id="nfe55-form" class="fpq-grid" autocomplete="off">
+            <label>Número da venda<input id="nfe55-numero" type="text" inputmode="numeric" maxlength="15" placeholder="Número da venda"></label>
+            <label>Data inicial<input id="nfe55-inicio" type="date"></label>
+            <label>Data final<input id="nfe55-fim" type="date"></label>
+            <div class="fpq-botoes"><button id="nfe55-pesquisar" type="submit" class="btn-accent">Pesquisar vendas</button><button id="nfe55-limpar" type="button" class="btn-secondary">Limpar</button></div>
+          </form>
+          <div id="nfe55-msg" class="msg" role="status" aria-live="polite"></div>
+          <div id="nfe55-resultados"></div>
+        </div>
+        <div class="subsection" style="overflow-x:auto;"><div id="nfe55-detalhes" aria-live="polite"></div></div>
+        <button id="nfe55-transmitir" type="button" class="btn-accent" disabled title="Selecione a venda e confira os dados fiscais.">Emitir NF-e em Produção</button>
       </div>
       <div id="fiscal-aba-xml-contador" class="hidden">
         <div class="subsection">
@@ -4658,6 +4683,18 @@
           <p class="modal-section-hint" style="margin-top:8px;">
             Preencha isso apenas se essa empresa já emitia NFC-e em outro sistema, para a próxima emissão pelo Florest ERP continuar a numeração corretamente (ex: informe 3857 para a próxima sair como 3858). Depois de emitido pelo Florest ERP, esse número nunca pode ser diminuído.
           </p>
+        </div>
+
+        <div class="pdv-panel" style="margin-top:20px;" id="config-nfe55-numeracao">
+          <h3>NF-e — modelo 55</h3>
+          <div class="field-row">
+            <div class="field"><label for="cf-nfe-ultimo-numero">Último número da NF-e emitida</label><input type="number" id="cf-nfe-ultimo-numero" min="0" max="999999998" step="1" placeholder="Ex: 150"></div>
+            <div class="field"><label for="cf-nfe-serie">Série da NF-e</label><input type="number" id="cf-nfe-serie" min="1" max="999" step="1" value="1"></div>
+          </div>
+          <p class="modal-section-hint">Numeração exclusiva desta empresa e independente da NFC-e. Informe 150 na série 1 para a próxima NF-e usar 151. Números já reservados ou transmitidos não podem ser diminuídos ou reutilizados. Confira também as notas emitidas fora do ERP.</p>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="cf-nfe-confirmado" style="width:auto;"> Sou responsável e conferi a série e a última numeração da NF-e desta empresa.</label>
+          <button type="button" class="btn-secondary" id="cf-nfe-salvar" disabled>Salvar numeração da NF-e</button>
+          <div id="cf-nfe-msg" class="msg" role="status" aria-live="polite"></div>
         </div>
 
         <div class="pdv-panel" style="margin-top:20px;">
@@ -7016,6 +7053,8 @@ export function abrirImportador(config){
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { instalarTaxasPagamento, agruparDespesasTaxas, prepararTaxasRecebimentoMesa } from './taxas-pagamento.js';
+let nfe55Painel = null, nfe55Carregamento = null;
+let nfe55ConfigPainel = null, nfe55ConfigCarregamento = null;
 // O importador vai embutido neste mesmo arquivo (bloco <script id="importador-src"> abaixo), para o index.html
 // abrir com duplo clique (file://) e em qualquer hospedagem, sem depender de importador.js ao lado.
 const { abrirImportador, somenteDigitos, chaveGtin, variantesGtin } = await import(
@@ -9920,7 +9959,7 @@ const CARREGADORES_VIEW = {
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); },
+  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'nfe55') nfe55Abrir(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -10413,13 +10452,18 @@ function fcpTrocarAba(aba){
   $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
   $('fiscal-aba-contingencia').classList.toggle('hidden', aba !== 'contingencia');
   $('fiscal-aba-xml-contador').classList.toggle('hidden', aba !== 'xml-contador');
+  $('fiscal-aba-nfe55').classList.toggle('hidden', aba !== 'nfe55');
   $('fiscal-aba-btn-docs').classList.toggle('active', aba === 'docs');
   $('fiscal-aba-btn-corrigir').classList.toggle('active', aba === 'corrigir');
   $('fiscal-aba-btn-contingencia').classList.toggle('active', aba === 'contingencia');
   $('fiscal-aba-btn-xml-contador').classList.toggle('active', aba === 'xml-contador');
+  $('fiscal-aba-btn-nfe55').classList.toggle('active', aba === 'nfe55');
+  $('fiscal-aba-btn-nfe55').setAttribute('aria-selected', String(aba === 'nfe55'));
   if(aba === 'corrigir') fcpAbrir();
   if(aba === 'contingencia') ctgAbrirAba();
   if(aba === 'xml-contador') xmlcAbrir();
+  if(aba === 'nfe55') nfe55Abrir();
+  else nfe55Painel?.limpar();
 }
 async function fcpAbrir(){
   let emp = null;
@@ -19409,6 +19453,7 @@ ctgIniciarRegularizacao();
 let configuracaoFiscalId = null;
 
 async function carregarConfiguracoesFiscais(){
+  nfe55ConfiguracaoAbrir();
   $('config-fiscal-msg').innerHTML = '';
   $('cf-emite-nota-fiscal').disabled = true;
 
@@ -23546,6 +23591,37 @@ $('xmlc-resumo').addEventListener('click',()=>xmlcSolicitar('resumo'));
 $('xmlc-baixar').addEventListener('click',()=>xmlcSolicitar('baixar'));
 $('xmlc-enviar').addEventListener('click',()=>xmlcSolicitar('enviar'));
 $('xmlc-atualizar').addEventListener('click',xmlcAbrir);
+
+// A configuração da NF-e carrega separadamente para preservar as configurações existentes.
+async function nfe55ConfiguracaoAbrir(){
+  try {
+    if(!nfe55ConfigPainel){
+      if(!nfe55ConfigCarregamento) nfe55ConfigCarregamento=import('./configuracao-nfe55.js').then(({instalarConfiguracaoNfe55})=>{
+        nfe55ConfigPainel=instalarConfiguracaoNfe55({document,supabase,obterEmpresaId,podeAcessar});return nfe55ConfigPainel;
+      }).catch(error=>{nfe55ConfigCarregamento=null;throw error;});
+      await nfe55ConfigCarregamento;
+    }
+    await nfe55ConfigPainel.abrir();
+  }catch(error){$('cf-nfe-msg').textContent='Não foi possível abrir a configuração NF-e. As configurações existentes continuam disponíveis.';}
+}
+
+// Código carregado só ao abrir a nova aba; uma falha não impede o ERP de iniciar.
+async function nfe55Abrir(){
+  if(FCP.aba !== 'nfe55' || !podeAcessar('fiscal')) return;
+  try {
+    if(!nfe55Painel){
+      if(!nfe55Carregamento) nfe55Carregamento = import('./fiscal-nfe55.js').then(({ instalarAbaNfe55 }) => {
+        nfe55Painel = instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcessar, formatarReais });
+        return nfe55Painel;
+      }).catch(error => { nfe55Carregamento = null; throw error; });
+      await nfe55Carregamento;
+    }
+    if(FCP.aba === 'nfe55' && podeAcessar('fiscal')) await nfe55Painel.abrir();
+  } catch(error){
+    if(FCP.aba === 'nfe55') $('nfe55-msg').textContent = 'Não foi possível abrir a conferência de NF-e. As outras funções do ERP continuam disponíveis.';
+  }
+}
+$('fiscal-aba-btn-nfe55').addEventListener('click',()=>fcpTrocarAba('nfe55'));
 
 </script>
 

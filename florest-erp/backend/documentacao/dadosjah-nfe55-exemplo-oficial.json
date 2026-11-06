@@ -1,0 +1,161 @@
+{
+  "async": false,
+  "NFe": [
+    {
+      "idExternal": "{{idExternal}}",
+      "infNF": {
+        "versao": "{{nfeVersao}}",
+        "ide": {
+          "cUF": "{{cUF_ide}}",
+          "cNF": "{{cNF_ide}}",
+          "natOp": "{{natOp_ide}}",
+          "serie": "{{nfeSerie}}",
+          "nNF": "{{nNF_numero}}",
+          "dhEmi": "{{dhEmi}}",
+          "dhSaiEnt": "{{dhSaiEnt}}",
+          "tpNF": "{{tpNF}}",
+          "idDest": "{{idDest}}",
+          "cMunFG": "{{cMunFG}}",
+          "tpImp": "{{tpImp}}",
+          "tpEmis": "{{tpEmis}}",
+          "tpAmb": "{{tpAmb}}",
+          "finNFe": "{{finNFe}}",
+          "indFinal": "{{indFinal}}",
+          "indPres": "{{indPres}}",
+          "procEmi": "{{procEmi}}",
+          "verProc": "{{verProc}}"
+        },
+        "emit": {
+          "CNPJCPF": "{{emitCNPJCPF}}",
+          "xNome": "{{emitxNome}}",
+          "xFant": "{{emitxFant}}",
+          "enderEmit": {
+            "xLgr": "{{emitEnderXLgr}}",
+            "nro": "{{emitEnderNro}}",
+            "xBairro": "{{emitEnderXBairro}}",
+            "cMun": "{{emitEnderCMun}}",
+            "xMun": "{{emitEnderXMun}}",
+            "UF": "{{emitEnderUF}}",
+            "CEP": "{{emitEnderCEP}}",
+            "cPais": "{{emitEnderCPais}}",
+            "xPais": "{{emitEnderXPais}}",
+            "fone": "{{emitEnderFone}}"
+          },
+          "IE": "{{emitIE}}",
+          "CRT": "{{emitCRT}}",
+          "IM": "{{emitIM}}"
+        },
+        "dest": {
+          "CNPJCPF": "{{destCNPJCPF}}",
+          "xNome": "{{destXNome}}",
+          "enderDest": {
+            "xLgr": "{{destEnderXLgr}}",
+            "nro": "{{destEnderNro}}",
+            "xBairro": "{{destEnderXBairro}}",
+            "cMun": "{{destEnderCMun}}",
+            "xMun": "{{destEnderXMun}}",
+            "UF": "{{destEnderUF}}",
+            "CEP": "{{destEnderCEP}}",
+            "cPais": "{{destEnderCPais}}",
+            "xPais": "{{destEnderXPais}}",
+            "fone": "{{destEnderFone}}"
+          },
+          "indIEDest": "{{destIndIEDest}}"
+        },
+        "det": [
+          {
+            "nItem": "{{nItem}}",
+            "prod": {
+              "cProd": "{{prodCProd}}",
+              "cEAN": "{{prodCEAN}}",
+              "xProd": "{{prodXProd}}",
+              "NCM": "{{prodNCM}}",
+              "CEST": "{{prodCEST}}",
+              "CFOP": "{{prodCFOP}}",
+              "uCom": "{{prodUCom}}",
+              "qCom": "{{prodQCom}}",
+              "vUnCom": "{{prodVUnCom}}",
+              "vProd": "{{prodVProd}}",
+              "cEANTrib": "{{prodCEANTrib}}",
+              "uTrib": "{{prodUTrib}}",
+              "qTrib": "{{prodQTrib}}",
+              "vUnTrib": "{{prodVUnTrib}}",
+              "indTot": "{{prodIndTot}}",
+              "nItemPed": "{{prodNItemPed}}"
+            },
+            "imposto": {
+              "vTotTrib": "{{impostoVTotTrib}}",
+              "ICMS": {
+                "orig": "{{icmsOrig}}",
+                "CST": "{{icmsCST}}",
+                "vBCSTRet": "{{icmsVBCSTRet}}",
+                "pST": "{{icmsPST}}",
+                "vICMSSubstituto": "{{icmsVICMSSubstituto}}",
+                "vICMSSTRet": "{{icmsVICMSSTRet}}"
+              },
+              "IPI": {
+                "cSelo": "{{ipiCSelo}}",
+                "cEnq": "{{ipiCEnq}}",
+                "CST": "{{ipiCST}}"
+              },
+              "PIS": {
+                "CST": "{{pisCST}}"
+              },
+              "COFINS": {
+                "CST": "{{cofinsCST}}"
+              }
+            }
+          }
+        ],
+        "total": {
+          "ICMSTot": {
+            "vBC": "{{totalVBC}}",
+            "vICMS": "{{totalVICMS}}",
+            "vICMSDeson": "{{totalVICMSDeson}}",
+            "vFCP": "{{totalVFCP}}",
+            "vBCST": "{{totalVBCST}}",
+            "vFCPST": "{{totalVFCPST}}",
+            "vFCPSTRet": "{{totalVFCPSTRet}}",
+            "vProd": "{{totalVProd}}",
+            "vFrete": "{{totalVFrete}}",
+            "vSeg": "{{totalVSeg}}",
+            "vDesc": "{{totalVDesc}}",
+            "vII": "{{totalVII}}",
+            "vIPI": "{{totalVIPI}}",
+            "vIPIDevol": "{{totalVIPIDevol}}",
+            "vPIS": "{{totalVPIS}}",
+            "vCOFINS": "{{totalVCOFINS}}",
+            "vOutro": "{{totalVOutro}}",
+            "vNF": "{{totalVNF}}"
+          }
+        },
+        "transp": {
+          "modFrete": "{{transpModFrete}}",
+          "vol": [
+            {
+              "qVol": "{{transpQVol}}"
+            }
+          ]
+        },
+        "infAdic": {
+          "infCpl": "{{infAdicInfCpl}}"
+        },
+        "pag": {
+          "detPag": [
+            {
+              "tPag": "{{pagTPag}}",
+              "xPag": "{{pagXPag}}",
+              "vPag": "{{pagVPag}}"
+            }
+          ]
+        },
+        "infRespTec": {
+          "CNPJ": "{{infRespTecCNPJ}}",
+          "xContato": "{{infRespTecXContato}}",
+          "email": "{{infRespTecEmail}}",
+          "fone": "{{infRespTecFone}}"
+        }
+      }
+    }
+  ]
+}
