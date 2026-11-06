@@ -10,7 +10,7 @@ test('payload específico NF-e, produção e série 1; valores originam na venda
 });
 test('valida CPF/CNPJ e impede enquadramento desconhecido, campos ausentes e valores divergentes antes de POST',()=>{
  assert.ok(documentoValido('52998224725'));assert.ok(!documentoValido('00000000000'));
- for(const mutate of [f=>f.snapshot.venda.cancelada_em='2026-11-01',f=>f.snapshot.venda.total=19,f=>f.revisao.dest.CNPJCPF='123',f=>f.revisao.dest.enderDest.cMun='',f=>f.revisao.itens[0].cfop='6102',f=>f.snapshot.emitente.crt='1',f=>f.snapshot.emitente.nfe_numeracao_confirmada_em=null,f=>f.snapshot.emitente.nfe_serie='',f=>f.revisao.dest.indIEDest='1',f=>delete f.revisao.totais.vBC,f=>f.revisao.itens[0].imposto.ICMS.CST='qualquer',f=>f.revisao.pagamentos[0].vPag='19',f=>f.snapshot.itens[0].produto.tipo_fiscal='servico',f=>f.revisao.itens[0].id=2]){const f=fixture();mutate(f);assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico));}
+ for(const mutate of [f=>f.snapshot.venda.cancelada_em='2026-11-01',f=>f.snapshot.venda.total=19,f=>f.revisao.dest.CNPJCPF='123',f=>f.revisao.dest.enderDest.cMun='',f=>f.revisao.itens[0].cfop='6102',f=>f.snapshot.emitente.crt='1',f=>f.snapshot.emitente.nfe_numeracao_confirmada_em=null,f=>f.snapshot.emitente.nfe_serie='',f=>f.revisao.dest.indIEDest='1',f=>delete f.revisao.totais.vFrete,f=>f.revisao.itens[0].imposto.ICMS.CST='qualquer',f=>f.revisao.pagamentos[0].vPag='19',f=>f.snapshot.itens[0].produto.tipo_fiscal='servico',f=>f.revisao.itens[0].id=2]){const f=fixture();mutate(f);assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico));}
 });
 test('HTTP 201 não é autorização; exige chave modelo 55, empresa, série, número, ambiente e protocolo',()=>{
  const f=fixture(),r={...f.registro,payload:payload(preparar(f.snapshot,f.revisao,f.tecnico),f.registro)};
@@ -39,8 +39,17 @@ test('série configurada é usada no payload e na validação da resposta, sem f
  for(let i=42;i>=0;i--){sum+=Number(base[i])*w;w=w===9?2:w+1;}const d=11-sum%11;
  body.data.NFe[0].serie='12';body.data.NFe[0].chDfe=base+(d>=10?0:d);assert.equal(resultado(body,r).status,'autorizada');
 });
-test('CRT 1 não reutiliza JSON do Regime Normal nem troca o regime para contornar contrato ausente',()=>{
- const f=fixture();f.snapshot.emitente.crt='1';f.revisao.itens[0].csosn='102';
- assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico),/CSOSN 102 para CRT 1/);
- assert.equal(f.snapshot.emitente.crt,'1');
+test('CRT 1 / CSOSN 102 usa o campo confirmado CSOSN, sem CST normal e sem cálculo externo',()=>{
+ const f=fixture();f.snapshot.emitente.crt='1';f.snapshot.emitente.uf='mg';f.revisao.dest.enderDest.UF='mg';f.revisao.itens[0].csosn='102';f.revisao.sem_acessorios=true;f.revisao.totais={};
+ const n=preparar(f.snapshot,f.revisao,f.tecnico);assert.deepEqual(n.det[0].imposto.ICMS,{orig:'0',CSOSN:'102'});assert.equal(n.emit.CRT,'1');assert.equal(n.total.ICMSTot.vNF,'20.00');assert.equal(n.total.ICMSTot.vPIS,'0.00');
+ f.revisao.itens[0].csosn='500';assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico),/500/);
+});
+test('PIS/COFINS ausentes não recebem CST padrão; 49/99 exigem confirmação de ausência de destaque',()=>{
+ const f=fixture();f.snapshot.emitente.crt='1';f.revisao.itens[0].csosn='102';f.revisao.sem_acessorios=true;f.revisao.totais={};
+ const x=f.revisao.itens[0].imposto;x.PIS={CST:''};x.COFINS={CST:''};
+ assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico),/CST de PIS ausente/);assert.equal(x.PIS.CST,'');
+ x.PIS={CST:'49'};x.COFINS={CST:'99'};assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico),/confirme.*PIS CST 49/);
+ x.PIS.sem_destaque=true;x.COFINS.sem_destaque=true;
+ const n=preparar(f.snapshot,f.revisao,f.tecnico);assert.deepEqual(n.det[0].imposto.PIS,{CST:'49'});assert.deepEqual(n.det[0].imposto.COFINS,{CST:'99'});assert.equal(n.det[0].imposto.PIS.pPIS,undefined);
+ x.PIS.pPIS='1.65';assert.throws(()=>preparar(f.snapshot,f.revisao,f.tecnico),/não corresponde/);
 });

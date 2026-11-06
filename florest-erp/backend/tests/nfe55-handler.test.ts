@@ -50,12 +50,12 @@ Deno.test('handler: cálculo é separado da emissão; CPF é preservado e só re
   return new Response(JSON.stringify({data:{NFe:[]}}));
  }});
  const preview=await a.request('calcular',{revisao:f.revisao});assert(preview.status===200);assert(a.provider.length===1);assert(a.writes.length===0);assert(!a.calls.some(c=>c.name==='fiscal_nfe55_reservar'));
- const send=await a.request('emitir',{revisao:preview.data.revisao,usar_calculo:true,confirmar_producao:true});assert(send.status===200);assert(a.provider.filter(c=>c.url.endsWith('/nfe?tpDanfe=Retrato')).length===1);assert(a.provider.filter(c=>c.url.endsWith('/tribute-calculation/out')).length===2);
+ const send=await a.request('emitir',{revisao:preview.data.revisao,usar_calculo:true,confirmar_producao:true});assert(send.status===200);assert(a.provider.filter(c=>c.url.endsWith('/nfe?tpDanfe=Retrato')).length===1);assert(a.provider.filter(c=>c.url.endsWith('/tribute-calculation/out')).length===1);
  const sent=JSON.parse(a.provider.at(-1).body);assert(sent.NFe[0].infNF.dest.CNPJCPF==='52998224725');assert(sent.NFe[0].infNF.ide.serie==='1');assert(a.writes.every(w=>w.table==='fiscal_nfe55_emissoes'));
  assert((await a.request('emitir',{revisao:f.revisao,confirmar_producao:true})).status===409);
 });
-Deno.test('handler: CSOSN sem contrato bloqueia só essa operação antes de autenticar, calcular ou reservar',async()=>{
- const f:any=fixture();f.snapshot.venda.id=id;f.snapshot.venda.empresa_id='empresa-a';f.snapshot.emitente.crt='1';f.revisao.itens[0].csosn='102';f.revisao.sem_acessorios=true;
+Deno.test('handler: CSOSN sem suporte bloqueia só essa operação antes de autenticar, calcular ou reservar',async()=>{
+ const f:any=fixture();f.snapshot.venda.id=id;f.snapshot.venda.empresa_id='empresa-a';f.snapshot.emitente.crt='1';f.revisao.itens[0].csosn='500';f.revisao.sem_acessorios=true;
  const a=ambiente({ativo:true,base:f.snapshot});
  const check=await a.request('validar',{revisao:f.revisao});assert(check.status===200&&!check.data.valida);assert(check.data.pendencias[0].includes('Item 1'));
  assert((await a.request('calcular',{revisao:f.revisao})).status===400);assert((await a.request('emitir',{revisao:f.revisao,confirmar_producao:true})).status===400);assert(a.provider.length===0);assert(!a.calls.some(c=>c.name==='fiscal_nfe55_reservar'));
@@ -65,4 +65,15 @@ Deno.test('handler: alteração de venda/cadastro/série desde a conferência im
  const f:any=fixture();f.snapshot.venda.id=id;f.snapshot.venda.empresa_id='empresa-a';const a=ambiente({ativo:true,base:f.snapshot});
  const r=await a.request('emitir',{revisao:f.revisao,confirmar_producao:true,conferencia_hash:'conferencia-antiga'});
  assert(r.status===409);assert(r.data.fase==='validacao');assert(a.provider.length===0&&!a.calls.some(c=>c.name==='fiscal_nfe55_reservar'));
+});
+
+Deno.test('handler: CRT1/102 valida e emite no mock sem pré-calcular, com confirmação e sem escolher CST ausente',async()=>{
+ const f:any=fixture();f.snapshot.venda.id=id;f.snapshot.venda.empresa_id='empresa-a';f.snapshot.emitente.crt='1';f.revisao.itens[0].csosn='102';f.revisao.sem_acessorios=true;f.revisao.totais={};
+ const a=ambiente({ativo:true,base:f.snapshot});
+ const validation=await a.request('validar',{revisao:f.revisao});assert(validation.data.valida);assert(a.provider.length===0&&a.writes.length===0);
+ assert((await a.request('emitir',{revisao:f.revisao,confirmar_producao:false})).status===400);assert(a.provider.length===0);
+ const r=await a.request('emitir',{revisao:f.revisao,usar_calculo:true,confirmar_producao:true});assert(r.status===200);assert(a.provider.length===1);assert(a.provider[0].url.endsWith('/nfe?tpDanfe=Retrato'));
+ const sent=JSON.parse(a.provider[0].body);assert(sent.NFe[0].infNF.det[0].imposto.ICMS.CSOSN==='102');assert(sent.NFe[0].infNF.det[0].imposto.ICMS.CST===undefined);
+ const missing:any=fixture();missing.snapshot.venda.id=id;missing.snapshot.venda.empresa_id='empresa-a';missing.snapshot.emitente.crt='1';missing.revisao.itens[0].csosn='102';missing.revisao.itens[0].imposto.PIS.CST='';
+ const bad=ambiente({ativo:true,base:missing.snapshot});const err=await bad.request('emitir',{revisao:missing.revisao,confirmar_producao:true});assert(err.status===400&&err.data.erro.includes('CST de PIS ausente'),JSON.stringify(err));assert(bad.provider.length===0&&bad.writes.length===0);
 });

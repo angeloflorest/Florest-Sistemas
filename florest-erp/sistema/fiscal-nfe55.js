@@ -1,4 +1,4 @@
-import {revisaoDoCadastro,destinoDoCliente,pendenciasContrato} from './fiscal-nfe55-modelo.js';
+import {revisaoDoCadastro,destinoDoCliente,pendenciasContrato,itemSimples102} from './fiscal-nfe55-modelo.js';
 // NF-e 55: série do cadastro fiscal da empresa. Nunca chama a emissão NFC-e.
 export const NFE55_MODELO = '55';
 export function validarBuscaNfe55(numero, inicio, fim) {
@@ -30,11 +30,14 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     $('nfe55-numero').value=''; $('nfe55-inicio').value=''; $('nfe55-fim').value='';
     $('nfe55-transmitir').disabled=true; $('nfe55-pesquisar').disabled=false;
   }
+  async function aguardar(promise,mensagem,ms=20000){
+    let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(mensagem)),ms);})]);}finally{clearTimeout(timer);}
+  }
   async function contexto() {
     if (!supabase || !podeAcessar('fiscal')) throw Error('Acesso ao módulo Fiscal necessário.');
-    const {data,error}=await supabase.auth.getSession();
+    const {data,error}=await aguardar(supabase.auth.getSession(),'A sessão demorou a responder. Tente novamente sem repetir uma transmissão.');
     if (error || !data?.session?.user?.id) throw Error('Sessão expirada. Entre novamente.');
-    const empresa=await obterEmpresaId();
+    const empresa=await aguardar(obterEmpresaId(),'Não foi possível confirmar a empresa a tempo. Reabra a aba fiscal.');
     if (!empresa) throw Error('Não foi possível identificar sua empresa.');
     return { empresa, usuario:data.session.user.id };
   }
@@ -132,7 +135,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
   $('nfe55-form').addEventListener('submit',pesquisar);
   $('nfe55-limpar').addEventListener('click',limpar);
   async function chamar(acao,venda_id,extra={}) {
-    const {data,error}=await supabase.functions.invoke('fiscal-nfe55',{body:{acao,venda_id,...extra}});
+    const {data,error}=await aguardar(supabase.functions.invoke('fiscal-nfe55',{body:{acao,venda_id,...extra}}),'O servidor demorou a responder. Consulte a situação antes de repetir uma emissão.',25000);
     if(error||data?.erro) {
       let info=data;
       if(!info?.erro&&error?.context?.json)try{info=await error.context.json();}catch{}
@@ -144,7 +147,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const label=texto('label',rotulo);let input;
     if(opcoes){input=document.createElement('select');for(const [valor,nome] of [['','Selecione…'],...opcoes]){const o=texto('option',nome);o.value=valor;input.append(o);}}
     else {input=document.createElement('input');input.type=tipo;input.maxLength=tipo==='text'?200:20;}
-    input.value=obj[chave]??'';input.addEventListener('input',()=>{obj[chave]=input.value;const c=$('nfe55-confirmar');if(c)c.checked=false;if(selecionada){selecionada.usarCalculo=false;selecionada.validada=false;}atualizarPendencias();});
+    input.value=obj[chave]??'';input.addEventListener('input',()=>{obj[chave]=input.value;const c=$('nfe55-confirmar');if(c)c.checked=false;if(selecionada){selecionada.validada=false;}atualizarPendencias();});
     label.append(input);parent.append(label);return input;
   }
   function habilitar(){const c=$('nfe55-confirmar');$('nfe55-transmitir').disabled=ocupada||!selecionada||!!selecionada.registro||!selecionada.validada||pendenciasContrato(selecionada.snapshot,selecionada.revisao).length>0||!c?.checked;}
@@ -169,7 +172,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const data=await chamar('preparar',id);if(!await atual(ctx,req))return;
     const snap=data.snapshot;if(snap?.venda?.id!==id||snap.venda.empresa_id!==ctx.empresa)throw Error('A conferência fiscal não corresponde à empresa autenticada.');
     serieEmpresa=snap.emitente?.nfe_serie||serieEmpresa;$('nfe55-serie').value=serieEmpresa;
-    selecionada={ctx,req,id,snapshot:snap,revisao:revisaoDoCadastro(snap,data.revisao||{}),registro:data.registro,conferenciaHash:data.conferencia_hash,validada:false,usarCalculo:false};
+    selecionada={ctx,req,id,snapshot:snap,revisao:revisaoDoCadastro(snap,data.revisao||{}),registro:data.registro,conferenciaHash:data.conferencia_hash,validada:false};
     if(data.registro){situacao(box,data.registro);$('nfe55-msg').textContent='Tentativa existente recuperada. A emissão duplicada está bloqueada.';return;}
     renderEditor();
   }
@@ -189,7 +192,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
         if(current!==selecionada||seq!==busca||!await atual(current.ctx,current.req))return;
         if(data.empresa_id!==current.ctx.empresa||data.clientes?.some(c=>c.empresa_id!==current.ctx.empresa))throw Error('Destinatário não corresponde à empresa autenticada.');
         if(!data.clientes?.length)results.append(texto('p','Nenhum destinatário encontrado. Você pode preencher os dados abaixo.'));
-        for(const c of data.clientes||[]){const use=texto('button',`Usar ${c.nome} · ${c.cpf||'documento não cadastrado'}`,'btn-secondary');use.type='button';use.addEventListener('click',()=>{if(current!==selecionada)return;current.revisao.dest=destinoDoCliente(c);current.usarCalculo=false;current.validada=false;renderEditor();});results.append(use);}
+        for(const c of data.clientes||[]){const use=texto('button',`Usar ${c.nome} · ${c.cpf||'documento não cadastrado'}`,'btn-secondary');use.type='button';use.addEventListener('click',()=>{if(current!==selecionada)return;current.revisao.dest=destinoDoCliente(c);current.validada=false;renderEditor();});results.append(use);}
       }catch(e){if(current===selecionada&&seq===busca)results.append(texto('p',e.message,'msg error'));}
       finally{btn.disabled=false;}
     });
@@ -202,34 +205,32 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const op=texto('div','','fpq-grid');box.append(op);campo(op,'Natureza da operação',r.ide,'natOp');campo(op,'Consumidor final',r.ide,'indFinal',{opcoes:[['1','Sim'],['0','Não']]});
     campo(op,'Presença',r.ide,'indPres',{opcoes:[['0','Não se aplica'],['1','Presencial'],['2','Internet'],['3','Teleatendimento'],['4','Entrega em domicílio'],['9','Outros']]});
     campo(op,'Transporte',r,'modFrete',{opcoes:[['9','9 — Sem transporte (fluxo mínimo)']]});
-    const label=texto('label','Esta NF-e mantém os valores da venda, sem frete, seguro, desconto adicional ou outras despesas.');const extras=document.createElement('input');extras.type='checkbox';extras.checked=r.sem_acessorios;label.prepend(extras);box.append(label);
-    extras.addEventListener('change',()=>{r.sem_acessorios=extras.checked;if(extras.checked)for(const k of ['vFrete','vSeg','vDesc','vOutro'])r.totais[k]='0.00';current.usarCalculo=false;$('nfe55-confirmar').checked=false;atualizarPendencias();});
-    const details=texto('details','');details.append(texto('summary','Dados fiscais dos produtos — carregados do cadastro'));box.append(details);
+    const details=texto('details','');details.open=r.itens.some(f=>!f.imposto?.PIS?.CST||!f.imposto?.COFINS?.CST);details.append(texto('summary','Dados fiscais dos produtos — carregados do cadastro'));box.append(details);
     for(const [i,f] of r.itens.entries()){
       const p=snap.itens[i].produto||{},g=texto('div','','fpq-grid');details.append(texto('h4',p.nome),g);
       for(const [k,l] of Object.entries({ncm:'NCM',cfop:'CFOP',cest:'CEST (quando aplicável)',unidade:'Unidade',gtin:'GTIN ou SEM GTIN'}))campo(g,l,f,k);
       campo(g,'Origem da mercadoria',f.imposto.ICMS,'orig');if(simples)campo(g,'CSOSN (confirmar com responsável fiscal)',f,'csosn');else campo(g,'CST ICMS',f.imposto.ICMS,'CST');campo(g,'CST PIS',f.imposto.PIS,'CST');campo(g,'CST COFINS',f.imposto.COFINS,'CST');
-      f.calculo??={};f.calculo.ICMS??={};if(f.calculo.ICMS.pICMS===undefined&&p.aliquota_icms!==undefined&&p.aliquota_icms!==null)f.calculo.ICMS.pICMS=String(p.aliquota_icms);
-      campo(g,'Alíquota ICMS cadastrada (%)',f.calculo.ICMS,'pICMS');
+      for(const group of ['PIS','COFINS']){
+        const label=texto('label',`${group} CST 49/99: ausência de destaque conferida com o responsável fiscal.`),checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=f.imposto[group].sem_destaque===true;label.prepend(checkbox);g.append(label);
+        const atualizar=()=>{label.hidden=!(itemSimples102(snap,f)&&['49','99'].includes(f.imposto[group].CST));};atualizar();g.addEventListener('input',atualizar);
+        checkbox.addEventListener('change',()=>{f.imposto[group].sem_destaque=checkbox.checked;current.validada=false;$('nfe55-confirmar').checked=false;atualizarPendencias();});
+      }
       const advanced=texto('details','');advanced.append(texto('summary','Valores tributários complementares (se necessários)'));const ag=texto('div','','fpq-grid');advanced.append(ag);details.append(advanced);
       campo(ag,'Tributos aproximados (se informados)',f.imposto,'vTotTrib');
-      for(const [k,l] of Object.entries({vBCSTRet:'Base ST retida',pST:'Percentual ST',vICMSSubstituto:'ICMS substituto',vICMSSTRet:'ICMS ST retido'}))campo(ag,l,f.imposto.ICMS,k);
+      if(!itemSimples102(snap,f))for(const [k,l] of Object.entries({vBCSTRet:'Base ST retida',pST:'Percentual ST',vICMSSubstituto:'ICMS substituto',vICMSSTRet:'ICMS ST retido'}))campo(ag,l,f.imposto.ICMS,k);
       const ipi=texto('label','IPI aplicável (conferir CST e enquadramento)');const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=!!f.imposto.IPI;ipi.prepend(toggle);advanced.append(ipi);const ipibox=texto('div','','fpq-grid');advanced.append(ipibox);
       const montarIpi=()=>{ipibox.replaceChildren();if(f.imposto.IPI){campo(ipibox,'CST IPI',f.imposto.IPI,'CST');campo(ipibox,'Enquadramento legal IPI',f.imposto.IPI,'cEnq');campo(ipibox,'Selo IPI (se aplicável)',f.imposto.IPI,'cSelo');}};montarIpi();
-      toggle.addEventListener('change',()=>{if(toggle.checked)f.imposto.IPI={CST:'',cEnq:'',cSelo:''};else delete f.imposto.IPI;montarIpi();current.usarCalculo=false;$('nfe55-confirmar').checked=false;atualizarPendencias();});
+      toggle.addEventListener('change',()=>{if(toggle.checked)f.imposto.IPI={CST:'',cEnq:'',cSelo:''};else delete f.imposto.IPI;montarIpi();current.validada=false;$('nfe55-confirmar').checked=false;atualizarPendencias();});
     }
-    const tax=texto('details','');tax.append(texto('summary','Conferir totais tributários'));const totals=texto('div','','fpq-grid');tax.append(totals);box.append(tax);
-    for(const [k,l] of Object.entries({vBC:'Base de cálculo ICMS',vICMS:'Valor ICMS',vICMSDeson:'ICMS desonerado',vFCP:'FCP',vBCST:'Base ST',vFCPST:'FCP ST',vFCPSTRet:'FCP ST retido',vFrete:'Frete',vSeg:'Seguro',vDesc:'Desconto',vII:'Importação',vIPI:'IPI',vIPIDevol:'IPI devolvido',vPIS:'PIS',vCOFINS:'COFINS',vOutro:'Outras despesas'}))campo(totals,l,r.totais,k);
-    box.append(texto('p','O cálculo oficial preenche os valores confirmados. Códigos e alíquotas vêm do cadastro ou da conferência do responsável; nunca são escolhidos pelo sistema.'));
-    for(const [acao,l] of [['calcular','Calcular impostos no Dados Já'],['validar','Conferir dados da NF-e']]){const b=texto('button',l,'btn-secondary');b.type='button';b.addEventListener('click',()=>acaoNota(acao));box.append(b);}
+    if(!r.itens.every(f=>itemSimples102(snap,f))){
+      const tax=texto('details','');tax.append(texto('summary','Conferir totais tributários da operação'));const totals=texto('div','','fpq-grid');tax.append(totals);box.append(tax);
+      for(const [k,l] of Object.entries({vBC:'Base de cálculo ICMS',vICMS:'Valor ICMS',vICMSDeson:'ICMS desonerado',vFCP:'FCP',vBCST:'Base ST',vFCPST:'FCP ST',vFCPSTRet:'FCP ST retido',vFrete:'Frete',vSeg:'Seguro',vDesc:'Desconto',vII:'Importação',vIPI:'IPI',vIPIDevol:'IPI devolvido',vPIS:'PIS',vCOFINS:'COFINS',vOutro:'Outras despesas'}))campo(totals,l,r.totais,k);
+    }
+    box.append(texto('p',`Total da NF-e: ${money(snap.venda.total)}. Os valores permanecem os da venda; não é necessário cálculo tributário separado para o enquadramento sem destaque validado.`));
     const pay=texto('details','');pay.append(texto('summary','Pagamento da venda e informações adicionais'));const pg=texto('div','','fpq-grid');pay.append(pg);box.append(pay);
     for(const p of r.pagamentos){campo(pg,'Meio de pagamento fiscal',p,'tPag',{opcoes:[['01','Dinheiro'],['02','Cheque'],['05','Crédito loja'],['15','Boleto'],['17','PIX'],['18','Transferência'],['99','Outros']]});campo(pg,'Descrição (obrigatória para Outros)',p,'xPag');campo(pg,'Valor pago',p,'vPag');}campo(pg,'Informações complementares',r,'infCpl');
-    const listas=texto('details','');listas.append(texto('summary','Consultar listas fiscais oficiais'));const listGrid=texto('div','','fpq-grid'),lt=document.createElement('select'),lb=document.createElement('input'),go=texto('button','Consultar lista Dados Já','btn-secondary'),out=texto('div','');
-    lt.setAttribute('aria-label','Lista fiscal');lb.setAttribute('aria-label','Buscar na lista fiscal');lb.maxLength=80;
-    for(const [k,l] of [['icms','ICMS/CST/CSOSN'],['pis','PIS'],['cofins','COFINS'],['ipi','IPI'],['ncm','NCM'],['cfop','CFOP'],['cest','CEST']]){const o=texto('option',l);o.value=k;lt.append(o);}go.type='button';listGrid.append(lt,lb,go);listas.append(listGrid,out);box.append(listas);
-    go.addEventListener('click',async()=>{go.disabled=true;out.replaceChildren();try{const data=await chamar('lista',current.id,{tipo:lt.value,busca:lb.value});if(current!==selecionada||!await atual(current.ctx,current.req))return;out.append(texto('p',data.aviso));for(const item of data.itens||[])out.append(texto('p',`${item.codeCST||item.codeNCM||item.codeCFOP||item.codeCEST} · ${item.description||''}${item.CRT?' · CRT '+item.CRT.join(', '):''}`));}catch(e){if(current===selecionada)out.append(texto('p',e.message,'msg error'));}finally{go.disabled=false;}});
     const pending=texto('div','');pending.id='nfe55-pendencias';box.append(pending);
-    const final=texto('label','Conferi destinatário, operação, tributos, pagamentos e sequência NF-e. Autorizo emitir esta nota em PRODUÇÃO.');const confirm=document.createElement('input');confirm.type='checkbox';confirm.id='nfe55-confirmar';confirm.addEventListener('change',()=>{if(confirm.checked&&!current.validada)acaoNota('validar');else habilitar();});final.prepend(confirm);box.append(final);
+    const final=texto('label','Conferi destinatário, produtos, tributos e pagamentos. Esta NF-e mantém os valores da venda, sem frete, seguro, desconto adicional ou outras despesas. Confirmo a sequência e autorizo a emissão em PRODUÇÃO após clicar em Emitir.');const confirm=document.createElement('input');confirm.type='checkbox';confirm.id='nfe55-confirmar';confirm.addEventListener('change',()=>{r.sem_acessorios=confirm.checked;if(confirm.checked&&!current.validada)acaoNota('validar');else habilitar();});final.prepend(confirm);box.append(final);
     atualizarPendencias();$('nfe55-msg').textContent='Conferência carregada do cadastro. Complete apenas o que faltar; nenhuma nota foi transmitida.';
   }
   async function acaoNota(acao) {
@@ -237,12 +238,12 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const controles=[...($('nfe55-editor')?.querySelectorAll('input,select,button')||[])].map(node=>[node,node.disabled]);
     ocupada=true;for(const [node] of controles)node.disabled=true;habilitar();
     try {
+      if(acao==='validar')$('nfe55-msg').textContent='Validando os dados fiscais. Nenhuma nota será transmitida nesta conferência…';
       if(!await atual(current.ctx,current.req))throw Error('Empresa ou sessão mudou. Recarregue a venda.');
       if(acao==='emitir'&&!$('nfe55-confirmar')?.checked)return;
       if(acao==='emitir'&&!globalThis.confirm(`Emitir uma NF-e REAL em PRODUÇÃO para esta venda, modelo 55, série ${serieEmpresa}?`))return;
-      const data=await chamar(acao,current.id,acao==='emitir'?{revisao:current.revisao,usar_calculo:current.usarCalculo,conferencia_hash:current.conferenciaHash,confirmar_producao:true}:['calcular','validar'].includes(acao)?{revisao:current.revisao}:{});
+      const data=await chamar(acao,current.id,acao==='emitir'?{revisao:current.revisao,conferencia_hash:current.conferenciaHash,confirmar_producao:true}:acao==='validar'?{revisao:current.revisao}:{});
       if(!await atual(current.ctx,current.req))return;
-      if(acao==='calcular'){current.revisao=data.revisao;current.usarCalculo=true;renderEditor();$('nfe55-msg').textContent=data.aviso||'Valores calculados e conferidos. Nenhuma nota foi transmitida.';}
       if(acao==='validar'){current.validada=data.valida===true;if(!current.validada&&$('nfe55-confirmar'))$('nfe55-confirmar').checked=false;$('nfe55-msg').textContent=data.valida?'Dados completos para o cenário fiscal suportado. Nenhuma nota foi transmitida.':(data.pendencias||[]).join(' ');}
       if(data.registro){current.registro=data.registro;situacao($('nfe55-detalhes'),data.registro);$('nfe55-msg').textContent='Situação NF-e: '+data.registro.status;}
       if(['xml','danfe'].includes(acao)) {

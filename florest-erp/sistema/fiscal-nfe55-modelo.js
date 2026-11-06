@@ -14,19 +14,27 @@ export function revisaoDoCadastro(snapshot,entrada={}){
   ide:{natOp:'',indFinal:'',indPres:'',...entrada.ide},modFrete:entrada.modFrete||'',infCpl:entrada.infCpl||'',sem_acessorios:entrada.sem_acessorios===true,
   totais:{...entrada.totais},pagamentos:entrada.pagamentos||pagamentos.map(p=>({tPag:meios[text(p.forma_pagamento).trim().toLowerCase()]||'',vPag:text(p.valor)})),
   itens:(snapshot.itens||[]).map((item,i)=>{
-   const p=item.produto||{},f=entrada.itens?.[i]||{},base={ICMS:{orig:text(p.origem_mercadoria),...(!simples?{CST:text(p.cst_csosn)==='90'?'cst90':text(p.cst_csosn)}:{})},PIS:{CST:text(p.cst_pis)},COFINS:{CST:text(p.cst_cofins)}};
-   return {id:item.id,csosn:simples?text(p.cst_csosn):'',ncm:p.ncm||'',cfop:p.cfop||'',cest:p.cest||'',unidade:p.unidade_comercial||'',gtin:p.gtin||'',...f,imposto:{...base,...f.imposto,ICMS:{...base.ICMS,...f.imposto?.ICMS},PIS:{...base.PIS,...f.imposto?.PIS},COFINS:{...base.COFINS,...f.imposto?.COFINS}}};
+   const p=item.produto||{},f=entrada.itens?.[i]||{},csosn=simples?text(f.csosn??f.imposto?.ICMS?.CSOSN??p.cst_csosn):'',base={ICMS:{orig:text(p.origem_mercadoria),...(simples?{CSOSN:csosn}:{CST:text(p.cst_csosn)==='90'?'cst90':text(p.cst_csosn)})},PIS:{CST:text(p.cst_pis)},COFINS:{CST:text(p.cst_cofins)}};
+   return {id:item.id,csosn,ncm:p.ncm||'',cfop:p.cfop||'',cest:p.cest||'',unidade:p.unidade_comercial||'',gtin:p.gtin||'SEM GTIN',...f,imposto:{...base,...f.imposto,ICMS:{...base.ICMS,...f.imposto?.ICMS,...(simples?{CSOSN:csosn}:{})},PIS:{...base.PIS,...f.imposto?.PIS},COFINS:{...base.COFINS,...f.imposto?.COFINS}}};
   }),
  };
 }
+export const CST_CONTRIBUICAO_NT=['04','06','07','08','09'];
+export function itemSimples102(snapshot,f){return text(snapshot.emitente?.crt)==='1'&&text(f.csosn||f.imposto?.ICMS?.CSOSN)==='102';}
 export function pendenciasContrato(snapshot,r){
  const pendencias=[],crt=text(snapshot.emitente?.crt);
  if(!/^[1-4]$/.test(crt))pendencias.push('CRT do emitente ausente ou inválido.');
  for(const [i,f] of (r.itens||[]).entries()){
-  const prefix=`Item ${i+1}: `;
-  if(!(['2','3'].includes(crt)&&f.imposto?.ICMS?.CST==='cst90'))pendencias.push(prefix+`falta confirmar o JSON de ICMS CST/CSOSN ${f.csosn||f.imposto?.ICMS?.CST||'não cadastrado'} para CRT ${crt||'não cadastrado'} no POST /v1/nfe.`);
-  for(const g of ['PIS','COFINS'])if(f.imposto?.[g]?.CST!=='07')pendencias.push(prefix+`${g} CST ${f.imposto?.[g]?.CST||'não cadastrado'} ainda não tem contrato de emissão confirmado.`);
-  if(f.imposto?.IPI&&f.imposto.IPI.CST!=='53')pendencias.push(prefix+'IPI deste CST ainda não tem contrato de emissão confirmado.');
+  const prefix=`Item ${i+1}: `,sn102=itemSimples102(snapshot,f);
+  if(!sn102&&!(['2','3'].includes(crt)&&f.imposto?.ICMS?.CST==='cst90'))pendencias.push(prefix+`ICMS CST/CSOSN ${f.csosn||f.imposto?.ICMS?.CST||'não cadastrado'} para CRT ${crt||'não cadastrado'} ainda não suportado nesta operação.`);
+  for(const g of ['PIS','COFINS']){
+   const cst=text(f.imposto?.[g]?.CST);
+   if(!cst)pendencias.push(prefix+`CST de ${g} ausente no cadastro do produto. Informe o código válido na conferência ou no cadastro, conforme orientação do contador.`);
+   else if(sn102&&['49','99'].includes(cst)){
+    if(f.imposto[g].sem_destaque!==true)pendencias.push(prefix+`confirme com o responsável fiscal que ${g} CST ${cst} não tem destaque nesta operação. Não será presumida alíquota zero.`);
+   }else if(!CST_CONTRIBUICAO_NT.includes(cst))pendencias.push(prefix+`${g} CST ${cst} exige campos de tributação ainda não suportados neste fluxo; não substitua o código para contornar a validação.`);
+  }
+  if(f.imposto?.IPI&&f.imposto.IPI.CST!=='53')pendencias.push(prefix+'IPI deste CST ainda não suportado neste fluxo.');
  }
  if(r.dest?.indIEDest==='1')pendencias.push('Destinatário contribuinte: falta confirmar o campo de IE no JSON de emissão da NF-e.');
  return pendencias;

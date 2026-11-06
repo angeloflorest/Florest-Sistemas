@@ -85,15 +85,15 @@ test('navegador: conferência → confirmação produção → pendência → co
    const empresa='empresa-a',id='venda-a';window.calls=[];
    const cliente={nome:'Cliente exemplo',cpf:'52998224725'},venda={id,empresa_id:empresa,numero_venda:123,total:20,forma_pagamento:'Dinheiro',criado_em:'2026-11-06T12:00:00Z',clientes:cliente};
    const item={id:1,empresa_id:empresa,quantidade:2,preco_unitario:10,subtotal:20,produtos:{nome:'Produto exemplo',codigo:'1',ncm:'12345678',cfop:'5102',unidade_comercial:'UN',tipo_fiscal:'produto'}};
-   let registro=null;window.mockCrt='3';window.resetRegistro=()=>{registro=null;};
+   let registro=null;window.mockCrt='3';window.mockVazios=false;window.resetRegistro=()=>{registro=null;};
    const client={auth:{getSession:async()=>({data:{session:{user:{id:'user-a'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from(table){let byid=false;const value=()=>table==='vendas'?(byid?venda:[venda]):table==='itens_venda'?[item]:table==='documentos_fiscais'?[]:table==='contadores_fiscais'?{ultimo_numero:123}:{empresa_id:empresa,nfe_serie:'4',crt:'3',razao_social:'Empresa exemplo'};
     const q={select(){return q},eq(k){if(k==='id')byid=true;return q},gte(){return q},lte(){return q},order(){return q},limit(){return q},single:async()=>({data:value()}),maybeSingle:async()=>({data:value()}),then(resolve,reject){return Promise.resolve({data:value()}).then(resolve,reject)}};return q;
    },functions:{async invoke(name,{body}){window.calls.push({name,body});
-    if(body.acao==='preparar')return {data:{conferencia_hash:'hash-simulado',snapshot:{emitente:{nfe_serie:'4',crt:window.mockCrt},venda:{...venda,cliente},itens:[{...item,produto:{...item.produtos,id:'produto-a',gtin:'SEM GTIN',origem_mercadoria:'0',cst_csosn:window.mockCrt==='1'?'102':'90',cst_pis:'07',cst_cofins:'07'}}]},registro}};
+    if(body.acao==='preparar')return {data:{conferencia_hash:'hash-simulado',snapshot:{emitente:{nfe_serie:'4',crt:window.mockCrt},venda:{...venda,cliente},itens:[{...item,produto:{...item.produtos,id:'produto-a',gtin:'SEM GTIN',origem_mercadoria:'0',cst_csosn:window.mockCrt==='1'?'102':'90',cst_pis:window.mockVazios?'':'07',cst_cofins:window.mockVazios?'':'07'}}]},registro}};
     if(body.acao==='clientes')return {data:{empresa_id:empresa,clientes:[{id:'cliente-cnpj',empresa_id:empresa,nome:'Cliente CNPJ',cpf:'11222333000181',logradouro:'Rua CNPJ',numero:'1',bairro:'Centro',cidade:'Belo Horizonte',uf:'MG',cep:'30000000'},{id:'cliente-cpf',empresa_id:empresa,nome:'Cliente CPF',cpf:'52998224725',logradouro:'Rua CPF',numero:'2',bairro:'Centro',cidade:'Belo Horizonte',uf:'MG',cep:'30000000'}]}};
     if(body.acao==='lista')return {data:{tipo:body.tipo,itens:[{codeCST:'90',description:'Outros — lista oficial simulada',CRT:[2,3]}],aviso:'Página retornada pelo fornecedor; consulta parcial.'}};
     if(body.acao==='calcular')return {data:{revisao:{...body.revisao,totais:Object.fromEntries(['vBC','vICMS','vICMSDeson','vFCP','vBCST','vFCPST','vFCPSTRet','vFrete','vSeg','vDesc','vII','vIPI','vIPIDevol','vPIS','vCOFINS','vOutro'].map(k=>[k,'0.00']))},aviso:'Cálculo oficial simulado; nenhuma nota foi transmitida.'}};
-    if(body.acao==='validar')return {data:{valida:true,pendencias:[]}};
+    if(body.acao==='validar'){const faltas=[];for(const item of body.revisao.itens)for(const group of ['PIS','COFINS'])if(!item.imposto[group].CST)faltas.push('CST de '+group+' ausente');return {data:{valida:faltas.length===0,pendencias:faltas}};}
     if(body.acao==='emitir'){await new Promise(r=>setTimeout(r,80));registro={id:'nota-a',numero:124,serie:'4',status:'pendente',mensagem:'Resposta ainda não confirmada'};return {data:{registro}};}
     if(body.acao==='consultar'){registro={...registro,status:'autorizada',chave_acesso:'chave de teste',protocolo:'protocolo teste'};return {data:{registro}};}
     return {data:{numero:124,conteudo:body.acao==='xml'?'<nfeProc>arquivo-simulado</nfeProc>':btoa('%PDF-1.4 arquivo-simulado')}};
@@ -107,27 +107,30 @@ test('navegador: conferência → confirmação produção → pendência → co
   await page.getByRole('button',{name:'Usar Cliente CNPJ · 11222333000181',exact:true}).click();assert.equal(await page.getByLabel('CPF/CNPJ',{exact:true}).inputValue(),'11222333000181');
   await page.getByLabel('Pesquisar destinatário',{exact:true}).fill('Cliente');await page.getByRole('button',{name:'Buscar destinatário',exact:true}).click();
   await page.getByRole('button',{name:'Usar Cliente CPF · 52998224725',exact:true}).click();assert.equal(await page.getByLabel('CPF/CNPJ',{exact:true}).inputValue(),'52998224725');
-  await page.getByText('Consultar listas fiscais oficiais',{exact:true}).click();await page.getByRole('button',{name:'Consultar lista Dados Já',exact:true}).click();await page.getByText('90 · Outros — lista oficial simulada · CRT 2, 3',{exact:true}).waitFor();
-  await page.getByLabel('Esta NF-e mantém os valores da venda, sem frete, seguro, desconto adicional ou outras despesas.',{exact:true}).check();
-  await page.getByRole('button',{name:'Calcular impostos no Dados Já',exact:true}).click();await page.waitForFunction(()=>document.getElementById('nfe55-msg').textContent.includes('Cálculo oficial simulado'));
+  assert.equal(await page.getByRole('button',{name:'Calcular impostos no Dados Já',exact:true}).count(),0);assert.equal(await page.getByText('Consultar listas fiscais oficiais',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.body.acao==='emitir').length),0);
   await page.getByLabel('Natureza da operação',{exact:true}).fill('VENDA DE MERCADORIA');
   await page.locator('#nfe55-confirmar').check();assert.equal(await page.locator('#nfe55-transmitir').isEnabled(),true);
   await page.getByLabel('Natureza da operação',{exact:true}).fill('VENDA CONFERIDA');assert.equal(await page.locator('#nfe55-confirmar').isChecked(),false);
-  await page.getByRole('button',{name:'Calcular impostos no Dados Já',exact:true}).click();await page.waitForFunction(()=>document.getElementById('nfe55-msg').textContent.includes('Cálculo oficial simulado'));
   await page.locator('#nfe55-confirmar').check();await page.click('#nfe55-transmitir');await page.waitForFunction(()=>document.getElementById('nfe55-msg').textContent==='Situação NF-e: pendente');
   assert.equal(await page.locator('#nfe55-transmitir').isDisabled(),true);
-  const sent=await page.evaluate(()=>window.calls.find(c=>c.body.acao==='emitir'));assert.equal(await page.locator('#nfe55-serie').inputValue(),'4');assert.equal(sent.name,'fiscal-nfe55');assert.equal(sent.body.venda_id,'venda-a');assert.equal(sent.body.confirmar_producao,true);assert.equal(sent.body.usar_calculo,true);assert.equal(sent.body.conferencia_hash,'hash-simulado');assert.equal(sent.body.revisao.ide.natOp,'VENDA CONFERIDA');assert.equal(sent.body.revisao.itens[0].ncm,'12345678');
+  const sent=await page.evaluate(()=>window.calls.find(c=>c.body.acao==='emitir'));assert.equal(await page.locator('#nfe55-serie').inputValue(),'4');assert.equal(sent.name,'fiscal-nfe55');assert.equal(sent.body.venda_id,'venda-a');assert.equal(sent.body.confirmar_producao,true);assert.equal(sent.body.usar_calculo,undefined);assert.equal(sent.body.revisao.sem_acessorios,true);assert.equal(sent.body.conferencia_hash,'hash-simulado');assert.equal(sent.body.revisao.ide.natOp,'VENDA CONFERIDA');assert.equal(sent.body.revisao.itens[0].ncm,'12345678');
   await page.getByRole('button',{name:'Consultar situação',exact:true}).click();await page.getByRole('button',{name:'Baixar XML',exact:true}).waitFor();
   const xmlDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar XML',exact:true}).click();assert.equal((await xmlDownload).suggestedFilename(),'NFE_124.xml');
   const pdfDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar DANFE (PDF)',exact:true}).click();assert.equal((await pdfDownload).suggestedFilename(),'NFE_124.pdf');
-  await page.evaluate(()=>{window.mockCrt='1';window.resetRegistro();});await page.getByRole('button',{name:'Conferir para NF-e'}).click();
-  await page.getByText('Dados fiscais dos produtos — carregados do cadastro',{exact:true}).click();
+  await page.evaluate(()=>{window.mockCrt='1';window.mockVazios=true;window.resetRegistro();});await page.getByRole('button',{name:'Conferir para NF-e'}).click();
+  await page.getByText('Dados fiscais dos produtos — carregados do cadastro',{exact:true}).evaluate(s=>s.parentElement.open=true);
   await page.getByLabel('CSOSN (confirmar com responsável fiscal)',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('CSOSN (confirmar com responsável fiscal)',{exact:true}).inputValue(),'102');
   assert.equal(await page.getByLabel('CST ICMS',{exact:true}).count(),0);
-  await page.check('#nfe55-confirmar');assert.equal(await page.locator('#nfe55-transmitir').isDisabled(),true);
-  assert.match(await page.locator('#nfe55-pendencias').textContent(),/CSOSN 102 para CRT 1/);
+  await page.click('#nfe55-confirmar');assert.equal(await page.locator('#nfe55-transmitir').isDisabled(),true);
+  assert.match(await page.locator('#nfe55-pendencias').textContent(),/CST de PIS ausente/);assert.doesNotMatch(await page.locator('#nfe55-pendencias').textContent(),/confirmar o JSON/);
+  await page.getByLabel('CST PIS',{exact:true}).fill('49');await page.getByLabel('CST COFINS',{exact:true}).fill('49');
+  await page.getByLabel('PIS CST 49/99: ausência de destaque conferida com o responsável fiscal.',{exact:true}).check();await page.getByLabel('COFINS CST 49/99: ausência de destaque conferida com o responsável fiscal.',{exact:true}).check();
+  await page.locator('#nfe55-confirmar').check();await page.waitForFunction(()=>!document.getElementById('nfe55-transmitir').disabled);
+  page.removeAllListeners('dialog');page.once('dialog',d=>d.dismiss());await page.click('#nfe55-transmitir');
+  assert.equal(await page.locator('#nfe55-transmitir').isEnabled(),true);
+  assert.equal(await page.evaluate(()=>window.calls.filter(c=>['calcular','lista'].includes(c.body.acao)).length),0);
   assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.body.acao==='emitir').length),1);assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 });

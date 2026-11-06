@@ -9,14 +9,14 @@ function resposta(f){const req=montarCalculo(f.snapshot,f.revisao);return {data:
 test('cadastro preenche produtos, origem zero e pagamento sem escolher alíquota ou CST ausentes',()=>{
  const f=dados(),r=revisaoDoCadastro(f.snapshot);assert.equal(r.itens[0].ncm,'12345678');assert.equal(r.itens[0].imposto.ICMS.orig,'0');assert.equal(r.itens[0].imposto.ICMS.CST,'cst90');assert.equal(r.pagamentos[0].tPag,'17');assert.equal(r.totais.vPIS,undefined);
  delete f.snapshot.itens[0].produto.cst_pis;delete f.snapshot.itens[0].produto.gtin;
- const missing=revisaoDoCadastro(f.snapshot);assert.equal(missing.itens[0].imposto.PIS.CST,'');assert.equal(missing.itens[0].gtin,'');
+ const missing=revisaoDoCadastro(f.snapshot);assert.equal(missing.itens[0].imposto.PIS.CST,'');assert.equal(missing.itens[0].gtin,'SEM GTIN');
 });
 test('CPF e CNPJ podem ser carregados; indicador de contribuinte CNPJ não é presumido',()=>{
  assert.equal(destinoDoCliente({cpf:'529.982.247-25'}).indIEDest,'9');const c=destinoDoCliente({nome:'Empresa',cpf:'11.222.333/0001-81'});assert.equal(c.CNPJCPF,'11222333000181');assert.equal(c.indIEDest,'');const f=dados();f.revisao.dest={...c,indIEDest:'9',enderDest:f.revisao.dest.enderDest};assert.equal(preparar(f.snapshot,f.revisao,f.tecnico).dest.CNPJCPF,'11222333000181');
 });
 test('pendência é por item/formato: CRT 2 e 3 usam CST confirmado; CRT 1 e 4 mantêm CSOSN sem fallback',()=>{
  for(const crt of ['2','3']){const f=dados();f.snapshot.emitente.crt=crt;const r=revisaoDoCadastro(f.snapshot,f.revisao);assert.deepEqual(pendenciasContrato(f.snapshot,r),[]);assert.equal(preparar(f.snapshot,r,f.tecnico).emit.CRT,crt);}
- for(const crt of ['1','4']){const f=dados();f.snapshot.emitente.crt=crt;f.snapshot.itens[0].produto.cst_csosn='102';const r=revisaoDoCadastro(f.snapshot);assert.equal(r.itens[0].csosn,'102');assert.equal(r.itens[0].imposto.ICMS.CST,undefined);assert.match(pendenciasContrato(f.snapshot,r).join(' '),new RegExp('102 para CRT '+crt));assert.throws(()=>montarCalculo(f.snapshot,{...r,sem_acessorios:true}),/representação do CSOSN/);}
+ for(const crt of ['1','4']){const f=dados();f.snapshot.emitente.crt=crt;f.snapshot.itens[0].produto.cst_csosn='102';const r=revisaoDoCadastro(f.snapshot);assert.equal(r.itens[0].csosn,'102');assert.equal(r.itens[0].imposto.ICMS.CST,undefined);assert.equal(r.itens[0].imposto.ICMS.CSOSN,'102');if(crt==='1')assert.deepEqual(pendenciasContrato(f.snapshot,r),[]);else assert.match(pendenciasContrato(f.snapshot,r).join(' '),/CRT 4/);assert.throws(()=>montarCalculo(f.snapshot,{...r,sem_acessorios:true}),/representação do CSOSN/);}
  const f=dados();f.snapshot.itens.push({...structuredClone(f.snapshot.itens[0]),id:2});f.snapshot.itens[1].produto.cst_csosn='00';const p=pendenciasContrato(f.snapshot,revisaoDoCadastro(f.snapshot));assert.equal(p.length,1);assert.match(p[0],/Item 2/);
 });
 test('cálculo usa só valores canônicos da venda e campos oficiais; ausência não vira alíquota escolhida',()=>{

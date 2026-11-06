@@ -1,4 +1,4 @@
-import {revisaoDoCadastro,pendenciasContrato} from '../../sistema/fiscal-nfe55-modelo.js';
+import {revisaoDoCadastro,pendenciasContrato,CST_CONTRIBUICAO_NT} from '../../sistema/fiscal-nfe55-modelo.js';
 // Contrato NF-e da collection oficial Dados Já, consultada em 06/11/2026.
 export const BASE = 'https://api-dfe.dadosjah.com.br/v1';
 const fail = message => { throw Error(message); };
@@ -17,7 +17,7 @@ export function documentoValido(value) {
 }
 function endereco(x,label) {
  const out={};for(const k of ['xLgr','nro','xBairro','xMun'])out[k]=required(x?.[k],label+' '+k);
- out.cMun=pattern(x?.cMun,/^\d{7}$/ ,label+' município IBGE');out.UF=pattern(x?.UF,/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/ ,label+' UF');
+ out.cMun=pattern(x?.cMun,/^\d{7}$/ ,label+' município IBGE');out.UF=pattern(str(x?.UF).toUpperCase(),/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/ ,label+' UF');
  const codigos={AC:'12',AL:'27',AP:'16',AM:'13',BA:'29',CE:'23',DF:'53',ES:'32',GO:'52',MA:'21',MT:'51',MS:'50',MG:'31',PA:'15',PB:'25',PR:'41',PE:'26',PI:'22',RJ:'33',RN:'24',RS:'43',RO:'11',RR:'14',SC:'42',SP:'35',SE:'28',TO:'17'};
  if(out.cMun.slice(0,2)!==codigos[out.UF])fail(label+' município IBGE não corresponde à UF.');
  out.CEP=pattern(digits(x?.CEP),/^\d{8}$/,label+' CEP');out.cPais='1058';out.xPais='BRASIL';
@@ -34,13 +34,20 @@ export function emitente(config) {
 }
 // Adaptadores de emissão por formato confirmado; o CRT vem da empresa, nunca é substituído.
 function imposto(x,crt) {
- if(!['2','3'].includes(crt)||x?.ICMS?.CST!=='cst90')fail('Dados Já: formato de ICMS deste item/CRT ainda não confirmado no contrato NF-e.');
- if(x?.ICMS?.CST!=='cst90'||!['07','08','09'].includes(str(x?.PIS?.CST))||!['07','08','09'].includes(str(x?.COFINS?.CST)))fail('Enquadramento não documentado neste fluxo mínimo. Necessário exemplo oficial NF-e dos impostos aplicáveis.');
- // 08/09 não constam do exemplo; não liberá-los por inferência tributária.
- if(x.PIS.CST!=='07'||x.COFINS.CST!=='07')fail('A collection exemplifica PIS/COFINS CST 07. Confirme outro enquadramento com o fornecedor.');
- const out={...(x.vTotTrib!==undefined&&x.vTotTrib!==''?{vTotTrib:money(x.vTotTrib)}:{}),ICMS:{orig:pattern(x.ICMS.orig,/^[0-8]$/,'Origem'),CST:'cst90'},PIS:{CST:'07'},COFINS:{CST:'07'}};
- for(const k of ['vBCSTRet','pST','vICMSSubstituto','vICMSSTRet'])if(x.ICMS[k]!==undefined&&x.ICMS[k]!=='')out.ICMS[k]=k==='pST'?decimal(x.ICMS[k]):money(x.ICMS[k]);
- if(x.IPI){if(x.IPI.CST!=='53')fail('IPI diferente do CST 53 necessita exemplo oficial.');out.IPI={CST:'53',cEnq:pattern(x.IPI.cEnq,/^\d{3}$/,'Enquadramento IPI')};if(str(x.IPI.cSelo))out.IPI.cSelo=str(x.IPI.cSelo);}
+ const sn102=crt==='1'&&str(x?.ICMS?.CSOSN)==='102';
+ if(!sn102&&(!['2','3'].includes(crt)||x?.ICMS?.CST!=='cst90'))fail('Dados Já: formato de ICMS deste item/CRT não suportado neste fluxo.');
+ const out={...(x.vTotTrib!==undefined&&x.vTotTrib!==''?{vTotTrib:money(x.vTotTrib)}:{}),ICMS:{orig:pattern(x.ICMS.orig,/^[0-8]$/,'Origem'),...(sn102?{CSOSN:'102'}:{CST:'cst90'})}};
+ if(sn102){
+  for(const [k,v] of Object.entries(x.ICMS))if(!['orig','CSOSN','CST'].includes(k)&&v!==''&&v!=null&&Number(v)!==0)fail('Item com CSOSN 102 não pode ter destaque ou crédito de ICMS informado.');
+ }else for(const k of ['vBCSTRet','pST','vICMSSubstituto','vICMSSTRet'])if(x.ICMS[k]!==undefined&&x.ICMS[k]!=='')out.ICMS[k]=k==='pST'?decimal(x.ICMS[k]):money(x.ICMS[k]);
+ for(const group of ['PIS','COFINS']){
+  const g=x[group]||{},cst=str(g.CST);
+  if(!cst)fail('Informe CST de '+group+' do produto conforme orientação do contador.');
+  if(!CST_CONTRIBUICAO_NT.includes(cst)&&!(sn102&&['49','99'].includes(cst)&&g.sem_destaque===true))fail('Item: '+group+' CST '+cst+' sem os dados fiscais exigidos para esta operação.');
+  for(const [k,v] of Object.entries(g))if(!['CST','sem_destaque'].includes(k)&&v!==''&&v!=null&&Number(v)!==0)fail('Item: valor de '+group+' não corresponde ao enquadramento sem destaque confirmado.');
+  out[group]={CST:cst};
+ }
+ if(x.IPI){if(x.IPI.CST!=='53')fail('IPI diferente do CST 53 não suportado neste fluxo.');out.IPI={CST:'53',cEnq:pattern(x.IPI.cEnq,/^\d{3}$/,'Enquadramento IPI')};if(str(x.IPI.cSelo))out.IPI.cSelo=str(x.IPI.cSelo);}
  return out;
 }
 export function preparar(snapshot,revisao,respTec) {
@@ -75,8 +82,18 @@ export function preparar(snapshot,revisao,respTec) {
  });
  const soma=det.reduce((v,d)=>v+Number(d.prod.vProd),0);equal(soma,s.venda.total,'Total dos itens');
  // Descontos/acréscimos não discriminados no schema da venda não são redistribuídos silenciosamente.
- const total={};for(const k of ['vBC','vICMS','vICMSDeson','vFCP','vBCST','vFCPST','vFCPSTRet','vFrete','vSeg','vDesc','vII','vIPI','vIPIDevol','vPIS','vCOFINS','vOutro'])total[k]=money(r.totais?.[k]);
- for(const [k,v] of Object.entries(total))if(Number(v)!==0)fail('O enquadramento exemplificado suporta '+k+' igual a zero. Outro cenário requer exemplo oficial adicional.');
+ // Totais do cenário sem destaque vêm do enquadramento explicitamente informado,
+ // não de uma chamada separada ao cálculo. Campos tributários obrigatórios já foram validados.
+ const total={};
+ const todosSimples102=emit.CRT==='1'&&det.every(d=>d.imposto.ICMS.CSOSN==='102');
+ const acessorios=['vFrete','vSeg','vDesc','vOutro'];
+ for(const k of ['vBC','vICMS','vICMSDeson','vFCP','vBCST','vFCPST','vFCPSTRet','vFrete','vSeg','vDesc','vII','vIPI','vIPIDevol','vPIS','vCOFINS','vOutro']){
+  const v=r.totais?.[k];
+  if((v===undefined||v==='')&&!todosSimples102)fail('Informe total '+k+' desta operação. O sistema não presume tributação zero para ICMS CST 90.');
+  if(acessorios.includes(k)&&(v===undefined||v==='')&&r.sem_acessorios!==true)fail('Confirme que a NF-e mantém os valores da venda sem frete, seguro, desconto adicional ou outras despesas.');
+  if(v!==undefined&&v!==''&&Number(money(v))!==0)fail('Total '+k+' não corresponde aos itens sem destaque desta operação.');
+  total[k]='0.00';
+ }
  total.vProd=money(soma);total.vNF=money(s.venda.total);
  const pagamentos=r.pagamentos;
  if(!Array.isArray(pagamentos)||!pagamentos.length||pagamentos.length>20)fail('Informe os pagamentos conferidos da venda.');

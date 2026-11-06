@@ -44,7 +44,7 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
    if(env('NFE55_PRODUCAO_HABILITADA')!=='true')return json({erro:'Produção NF-e não liberada. Ativação requer autorização do responsável.',fase},409);
    if(registro)return json({erro:'Já existe tentativa para esta venda. Consulte a situação sem retransmitir.',registro:resumo(registro)},409);
    if(input.conferencia_hash!==conferencia_hash)return json({erro:'Conferência mudou. Recarregue a venda e confirme os dados e a série novamente.',fase},409);
-   if(input.usar_calculo===true)calculoRequest=montarCalculo(snapshot,revisao);else infNF=preparar(snapshot,revisao,respTec);
+   infNF=preparar(snapshot,revisao,respTec);
   } else if(['consultar','xml','danfe'].includes(acao)&&!registro)return json({erro:'Nenhuma tentativa NF-e encontrada.'},404);
   const cred=check(await admin.rpc('fiscal_nfe55_credencial',{p_empresa_id:empresa}),'Credencial Dados Já indisponível.');
   let token=cred.token;
@@ -82,7 +82,7 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
  }catch(e){
   // Não retornar mensagens do SDK, payload, resposta bruta ou credenciais.
   const message=e instanceof Error?e.message:'';
-  const safe=/^(Informe |Valor numérico|CNPJ |CPF\/CNPJ|Certificado |Confirme |CRT|Emitente |Destinatário |Indicador |Destinatário contribuinte|CPF deve|O exemplo oficial|Enquadramento |A collection|IPI |Origem|NCM|CFOP|CEST|Enquadramento IPI|Item |Subtotal |Total |Pagamento|Conferência |Venda |Ordem |Este fluxo|O enquadramento|Modalidade |Dados Já |Credencial |Reserva |Tentativa |Não foi possível|Arquivo |Documento )/.test(message);
+  const safe=/^(Informe |Valor numérico|CNPJ |CPF\/CNPJ|Certificado |Confirme |CRT|Emitente |Destinatário |Indicador |Destinatário contribuinte|CPF deve|O exemplo oficial|Enquadramento |A collection|IPI |Origem|NCM|CFOP|CEST|Enquadramento IPI|Item |Subtotal |Total |Pagamento|Conferência |Venda |Ordem |Este fluxo|O enquadramento|Modalidade |Dados Já(?::| )|Credencial |Reserva |Tentativa |Não foi possível|Arquivo |Documento )/.test(message);
   return json({fase,erro:safe?message:'Falha técnica. Consulte a situação da NF-e antes de tentar emitir novamente.'},400);
  }
 };}

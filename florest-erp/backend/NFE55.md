@@ -47,7 +47,7 @@ O retorno é conferido por UF, finalidade, número de item, quantidades, preços
 ### Cobertura da transmissão neste estágio
 
 - **CRT 2/3:** caminho de CST ICMS `cst90`, PIS/COFINS `07`, IPI `53` quando informado, com os campos efetivamente cobertos pelo exemplo NF-e. Mantém o CRT cadastrado. O exemplo publicado é CRT 3; o caminho CRT 2 reaproveita a estrutura normal de CST sem criar propriedades ou enums. Ambos foram testados tecnicamente com respostas simuladas, não contra autorização SEFAZ.
-- **CSOSN (CRT 1/4):** código do produto é preservado para conferência, mas falta confirmar a propriedade/enum de CSOSN nos contratos de cálculo e emissão. Isso gera pendência por item. Não há fallback para CST normal nem troca do CRT para liberar a nota.
+- **CRT 1 / CSOSN 102:** mapeia `imposto.ICMS.CSOSN="102"` e origem do cadastro, confirmado pela conversão técnica oficial modelo 55. Não usa CST normal nem cálculo separado. Outros CSOSN continuam com validação específica. PIS/COFINS vazios não recebem CST padrão; CST 49/99 sem destaque exige confirmação explícita do responsável. Veja `documentacao/nfe55-csosn102-contrato-confirmado.json`.
 - **Outros CST de ICMS/PIS/COFINS/IPI:** a lista pode ser consultada, mas a emissão fica pendente quando falta confirmar o formato específico. Não é assumido que todo CST usa a estrutura exemplificada.
 - **Destinatários:** CPF e CNPJ não contribuinte/isento são possíveis com dados completos. Contribuinte com IE aguarda confirmação da propriedade/tipo da inscrição na API de emissão.
 - Serviços, exportações, devolução/complementar/ajuste, transporte/frete, cartões, tributação direta não coberta pelo exemplo e desconto/acréscimo não discriminado na venda exigem complementos de contrato. A diferença entre soma dos itens e total da venda não é redistribuída automaticamente.
@@ -101,3 +101,13 @@ Resultado da revisão multiempresa: 32 testes automatizados passaram (7 núcleo,
 - A atualização do secret de ambiente pelo Supabase recarregou versões das funções existentes. Não houve reenvio de seus fontes; o bundle NFC-e foi comparado e permaneceu idêntico. Esse comportamento de recarga de secrets não altera a lógica da NFC-e.
 - Frontend: publicação pela integração existente GitHub → Vercel, na branch `main`, a partir deste pacote. O relatório da execução informa a verificação do HTML servido e o commit.
 - Nenhuma venda, reserva numérica ou transmissão fiscal foi executada na implantação.
+
+## Correção pontual do CRT 1 / CSOSN 102
+
+A tela não oferece mais os botões/painéis de cálculo tributário e listas auxiliares. A emissão valida diretamente os dados cadastrados e conferidos, sem chamada obrigatória ao cálculo. Os serviços auxiliares existentes foram preservados. A UF é normalizada apenas no payload (`mg` → `MG`), como na NFC-e, sem alterar o cadastro. GTIN ausente usa o literal técnico `SEM GTIN`, conforme o emissor atual.
+
+Os totais do CSOSN 102 sem destaque são derivados dos itens e da confirmação da operação sem adicionais; não há escolha de CST, alíquota ou alteração da venda. Para CST 90 do Regime Normal são mantidos os totais fiscais explicitamente informados, sem presumir alíquota zero. Séries, numeração, consulta, XML/DANFE e proteção contra duplicidade permanecem iguais.
+
+Na empresa reportada, os CSTs de PIS/COFINS do produto estão nulos. A interface abre os dados fiscais para conferência e informa exatamente esses dois campos. Não foram atribuídos 01/07/49/99 automaticamente nem atualizados os cadastros. Com os códigos válidos e demais dados obrigatórios preenchidos, o cenário CRT 1 / CSOSN 102 alcança a confirmação de emissão nos testes, sem pré-calcular. Em requisições lentas, a conferência expira com mensagem e restaura os controles, sem retransmitir.
+
+Validação da correção: 34 testes passaram, incluindo navegador, confirmação cancelada sem envio, omissão de cálculo/listas na tela, mapeamento CSOSN, dados tributários ausentes e preservação de consulta/arquivos/numeração. Nenhuma NF-e real foi transmitida. Não houve migração, alteração de secrets/permissões, mudança na NFC-e ou gravação de cadastros nesta correção.

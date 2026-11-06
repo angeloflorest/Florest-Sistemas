@@ -1,0 +1,20 @@
+{
+  "recurso_oficial": "POST https://api-dfe.dadosjah.com.br/v1/nfe/json/xml",
+  "collection": "https://documenter.getpostman.com/view/53424652/2sBXikoBN8",
+  "teste": "Conversão de XML fictício, não assinado, modelo 55 e tpAmb 2. Não foi chamada a rota de emissão.",
+  "resposta_http": 201,
+  "ICMS_confirmado": {
+    "orig": "0",
+    "CSOSN": "102"
+  },
+  "emitente_CRT": "1",
+  "PIS_COFINS_NT_confirmado": {
+    "CST": "07"
+  },
+  "PIS_COFINS_outros_sem_valores_confirmado": {
+    "CST": "49"
+  },
+  "ausencia_PIS_COFINS": "O conversor retornou CST 01 com valores zero quando os grupos foram omitidos. O emissor não usa esse padrão para preencher produtos sem CST.",
+  "regra_correcao": "CSTs ausentes devem ser informados pelo responsável. Para 49/99 no fluxo sem destaque do Simples 102, exige confirmação explícita de ausência de destaque. Nenhuma alíquota é preenchida.",
+  "efeitos": "Sem emissão fiscal, sem mudança cadastral, sem alteração de secrets, permissões ou numeração."
+}
