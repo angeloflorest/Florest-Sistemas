@@ -17,6 +17,7 @@ export function impedimentoDocumentoNfe55(venda, documentos) {
 export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcessar, formatarReais }) {
   const $ = id => document.getElementById(id);
   let geracao = 0, selecionada = null, ocupada = false, serieEmpresa = '';
+  let ultimaPesquisa={numero:'',inicio:'',fim:'',vendaId:null,empresa:null};
   const money = valor => formatarReais(Number(valor || 0));
   function texto(tag, valor, classe) {
     const node=document.createElement(tag); node.textContent=String(valor ?? 'Não informado');
@@ -28,6 +29,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     $('nfe55-resultados').replaceChildren(); $('nfe55-detalhes').replaceChildren();
     $('nfe55-emitente').replaceChildren(); $('nfe55-msg').textContent='';
     $('nfe55-numero').value=''; $('nfe55-inicio').value=''; $('nfe55-fim').value='';
+    ultimaPesquisa={numero:'',inicio:'',fim:'',vendaId:null,empresa:null};
     $('nfe55-transmitir').disabled=true; $('nfe55-pesquisar').disabled=false;
   }
   async function aguardar(promise,mensagem,ms=20000){
@@ -65,8 +67,14 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     box.append(texto('p',c.nfe_numeracao_confirmada_em?'Sequência conferida pelo responsável. Nenhum número é reservado ao abrir esta aba.':'Antes de emitir, o responsável deve conferir e salvar a sequência NF-e nas Configurações.'));
   }
   async function abrir() {
-    limpar(); const req=geracao;
-    try { const ctx=await contexto(); await emitente(ctx,req); }
+    const lembrada={...ultimaPesquisa}; limpar(); const req=geracao;
+    try { const ctx=await contexto(); await emitente(ctx,req);
+      if(req===geracao && lembrada.empresa===ctx.empresa){
+        ultimaPesquisa=lembrada;
+        $('nfe55-numero').value=lembrada.numero; $('nfe55-inicio').value=lembrada.inicio; $('nfe55-fim').value=lembrada.fim;
+        if(lembrada.numero||lembrada.inicio&&lembrada.fim){await pesquisar(); if(lembrada.vendaId)await selecionar(lembrada.vendaId);}
+      }
+    }
     catch(e) { if(req===geracao) $('nfe55-msg').textContent=e.message || 'Não foi possível consultar o cadastro fiscal.'; }
   }
   async function pesquisar(event) {
@@ -77,6 +85,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
       const numero=$('nfe55-numero').value.trim(), inicio=$('nfe55-inicio').value, fim=$('nfe55-fim').value;
       validarBuscaNfe55(numero,inicio,fim);
       const ctx=await contexto();
+      ultimaPesquisa={numero,inicio,fim,vendaId:null,empresa:ctx.empresa};
       let query=supabase.from('vendas').select('id,empresa_id,numero_venda,total,criado_em,forma_pagamento,cancelada_em,cliente_id,clientes(nome)').eq('empresa_id',ctx.empresa);
       if(numero)query=query.eq('numero_venda',numero);
       if(inicio)query=query.gte('criado_em',new Date(inicio+'T00:00:00').toISOString());
@@ -101,6 +110,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     selecionada=null; const req=++geracao; $('nfe55-detalhes').replaceChildren();$('nfe55-msg').textContent='Carregando conferência da venda…';$('nfe55-transmitir').disabled=true;$('nfe55-pesquisar').disabled=false;
     try {
       const ctx=await contexto();
+      ultimaPesquisa={numero:$('nfe55-numero').value,inicio:$('nfe55-inicio').value,fim:$('nfe55-fim').value,vendaId:id,empresa:ctx.empresa};
       const [sale,items,docs]=await Promise.all([
         supabase.from('vendas').select('id,empresa_id,numero_venda,total,criado_em,forma_pagamento,cliente_id,cancelada_em,clientes(nome,cpf,email,logradouro,numero,complemento,bairro,cidade,uf,cep)').eq('empresa_id',ctx.empresa).eq('id',id).single(),
         supabase.from('itens_venda').select('empresa_id,quantidade,preco_unitario,subtotal,produtos(nome,codigo,ncm,cfop,unidade_comercial,tipo_fiscal)').eq('empresa_id',ctx.empresa).eq('venda_id',id).order('id').limit(501),
