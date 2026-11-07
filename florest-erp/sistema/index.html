@@ -5498,6 +5498,16 @@
           <input type="text" id="cliente-uf" maxlength="2" placeholder="Ex: SP">
         </div>
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Inscrição Estadual (opcional)</label>
+          <input type="text" id="cliente-inscricao-estadual" maxlength="14" inputmode="numeric" placeholder="Somente números">
+        </div>
+        <div class="field">
+          <label>Código IBGE do município (opcional)</label>
+          <input type="text" id="cliente-codigo-ibge" maxlength="7" inputmode="numeric" placeholder="7 dígitos">
+        </div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-cliente">Cancelar</button>
         <button type="submit" class="btn-primary" id="btn-salvar-cliente" style="width:auto; padding:10px 20px;">Salvar</button>
@@ -10912,6 +10922,8 @@ function abrirModalCliente(cliente){
     $('cliente-complemento').value = cliente.complemento || '';
     $('cliente-cidade').value = cliente.cidade || '';
     $('cliente-uf').value = cliente.uf || '';
+    $('cliente-inscricao-estadual').value = cliente.inscricao_estadual || '';
+    $('cliente-codigo-ibge').value = cliente.codigo_ibge || '';
   } else {
     $('modal-cliente-titulo').textContent = 'Novo cliente';
     $('cliente-id').value = '';
@@ -10934,6 +10946,12 @@ $('form-cliente').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const id = $('cliente-id').value;
+  const ie = $('cliente-inscricao-estadual').value.trim().replace(/\D/g, '');
+  const ibge = $('cliente-codigo-ibge').value.trim().replace(/\D/g, '');
+  if((ie && !/^\d{2,14}$/.test(ie)) || (ibge && !/^\d{7}$/.test(ibge))){
+    $('cliente-msg').textContent = 'Confira a Inscrição Estadual e o código IBGE (7 dígitos), quando informados.';
+    return;
+  }
   const payload = {
     nome: $('cliente-nome').value.trim(),
     telefone: $('cliente-telefone').value.trim(),
@@ -10946,6 +10964,8 @@ $('form-cliente').addEventListener('submit', async (e) => {
     complemento: $('cliente-complemento').value.trim() || null,
     cidade: $('cliente-cidade').value.trim() || null,
     uf: $('cliente-uf').value.trim() || null,
+    inscricao_estadual: ie || null,
+    codigo_ibge: ibge || null,
   };
 
   const btn = $('btn-salvar-cliente');
