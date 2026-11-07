@@ -19,6 +19,9 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
   let geracao = 0, selecionada = null, ocupada = false, serieEmpresa = '';
   let ultimaPesquisa={numero:'',inicio:'',fim:'',vendaId:null,empresa:null};
   const chavePesquisa='florest-nfe55-pesquisa';
+  const chaveRascunho='florest-nfe55-rascunho';
+  function salvarRascunho(){if(!selecionada||selecionada.registro)return;try{sessionStorage.setItem(chaveRascunho,JSON.stringify({empresa:selecionada.ctx.empresa,vendaId:selecionada.id,revisao:selecionada.revisao}));}catch{}}
+  function recuperarRascunho(empresa,vendaId){try{const r=JSON.parse(sessionStorage.getItem(chaveRascunho)||'null');return r?.empresa===empresa&&r?.vendaId===vendaId?r.revisao:null;}catch{return null;}}
   function salvarPesquisa(){try{sessionStorage.setItem(chavePesquisa,JSON.stringify(ultimaPesquisa));}catch{}}
   function recuperarPesquisa(){try{const v=JSON.parse(sessionStorage.getItem(chavePesquisa)||'null');return v&&typeof v==='object'?v:null;}catch{return null;}}
   const money = valor => formatarReais(Number(valor || 0));
@@ -33,7 +36,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     $('nfe55-emitente').replaceChildren(); $('nfe55-msg').textContent='';
     $('nfe55-numero').value=''; $('nfe55-inicio').value=''; $('nfe55-fim').value='';
     ultimaPesquisa={numero:'',inicio:'',fim:'',vendaId:null,empresa:null};
-    try{sessionStorage.removeItem(chavePesquisa);}catch{}
+    try{sessionStorage.removeItem(chavePesquisa);sessionStorage.removeItem(chaveRascunho);}catch{}
     $('nfe55-transmitir').disabled=true; $('nfe55-pesquisar').disabled=false;
   }
   async function aguardar(promise,mensagem,ms=20000){
@@ -71,7 +74,9 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     box.append(texto('p',c.nfe_numeracao_confirmada_em?'Sequência conferida pelo responsável. Nenhum número é reservado ao abrir esta aba.':'Antes de emitir, o responsável deve conferir e salvar a sequência NF-e nas Configurações.'));
   }
   async function abrir() {
-    const lembrada=recuperarPesquisa()||{...ultimaPesquisa}; limpar(); const req=geracao;
+    const lembrada=recuperarPesquisa()||{...ultimaPesquisa};
+    geracao++;selecionada=null;serieEmpresa='';$('nfe55-serie').value='';$('nfe55-resultados').replaceChildren();$('nfe55-detalhes').replaceChildren();$('nfe55-emitente').replaceChildren();$('nfe55-msg').textContent='';$('nfe55-transmitir').disabled=true;$('nfe55-pesquisar').disabled=false;
+    const req=geracao;
     try { const ctx=await contexto(); await emitente(ctx,req);
       if(req===geracao && lembrada.empresa===ctx.empresa){
         ultimaPesquisa=lembrada;salvarPesquisa();
@@ -161,7 +166,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const label=texto('label',rotulo);let input;
     if(opcoes){input=document.createElement('select');for(const [valor,nome] of [['','Selecione…'],...opcoes]){const o=texto('option',nome);o.value=valor;input.append(o);}}
     else {input=document.createElement('input');input.type=tipo;input.maxLength=tipo==='text'?200:20;}
-    input.value=obj[chave]??'';input.addEventListener('input',()=>{obj[chave]=input.value;const c=$('nfe55-confirmar');if(c)c.checked=false;if(selecionada){selecionada.validada=false;}atualizarPendencias();});
+    input.value=obj[chave]??'';input.addEventListener('input',()=>{obj[chave]=input.value;salvarRascunho();const c=$('nfe55-confirmar');if(c)c.checked=false;if(selecionada){selecionada.validada=false;}atualizarPendencias();});
     label.append(input);parent.append(label);return input;
   }
   function habilitar(){const c=$('nfe55-confirmar');$('nfe55-transmitir').disabled=ocupada||!selecionada||!!selecionada.registro||!selecionada.validada||pendenciasContrato(selecionada.snapshot,selecionada.revisao).length>0||!c?.checked;}
@@ -186,7 +191,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     const data=await chamar('preparar',id);if(!await atual(ctx,req))return;
     const snap=data.snapshot;if(snap?.venda?.id!==id||snap.venda.empresa_id!==ctx.empresa)throw Error('A conferência fiscal não corresponde à empresa autenticada.');
     serieEmpresa=snap.emitente?.nfe_serie||serieEmpresa;$('nfe55-serie').value=serieEmpresa;
-    selecionada={ctx,req,id,snapshot:snap,revisao:revisaoDoCadastro(snap,data.revisao||{}),registro:data.registro,conferenciaHash:data.conferencia_hash,validada:false};
+    selecionada={ctx,req,id,snapshot:snap,revisao:revisaoDoCadastro(snap,recuperarRascunho(ctx.empresa,id)||data.revisao||{}),registro:data.registro,conferenciaHash:data.conferencia_hash,validada:false};
     if(data.registro){situacao(box,data.registro);$('nfe55-msg').textContent='Tentativa existente recuperada. A emissão duplicada está bloqueada.';return;}
     renderEditor();
   }
@@ -272,6 +277,6 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     finally{ocupada=false;for(const [node,disabled] of controles)node.disabled=disabled;const checkbox=$('nfe55-confirmar');if(checkbox)checkbox.disabled=false;habilitar();}
   }
   $('nfe55-transmitir').addEventListener('click',()=>acaoNota('emitir'));
-  const subscription=supabase?.auth.onAuthStateChange(event=>{if(event!=='INITIAL_SESSION')limpar();});
+  const subscription=supabase?.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')limpar();});
   return { abrir, limpar, destruir:()=>{limpar();subscription?.data.subscription.unsubscribe();} };
 }
