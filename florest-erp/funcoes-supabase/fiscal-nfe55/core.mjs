@@ -15,11 +15,11 @@ export function documentoValido(value) {
  if(d.length===11)return Number(d[9])===dv(d.slice(0,9),[10,9,8,7,6,5,4,3,2])&&Number(d[10])===dv(d.slice(0,10),[11,10,9,8,7,6,5,4,3,2]);
  return Number(d[12])===dv(d.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2])&&Number(d[13])===dv(d.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]);
 }
-function endereco(x,label) {
+function endereco(x,label,{municipioOpcional=false}={}) {
  const out={};for(const k of ['xLgr','nro','xBairro','xMun'])out[k]=required(x?.[k],label+' '+k);
- out.cMun=pattern(x?.cMun,/^\d{7}$/ ,label+' município IBGE');out.UF=pattern(str(x?.UF).toUpperCase(),/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/ ,label+' UF');
+ if(!municipioOpcional||str(x?.cMun))out.cMun=pattern(x?.cMun,/^\d{7}$/ ,label+' município IBGE');out.UF=pattern(str(x?.UF).toUpperCase(),/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/ ,label+' UF');
  const codigos={AC:'12',AL:'27',AP:'16',AM:'13',BA:'29',CE:'23',DF:'53',ES:'32',GO:'52',MA:'21',MT:'51',MS:'50',MG:'31',PA:'15',PB:'25',PR:'41',PE:'26',PI:'22',RJ:'33',RN:'24',RS:'43',RO:'11',RR:'14',SC:'42',SP:'35',SE:'28',TO:'17'};
- if(out.cMun.slice(0,2)!==codigos[out.UF])fail(label+' município IBGE não corresponde à UF.');
+ if(out.cMun&&out.cMun.slice(0,2)!==codigos[out.UF])fail(label+' município IBGE não corresponde à UF.');
  out.CEP=pattern(digits(x?.CEP),/^\d{8}$/,label+' CEP');out.cPais='1058';out.xPais='BRASIL';
  if(str(x?.fone))out.fone=pattern(digits(x.fone),/^\d{6,14}$/,label+' telefone');return out;
 }
@@ -62,9 +62,9 @@ export function preparar(snapshot,revisao,respTec) {
  pattern(s.emitente.nfe_serie,/^[1-9]\d{0,2}$/,'Série NF-e');
  if(!s.emitente.nfe_numeracao_confirmada_em)fail('Confirme a numeração NF-e nas Configurações antes de emitir.');
  if(!documentoValido(r.dest?.CNPJCPF))fail('CPF/CNPJ do destinatário inválido.');
- const dest={CNPJCPF:digits(r.dest.CNPJCPF),xNome:required(r.dest.xNome,'nome do destinatário'),enderDest:endereco(r.dest.enderDest,'Destinatário'),indIEDest:pattern(r.dest.indIEDest,/^[129]$/,'Indicador IE')};
+ const dest={CNPJCPF:digits(r.dest.CNPJCPF),xNome:required(r.dest.xNome,'nome do destinatário'),enderDest:endereco(r.dest.enderDest,'Destinatário',{municipioOpcional:true}),indIEDest:pattern(r.dest.indIEDest,/^[129]$/,'Indicador IE')};
  // A collection não exemplifica a IE do destinatário contribuinte: não omitir nem adivinhar.
- if(dest.indIEDest==='1')fail('Destinatário contribuinte: falta confirmar com Dados Já o campo de IE no contrato NF-e.');
+ if(str(r.dest.ie))dest.IE=str(r.dest.ie); // Encaminhar IE se informada, sem bloquear artificialmente.
  if(dest.CNPJCPF.length===11&&dest.indIEDest!=='9')fail('CPF deve usar indicador IE 9.');
  const ide={natOp:required(r.ide?.natOp,'natureza da operação'),tpNF:'1',idDest:emit.enderEmit.UF===dest.enderDest.UF?'1':'2',cMunFG:emit.enderEmit.cMun,tpImp:'1',tpEmis:'1',tpAmb:'1',finNFe:'1',indFinal:pattern(r.ide?.indFinal,/^[01]$/,'Consumidor final'),indPres:pattern(r.ide?.indPres,/^[0123459]$/,'Presença'),procEmi:'0',verProc:'Florest-NFe55-1.0',cUF:emit.enderEmit.cMun.slice(0,2)};
  if(r.ide?.tpAmb && r.ide.tpAmb!=='1')fail('Este fluxo é exclusivo de produção.');
