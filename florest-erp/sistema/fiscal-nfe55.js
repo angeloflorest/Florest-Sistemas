@@ -241,12 +241,14 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     for(const p of r.pagamentos){campo(pg,'Meio de pagamento fiscal',p,'tPag',{opcoes:[['01','Dinheiro'],['02','Cheque'],['05','Crédito loja'],['15','Boleto'],['17','PIX'],['18','Transferência'],['99','Outros']]});campo(pg,'Descrição (obrigatória para Outros)',p,'xPag');campo(pg,'Valor pago',p,'vPag');}campo(pg,'Informações complementares',r,'infCpl');
     const pending=texto('div','');pending.id='nfe55-pendencias';box.append(pending);
     const final=texto('label','Conferi destinatário, produtos, tributos e pagamentos. Esta NF-e mantém os valores da venda, sem frete, seguro, desconto adicional ou outras despesas. Confirmo a sequência e autorizo a emissão em PRODUÇÃO após clicar em Emitir.');const confirm=document.createElement('input');confirm.type='checkbox';confirm.id='nfe55-confirmar';confirm.addEventListener('change',()=>{r.sem_acessorios=confirm.checked;if(confirm.checked&&!current.validada)acaoNota('validar');else habilitar();});final.prepend(confirm);box.append(final);
+    const status=texto('p','Marque a confirmação para validar os dados antes de transmitir.','msg');status.id='nfe55-validacao-status';box.append(status);
     atualizarPendencias();$('nfe55-msg').textContent='Conferência carregada do cadastro. Complete apenas o que faltar; nenhuma nota foi transmitida.';
   }
   async function acaoNota(acao) {
     if(ocupada||!selecionada)return;const current=selecionada;
     const controles=[...($('nfe55-editor')?.querySelectorAll('input,select,button')||[])].map(node=>[node,node.disabled]);
-    ocupada=true;for(const [node] of controles)node.disabled=true;habilitar();
+    ocupada=true;for(const [node] of controles)if(acao==='emitir'||node.id!=='nfe55-confirmar')node.disabled=true;habilitar();
+    const status=$('nfe55-validacao-status');if(status&&acao==='validar')status.textContent='Validando com o servidor. Aguarde o resultado; nenhuma nota será transmitida.';
     try {
       if(acao==='validar')$('nfe55-msg').textContent='Validando os dados fiscais. Nenhuma nota será transmitida nesta conferência…';
       if(!await atual(current.ctx,current.req))throw Error('Empresa ou sessão mudou. Recarregue a venda.');
@@ -254,7 +256,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
       if(acao==='emitir'&&!globalThis.confirm(`Emitir uma NF-e REAL em PRODUÇÃO para esta venda, modelo 55, série ${serieEmpresa}?`))return;
       const data=await chamar(acao,current.id,acao==='emitir'?{revisao:current.revisao,conferencia_hash:current.conferenciaHash,confirmar_producao:true}:acao==='validar'?{revisao:current.revisao}:{});
       if(!await atual(current.ctx,current.req))return;
-      if(acao==='validar'){current.validada=data.valida===true;if(!current.validada&&$('nfe55-confirmar'))$('nfe55-confirmar').checked=false;$('nfe55-msg').textContent=data.valida?'Dados completos para o cenário fiscal suportado. Nenhuma nota foi transmitida.':(data.pendencias||[]).join(' ');}
+      if(acao==='validar'){current.validada=data.valida===true;if(!current.validada&&$('nfe55-confirmar'))$('nfe55-confirmar').checked=false;const mensagem=data.valida?'Dados validados. A transmissão está liberada após a confirmação.':(data.pendencias||[]).join(' ')||'Validação não aprovada. Confira os dados fiscais.';$('nfe55-msg').textContent=mensagem;if(status)status.textContent=mensagem;}
       if(data.registro){current.registro=data.registro;situacao($('nfe55-detalhes'),data.registro);$('nfe55-msg').textContent='Situação NF-e: '+data.registro.status;}
       if(['xml','danfe'].includes(acao)) {
         let href,temporaria=false;
@@ -262,7 +264,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
         else {const u=new URL(data.link);if(u.protocol!=='https:'||u.username||u.password)throw Error('Link de arquivo inválido.');href=u.href;}
         const a=document.createElement('a');a.href=href;a.download=`NFE_${data.numero}.${acao==='xml'?'xml':'pdf'}`;a.target='_blank';a.rel='noopener noreferrer';document.body.append(a);a.click();a.remove();if(temporaria)setTimeout(()=>URL.revokeObjectURL(href),60000);
       }
-    }catch(e){if(current===selecionada){$('nfe55-msg').textContent=e.message+' Se houve tentativa de emissão, recarregue a venda e consulte antes de tentar novamente.';if(acao==='emitir'&&e.fase!=='validacao'){current.registro={status:'pendente',numero:'a consultar'};situacao($('nfe55-detalhes'),current.registro);}}}
+    }catch(e){if(current===selecionada){const mensagem=e.message+(acao==='emitir'?' Se houve tentativa de emissão, recarregue a venda e consulte antes de tentar novamente.':' Nenhuma nota foi transmitida.');$('nfe55-msg').textContent=mensagem;if(status)status.textContent=mensagem;if(acao==='emitir'&&e.fase!=='validacao'){current.registro={status:'pendente',numero:'a consultar'};situacao($('nfe55-detalhes'),current.registro);}}}
     finally{ocupada=false;for(const [node,disabled] of controles)node.disabled=disabled;habilitar();}
   }
   $('nfe55-transmitir').addEventListener('click',()=>acaoNota('emitir'));
