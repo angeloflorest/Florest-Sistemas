@@ -17,7 +17,7 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
   const {data:session,error}=await user.auth.getUser();if(error||!session.user)return json({erro:'Sessão inválida.'},401);
   const text=await req.text();if(text.length>300000)return json({erro:'Requisição muito grande.'},413);
   const input=JSON.parse(text),{acao,venda_id}=input;
-  if(!['preparar','emitir','consultar','xml','danfe','clientes','lista','calcular','validar'].includes(acao)||!/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(venda_id||''))return json({erro:'Ação ou venda inválida.'},400);
+  if(!['preparar','emitir','consultar','xml','danfe','clientes','lista','calcular','validar','retransmitir'].includes(acao)||!/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(venda_id||''))return json({erro:'Ação ou venda inválida.'},400);
   const snapshot=check(await user.rpc('fiscal_nfe55_contexto',{p_venda_id:venda_id}),'Não foi possível validar a venda e a permissão fiscal.');
   const empresa=snapshot.venda.empresa_id;
   const admin=createClient(url,key,{auth:{persistSession:false}});
@@ -39,6 +39,15 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
   if(acao==='lista'&&!['icms','pis','cofins','ipi','ncm','cfop','cest'].includes(input.tipo))return json({erro:'Lista fiscal inválida.',fase},400);
   let infNF,calculoRequest;
   if(acao==='calcular')calculoRequest=montarCalculo(snapshot,revisao);
+  if(acao==='retransmitir') {
+   if(input.confirmar_producao!==true)return json({erro:'Confirme o reenvio em produção.',fase},400);
+   if(env('NFE55_PRODUCAO_HABILITADA')!=='true')return json({erro:'Produção NF-e não liberada.',fase},409);
+   if(!registro||registro.status!=='rejeitada'||!/^\\d{3}$/.test(String(registro.c_stat||''))||registro.chave_acesso||registro.protocolo)return json({erro:'Somente NF-e expressamente rejeitada e sem autorização pode ser retransmitida.',fase},409);
+   if(input.conferencia_hash!==conferencia_hash)return json({erro:'Conferência mudou. Recarregue a venda.',fase},409);
+   revisao=revisaoDoCadastro(snapshot,{...registro.revisao,dest:{...registro.revisao?.dest,ie:String(input.ie||'').replace(/\\D/g,'')}});
+   if(!/^\\d{2,14}$/.test(String(revisao.dest.ie||'')))return json({erro:'Informe a inscrição estadual do destinatário.',fase},400);
+   infNF=preparar(snapshot,revisao,respTec);
+  }
   if(acao==='emitir') {
    if(input.confirmar_producao!==true)return json({erro:'Confirmação explícita de emissão em produção necessária.',fase},400);
    if(env('NFE55_PRODUCAO_HABILITADA')!=='true')return json({erro:'Produção NF-e não liberada. Ativação requer autorização do responsável.',fase},409);
@@ -59,6 +68,17 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
    const calculado=aplicarCalculo(snapshot,revisao,retorno);revisao=calculado.revisao;
    if(acao==='calcular')return json({...calculado,pendencias:pendenciasContrato(snapshot,revisao)});
    infNF=preparar(snapshot,revisao,respTec);
+  }
+  if(acao==='retransmitir'){
+   fase='consulta';const atual=await chamarDadosJah(fetcher,token,'/nfe?idExternal='+encodeURIComponent(registro.id)+'&tpDanfe=Retrato');
+   const situacao= (await import('./core.mjs')).resultado(atual,registro);
+   if(situacao.status!=='rejeitada'||String(situacao.c_stat)!==String(registro.c_stat))return json({erro:'Situação no Dados Já mudou ou não confirma rejeição. Consulte a NF-e antes de retransmitir.',fase},409);
+   const novoPayload=(await import('./core.mjs')).payload(infNF,registro);
+   fase='reserva';const claimed=check(await admin.from('fiscal_nfe55_emissoes').update({revisao,payload:novoPayload,status:'processando',c_stat:null,mensagem:'Retransmissão em andamento',atualizado_em:new Date().toISOString()}).eq('id',registro.id).eq('empresa_id',empresa).eq('status','rejeitada').eq('c_stat',registro.c_stat).select('*'),'Não foi possível reservar a retransmissão.');
+   if(claimed.length!==1)return json({erro:'Outra operação atualizou a nota. Consulte a situação.',fase},409);
+   registro=claimed[0];fase='transmissao';
+   try{const raw=await chamarDadosJah(fetcher,token,'/nfe?tpDanfe=Retrato',{method:'POST',body:novoPayload});const state=(await import('./core.mjs')).resultado(raw,registro);await admin.from('fiscal_nfe55_emissoes').update({...state,atualizado_em:new Date().toISOString()}).eq('id',registro.id).eq('status','processando');return json({registro:resumo({...registro,...state})});}
+   catch{await admin.from('fiscal_nfe55_emissoes').update({status:'pendente',mensagem:'Resposta da retransmissão não confirmada. Consulte antes de qualquer novo envio.'}).eq('id',registro.id).eq('status','processando');return json({registro:resumo({...registro,status:'pendente',mensagem:'Resposta não confirmada. Consulte situação.'})});}
   }
   if(acao==='emitir'){fase='reserva';registro=check(await user.rpc('fiscal_nfe55_reservar',{p_venda_id:venda_id,p_snapshot:snapshot,p_revisao:revisao}),'Reserva não efetuada. Recarregue a venda, confira documentos anteriores e a sequência da série NF-e configurada.');fase='transmissao';}
   const salvar=async(patch:any,claim=false)=>{
