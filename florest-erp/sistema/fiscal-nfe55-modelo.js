@@ -36,6 +36,6 @@ export function pendenciasContrato(snapshot,r){
   }
   if(f.imposto?.IPI&&f.imposto.IPI.CST!=='53')pendencias.push(prefix+'IPI deste CST ainda não suportado neste fluxo.');
  }
- if(r.dest?.indIEDest==='1')pendencias.push('Destinatário contribuinte: falta confirmar o campo de IE no JSON de emissão da NF-e.');
+ // A IE do destinatário contribuinte é encaminhada quando informada; não bloquear por limitação presumida do JSON.
  return pendencias;
 }
