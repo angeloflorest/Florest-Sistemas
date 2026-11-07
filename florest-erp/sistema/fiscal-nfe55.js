@@ -176,7 +176,11 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     panel.append(texto('p',`${registro.c_stat||''} ${registro.mensagem||''}`));
     if(registro.chave_acesso)panel.append(texto('p','Chave: '+registro.chave_acesso));
     if(registro.protocolo)panel.append(texto('p','Protocolo: '+registro.protocolo));
-    panel.append(texto('p',registro.status==='rejeitada'?'Rejeição registrada. Corrija a causa com o responsável fiscal; o reenvio desta identidade não é automático.':'Use a consulta para acompanhar a situação, sem enviar uma nova nota.'));
+    panel.append(texto('p',registro.status==='rejeitada'?'Rejeição registrada. Confira a IE e consulte a situação antes de retransmitir.':'Use a consulta para acompanhar a situação, sem enviar uma nova nota.'));
+    if(registro.status==='rejeitada'){
+      const label=texto('label','Inscrição Estadual do destinatário para correção');const ie=document.createElement('input');ie.type='text';ie.maxLength=14;ie.value=selecionada?.revisao?.dest?.ie||'';ie.id='nfe55-ie-reenvio';label.append(ie);panel.append(label);
+      const reenviar=texto('button','Corrigir e retransmitir esta NF-e','btn-secondary');reenviar.type='button';reenviar.addEventListener('click',()=>acaoNota('retransmitir'));panel.append(reenviar);
+    }
     for(const [acao,label] of [['consultar','Consultar situação'],...(registro.status==='autorizada'?[['xml','Baixar XML'],['danfe','Baixar DANFE (PDF)']]:[])]) {
       const b=texto('button',label,'btn-secondary');b.type='button';b.addEventListener('click',()=>acaoNota(acao));panel.append(b);
     }
@@ -261,6 +265,14 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     try {
       if(acao==='validar')$('nfe55-msg').textContent='Validando os dados fiscais. Nenhuma nota será transmitida nesta conferência…';
       if(!await atual(current.ctx,current.req))throw Error('Empresa ou sessão mudou. Recarregue a venda.');
+      if(acao==='retransmitir'){
+        const ie=String($('nfe55-ie-reenvio')?.value||'').replace(/\D/g,'');
+        if(!/^\d{2,14}$/.test(ie))throw Error('Informe a inscrição estadual correta do destinatário.');
+        if(!globalThis.confirm(`Retransmitir a NF-e nº ${current.registro.numero}, série ${current.registro.serie}, em PRODUÇÃO, com a IE ${ie}?`))return;
+        const data=await chamar('retransmitir',current.id,{ie,conferencia_hash:current.conferenciaHash,confirmar_producao:true});
+        if(!await atual(current.ctx,current.req))return;
+        if(data.registro){current.registro=data.registro;current.revisao.dest.ie=ie;situacao($('nfe55-detalhes'),data.registro);$('nfe55-msg').textContent='Resultado da retransmissão: '+data.registro.status;}return;
+      }
       if(acao==='emitir'&&!$('nfe55-confirmar')?.checked)return;
       if(acao==='emitir'&&!globalThis.confirm(`Emitir uma NF-e REAL em PRODUÇÃO para esta venda, modelo 55, série ${serieEmpresa}?`))return;
       const data=await chamar(acao,current.id,acao==='emitir'?{revisao:current.revisao,conferencia_hash:current.conferenciaHash,confirmar_producao:true}:acao==='validar'?{revisao:current.revisao}:{});
