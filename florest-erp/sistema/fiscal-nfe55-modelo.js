@@ -3,7 +3,7 @@ export const TOTAIS_NFE55=['vBC','vICMS','vICMSDeson','vFCP','vBCST','vFCPST','v
 const text=v=>String(v??'');
 export function destinoDoCliente(c={}){
  const cpf=text(c.cpf).replace(/\D/g,'');
- return {CNPJCPF:cpf,xNome:c.nome||'',indIEDest:cpf.length===11?'9':'',ie:'',enderDest:{xLgr:c.logradouro||'',nro:c.numero||'',xBairro:c.bairro||'',cMun:c.codigo_ibge||'',xMun:c.cidade||'',UF:c.uf||'',CEP:c.cep||''}};
+ return {CNPJCPF:cpf,xNome:c.nome||'',indIEDest:cpf.length===11?'9':(c.inscricao_estadual?'1':''),ie:c.inscricao_estadual||'',enderDest:{xLgr:c.logradouro||'',nro:c.numero||'',xBairro:c.bairro||'',cMun:c.codigo_ibge||'',xMun:c.cidade||'',UF:c.uf||'',CEP:c.cep||''}};
 }
 export function revisaoDoCadastro(snapshot,entrada={}){
  const simples=['1','4'].includes(text(snapshot.emitente?.crt));
