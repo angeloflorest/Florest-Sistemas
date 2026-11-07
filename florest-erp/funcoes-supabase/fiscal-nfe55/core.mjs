@@ -42,7 +42,7 @@ function imposto(x,crt) {
  }else for(const k of ['vBCSTRet','pST','vICMSSubstituto','vICMSSTRet'])if(x.ICMS[k]!==undefined&&x.ICMS[k]!=='')out.ICMS[k]=k==='pST'?decimal(x.ICMS[k]):money(x.ICMS[k]);
  for(const group of ['PIS','COFINS']){
   const g=x[group]||{},cst=str(g.CST);
-  if(!cst)fail('Informe CST de '+group+' do produto conforme orientação do contador.');
+  if(!cst)continue; // Sem CST cadastrado, não inventar código nem bloquear tentativa no Dados Já.
   if(!CST_CONTRIBUICAO_NT.includes(cst)&&!(sn102&&['49','99'].includes(cst)&&g.sem_destaque===true))fail('Item: '+group+' CST '+cst+' sem os dados fiscais exigidos para esta operação.');
   for(const [k,v] of Object.entries(g))if(!['CST','sem_destaque'].includes(k)&&v!==''&&v!=null&&Number(v)!==0)fail('Item: valor de '+group+' não corresponde ao enquadramento sem destaque confirmado.');
   out[group]={CST:cst};
