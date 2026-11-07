@@ -29,7 +29,7 @@ export function pendenciasContrato(snapshot,r){
   if(!sn102&&!(['2','3'].includes(crt)&&f.imposto?.ICMS?.CST==='cst90'))pendencias.push(prefix+`ICMS CST/CSOSN ${f.csosn||f.imposto?.ICMS?.CST||'não cadastrado'} para CRT ${crt||'não cadastrado'} ainda não suportado nesta operação.`);
   for(const g of ['PIS','COFINS']){
    const cst=text(f.imposto?.[g]?.CST);
-   if(!cst)pendencias.push(prefix+`CST de ${g} ausente no cadastro do produto. Informe o código válido na conferência ou no cadastro, conforme orientação do contador.`);
+   if(!cst)continue; // CST ausente não bloqueia a tentativa; o provedor fiscal validará o documento.
    else if(sn102&&['49','99'].includes(cst)){
     if(f.imposto[g].sem_destaque!==true)pendencias.push(prefix+`confirme com o responsável fiscal que ${g} CST ${cst} não tem destaque nesta operação. Não será presumida alíquota zero.`);
    }else if(!CST_CONTRIBUICAO_NT.includes(cst))pendencias.push(prefix+`${g} CST ${cst} exige campos de tributação ainda não suportados neste fluxo; não substitua o código para contornar a validação.`);
