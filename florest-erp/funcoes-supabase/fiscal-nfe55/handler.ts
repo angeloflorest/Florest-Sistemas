@@ -42,10 +42,10 @@ export function criarHandler({createClient,env,fetcher=fetch}:any){return async(
   if(acao==='retransmitir') {
    if(input.confirmar_producao!==true)return json({erro:'Confirme o reenvio em produção.',fase},400);
    if(env('NFE55_PRODUCAO_HABILITADA')!=='true')return json({erro:'Produção NF-e não liberada.',fase},409);
-   if(!registro||registro.status!=='rejeitada'||!/^\\d{3}$/.test(String(registro.c_stat||''))||registro.chave_acesso||registro.protocolo)return json({erro:'Somente NF-e expressamente rejeitada e sem autorização pode ser retransmitida.',fase},409);
+   if(!registro||registro.status!=='rejeitada'||!/^\d{3}$/.test(String(registro.c_stat||''))||registro.chave_acesso||registro.protocolo)return json({erro:'Somente NF-e expressamente rejeitada e sem autorização pode ser retransmitida.',fase},409);
    if(input.conferencia_hash!==conferencia_hash)return json({erro:'Conferência mudou. Recarregue a venda.',fase},409);
-   revisao=revisaoDoCadastro(snapshot,{...registro.revisao,dest:{...registro.revisao?.dest,ie:String(input.ie||'').replace(/\\D/g,'')}});
-   if(!/^\\d{2,14}$/.test(String(revisao.dest.ie||'')))return json({erro:'Informe a inscrição estadual do destinatário.',fase},400);
+   revisao=revisaoDoCadastro(snapshot,{...registro.revisao,dest:{...registro.revisao?.dest,ie:String(input.ie||'').replace(/\D/g,'')}});
+   if(!/^\d{2,14}$/.test(String(revisao.dest.ie||'')))return json({erro:'Informe a inscrição estadual do destinatário.',fase},400);
    infNF=preparar(snapshot,revisao,respTec);
   }
   if(acao==='emitir') {
