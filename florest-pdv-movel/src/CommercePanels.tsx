@@ -67,33 +67,44 @@ export function PaymentDraft({ cart, customer, mobile }: { cart: CartItem[]; cus
 const emptyFilters: HistoryFilters = { start: '', end: '', number: '', customer: '', cash: '', operator: '' };
 export function SalesHistory({ c, profile }: { c: SupabaseClient; profile: Profile }) {
  const [rows,setRows]=useState<SaleRow[]>([]),[detail,setDetail]=useState<Awaited<ReturnType<typeof historyDetail>>|null>(null);
- const [busy,setBusy]=useState(false),[error,setError]=useState(''),[hasMore,setHasMore]=useState(false);
+ const [busy,setBusy]=useState(false),[detailBusy,setDetailBusy]=useState(false),[error,setError]=useState(''),[detailError,setDetailError]=useState(''),[hasMore,setHasMore]=useState(false);
  const [reload,setReload]=useState(0);
  const seq=useRef(0);
  useEffect(()=>{
   let active=true;const id=++seq.current;
-  setBusy(true);setError('');setRows([]);setDetail(null);
+  setBusy(true);setError('');setRows([]);
   const start=new Date();start.setDate(start.getDate()-7);
   const filters:HistoryFilters={start:start.toISOString().slice(0,10),end:new Date().toISOString().slice(0,10),number:'',customer:'',cash:'',operator:''};
   historyPage(c,profile,'',0,filters).then(page=>{if(active&&id===seq.current){setRows(page);setHasMore(page.length===100);}}).catch(e=>{if(active)setError(readableError(e));}).finally(()=>{if(active)setBusy(false);});
   return()=>{active=false;};
  },[c,profile.id,profile.empresa_id,reload]);
- const open=async(row:SaleRow)=>{setBusy(true);setError('');try{setDetail(await historyDetail(c,profile,row.id));}catch(e){setError(readableError(e));}finally{setBusy(false);}};
- return <View style={s.card}><Text style={s.title}>Vendas dos últimos 7 dias</Text>
+ const open=async(row:SaleRow)=>{
+  if(detailBusy)return;
+  setDetail(null);setDetailError('');setDetailBusy(true);
+  try{setDetail(await historyDetail(c,profile,row.id));}
+  catch(e){setDetailError(readableError(e));}
+  finally{setDetailBusy(false);}
+ };
+ return <View style={s.card}><Text style={s.title}>Últimas vendas</Text>
  <Action title="Atualizar vendas" disabled={busy} onPress={()=>setReload(x=>x+1)}/>
  {busy&&<ActivityIndicator/>}{!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
- {rows.map(row=><TouchableOpacity accessibilityRole="button" key={row.id} style={s.card} onPress={()=>open(row)} disabled={busy}>
+ {rows.map(row=><TouchableOpacity accessibilityRole="button" key={row.id} style={s.card} onPress={()=>void open(row)} disabled={detailBusy}>
  <Text style={s.title}>Venda #{row.numero_venda} · {money(row.total)}</Text><Text>{new Date(row.criado_em).toLocaleString('pt-BR')} · {row.cliente_nome||'Consumidor'}</Text>
  <Text>Toque para ver detalhes</Text></TouchableOpacity>)}
  {!busy&&!rows.length&&!error&&<Text>Nenhuma venda encontrada nos últimos sete dias.</Text>}
- {hasMore&&<Text>Exibindo as 100 vendas mais recentes. A consulta completa exige paginação.</Text>}
+ {hasMore&&<Text>Exibindo as 100 vendas mais recentes.</Text>}
+ <Modal visible={detailBusy||!!detail||!!detailError} animationType="slide" onRequestClose={()=>{if(!detailBusy){setDetail(null);setDetailError('');}}}>
+ <SafeAreaView style={s.screen}><Scroll contentContainerStyle={s.content}>
+ <Text style={s.title}>Detalhes da venda</Text>
+ {detailBusy&&<><ActivityIndicator/><Text>Carregando detalhes…</Text></>}
+ {!!detailError&&<Text accessibilityRole="alert" style={s.error}>{detailError}</Text>}
  {detail&&<View style={s.card}><Text style={s.title}>Venda #{detail.venda.numero_venda}</Text>
  <Text>{detail.cliente_nome||'Consumidor'}</Text>
  {detail.itens.map((item,i)=><Text key={i}>{item.nome} · {item.quantidade} × {money(Number(item.preco_unitario))}</Text>)}
  {detail.pagamentos.map((p,i)=><Text key={i}>{p.forma_pagamento} · {money(Number(p.valor))}</Text>)}
- <Text style={s.title}>Total {money(Number(detail.venda.total))}</Text>
- <Text>Somente consulta. Edição depende de validação do caixa aberto e de operação segura no servidor.</Text>
- <Action title="Fechar detalhes" onPress={()=>setDetail(null)}/></View>}
+ <Text style={s.title}>Total {money(Number(detail.venda.total))}</Text></View>}
+ <Action title="Voltar às vendas" onPress={()=>{setDetail(null);setDetailError('');}}/>
+ </Scroll></SafeAreaView></Modal>
  </View>;
 }
 const s = StyleSheet.create({ screen:{flex:1,backgroundColor:'#f1f3f6'}, content:{padding:20,paddingBottom:40},card:{backgroundColor:'white',borderRadius:16,padding:16,marginVertical:8,borderWidth:1,borderColor:'#e0e5ed'},title:{fontWeight:'800',fontSize:18,color:'#102b49',marginVertical:8},input:{borderWidth:1,borderColor:'#cbd4df',borderRadius:12,padding:14,marginVertical:8,fontSize:16,color:'#102b49'},button:{backgroundColor:'#f8c928',borderRadius:12,padding:15,marginVertical:6,alignItems:'center'},buttonText:{fontWeight:'800',color:'#102b49'},error:{color:'#9c2525',padding:12},warning:{color:'#536277',lineHeight:21,marginVertical:12}});
