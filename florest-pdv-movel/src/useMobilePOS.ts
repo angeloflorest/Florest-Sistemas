@@ -28,7 +28,12 @@ export function useMobilePOS(c: SupabaseClient | null,p: Profile | null,device: 
  const run=async(type: OperationKind,request:Record<string,unknown>)=>{
   if(!engine)throw Error('Dispositivo ou sessão ainda não confirmado.');
   setBusy(true);setError('');setKind(type);
-  try{const r=await engine.execute(type,request);if(live()){setPending(true);setReceipt(r);await refresh();}return r;}
+  try{const r=await engine.execute(type,request);if(live()){setPending(true);setReceipt(r);await refresh();}
+   if(r.state==='confirmed'){
+     await engine.acknowledge();
+     if(live()){setPending(false);setReceipt(null);setKind(null);if(type==='sale')onSaleDone();await refresh();}
+   }
+   return r;}
   catch(e){const saved=await engine.pending();if(live()){setPending(!!saved);setError(readableError(e));}throw e;}
   finally{if(live())setBusy(false);}
  };
