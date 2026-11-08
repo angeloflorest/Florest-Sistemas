@@ -23,25 +23,44 @@ export function CustomerPicker({ c, profile, selected, onSelect, disabled=false 
 }
 export function PaymentDraft({ cart, customer, mobile }: { cart: CartItem[]; customer: Customer; mobile: MobilePOS }) {
  const [open,setOpen]=useState(false),[error,setError]=useState(''),[sending,setSending]=useState(false);
- const lock=useRef(false),total=draftTotal(cart);
- const pay=async(method:string)=>{
+ const [payments,setPayments]=useState<Payment[]>([]),[value,setValue]=useState(''),[credit,setCredit]=useState(false);
+ const [band,setBand]=useState('');const lock=useRef(false),nextId=useRef(0),total=draftTotal(cart);
+ const signature=JSON.stringify({cart,customer});
+ useEffect(()=>{setOpen(false);setPayments([]);setValue('');setCredit(false);setBand('');setError('');},[signature]);
+ const paid=payments.reduce((sum,p)=>sum+p.cents,0),remaining=total-paid;
+ const add=(method:string)=>{
+  try{
+   const cents=parseCents(value);
+   const next=addPayment(payments,method,cents,total,++nextId.current);
+   const rules=mobile.context?.taxas.ativo?mobile.context.taxas.regras.filter(r=>r.forma===method):[];
+   if(rules?.length&&!rules.some(r=>(r.bandeira||'')===band))throw Error('Selecione a bandeira cadastrada para este cartão.');
+   next[next.length-1].band=band;
+   setPayments(next);setValue(((total-next.reduce((sum,p)=>sum+p.cents,0))/100).toFixed(2).replace('.',','));setError('');
+  }catch(e){setError(readableError(e));}
+ };
+ const confirm=async()=>{
   if(lock.current||mobile.busy||mobile.pending)return;
-  try {
+  try{
+   if(credit)validateCredit(customer,payments,total);
+   else if(remaining!==0||payments.length===0)throw Error('Complete o valor da venda antes de confirmar.');
    lock.current=true;setSending(true);setError('');
-   const credit=method==='Nota a prazo';
-   if(credit)validateCredit(customer,[],total);
-   const payments:Payment[]=credit?[]:[{id:1,method,cents:total,band:''}];
    const result=await mobile.sell(cart,customer,payments,credit);
    if(result.state==='confirmed')setOpen(false);
-   else setError(result.state==='rejected'?result.error:'Não foi possível confirmar a venda.');
+   else setError(result.state==='rejected'?result.error:'Venda não confirmada.');
   }catch(e){setError(readableError(e));}
   finally{lock.current=false;setSending(false);}
  };
- return <><Action title="Finalizar venda" disabled={!cart.length||total<=0||!mobile.context?.caixa||!mobile.context?.venda_habilitada||mobile.pending||mobile.busy} onPress={()=>{setError('');setOpen(true);}}/>
+ return <><Action title="Finalizar venda" disabled={!cart.length||total<=0||!mobile.context?.caixa||!mobile.context?.venda_habilitada||mobile.pending||mobile.busy} onPress={()=>{setError('');setPayments([]);setCredit(false);setValue((total/100).toFixed(2).replace('.',','));setOpen(true);}}/>
  <Modal visible={open} onRequestClose={()=>{if(!sending)setOpen(false);}}><SafeAreaView style={s.screen}><Scroll contentContainerStyle={s.content}>
  <Text style={s.title}>Pagamento</Text><Text style={s.title}>Total {money(total/100)}</Text>
- {['Dinheiro','Pix','Cartão de Crédito','Cartão de Débito','Nota a prazo'].map(method=><Action key={method} title={method} disabled={sending||mobile.busy||mobile.pending} onPress={()=>pay(method)}/>)}
- {sending&&<ActivityIndicator/>}{!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+ <Text>Recebido: {money(paid/100)} · Restante: {money(remaining/100)}</Text>
+ {payments.map(p=><View key={p.id} style={s.card}><Text>{p.method} · {money(p.cents/100)}</Text><Action title="Remover pagamento" disabled={sending} onPress={()=>{setPayments(old=>old.filter(x=>x.id!==p.id));setValue((Math.min(total,remaining+p.cents)/100).toFixed(2).replace('.',','));}}/></View>)}
+ {!credit&&remaining>0&&<><Input style={s.input} accessibilityLabel="Valor deste pagamento" placeholder="Valor deste pagamento" keyboardType="decimal-pad" value={value} onChangeText={setValue}/>
+ {mobile.context?.taxas.ativo&&mobile.context.taxas.regras.some(r=>!!r.bandeira)&&<><Text>Bandeira do cartão</Text>{[...new Set(mobile.context.taxas.regras.map(r=>r.bandeira).filter((x):x is string=>!!x))].map(name=><Action key={name} title={band===name?'✓ '+name:name} onPress={()=>setBand(name)}/>)}</>}
+ {PAYMENT_METHODS.map(method=><Action key={method} title={method} disabled={sending} onPress={()=>add(method)}/>)}</>}
+ {!payments.length&&<Action title={credit?'Cancelar nota a prazo':'Nota a prazo'} disabled={sending} onPress={()=>{try{if(!credit)validateCredit(customer,[],total);setCredit(!credit);setError('');}catch(e){setError(readableError(e));}}}/>}
+ {!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+ <Action title={sending?'Registrando…':'Confirmar venda'} disabled={sending||mobile.busy||mobile.pending||(!credit&&(remaining!==0||!payments.length))} onPress={()=>Alert.alert('Confirmar venda?',money(total/100),[{text:'Voltar',style:'cancel'},{text:'Confirmar',onPress:()=>{void confirm();}}])}/>
  <Action title="Voltar" disabled={sending} onPress={()=>setOpen(false)}/>
  </Scroll></SafeAreaView></Modal></>;
 }
