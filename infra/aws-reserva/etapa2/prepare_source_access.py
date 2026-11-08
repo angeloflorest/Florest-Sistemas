@@ -25,6 +25,7 @@ DO $x$ BEGIN
   COMMENT ON ROLE florest_reserva_repl IS 'Florest reserve replication managed 20261108';
  END IF;
 END $x$;
+GRANT pg_read_all_data TO florest_reserva_repl;
 GRANT USAGE ON SCHEMA public,private,auth,storage TO florest_reserva_repl;
 GRANT SELECT ON ALL TABLES IN SCHEMA public,private,auth,storage TO florest_reserva_repl;
 GRANT SELECT ON ALL SEQUENCES IN SCHEMA public,private,auth,storage TO florest_reserva_repl;

@@ -13,7 +13,7 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION contingencia_journal.require_writer()FROM PUBLIC,anon,authenticated,service_role;
 DO $block$ DECLARE t record;BEGIN
- FOR t IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('public','private','storage')AND c.relkind='r'AND NOT c.relispartition LOOP
+ FOR t IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('public','private','storage')AND c.relkind IN('r','p')AND NOT c.relispartition LOOP
   IF NOT EXISTS(SELECT FROM pg_trigger WHERE tgrelid=format('%I.%I',t.nspname,t.relname)::regclass AND tgname='florest_sandbox_writer')THEN EXECUTE format('CREATE TRIGGER florest_sandbox_writer BEFORE INSERT OR UPDATE OR DELETE ON %I.%I FOR EACH ROW EXECUTE FUNCTION contingencia_journal.require_writer()',t.nspname,t.relname);END IF;
   IF NOT EXISTS(SELECT FROM pg_trigger WHERE tgrelid=format('%I.%I',t.nspname,t.relname)::regclass AND tgname='florest_sandbox_no_truncate')THEN EXECUTE format('CREATE TRIGGER florest_sandbox_no_truncate BEFORE TRUNCATE ON %I.%I FOR EACH STATEMENT EXECUTE FUNCTION contingencia_journal.require_writer()',t.nspname,t.relname);END IF;
  END LOOP;
