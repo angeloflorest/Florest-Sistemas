@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { KeyboardInput as Input } from './KeyboardForm';
 import { Action } from './CommercePanels';
-import { parseCents } from './commerce';
 import { money } from './domain';
 import type { MobilePOS } from './useMobilePOS';
 import type { CashSummary, MobileCash } from './mobileGateway';
@@ -17,12 +15,23 @@ export function OperationReceipt({mobile}:{mobile:MobilePOS}) {
  </View>;
 }
 export function MobileCashPanel({mobile,deviceId}:{mobile:MobilePOS;deviceId:string}) {
- const [name,setName]=useState('Meu celular'),[amount,setAmount]=useState('0'),[localError,setLocalError]=useState(''),[showReport,setShowReport]=useState(false);
+ const [name]=useState('Meu celular'),[amount]=useState('0'),[localError,setLocalError]=useState(''),[showReport,setShowReport]=useState(false);
  const cash=mobile.context?.caixa;
- const details=(c:MobileCash)=><><Text>Caixa móvel #{c.numero} · {c.dispositivo_nome}</Text><Text>Operador: {c.aberto_por_nome}</Text><Text>Abertura: {new Date(c.aberto_em).toLocaleString('pt-BR')} · Troco {money(Number(c.valor_inicial))}</Text>{c.fechado_em&&<Text>Fechado: {new Date(c.fechado_em).toLocaleString('pt-BR')} · {c.fechado_por_nome}</Text>}</>;
+ const details=(c:MobileCash)=><View key={c.id} style={s.reportItem}>
+  <Text style={s.reportTitle}>Caixa #{c.numero} · {c.status==='aberto'?'Aberto':'Fechado'}</Text>
+  <Text>Abertura: {new Date(c.aberto_em).toLocaleString('pt-BR')}</Text>
+  <Text>Operador: {c.aberto_por_nome}</Text>
+  <Text>Valor inicial: {money(Number(c.valor_inicial))}</Text>
+  {c.fechado_em&&<Text>Fechamento: {new Date(c.fechado_em).toLocaleString('pt-BR')}</Text>}
+  {c.fechamento_resumo&&<Summary value={c.fechamento_resumo}/>}
+  {c.status==='aberto'&&mobile.context?.resumo&&<Summary value={mobile.context.resumo}/>}
+ </View>;
  return <View style={s.card}><Text style={s.title}>Caixa</Text>
  {mobile.context?.motivo&&<Text style={s.error}>{mobile.context.motivo}</Text>}{localError&&<Text accessibilityRole="alert" style={s.error}>{localError}</Text>}
- {cash?<><Text>Caixa #{cash.numero} · Aberto</Text><Action title="Relatório do caixa" onPress={()=>setShowReport(v=>!v)}/>{showReport&&<View style={s.card}>{details(cash)}{mobile.context?.resumo&&<Summary value={mobile.context.resumo}/>}</View>}<Action title="Fechar caixa" disabled={mobile.busy||mobile.pending} onPress={()=>Alert.alert('Fechar caixa?', 'Após o fechamento, as vendas deste caixa ficarão disponíveis somente para consulta.',[{text:'Voltar',style:'cancel'},{text:'Fechar caixa',onPress:()=>mobile.close().catch(()=>{})}])}/></>:<><Text>Caixa fechado</Text><Input style={s.input} accessibilityLabel="Nome do celular" placeholder="Identificação do celular" value={name} onChangeText={setName} maxLength={60}/><Input style={s.input} accessibilityLabel="Troco inicial" placeholder="Troco inicial em reais" value={amount} onChangeText={setAmount} keyboardType="decimal-pad"/><Action title="Abrir caixa" disabled={mobile.busy||mobile.pending||!mobile.context} onPress={()=>{try{setLocalError('');const cents=parseCents(amount);mobile.open(name.trim(),cents/100).catch(()=>{});}catch(e){setLocalError((e as Error).message);}}}/></>}
+ <Action title="Relatório" disabled={mobile.busy} onPress={()=>{setShowReport(v=>!v);if(!showReport)void mobile.refresh();}}/>
+ {showReport&&<View>{mobile.history.length?mobile.history.map(details):<Text>Nenhum caixa encontrado para este celular.</Text>}</View>}
+ {cash?<Action title="Fechar caixa" disabled={mobile.busy||mobile.pending} onPress={()=>Alert.alert('Fechar caixa?', 'Após o fechamento, as vendas deste caixa ficarão disponíveis somente para consulta.',[{text:'Voltar',style:'cancel'},{text:'Fechar caixa',onPress:()=>mobile.close().catch(()=>{})}])}/>:<Action title="Abrir caixa" disabled={mobile.busy||mobile.pending||!mobile.context} onPress={()=>{try{setLocalError('');mobile.open(name,Number(amount)).catch(()=>{});}catch(e){setLocalError((e as Error).message);}}}/>}
  </View>;
 }
-const s=StyleSheet.create({card:{backgroundColor:'white',padding:16,borderRadius:16,marginVertical:8,borderColor:'#dce3ed',borderWidth:1},title:{fontSize:18,fontWeight:'800',color:'#102b49',marginVertical:10},error:{color:'#a32c2c',lineHeight:21,paddingVertical:10},input:{borderWidth:1,borderColor:'#cbd4df',borderRadius:12,padding:14,marginVertical:8,fontSize:16}});
+
+const s=StyleSheet.create({reportItem:{padding:12,marginVertical:6,borderWidth:1,borderColor:'#dce3ed',borderRadius:12},reportTitle:{fontSize:16,fontWeight:'800',color:'#102b49',marginBottom:6},card:{backgroundColor:'white',padding:16,borderRadius:16,marginVertical:8,borderColor:'#dce3ed',borderWidth:1},title:{fontSize:18,fontWeight:'800',color:'#102b49',marginVertical:10},error:{color:'#a32c2c',lineHeight:21,paddingVertical:10},input:{borderWidth:1,borderColor:'#cbd4df',borderRadius:12,padding:14,marginVertical:8,fontSize:16}});
