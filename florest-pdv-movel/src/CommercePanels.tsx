@@ -22,14 +22,28 @@ export function CustomerPicker({ c, profile, selected, onSelect, disabled=false 
   return <View style={s.card}><Text style={s.title}>Cliente · {selected.nome}</Text><Action title="Alterar cliente" disabled={disabled} onPress={() => { setTerm(''); setOpen(true); }}/><Modal visible={open} onRequestClose={() => setOpen(false)}><SafeAreaView style={s.screen}><Scroll contentContainerStyle={s.content}><Text style={s.title}>Selecionar cliente</Text><Text>Somente cadastros existentes na sua empresa.</Text><Input style={s.input} placeholder="Pesquisar nome" value={term} onChangeText={setTerm} accessibilityLabel="Pesquisar cliente"/><Action title="Consumidor Padrão" onPress={() => { onSelect(DEFAULT_CUSTOMER); setOpen(false); }}/>{busy && <ActivityIndicator/>}{!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}{items.map(row => <Action key={row.id} title={row.nome} onPress={() => { onSelect(row); setOpen(false); }}/>) }{!busy && !error && !items.length && <Text>Nenhum cliente encontrado.</Text>}{items.length === 40 && <Text>Refine o nome para encontrar outros clientes.</Text>}<Action title="Fechar" onPress={() => setOpen(false)}/></Scroll></SafeAreaView></Modal></View>;
 }
 export function PaymentDraft({ cart, customer, mobile }: { cart: CartItem[]; customer: Customer; mobile: MobilePOS }) {
-  const [band,setBand] = useState('');
-  const [open, setOpen] = useState(false), [payments, setPayments] = useState<Payment[]>([]), [value, setValue] = useState(''), [credit, setCredit] = useState(false), [error, setError] = useState('');
-  const paymentRef = useRef<Payment[]>([]);
-  const nextId = useRef(0), total = draftTotal(cart), signature = JSON.stringify({ cart, customer });
-  useEffect(() => { paymentRef.current=[]; setPayments([]); setCredit(false); setError(''); setOpen(false); }, [signature]);
-  const remaining = total - payments.reduce((s,p) => s + p.cents, 0);
-  const add = (method: string) => { try { if (credit) throw Error('Desmarque a nota a prazo para lançar pagamentos.'); const config=mobile.context?.taxas; const rules=config?.ativo ? config.regras.filter(r=>r.forma===method) || [] : []; if(rules.length&&!rules.some(r=>(r.bandeira||'')===band))throw Error('Selecione uma bandeira cadastrada para esta forma de pagamento.'); const next = addPayment(paymentRef.current, method, parseCents(value), total, ++nextId.current); next[next.length-1].band=band; paymentRef.current=next; setPayments(next); setValue(''); setError(''); } catch(e) { setError(readableError(e)); } };
-  return <><Action title="Finalizar venda" disabled={!cart.length || total <= 0 || !mobile.context?.caixa || !mobile.context?.venda_habilitada || mobile.pending || mobile.busy} onPress={() => { setOpen(true); setValue((remaining/100).toFixed(2).replace('.',',')); }}/><Modal visible={open} onRequestClose={() => setOpen(false)}><SafeAreaView style={s.screen}><Scroll contentContainerStyle={s.content}><Text style={s.title}>Pagamento · {customer.nome}</Text><Text style={s.warning}>Confira os valores recebidos externamente antes de confirmar. O registro só será concluído após a confirmação do servidor.</Text><Text style={s.title}>Total {money(total/100)}</Text><Text>Restante {money(credit ? total/100 : remaining/100)}</Text>{payments.map(p => <View key={p.id} style={s.card}><Text>{p.method} · {money(p.cents/100)}</Text><Action title="Remover lançamento" onPress={() => { paymentRef.current=paymentRef.current.filter(x => x.id !== p.id); setPayments(paymentRef.current); setError(''); }}/></View>)}<Input style={s.input} accessibilityLabel="Valor do pagamento" placeholder="Valor (R$)" value={value} onChangeText={setValue} keyboardType="decimal-pad" editable={!credit}/><Text>Bandeira para taxas: {band || 'sem bandeira'}</Text><Action title="Sem bandeira" onPress={()=>setBand('')}/>{[...new Set(mobile.context?.taxas.regras.map(r=>r.bandeira).filter((x):x is string=>!!x)||[])].map(name=><Action key={name} title={name} onPress={()=>setBand(name)}/>)}{PAYMENT_METHODS.map(method => <Action key={method} title={method} onPress={() => add(method)} disabled={credit || remaining <= 0}/>)}<Action title={credit ? 'Remover nota a prazo' : 'Nota a prazo integral'} onPress={() => { try { if (credit) setCredit(false); else { validateCredit(customer, paymentRef.current, total); setCredit(true); } setError(''); } catch(e) { setError(readableError(e)); } }}/>{credit && <Text>Nota a prazo: {money(total/100)} em aberto; recebido R$ 0,00.</Text>}{!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}<Text style={s.warning}>O registro usará somente o caixa deste celular. Uma falha de conexão exige consultar o resultado antes de reenviar.</Text><Action title={mobile.busy ? 'Aguardando servidor…' : 'Confirmar venda no servidor'} disabled={mobile.busy || mobile.pending || !mobile.context?.caixa || !mobile.context?.venda_habilitada || (credit ? !customer.id : remaining!==0 || payments.length===0)} onPress={()=>Alert.alert('Registrar venda?', `Total ${money(total/100)} para ${customer.nome}. ${credit?'Nota a prazo: nenhum valor recebido.':'Confirme os recebimentos informados.'}`,[{text:'Voltar',style:'cancel'},{text:'Confirmar venda',onPress:()=>{setOpen(false);mobile.sell(cart,customer,paymentRef.current,credit).catch(()=>{});}}])}/><Action title="Voltar ao PDV" onPress={() => setOpen(false)}/></Scroll></SafeAreaView></Modal></>;
+ const [open,setOpen]=useState(false),[error,setError]=useState(''),[sending,setSending]=useState(false);
+ const lock=useRef(false),total=draftTotal(cart);
+ const pay=async(method:string)=>{
+  if(lock.current||mobile.busy||mobile.pending)return;
+  try {
+   lock.current=true;setSending(true);setError('');
+   const credit=method==='Nota a prazo';
+   if(credit)validateCredit(customer,[],total);
+   const payments:Payment[]=credit?[]:[{id:1,method,cents:total,band:''}];
+   const result=await mobile.sell(cart,customer,payments,credit);
+   if(result.state==='confirmed')setOpen(false);
+   else setError(result.state==='rejected'?result.error:'Não foi possível confirmar a venda.');
+  }catch(e){setError(readableError(e));}
+  finally{lock.current=false;setSending(false);}
+ };
+ return <><Action title="Finalizar venda" disabled={!cart.length||total<=0||!mobile.context?.caixa||!mobile.context?.venda_habilitada||mobile.pending||mobile.busy} onPress={()=>{setError('');setOpen(true);}}/>
+ <Modal visible={open} onRequestClose={()=>{if(!sending)setOpen(false);}}><SafeAreaView style={s.screen}><Scroll contentContainerStyle={s.content}>
+ <Text style={s.title}>Pagamento</Text><Text style={s.title}>Total {money(total/100)}</Text>
+ {['Dinheiro','Pix','Cartão de Crédito','Cartão de Débito','Nota a prazo'].map(method=><Action key={method} title={method} disabled={sending||mobile.busy||mobile.pending} onPress={()=>pay(method)}/>)}
+ {sending&&<ActivityIndicator/>}{!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+ <Action title="Voltar" disabled={sending} onPress={()=>setOpen(false)}/>
+ </Scroll></SafeAreaView></Modal></>;
 }
 const emptyFilters: HistoryFilters = { start: '', end: '', number: '', customer: '', cash: '', operator: '' };
 export function SalesHistory({ c, profile }: { c: SupabaseClient; profile: Profile }) {
