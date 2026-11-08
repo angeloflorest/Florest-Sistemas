@@ -9,12 +9,12 @@ export function KeyboardScroll(props: ScrollViewProps) {
     if (extra > 0) scroll.current?.scrollTo({ y: Math.max(0, offset.current + extra), animated: true });
   });
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', event => { top.current = event.endCoordinates.screenY; reveal(); });
+    const show = Keyboard.addListener('keyboardDidShow', event => { top.current = event.endCoordinates.screenY; requestAnimationFrame(reveal); });
     const hide = Keyboard.addListener('keyboardDidHide', () => { top.current = Dimensions.get('window').height; });
     return () => { show.remove(); hide.remove(); };
   }, []);
-  return <FocusContext.Provider value={field => { focused.current = field; requestAnimationFrame(reveal); }}>
-    <ScrollView {...props} ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets scrollEventThrottle={16} onScroll={event => { offset.current = event.nativeEvent.contentOffset.y; props.onScroll?.(event); }}/>
+  return <FocusContext.Provider value={field => { focused.current = field; requestAnimationFrame(() => requestAnimationFrame(reveal)); }}>
+    <ScrollView {...props} ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets={false} scrollEventThrottle={16} onScroll={event => { offset.current = event.nativeEvent.contentOffset.y; props.onScroll?.(event); }}/>
   </FocusContext.Provider>;
 }
 export const KeyboardInput = forwardRef<TextInput, TextInputProps>((props, ref) => {
