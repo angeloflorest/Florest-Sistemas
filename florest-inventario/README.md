@@ -39,3 +39,7 @@ O workflow específico compila somente esta aplicação em branch isolada. O APK
 ## Validação
 
 TypeScript e 11 testes passam, incluindo fluxo das telas com componentes nativos simulados, SQLite real, persistência, isolamento por usuário, permissão revogada, zero/decimais, saldo concorrente, resposta perdida e exportação. Esses testes não fazem alterações no ERP de produção. Login real do cliente, câmera física, teclado Android e estoque real precisam ser homologados pelo operador no aparelho. Não há teste comercial automático.
+
+## Download
+
+APK assinado em `entrega/Florest-Inventario-1.0.0.apk`, com checksum e verificação de assinatura. Download e instruções: https://aplicativos.florestsistemas.com.br/inventario.html. A chave privada de assinatura permanece fora do Git e do APK.

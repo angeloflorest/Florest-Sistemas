@@ -14,4 +14,4 @@ Esta entrega não altera código, banco, permissões, funções ou configuraçõ
 
 TypeScript e 11 testes automatizados passaram. Câmera física, teclado, login de cliente e atualização real de estoque ainda exigem homologação pelo operador. O aplicativo usa o ERP real; cada confirmação de quantidade é uma alteração efetiva de saldo. Não é um modo de simulação.
 
-Instale primeiro para homologação. O portal de aplicativos permanece sem alterações nesta etapa.
+Instale primeiro para homologação. Download e instruções no portal oficial: https://aplicativos.florestsistemas.com.br/inventario.html
