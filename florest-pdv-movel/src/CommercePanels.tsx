@@ -47,31 +47,34 @@ export function PaymentDraft({ cart, customer, mobile }: { cart: CartItem[]; cus
 }
 const emptyFilters: HistoryFilters = { start: '', end: '', number: '', customer: '', cash: '', operator: '' };
 export function SalesHistory({ c, profile }: { c: SupabaseClient; profile: Profile }) {
-  const [search, setSearch] = useState(''), [filters, setFilters] = useState(emptyFilters), [rows, setRows] = useState<SaleRow[]>([]), [hasMore, setHasMore] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const [detail, setDetail] = useState<Awaited<ReturnType<typeof historyDetail>> | null>(null);
-  const generation = useRef(0), inFlight = useRef(false), loaded = useRef(false);
-  const allowed = true; // Server limits non-financial operators to their own mobile sales.
-  useEffect(() => { generation.current++; setRows([]); setDetail(null); setHasMore(false); loaded.current=false; return () => { generation.current++; }; }, [profile.id, profile.empresa_id, search, JSON.stringify(filters)]);
-  async function load(reset: boolean) {
-    if (inFlight.current || !allowed) return;
-    inFlight.current = true; setBusy(true); setError(''); setDetail(null);
-    const seq = ++generation.current;
-    try { const page = await historyPage(c, profile, search, reset ? 0 : rows.length, filters); if (seq === generation.current) { setRows(prev => reset ? page : [...prev,...page]); setHasMore(page.length === 100); loaded.current=true; } }
-    catch(e) { if (seq === generation.current) { setError(readableError(e)); if (reset) setRows([]); } }
-    finally { inFlight.current=false; setBusy(false); }
-  }
-  async function open(row: SaleRow) {
-    if (inFlight.current) return;
-    const seq = ++generation.current; inFlight.current=true; setBusy(true); setError(''); setDetail(null);
-    try { const result = await historyDetail(c, profile, row.id); if (seq === generation.current) setDetail(result); }
-    catch(e) { if (seq === generation.current) setError(readableError(e)); }
-    finally { inFlight.current=false; setBusy(false); }
-  }
-  let visible: SaleRow[] = [], filterError = '';
-  try { filterSales([], filters); visible=rows; } catch(e) { filterError=readableError(e); }
-  const cashAvailable = true;
-  const operatorAvailable = canReadHistory(profile);
-  if (!allowed) return <View style={s.card}><Text style={s.title}>Histórico de vendas</Text><Text>Seu perfil não possui acesso ao Financeiro, exigido nesta consulta do ERP.</Text></View>;
-  return <View style={s.card}><Text style={s.title}>Vendas · somente consulta</Text><Input style={s.input} accessibilityLabel="Busca no histórico" placeholder="Número da venda (ou use os filtros abaixo)" value={search} onChangeText={setSearch}/><Action title="Consultar vendas no ERP" disabled={busy} onPress={() => load(true)}/><Text style={s.warning}>Os filtros são aplicados no servidor. Operadores sem acesso financeiro consultam somente as próprias vendas móveis; perfis financeiros também consultam o PDV Principal. Após alterar filtros, toque em Consultar.</Text>{(['start','end','number','customer','cash','operator'] as const).map(key => <Input key={key} style={s.input} value={filters[key]} accessibilityLabel={key} placeholder={{start:'Data inicial AAAA-MM-DD',end:'Data final AAAA-MM-DD',number:'Número da venda',customer:'Cliente',cash:'Número ou ID do caixa',operator:'Operador (acesso financeiro)'}[key]} editable={key === 'cash' ? cashAvailable : key === 'operator' ? operatorAvailable : true} onChangeText={value => setFilters(f => ({...f,[key]:value}))}/>)}<Action title="Limpar filtros locais" onPress={() => setFilters(emptyFilters)}/>{busy && <ActivityIndicator/>}{!!(error || filterError) && <Text accessibilityRole="alert" style={s.error}>{error || filterError}</Text>}{visible.map(row => <View key={row.id} style={s.card}><Text style={s.title}>#{row.numero_venda} · {money(row.total)}</Text><Text>{new Date(row.criado_em).toLocaleString('pt-BR')} · {row.cliente_nome || 'Consumidor'}</Text><Text>Origem: {row.origem || 'Não informada pelo ERP'}</Text><Text>Caixa: {row.caixa_numero ?? row.caixa_id ?? 'Não informado'} · Operador: {row.operador_nome || 'Não informado'}</Text>{!!row.cancelada_em && <Text>Cancelada</Text>}<Action title="Ver detalhes" onPress={() => open(row)} disabled={busy}/></View>)}{loaded.current && !busy && !visible.length && !error && !filterError && <Text>Nenhuma venda encontrada no servidor para esses filtros.</Text>}{hasMore && <Action title="Carregar mais (próximas 100)" disabled={busy} onPress={() => load(false)}/>}{detail && <View style={s.card}><Text style={s.title}>Venda #{detail.venda.numero_venda}</Text><Text>{detail.cliente_nome || 'Consumidor'} · {new Date(detail.venda.criado_em).toLocaleString('pt-BR')}</Text><Text>Origem: {detail.venda.origem || 'Não informada'} · Caixa: {detail.venda.caixa_numero ?? detail.venda.caixa_id ?? 'Não informado'}</Text><Text>Operador: {detail.venda.operador_nome || 'Não informado'}</Text>{detail.itens.map((item,i) => <View key={i} style={s.card}><Text>{item.nome} · {item.quantidade} × {money(Number(item.preco_unitario))}</Text><Text>Desconto por unidade: {item.desconto == null ? 'Não discriminado pelo ERP' : money(Number(item.desconto))}</Text><Text>Acréscimo por unidade: {item.acrescimo == null ? 'Não discriminado pelo ERP' : money(Number(item.acrescimo))}</Text></View>)}{detail.titulo&&<Text>Nota a prazo · saldo {money(Number(detail.titulo.saldo_aberto))} · vencimento {detail.titulo.vencimento}</Text>}{detail.pagamentos.map((p,i) => <Text key={i}>{p.forma_pagamento} · {money(Number(p.valor))}</Text>)}<Text style={s.title}>Total registrado {money(Number(detail.venda.total))}</Text><Action title="Fechar detalhes" onPress={() => setDetail(null)}/></View>}</View>;
+ const [rows,setRows]=useState<SaleRow[]>([]),[detail,setDetail]=useState<Awaited<ReturnType<typeof historyDetail>>|null>(null);
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[hasMore,setHasMore]=useState(false);
+ const [reload,setReload]=useState(0);
+ const seq=useRef(0);
+ useEffect(()=>{
+  let active=true;const id=++seq.current;
+  setBusy(true);setError('');setRows([]);setDetail(null);
+  const start=new Date();start.setDate(start.getDate()-7);
+  const filters:HistoryFilters={start:start.toISOString().slice(0,10),end:new Date().toISOString().slice(0,10),number:'',customer:'',cash:'',operator:''};
+  historyPage(c,profile,'',0,filters).then(page=>{if(active&&id===seq.current){setRows(page);setHasMore(page.length===100);}}).catch(e=>{if(active)setError(readableError(e));}).finally(()=>{if(active)setBusy(false);});
+  return()=>{active=false;};
+ },[c,profile.id,profile.empresa_id,reload]);
+ const open=async(row:SaleRow)=>{setBusy(true);setError('');try{setDetail(await historyDetail(c,profile,row.id));}catch(e){setError(readableError(e));}finally{setBusy(false);}};
+ return <View style={s.card}><Text style={s.title}>Vendas dos últimos 7 dias</Text>
+ <Action title="Atualizar vendas" disabled={busy} onPress={()=>setReload(x=>x+1)}/>
+ {busy&&<ActivityIndicator/>}{!!error&&<Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+ {rows.map(row=><TouchableOpacity accessibilityRole="button" key={row.id} style={s.card} onPress={()=>open(row)} disabled={busy}>
+ <Text style={s.title}>Venda #{row.numero_venda} · {money(row.total)}</Text><Text>{new Date(row.criado_em).toLocaleString('pt-BR')} · {row.cliente_nome||'Consumidor'}</Text>
+ <Text>Toque para ver detalhes</Text></TouchableOpacity>)}
+ {!busy&&!rows.length&&!error&&<Text>Nenhuma venda encontrada nos últimos sete dias.</Text>}
+ {hasMore&&<Text>Exibindo as 100 vendas mais recentes. A consulta completa exige paginação.</Text>}
+ {detail&&<View style={s.card}><Text style={s.title}>Venda #{detail.venda.numero_venda}</Text>
+ <Text>{detail.cliente_nome||'Consumidor'}</Text>
+ {detail.itens.map((item,i)=><Text key={i}>{item.nome} · {item.quantidade} × {money(Number(item.preco_unitario))}</Text>)}
+ {detail.pagamentos.map((p,i)=><Text key={i}>{p.forma_pagamento} · {money(Number(p.valor))}</Text>)}
+ <Text style={s.title}>Total {money(Number(detail.venda.total))}</Text>
+ <Text>Somente consulta. Edição depende de validação do caixa aberto e de operação segura no servidor.</Text>
+ <Action title="Fechar detalhes" onPress={()=>setDetail(null)}/></View>}
+ </View>;
 }
 const s = StyleSheet.create({ screen:{flex:1,backgroundColor:'#f1f3f6'}, content:{padding:20,paddingBottom:40},card:{backgroundColor:'white',borderRadius:16,padding:16,marginVertical:8,borderWidth:1,borderColor:'#e0e5ed'},title:{fontWeight:'800',fontSize:18,color:'#102b49',marginVertical:8},input:{borderWidth:1,borderColor:'#cbd4df',borderRadius:12,padding:14,marginVertical:8,fontSize:16,color:'#102b49'},button:{backgroundColor:'#f8c928',borderRadius:12,padding:15,marginVertical:6,alignItems:'center'},buttonText:{fontWeight:'800',color:'#102b49'},error:{color:'#9c2525',padding:12},warning:{color:'#536277',lineHeight:21,marginVertical:12}});
