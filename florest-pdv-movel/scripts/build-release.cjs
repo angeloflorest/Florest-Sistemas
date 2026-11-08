@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { buildSettings } = require('./build-settings.cjs');
 const root = path.resolve(__dirname, '..');
 process.chdir(root);
 function fail(message) { throw Error(message); }
@@ -41,6 +42,12 @@ function packageInfo(output) {
 }
 function main() {
   if (process.platform !== 'win32') fail('Este gerador automatizado deve ser executado no Windows configurado pelo proprietário.');
+  const settings = buildSettings(root, require('node:os').totalmem());
+  if (settings.lowMemory) {
+    console.log('Modo de pouca memória: um worker Gradle, heap Java de 1536 MB e limite Node de 768 MB. Feche outros programas antes de compilar.');
+    process.env.CMAKE_BUILD_PARALLEL_LEVEL = '1';
+    process.env.NODE_OPTIONS = ((process.env.NODE_OPTIONS || '').replace(/--max[-_]old[-_]space[-_]size(?:=|\s+)\d+/g, '') + ' ' + settings.nodeOptions).trim();
+  }
   loadEnv();
   const javaHome = process.env.JAVA_HOME;
   const java = run(javaHome ? path.join(javaHome, 'bin', 'java.exe') : 'java', ['-version'], true);
@@ -92,7 +99,7 @@ function main() {
   // Remove only the intermediate APK to ensure an old artifact cannot be delivered.
   // The last verified APK-GERADO is preserved until the new build passes every check.
   if (fs.existsSync(output)) fs.unlinkSync(output);
-  run(path.join(root, 'android', 'gradlew.bat'), ['-p', 'android', ':app:assembleRelease', '--no-daemon', '--max-workers=2']);
+  run(path.join(root, 'android', 'gradlew.bat'), settings.gradleArgs);
   if (!fs.existsSync(output)) fail('Gradle não produziu app-release.apk.');
   if (certificate(run(signer, ['verify', '--print-certs', output], true)) !== expected) fail('Assinatura incompatível com o APK anterior. Nenhum instalador foi entregue. Use o keystore original.');
   const built = packageInfo(run(aapt, ['dump', 'badging', output], true));
