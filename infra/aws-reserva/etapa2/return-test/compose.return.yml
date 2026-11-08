@@ -1,0 +1,24 @@
+services:
+  gateway:
+    environment:
+      RETURN_REST_URL: http://return-rest:3000
+  return-rest:
+    image: postgrest/postgrest:v14.18
+    environment:
+      PGRST_DB_URI: ${RETURN_DATABASE_URL:?}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_JWT_AUD: authenticated
+      PGRST_JWT_ISS: ${JWT_ISSUER}
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_POOL: 2
+      PGRST_DB_POOL_ACQUISITION_TIMEOUT: 5
+      PGRST_LOG_LEVEL: error
+    volumes:
+      - ${SYSTEM_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/system-ca.pem:ro
+      - ${RDS_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/rds-ca.pem:ro
+    mem_limit: 96m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped

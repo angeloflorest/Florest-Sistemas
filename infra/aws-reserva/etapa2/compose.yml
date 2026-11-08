@@ -1,0 +1,98 @@
+name: florest-reserva-preview
+services:
+  gateway:
+    image: florest-reserva-gateway:preview
+    build: ./gateway
+    ports:
+      - "127.0.0.1:${PREVIEW_PORT:-18180}:8080"
+    environment:
+      WEB_ROOT: /app/web
+      PUBLIC_URL: ${PUBLIC_URL:?}
+      SANDBOX_WRITES: ${SANDBOX_WRITES:-false}
+      ALLOW_EXISTING_USERS: ${ALLOW_EXISTING_USERS:-false}
+      JWT_SECRET: ${JWT_SECRET:?}
+      ANON_KEY: ${ANON_KEY:?}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      JWT_ISSUER: ${JWT_ISSUER:?}
+      AUTH_URL: http://auth:9999
+      REST_URL: http://rest:3000
+      FUNCTIONS_URL: http://functions:9000
+      ALLOWED_ORIGINS: ${PUBLIC_URL:?}
+      READONLY_RPC_NAMES: ${READONLY_RPC_NAMES:-}
+    volumes:
+      - ./web:/app/web:ro
+    mem_limit: 96m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+  auth:
+    image: supabase/gotrue:v2.197.0
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${PUBLIC_URL}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: ${AUTH_DATABASE_URL:?}
+      GOTRUE_DB_NAMESPACE: auth
+      GOTRUE_SITE_URL: ${PUBLIC_URL}
+      GOTRUE_URI_ALLOW_LIST: ${PUBLIC_URL}
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_ISSUER: ${JWT_ISSUER}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_LOG_LEVEL: error
+    volumes:
+      - ${SYSTEM_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/system-ca.pem:ro
+      - ${RDS_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/rds-ca.pem:ro
+    mem_limit: 192m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+  rest:
+    image: postgrest/postgrest:v14.18
+    environment:
+      PGRST_DB_URI: ${REST_DATABASE_URL:?}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_JWT_AUD: authenticated
+      PGRST_JWT_ISS: ${JWT_ISSUER}
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_POOL: 5
+      PGRST_DB_POOL_ACQUISITION_TIMEOUT: 5
+      PGRST_LOG_LEVEL: error
+    volumes:
+      - ${SYSTEM_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/system-ca.pem:ro
+      - ${RDS_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/rds-ca.pem:ro
+    mem_limit: 128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+  functions:
+    image: supabase/edge-runtime:v1.77.9
+    command: [start, --main-service, /home/deno/functions/main]
+    environment:
+      SUPABASE_URL: http://gateway:8080
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      FLORESTLOGIN_ALLOWED_ORIGINS: ${PUBLIC_URL}
+      DENO_TLS_CA_STORE: system
+      DENO_CERT: /run/system-ca.pem
+      SSL_CERT_FILE: /run/system-ca.pem
+      NO_PROXY: ${INTERNAL_NO_PROXY:-localhost,127.0.0.1,gateway,auth,rest,functions,postgres}
+      no_proxy: ${INTERNAL_NO_PROXY:-localhost,127.0.0.1,gateway,auth,rest,functions,postgres}
+    volumes:
+      - ./functions/main:/home/deno/functions/main:ro
+      - ./vendor/florest-login:/home/deno/functions/florest-login:ro
+      - ${SYSTEM_CA_PATH:-/etc/ssl/certs/ca-certificates.crt}:/run/system-ca.pem:ro
+    mem_limit: 192m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: "no"

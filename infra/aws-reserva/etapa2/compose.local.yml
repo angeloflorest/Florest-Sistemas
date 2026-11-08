@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?}
+      POSTGRES_DB: florest_preview
+    tmpfs:
+      - /var/lib/postgresql
+    mem_limit: 256m
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d florest_preview]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  auth:
+    depends_on:
+      postgres:
+        condition: service_healthy
+  rest:
+    depends_on:
+      postgres:
+        condition: service_healthy
