@@ -1,0 +1,49 @@
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url(9e23cd9475dfedb1d2510ea0aaca7fbb55a4eb4e6d39f423cd5af2394991b4bd.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(0c2fad18ed36cc400041f1e281ee79954a329b345caffc38dfaa3bb8bcef57de.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(ff7cf63717c27756df857ca12045a83522569f7b561bedaff813a25274eb263f.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(1b08e7fc267a5c7e1d614100f604b83e7e8a0be241f0f288faa2b3ac93a683ba.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(8c883f63b2c4157d997319f2c8bc6995ed4357ef371940d31ca159004a4aae63.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(e7a1aaf7eda9f2fad4131725fa556265ec75ca7b2d756260173a040363e8d4f7.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(b37284b5701b6b168dfc770aa1a4ac492106422fd3ba76bc7641e37434e8019c.ttf) format('truetype');
+}

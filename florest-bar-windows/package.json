@@ -1,0 +1,75 @@
+{
+  "name": "florest-bar-windows",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Florest Bar Windows — módulo Bar original do Florest ERP",
+  "author": "Florest Sistemas",
+  "main": "src/main.cjs",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "prepare:ui": "node scripts/download-assets.cjs && node scripts/prepare-ui.cjs",
+    "check": "node scripts/check.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "build:win": "npm run prepare:ui && electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
+    "better-sqlite3": "13.0.3",
+    "electron-updater": "6.8.3"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "br.com.florestsistemas.bar",
+    "productName": "Florest Bar",
+    "artifactName": "Florest-Bar-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/print-agent.exe",
+        "to": "print-agent.exe"
+      },
+      {
+        "from": "resources/print-agent.json",
+        "to": "print-agent.json"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "angeloflorest",
+      "repo": "Florest-Sistemas",
+      "channel": "bar",
+      "releaseType": "prerelease"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "src/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Florest Bar",
+      "deleteAppDataOnUninstall": false,
+      "include": "installer/print-agent.nsh"
+    }
+  }
+}
