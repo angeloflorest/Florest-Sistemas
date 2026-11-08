@@ -1,12 +1,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { buildSettings } = require('./build-settings.cjs');
+const { buildSettings, packageTool } = require('./build-settings.cjs');
 const root = path.resolve(__dirname, '..');
 process.chdir(root);
 function fail(message) { throw Error(message); }
 function run(program, args, capture = false, env = process.env) {
-  // cmd.exe is necessary for npm/Gradle .cmd/.bat on Windows; only fixed commands
+  // Run npm/npx JavaScript through the current Node using absolute paths.
+  // This avoids wrapper resolution relative to the project directory on Windows.
+  const tool = packageTool(program, args, process.execPath, fs.existsSync);
+  if (tool) { program = tool.command; args = tool.args; }
+  // cmd.exe is necessary for remaining Gradle/SDK .cmd/.bat; only fixed commands
   // go through it. External paths and keystore passwords are passed via env.
   const batch = process.platform === 'win32' && /\.(cmd|bat)$/i.test(program);
   if (batch && [program, ...args].some(value => /["%\r\n!&|<>^]/.test(value))) fail('Comando contém caracteres não permitidos pelo CMD.');

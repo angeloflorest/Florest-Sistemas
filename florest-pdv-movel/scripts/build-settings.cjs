@@ -10,4 +10,11 @@ function buildSettings(root, totalMemory, platform = process.platform) {
     nodeOptions: lowMemory ? '--max-old-space-size=768' : null,
   };
 }
-module.exports = { buildSettings };
+function packageTool(program, args, nodeExecutable, exists, platform = process.platform) {
+  if (platform !== 'win32' || !['npm.cmd', 'npx.cmd'].includes(program)) return null;
+  const path = require('node:path').win32;
+  const cli = path.join(path.dirname(nodeExecutable), 'node_modules', 'npm', 'bin', program === 'npm.cmd' ? 'npm-cli.js' : 'npx-cli.js');
+  if (!exists(cli)) throw Error('Não foi encontrado o npm da instalação do Node: ' + cli + '. Confira a instalação do Node; não copie npm para a pasta do projeto.');
+  return { command: nodeExecutable, args: [cli, ...args] };
+}
+module.exports = { buildSettings, packageTool };
