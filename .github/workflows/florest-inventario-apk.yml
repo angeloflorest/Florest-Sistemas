@@ -1,0 +1,49 @@
+name: Compilar APK - Florest Inventario
+on:
+  push:
+    branches: [codex/florest-inventario]
+    paths:
+      - 'florest-inventario/**'
+      - '.github/workflows/florest-inventario-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    defaults:
+      run:
+        working-directory: florest-inventario
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: florest-inventario/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar dependencias fixadas
+        run: npm ci --no-audit --no-fund
+      - name: Validar TypeScript e testes
+        run: npm run check && npm test
+      - name: Gerar Android e preparar APK sem chave privada no CI
+        env:
+          CI: '1'
+        run: npx --no-install expo prebuild --platform android --no-install && node scripts/prepare-unsigned.cjs
+      - name: Compilar APK Release ARM 32 e 64 bits
+        env:
+          NODE_OPTIONS: --max-old-space-size=1536
+          CMAKE_BUILD_PARALLEL_LEVEL: '2'
+        run: ./gradlew :app:assembleRelease --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=768m' -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+        working-directory: florest-inventario/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Florest-Inventario-1.0.0-sem-assinatura
+          path: florest-inventario/android/app/build/outputs/apk/release/*-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14
