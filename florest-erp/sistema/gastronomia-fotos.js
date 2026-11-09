@@ -4,7 +4,7 @@
 const bucket='gastronomia-fotos';
 const cache=new Map();
 function urlFor(productId){return cache.get(String(productId))||''}
-function setPhotos(products){for(const p of products||[])if(p?.id)cache.set(String(p.id),p.foto||'')}
+function setPhotos(products){cache.clear();for(const p of products||[])if(p?.id)cache.set(String(p.id),p.foto||'')}
 function image(productId,size=44){const url=urlFor(productId);if(!url)return null;const img=document.createElement('img');img.src=url;img.alt='';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.style.cssText='width:'+size+'px;height:'+size+'px;object-fit:cover;border-radius:7px;flex:none;vertical-align:middle;margin-right:8px;background:#f1f5f9';img.onerror=()=>{img.hidden=true};return img}
 function addImage(parent,id,size){const img=image(id,size);if(img)parent.prepend(img)}
 async function optimize(file){
