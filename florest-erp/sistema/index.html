@@ -2850,6 +2850,7 @@
 .xmlc-resumo{padding:14px;background:var(--florest-blue-light);border:1px solid var(--border);border-radius:9px;margin-top:12px}
 .xmlc-resumo ul{max-height:240px;overflow:auto;margin:8px 0 0;padding-left:20px}
 </style>
+<link rel="stylesheet" href="./rotisseria.css">
 </head>
 <body>
 
@@ -3065,6 +3066,7 @@
     <div class="nav-item enabled" data-view="pacotes" id="nav-pacotes"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Z"/><path d="M4 8.5 12 4l8 4.5"/><path d="M12 4v15.5"/></svg></span><span class="nav-label">Pacotes</span></div>
     </div>
     <div id="secao-modulo-gastronomia" class="hidden"><div class="nav-group-label">GASTRONOMIA</div><div class="nav-item enabled" data-view="gastronomia" id="nav-gastronomia"><span class="nav-label">Módulo Gastronomia</span></div></div>
+    <div id="secao-modulo-rotisseria" class="hidden"><div class="nav-group-label">ROTISSERIA</div><div class="nav-item enabled" data-view="rotisseria" id="nav-rotisseria"><span class="nav-label">Módulo Rotisseria</span></div></div>
     <div id="secao-modulo-bar" class="hidden">
       <div class="nav-group-label">MÓDULO BAR</div>
     <div class="nav-item enabled" data-view="bar" id="nav-bar"><span class="nav-icon-badge"><svg viewBox="0 0 24 24"><path d="M5 4h14l-2 8a5 5 0 0 1-10 0L5 4Z"/><path d="M12 12v7M8.5 19h7"/><path d="M6.5 8h11"/></svg></span><span class="nav-label">Módulo Bar</span></div>
@@ -4321,6 +4323,7 @@
 
 @media print{body.gs-qr-print> *{display:none!important}body.gs-qr-print>#gs-qr-area{display:block!important;position:absolute;top:0;left:0;width:100%;text-align:center;color:#000;background:#fff}body.gs-qr-print #gs-qr-area p{overflow-wrap:anywhere}}
 </style>
+<div id="view-rotisseria" class="view hidden"></div>
 <div id="view-gastronomia" class="hidden"><div class="view-header"><div><h2>Módulo Gastronomia</h2><p>Mesas, entregas e retiradas no mesmo acompanhamento.</p></div></div><div class="bar-subnav" id="gs-nav"></div><div class="gs-toolbar"><button type="button" class="btn" id="gs-new">Novo atendimento</button><button type="button" class="btn" id="gs-refresh">Atualizar</button><span id="gs-connection" class="gs-meta"></span></div><div id="gs-feedback" role="status"></div><div id="gs-body"></div><p class="gs-meta">Integração com iFood prevista para uma etapa futura.</p></div>
 <dialog id="gs-dialog" class="gs-modal"><button type="button" class="gs-close" aria-label="Fechar">Fechar</button><div id="gs-dialog-body"></div></dialog>
 
@@ -7064,6 +7067,7 @@ export function abrirImportador(config){
 <script src="./gastronomia-fotos.js"></script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { criarRotisseria } from './rotisseria.js';
 import { instalarTaxasPagamento, agruparDespesasTaxas, prepararTaxasRecebimentoMesa } from './taxas-pagamento.js';
 let nfe55Painel = null, nfe55Carregamento = null;
 let nfe55ConfigPainel = null, nfe55ConfigCarregamento = null;
@@ -7112,6 +7116,7 @@ const recursos = { estoqueMinimo: false, categoria: false, vendaGranel: false, p
 // `podeAcessar`) — a mesma checagem em duas camadas que o próprio banco já aplica via RLS
 // (private.perm_alguma + private.empresa_tem_modulo, Migrations 006/007).
 const MODULOS_ACESSO = [
+ { k:'rotisseria_visualizar', view:'rotisseria', rotulo:'Módulo Rotisseria', moduloComercial:'rotisseria' },
  { k: 'gastronomia_visualizar', view: 'gastronomia', rotulo: 'Módulo Gastronomia', moduloComercial: 'gastronomia' },
   { k: 'clientes',      view: 'clientes',      rotulo: 'Clientes' },
   { k: 'produtos',      view: 'produtos',      rotulo: 'Produtos' },
@@ -7147,6 +7152,7 @@ const MODULOS_ACESSO = [
 // EXATAMENTE as permissões que private.perm()/private.perm_alguma() já checam no banco
 // (distgestor_migration_016_modulo_bar.sql) — nunca inventar uma chave nova aqui sem também
 // adicioná-la a perfis_permissoes_ck/private.usuarios_modulos() no banco.
+const PERMISSOES_ROTISSERIA=[{k:'rotisseria_lancar',rotulo:'Rotisseria — abrir comandas e lançar produtos'},{k:'rotisseria_caixa',rotulo:'Rotisseria — caixa e histórico de vendas'},{k:'rotisseria_configurar',rotulo:'Rotisseria — configurações'}];
 const PERMISSOES_GASTRONOMIA = [{"k":"gastronomia_mesas","rotulo":"Gastronomia — mesas"},{"k":"gastronomia_pedidos","rotulo":"Gastronomia — pedidos"},{"k":"gastronomia_producao","rotulo":"Gastronomia — producao"},{"k":"gastronomia_expedicao","rotulo":"Gastronomia — expedicao"},{"k":"gastronomia_caixa","rotulo":"Gastronomia — caixa"},{"k":"gastronomia_configurar","rotulo":"Gastronomia — configurar"},{"k":"gastronomia_cancelar","rotulo":"Gastronomia — cancelar"},{"k":"gastronomia_estornar","rotulo":"Gastronomia — estornar"}];
 const PERMISSOES_BAR_DETALHE = [
   { k: 'bar_mesas',              rotulo: 'Bar — Mesas (abrir mesa, adicionar pessoas)' },
@@ -7172,6 +7178,7 @@ const PERMISSOES_BAR_DETALHE = [
 //   chave     -> nome do módulo em private.empresa_tem_modulo('<chave>') (banco)
 //   secaoId   -> id do <div> do menu lateral que agrupa o rótulo + os itens daquele módulo
 const MODULOS_COMERCIAIS = [
+ { chave:'rotisseria',secaoId:'secao-modulo-rotisseria' },
  { chave: 'gastronomia', secaoId: 'secao-modulo-gastronomia' },
   { chave: 'pet', secaoId: 'secao-modulo-pet' },
   { chave: 'bar', secaoId: 'secao-modulo-bar' },
@@ -7563,6 +7570,7 @@ $('form-login-legado').addEventListener('submit', async (e) => {
 
 // ---------- Logout ----------
 $('btn-logout').addEventListener('click', async () => {
+  rotisseriaApp?.stop();
   await supabase.auth.signOut();
   acesso = { userId: null, papel: 'proprietario', permissoes: [], ativo: true };
   pdvCarrinho = [];           // o cupom em andamento não pode passar para o próximo usuário
@@ -7749,7 +7757,7 @@ function aplicarAcessoNaTela(){
 }
 
 function primeiroModuloPermitido(exceto){
-  const ordem = ['pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios', 'maria_acessar'];
+  const ordem = ['pdv', 'clientes', 'produtos', 'estoque', 'fornecedores', 'notas_entrada', 'financeiro', 'fiscal', 'relatorios', 'configuracoes', 'usuarios', 'maria_acessar', 'rotisseria_visualizar'];
   const k = ordem.find(m => m !== exceto && podeAcessar(m));
   return k ? MODULOS_ACESSO.find(m => m.k === k).view : null;
 }
@@ -7771,7 +7779,7 @@ function irParaTelaInicial(){
 
 // ---------- Usuários e Acessos ----------
 const ROTULO_MODULO = Object.fromEntries(
-  MODULOS_ACESSO.map(m => [m.k, m.rotulo]).concat(PERMISSOES_BAR_DETALHE.map(p => [p.k, p.rotulo]), PERMISSOES_GASTRONOMIA.map(p => [p.k,p.rotulo]))
+  MODULOS_ACESSO.map(m => [m.k, m.rotulo]).concat(PERMISSOES_BAR_DETALHE.map(p => [p.k, p.rotulo]), PERMISSOES_GASTRONOMIA.map(p => [p.k,p.rotulo]),PERMISSOES_ROTISSERIA.map(p=>[p.k,p.rotulo]))
 );
 let usuariosLista = [];
 
@@ -7863,13 +7871,14 @@ function renderPermsUsuario(marcados){
   }
 
   let gs=$('usr-perms-gastronomia'); if(!gs){gs=document.createElement('div');gs.id='usr-perms-gastronomia';$('usr-perms-bar-secao').after(gs)} gs.replaceChildren(); if(modulosComerciais.gastronomia) for(const p of PERMISSOES_GASTRONOMIA){const lab=document.createElement('label');lab.className='usr-perm';const inp=document.createElement('input');inp.type='checkbox';inp.value=p.k;inp.checked=marcados.includes(p.k);inp.disabled=!dono&&!acesso.permissoes.includes(p.k);lab.append(inp,document.createTextNode(p.rotulo));gs.append(lab)}
+  let rt=$('usr-perms-rotisseria');if(!rt){rt=document.createElement('div');rt.id='usr-perms-rotisseria';$('usr-perms-bar-secao').after(rt)}rt.replaceChildren();if(modulosComerciais.rotisseria)for(const p of PERMISSOES_ROTISSERIA){const lab=document.createElement('label');lab.className='usr-perm';const inp=document.createElement('input');inp.type='checkbox';inp.value=p.k;inp.checked=marcados.includes(p.k);inp.disabled=!dono&&!acesso.permissoes.includes(p.k);lab.append(inp,document.createTextNode(p.rotulo));rt.append(lab)}
   $('usr-perms-dica').textContent = dono ? '' : 'Você só pode liberar módulos aos quais você mesmo tem acesso, e apenas o proprietário libera “Usuários e Acessos”.';
 }
 function permsMarcadas(){
-  return [...document.querySelectorAll('#usr-perms input:checked, #usr-perms-bar input:checked, #usr-perms-gastronomia input:checked')].map(i => i.value);
+  return [...document.querySelectorAll('#usr-perms input:checked, #usr-perms-bar input:checked, #usr-perms-gastronomia input:checked, #usr-perms-rotisseria input:checked')].map(i => i.value);
 }
 function definirPerms(lista){
-  document.querySelectorAll('#usr-perms input, #usr-perms-bar input, #usr-perms-gastronomia input').forEach(i => {
+  document.querySelectorAll('#usr-perms input, #usr-perms-bar input, #usr-perms-gastronomia input, #usr-perms-rotisseria input').forEach(i => {
     if(i.disabled) return;
     i.checked = lista.includes(i.value);
     i.closest('.usr-perm').classList.toggle('marcado', i.checked);
@@ -9963,7 +9972,15 @@ function mariaAbrir(){
 })();
 
 // ---------- Navegação entre módulos ----------
+let rotisseriaApp;
+function iniciarRotisseria(){
+ rotisseriaApp ||= criarRotisseria({supabase,acessoAtual:()=>acesso,emitirNFCe:chamarEmissaoRealNFCe,mensagemFiscal:mensagemResultadoFiscal,fiscalPermitido:fiscalEmissaoCaixaPermitida,abrirImpressoras:()=>{if(!podeAcessar('configuracoes'))throw Error('O cadastro de impressoras exige acesso às Configurações do ERP. Solicite ao proprietário.');abrirView('configuracoes');},prepararTaxas:formas=>prepararTaxasRecebimentoMesa(supabase,formas),
+ contingenciaFiscal:async(venda,feedback)=>{if(await ctgContingenciaAtiva()){await ctgFluxoEmitir(venda,feedback);return true;}return false;},
+ imprimirFiscal:async id=>{const {data,error}=await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id',id).maybeSingle();if(error)throw error;if(!data||data.status!=='autorizada')throw Error('NFC-e ainda não autorizada. Consulte a tela Fiscal.');if(!nfceImprimirDocumento(data).ok)throw Error('Não foi possível abrir a impressão. Consulte a tela Fiscal.');}});
+ return rotisseriaApp.start();
+}
 const CARREGADORES_VIEW = {
+ 'rotisseria':()=>iniciarRotisseria(),
   'clientes': () => carregarClientes(),
   'produtos': () => carregarProdutos(1),
   'estoque': () => carregarEstoque(1),
@@ -9991,6 +10008,7 @@ function abrirView(view){
   // Ex.: view 'bar' exige 'bar_visualizar' e também módulo comercial 'bar' ativo.
   const cfgAcessoView = MODULOS_ACESSO.find(m => m.view === view);
   if(!cfgAcessoView || !podeAcessar(cfgAcessoView.k)) return;
+  if(view !== 'rotisseria') rotisseriaApp?.stop();
   viewAtual = view;                                   // MARIA flutuante: decide se aparece nesta tela
   atualizarMariaFlutuante();
   if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
@@ -16735,7 +16753,7 @@ async function relatorioVendasOrigem(filtros){
   // já usa com 'pacote_novo') — nenhuma coluna nova. tipo=null continua sendo PDV.
   const porOrigem = {};
   vendas.forEach(v => {
-    const chave = v.pdv_movel_caixa_id ? pdvMovelRotuloVenda(v) : v.tipo === 'gastronomia' ? 'Gastronomia — '+({mesa:'Mesas',entrega:'Entregas',retirada:'Retiradas'}[v.gastronomia_canal]||'Operação') : v.tipo === 'bar' ? 'Módulo Bar' : v.tipo === 'pacote_novo' ? 'Pacotes (Módulo Pet)' : 'PDV';
+    const chave = v.pdv_movel_caixa_id ? pdvMovelRotuloVenda(v) : v.tipo === 'rotisseria' ? 'Rotisseria' : v.tipo === 'gastronomia' ? 'Gastronomia — '+({mesa:'Mesas',entrega:'Entregas',retirada:'Retiradas'}[v.gastronomia_canal]||'Operação') : v.tipo === 'bar' ? 'Módulo Bar' : v.tipo === 'pacote_novo' ? 'Pacotes (Módulo Pet)' : 'PDV';
     porOrigem[chave] = porOrigem[chave] || { qtd: 0, total: 0 };
     porOrigem[chave].qtd += 1;
     porOrigem[chave].total += Number(v.total);
@@ -23415,7 +23433,7 @@ abrirModalUsuario=function(u){
 $('btn-novo-usuario').textContent='+ Novo usuário';
 function florestAtualizarPapel(){
   const dono=$('usr-papel').value==='proprietario';
-  document.querySelectorAll('#usr-perms input,#usr-perms-bar input, #usr-perms-gastronomia input').forEach(i=>{if(acesso.papel==='proprietario')i.disabled=dono;});
+  document.querySelectorAll('#usr-perms input,#usr-perms-bar input, #usr-perms-gastronomia input, #usr-perms-rotisseria input').forEach(i=>{if(acesso.papel==='proprietario')i.disabled=dono;});
   $('usr-perms-dica').textContent=dono?'Proprietário tem todas as permissões dos módulos contratados, sem seleção manual.':'';
 }
 
