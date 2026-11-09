@@ -1,6 +1,6 @@
-# Rotisseria — implantação preparada
+# Rotisseria — implantação
 
-Estado: código e migração preparados; ativação em produção pendente. A revisão automática rejeitou a aplicação da migração por envolver integrações com funções compartilhadas. Não houve aplicação parcial, liberação da empresa nem publicação em `main`.
+As integrações compartilhadas receberam autorização específica em 09/11/2026. As migrações foram aplicadas e o módulo foi liberado somente para a empresa vinculada a `bar@gmail.com`. A publicação das telas deve ser conferida pelo conteúdo servido no ERP e no admin, além do commit no GitHub.
 
 ## Alterações compartilhadas necessárias
 
@@ -28,10 +28,14 @@ Todas as definições compartilhadas possuem guarda de hash antes da atualizaç�
 - Nenhuma venda de teste persistiu. Nenhuma NFC-e foi transmitida à SEFAZ; nenhum job de impressão de teste persistiu. Impressão física e emissão real dependem da configuração existente e da validação do operador.
 - Base de interface atualizada para `c25f45a`, preservando a conferência de caixa da Gastronomia publicada em paralelo.
 
-## Após autorização específica das integrações
+## Conferências de implantação
 
 1. Buscar a versão mais recente de `main` e conferir novamente as funções do banco; reaplicar só a Rotisseria se houver alterações.
 2. Aplicar a migração em uma única transação, validar RLS e os avisos de segurança referentes aos objetos novos.
 3. Ativar `empresa_modulos.rotisseria` somente para a empresa vinculada a `bar@gmail.com`, depois de confirmar novamente o vínculo. Nenhuma outra empresa deve ser liberada automaticamente.
 4. Publicar a interface do ERP e do admin e comparar os arquivos servidos com o commit publicado.
 5. No computador, definir o dispositivo como caixa; no tablet, manter Atendimento. Configurar produtos/fotos/impressora e testar a operação.
+
+## Revisão de segurança
+
+A migração adicional `20261109145357_rotisseria_admin_api_privada.sql` mantém a autorização administrativa no schema privado. A RPC pública é `SECURITY INVOKER`; a função privada exige `florest_eh_admin()`. As quatro tabelas operacionais privadas têm RLS e acesso direto revogado para clientes: a ausência de políticas nessas tabelas é intencional, pois somente as funções autorizadas operam nelas.
