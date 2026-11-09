@@ -26,3 +26,7 @@ html.rt-focus,html.rt-focus body{overflow:hidden}
 @media(max-width:600px){.rt-comanda-dialog.rt-dialog{padding:8px}.rt-comanda-head{gap:6px}.rt-comanda-head h2{font-size:20px}.rt-comanda-head button{font-size:12px;padding:8px}.rt-payment-methods{grid-template-columns:repeat(3,minmax(0,1fr))}.rt-sale-row{grid-template-columns:1fr auto}.rt-sale-row>span{grid-column:1/-1}}
 #view-rotisseria [hidden],.rt-dialog [hidden]{display:none!important}
 .rt-payment-customer{margin:10px 0}.rt-payment-customer>summary{cursor:pointer;padding:10px 0;font-weight:600}.rt-payment-customer[open]>summary{margin-bottom:8px}
+/* Feedback is shown once, only for actionable failures or fiscal status. */
+#view-rotisseria #rt-msg.rt-feedback-error,.rt-dialog [data-rt-feedback].rt-feedback-error{background:#fff0f0;color:#8a2430;border:1px solid #efc6cb;padding:9px;border-radius:6px}
+#view-rotisseria #rt-msg.rt-feedback-info,.rt-dialog [data-rt-feedback].rt-feedback-info{background:#eef3f8;color:#0d2e50;border:1px solid #d5dfeb;padding:9px;border-radius:6px}
+.rt-print-frame{position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none}.rt-comanda-items .rt-print-comanda{flex-shrink:0;min-height:44px}
