@@ -4324,7 +4324,7 @@
 @media print{body.gs-qr-print> *{display:none!important}body.gs-qr-print>#gs-qr-area{display:block!important;position:absolute;top:0;left:0;width:100%;text-align:center;color:#000;background:#fff}body.gs-qr-print #gs-qr-area p{overflow-wrap:anywhere}}
 </style>
 <div id="view-rotisseria" class="view hidden"></div>
-<div id="view-gastronomia" class="hidden"><div class="view-header"><div><h2>Módulo Gastronomia</h2><p>Mesas, entregas e retiradas no mesmo acompanhamento.</p></div></div><div class="bar-subnav" id="gs-nav"></div><div class="gs-toolbar"><button type="button" class="btn" id="gs-new">Novo atendimento</button><button type="button" class="btn" id="gs-refresh">Atualizar</button><span id="gs-connection" class="gs-meta"></span></div><div id="gs-feedback" role="status"></div><div id="gs-body"></div><p class="gs-meta">Integração com iFood prevista para uma etapa futura.</p></div>
+<div id="view-gastronomia" class="hidden"><div class="view-header"><div><h2>Módulo Gastronomia</h2><p>Mesas, entregas e retiradas no mesmo acompanhamento.</p></div></div><div class="bar-subnav" id="gs-nav"></div><div class="gs-toolbar"><button type="button" class="btn" id="gs-new">Novo atendimento</button><button type="button" class="btn" id="gs-refresh">Atualizar</button><span id="gs-connection" class="gs-meta"></span></div><div id="gs-feedback" role="status"></div><div id="gs-body"></div><p class="gs-meta">Preparação iFood disponível na aba iFood para usuários com permissão de configuração. Conexão real desativada.</p></div>
 <dialog id="gs-dialog" class="gs-modal"><button type="button" class="gs-close" aria-label="Fechar">Fechar</button><div id="gs-dialog-body"></div></dialog>
 
 <div id="view-bar" class="hidden">
@@ -10162,12 +10162,23 @@ function gsSelect(parent,label,options,value){const e=gsField(parent,label,'sele
 function gsSubmit(form,fn,label='Salvar'){const b=gsBtn(label,()=>{});b.type='submit';form.append(b);form.onsubmit=async e=>{e.preventDefault();if(b.disabled)return;b.disabled=true;try{await fn()}catch(err){gsNotice(err)}finally{b.disabled=false}};return b}
 function gsNextLabel(a){if(a.estado==='em_ajuste')return 'Revisar ajuste financeiro';const pronto=gsPrep(a)==='Pronto';if(!pronto&&gsHas('producao'))return 'Acompanhar preparo';if(pronto&&gsHas('expedicao')&&!['entregue_mesa','entregue','retirado'].includes(a.expedicao))return a.tipo==='mesa'?'Entregar na mesa':a.tipo==='retirada'?'Conferir retirada':'Conferir despacho / entrega';if(gsHas('caixa')&&Number(a.pago)<Number(a.total))return 'Receber pagamento';if(gsHas('caixa')&&['entregue_mesa','entregue','retirado'].includes(a.expedicao)&&Number(a.pago)===Number(a.total))return 'Encerrar atendimento';return 'Abrir atendimento'}
 function gsRender(){
- if(!GS.ctx)return;const tabs=[['mesas','Mesas','visualizar'],['pedidos','Pedidos','visualizar'],['caixa','Caixa','caixa'],['garcons','Garçons','configurar'],['compostos','Produto Composto','configurar'],['historico','Histórico de Vendas','caixa'],['configuracao','Configurações','configurar']].filter(t=>gsHas(t[2]));if(!tabs.some(t=>t[0]===GS.area))GS.area=tabs[0]?.[0]||'mesas';
+ if(!GS.ctx)return;const tabs=[['mesas','Mesas','visualizar'],['pedidos','Pedidos','visualizar'],['caixa','Caixa','caixa'],['garcons','Garçons','configurar'],['compostos','Produto Composto','configurar'],['historico','Histórico de Vendas','caixa'],['configuracao','Configurações','configurar'],['ifood','iFood','configurar']].filter(t=>gsHas(t[2]));if(!tabs.some(t=>t[0]===GS.area))GS.area=tabs[0]?.[0]||'mesas';
  $('gs-nav').replaceChildren(...tabs.map(([id,label])=>{const b=gsBtn(label,()=>{GS.formDirty=false;GS.area=id;gsRender()});b.className='bar-subnav-item'+(GS.area===id?' active':'');return b}));
- $('gs-new').parentElement.hidden=GS.area==='caixa';$('gs-new').hidden=GS.area!=='pedidos'||!(gsHas('mesas')||gsHas('pedidos'));
- $('gs-refresh').hidden=true;const body=$('gs-body');body.replaceChildren();if(GS.area==='configuracao'){gsConfig(body);return}if(GS.area==='caixa'){gsCash(body).catch(gsNotice);return}if(['garcons','compostos','historico'].includes(GS.area)){gsTools(body).catch(gsNotice);return}
+ $('gs-new').parentElement.hidden=['caixa','ifood'].includes(GS.area);$('gs-new').hidden=GS.area!=='pedidos'||!(gsHas('mesas')||gsHas('pedidos'));
+ $('gs-refresh').hidden=true;const body=$('gs-body');body.replaceChildren();if(GS.area==='ifood'){gsIFood(body).catch(gsNotice);return}if(GS.area==='configuracao'){gsConfig(body);return}if(GS.area==='caixa'){gsCash(body).catch(gsNotice);return}if(['garcons','compostos','historico'].includes(GS.area)){gsTools(body).catch(gsNotice);return}
  if(GS.area==='mesas'){const grid=gsEl('div','','gs-grid gs-tables');for(const m of GS.ctx.mesas){const a=GS.ctx.atendimentos.find(a=>a.mesa_id===m.id&&a.estado==='aberto'),card=gsBtn('',()=>gsOpenMesa(m.id));card.className='gs-card gs-table';card.append(gsEl('h3','Mesa '+m.numero),gsEl('b',a?'Ocupada':'Livre'));if(a){card.append(gsEl('p',a.cliente_nome||'Cliente não informado','gs-meta'));if(a.garcom_nome)card.append(gsEl('p','Garçom: '+a.garcom_nome,'gs-meta'));card.append(gsEl('p',gsTime(a),'gs-meta'),gsEl('p','Consumo '+gsMoney(a.financeiro?.subtotal??a.total)),gsEl('p',gsChargeSummary(a).split(' · ').slice(1).join(' · '),'gs-meta'),gsEl('b','Saldo '+gsMoney(Math.max(0,Number(a.total)-Number(a.pago)))))}grid.append(card)}body.append(grid);if($('gs-dialog').open&&$('gs-dialog').classList.contains('gs-mesa-dialog')&&!GS.formDirty){const current=GS.selected?GS.ctx.atendimentos.find(x=>x.id===GS.selected):GS.ctx.atendimentos.find(x=>x.mesa_id===GS.mesaCurrent&&x.estado==='aberto');const m=GS.ctx.mesas.find(m=>m.id===GS.mesaCurrent);if(current)gsMesaPanel(current);else if(m)gsMesaPanel(null,m)}return}
  gsOrders(body);
+}
+
+async function gsIFood(body){
+ const company=GS.ctx.empresa_id,view=GS.ifoodView=crypto.randomUUID();
+ const current=()=>body.isConnected&&GS.area==='ifood'&&GS.ctx?.empresa_id===company&&GS.ifoodView===view;
+ const {mountIFood}=await import('./gastronomia-ifood.js');if(!current())return;
+ await mountIFood(body,{catalog:GS.ctx.catalogo,current,notice:gsNotice,rpc:async(action,values)=>{
+  if(!current())throw Error('A empresa da sessão mudou.');
+  const {data,error}=await supabase.rpc('gastronomia_ifood_admin',{p_acao:action,p_dados:{...values,empresa_esperada:company}});if(error)throw error;
+  if(data.empresa_id!==company)throw Error('Resposta de outra empresa.');return data;
+ }});
 }
 
 async function gsTools(body){
