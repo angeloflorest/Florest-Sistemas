@@ -1,0 +1,71 @@
+-- Execute ONLY inside a transaction ending in ROLLBACK. All fixtures are isolated.
+DO $test$
+DECLARE e uuid:=gen_random_uuid();u uuid:=gen_random_uuid();p uuid;cli uuid;sid uuid;cx uuid;key1 uuid:=gen_random_uuid();device uuid:=gen_random_uuid();d jsonb;r jsonb;req jsonb;vid uuid;note uuid;before_stock numeric;blocked boolean;new_item uuid;
+BEGIN
+ INSERT INTO public.empresas(id,nome,status_conta,bloqueado) VALUES(e,'TESTE TRANSACIONAL ROTISSERIA TOUCH','aprovado',false);
+ INSERT INTO auth.users(id,email) VALUES(u,'rot-test-'||u||'@example.invalid');
+ INSERT INTO public.perfis(id,empresa_id,nome,papel,ativo) VALUES(u,e,'Operador teste','proprietario',true);
+ INSERT INTO public.empresa_modulos(empresa_id,modulo,ativo) VALUES(e,'rotisseria',true);
+ INSERT INTO public.produtos(empresa_id,nome,preco_venda,quantidade_estoque,unidade_comercial,venda_granel) VALUES(e,'Carne teste',40,100,'KG',true) RETURNING id INTO p;
+ INSERT INTO public.clientes(empresa_id,nome) VALUES(e,'Cliente teste') RETURNING id INTO cli;
+ PERFORM set_config('request.jwt.claim.sub',u::text,true);
+ PERFORM public.rotisseria_rpc('caixa_vincular','{}',device);r:=public.rotisseria_rpc('caixa_abrir','{"valor":10}',device);cx:=(r->'caixa'->>'id')::uuid;
+ r:=public.rotisseria_rpc('abrir_comanda','{"numero":1}');sid:=(r->>'id')::uuid;
+ PERFORM public.rotisseria_rpc('fechar_vazia',jsonb_build_object('id',sid));
+ IF (public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid))->>'estado')<>'cancelada' THEN RAISE EXCEPTION 'Comanda vazia não foi liberada'; END IF;
+ r:=public.rotisseria_rpc('abrir_comanda','{"numero":1}');sid:=(r->>'id')::uuid;
+ PERFORM public.rotisseria_rpc('lancar',jsonb_build_object('id',sid,'produto_id',p,'preco',40,'quantidade',2.5,'chave',gen_random_uuid()));
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));
+ req:=jsonb_build_object('id',sid,'versao',d->'versao','forma','Dinheiro','valor',40,'chave',key1);
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('receber',req,gen_random_uuid());EXCEPTION WHEN insufficient_privilege THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Tablet recebeu sem autorização';END IF;
+ r:=public.rotisseria_rpc('receber',req,device);
+ IF (r->>'finalizada')::boolean OR (r->>'saldo')::numeric<>60 THEN RAISE EXCEPTION 'Parcial finalizou ou calculou saldo errado: %',r;END IF;
+ r:=public.rotisseria_rpc('receber',req,device);IF NOT (r->>'repetido')::boolean THEN RAISE EXCEPTION 'Reenvio não reconhecido';END IF;
+ IF (SELECT count(*) FROM private.rotisseria_pagamentos WHERE empresa_id=e)<>1 OR (SELECT count(*) FROM public.vendas WHERE empresa_id=e)<>0 THEN RAISE EXCEPTION 'Parcial duplicou pagamento ou criou venda cedo';END IF;
+ IF (SELECT quantidade_estoque FROM public.produtos WHERE id=p)<>97.5 THEN RAISE EXCEPTION 'Estoque não reservado uma vez';END IF;
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));IF (d->>'total_pago')::numeric<>40 OR (d->>'saldo')::numeric<>60 THEN RAISE EXCEPTION 'Detalhe não mostra parcial';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cancelar_item',jsonb_build_object('id',sid,'item_id',d->'itens'->0->>'id'));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Cancelamento ultrapassou saldo pago';END IF;
+ r:=public.rotisseria_rpc('lancar',jsonb_build_object('id',sid,'produto_id',p,'preco',40,'quantidade',.5,'chave',gen_random_uuid()));new_item:=(r->>'item_id')::uuid;
+ IF (SELECT quantidade_estoque FROM public.produtos WHERE id=p)<>97 THEN RAISE EXCEPTION 'Novo item pós-parcial não deu baixa';END IF;
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));
+ PERFORM public.rotisseria_rpc('cancelar_item',jsonb_build_object('id',sid,'item_id',new_item));
+ IF (SELECT quantidade_estoque FROM public.produtos WHERE id=p)<>97.5 THEN RAISE EXCEPTION 'Cancelamento não restituiu estoque';END IF;
+ r:=public.rotisseria_rpc('caixa_dados');IF (r->'resumo'->>'total_recebido')::numeric<>40 OR (r->'resumo'->>'saldo_dinheiro_esperado')::numeric<>50 OR jsonb_array_length(r->'historico')<>0 THEN RAISE EXCEPTION 'Caixa parcial ou histórico sob demanda incorreto: %',r;END IF;
+ -- A comanda can span shifts. Each actual receipt remains in its own cash box.
+ PERFORM public.rotisseria_rpc('caixa_fechar',jsonb_build_object('id',cx),device);r:=public.rotisseria_rpc('caixa_abrir','{"valor":0}',device);
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));
+ req:=jsonb_build_object('id',sid,'versao',d->'versao','forma','Pix','valor',60,'chave',gen_random_uuid());
+ r:=public.rotisseria_rpc('receber',req,device);vid:=(r->>'venda_id')::uuid;
+ IF NOT (r->>'finalizada')::boolean OR (r->>'saldo')::numeric<>0 THEN RAISE EXCEPTION 'Saldo zerado não finalizou';END IF;
+ PERFORM public.rotisseria_rpc('receber',req,device);
+ r:=public.rotisseria_rpc('receber',jsonb_build_object('id',sid,'versao',2,'forma','Dinheiro','valor',40,'chave',key1),device);IF NOT (r->>'finalizada')::boolean OR (r->>'venda_id')::uuid<>vid THEN RAISE EXCEPTION 'Recuperação de parcial antigo não reconheceu quitação';END IF;
+ IF (SELECT count(*) FROM public.vendas WHERE empresa_id=e)<>1 OR (SELECT count(*) FROM public.vendas_pagamentos WHERE venda_id=vid)<>2 OR (SELECT sum(valor) FROM public.vendas_pagamentos WHERE venda_id=vid)<>100 THEN RAISE EXCEPTION 'Venda ou pagamentos duplicados';END IF;
+ IF (SELECT quantidade_estoque FROM public.produtos WHERE id=p)<>97.5 THEN RAISE EXCEPTION 'Finalização deu baixa duas vezes';END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.caixas WHERE id=cx AND (fechamento_resumo->>'total_recebido')::numeric=40) THEN RAISE EXCEPTION 'Primeiro caixa perdeu parcial';END IF;
+ r:=public.rotisseria_rpc('caixa_dados');IF (r->'resumo'->>'total_recebido')::numeric<>60 THEN RAISE EXCEPTION 'Segundo caixa incluiu primeiro recebimento';END IF;
+ r:=public.rotisseria_rpc('contexto');IF r->'comandas'->0->>'id' IS NOT NULL THEN RAISE EXCEPTION 'Comanda não foi liberada';END IF;
+ -- Partial cash + remaining balance on credit: only the remaining balance becomes receivable.
+ r:=public.rotisseria_rpc('abrir_comanda','{"numero":2}');sid:=(r->>'id')::uuid;
+ PERFORM public.rotisseria_rpc('lancar',jsonb_build_object('id',sid,'produto_id',p,'preco',40,'quantidade',1,'chave',gen_random_uuid()));
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));PERFORM public.rotisseria_rpc('receber',jsonb_build_object('id',sid,'versao',d->'versao','forma','Dinheiro','valor',10,'chave',gen_random_uuid()),device);
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));
+ req:=jsonb_build_object('id',sid,'versao',d->'versao','forma','Nota a Prazo','valor',30,'cliente_id',cli,'vencimento',(now() AT TIME ZONE 'America/Sao_Paulo')::date+10,'chave',gen_random_uuid());
+ r:=public.rotisseria_rpc('receber',req,device);note:=(r->>'titulo_id')::uuid;vid:=(r->>'venda_id')::uuid;
+ IF NOT EXISTS(SELECT 1 FROM public.contas_receber WHERE id=note AND empresa_id=e AND valor_original=30 AND saldo_aberto=30) THEN RAISE EXCEPTION 'Nota a prazo incorreta';END IF;
+ IF private.contas_receber_tipo_caixa(note,e)<>'ROTISSERIA' THEN RAISE EXCEPTION 'Nota sem origem Rotisseria';END IF;
+ IF (SELECT sum(valor) FROM public.vendas_pagamentos WHERE venda_id=vid)<>10 THEN RAISE EXCEPTION 'Nota a prazo foi contada como dinheiro';END IF;
+ r:=public.contas_receber_receber(ARRAY[note],jsonb_build_array(jsonb_build_object('forma_pagamento','Pix','valor',30)),gen_random_uuid()::text);
+ IF NOT EXISTS(SELECT 1 FROM public.contas_receber WHERE id=note AND saldo_aberto=0 AND status='pago') THEN RAISE EXCEPTION 'Nota a prazo não pode ser recebida no Financeiro';END IF;
+ r:=public.rotisseria_rpc('caixa_dados');IF (r->'resumo'->>'total_recebido')::numeric<>100 OR (r->'resumo'->>'saldo_dinheiro_esperado')::numeric<>10 THEN RAISE EXCEPTION 'Caixa confundiu prazo e dinheiro: %',r;END IF;
+ r:=public.rotisseria_rpc('caixa_dados','{"historico":true}');IF jsonb_array_length(r->'historico')<>2 THEN RAISE EXCEPTION 'Histórico não foi carregado sob demanda';END IF;
+ -- Removing the last unpaid item can also settle the comanda without another receipt.
+ r:=public.rotisseria_rpc('abrir_comanda','{"numero":3}');sid:=(r->>'id')::uuid;
+ PERFORM public.rotisseria_rpc('lancar',jsonb_build_object('id',sid,'produto_id',p,'preco',40,'quantidade',.25,'chave',gen_random_uuid()));
+ r:=public.rotisseria_rpc('lancar',jsonb_build_object('id',sid,'produto_id',p,'preco',40,'quantidade',.75,'chave',gen_random_uuid()));new_item:=(r->>'item_id')::uuid;
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));PERFORM public.rotisseria_rpc('receber',jsonb_build_object('id',sid,'versao',d->'versao','forma','Dinheiro','valor',10,'chave',gen_random_uuid()),device);
+ PERFORM public.rotisseria_rpc('cancelar_item',jsonb_build_object('id',sid,'item_id',new_item));
+ d:=public.rotisseria_rpc('detalhe',jsonb_build_object('id',sid));IF d->>'estado'<>'concluida' THEN RAISE EXCEPTION 'Cancelamento que zera saldo não liberou comanda'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.vendas WHERE id=(d->>'venda_id')::uuid AND total=10) THEN RAISE EXCEPTION 'Venda após cancelamento incorreta'; END IF;
+ IF NOT has_function_privilege('anon','private.rotisseria_receber(jsonb,uuid)','EXECUTE') THEN NULL;ELSE RAISE EXCEPTION 'Função privada exposta';END IF;
+END $test$;
+SELECT 'PASS: vazio, parcial, reenvio, estoque, cancelamento, dois turnos, finalização, nota a prazo e cobrança no Financeiro' resultado;
