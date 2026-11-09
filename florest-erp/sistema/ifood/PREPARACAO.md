@@ -4,7 +4,7 @@ Implementado em 09/11/2026, sem cadastro de desenvolvedor, CNPJ, credenciais ou 
 
 ## Disponível no ERP
 
-Gastronomia → iFood, somente para quem já pode configurar Gastronomia. A API pública executa como chamador e delega a uma função privada que verifica empresa ativa, módulo contratado, permissão de visualizar/configurar e empresa esperada; alterar o navegador não concede acesso.
+Gastronomia → Configurações → Integração iFood, somente para quem já pode configurar Gastronomia. A API pública executa como chamador e delega a uma função privada que verifica empresa ativa, módulo contratado, permissão de visualizar/configurar e empresa esperada; alterar o navegador não concede acesso.
 
 - Nome, ID opcional da loja e ambiente planejado, com versão para evitar sobrescrever outro terminal.
 - Vínculos por código externo, separando produtos e adicionais. Desativação preserva o registro.
@@ -23,7 +23,7 @@ O normalizador não publica dados nas tabelas operacionais. As regras atuais de 
 
 ## Como testar agora
 
-1. Abrir Gastronomia → iFood e salvar o nome da loja sem preencher ID ou credenciais.
+1. Abrir Gastronomia → Configurações → Integração iFood e salvar o nome da loja sem preencher ID ou credenciais.
 2. Vincular um código externo a um produto desta empresa. `DEMO-001` corresponde ao produto fictício do simulador.
 3. Usar os exemplos online e dinheiro com troco. R$ 35 online não entra na gaveta; R$ 35 em dinheiro aparece como a cobrar, com R$ 15 de troco para R$ 50.
 4. Simular confirmação repetida: uma confirmação, sem pedido, baixa ou impressão duplicada.
@@ -59,3 +59,5 @@ O teste de navegador requer Playwright e Chromium; usa RPC simulada. Os testes n
 - [Polling e ACK](https://developer.ifood.com.br/en-US/docs/food/guides/modules/events/polling-overview)
 - [Endpoints de pedidos](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/endpoints)
 - [Homologação de pedidos](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation)
+
+Os pedidos de origem `site` e `ifood` compartilham Gastronomia → Pedidos, com faixa amarela “Cardápio digital” e vermelha “iFood”. A aba Mesas continua dedicada aos atendimentos de mesa. Pedidos manuais mantêm sua origem verdadeira.
