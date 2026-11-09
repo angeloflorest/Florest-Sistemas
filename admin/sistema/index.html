@@ -434,6 +434,7 @@
         </div>
       </div>
       <div id="modulo-gastronomia-msg"></div>
+      <div class="modulo-toggle-row" id="modulo-rotisseria-row"><input type="checkbox" id="f-modulo-rotisseria"><div><div class="titulo">ROTISSERIA</div><div class="descricao">Comandas, atendimento por peso e caixa próprio da Rotisseria.</div></div></div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
@@ -571,8 +572,11 @@ async function tentarMostrarApp(){
     $('admin-msg').innerHTML = `<div class="msg error">Não foi possível consultar os módulos Gastronomia: ${escapeHtml(traduzErro(erroGastronomia.message))}</div>`;
     return;
   }
+  const {data: modulosRotisseria,error:erroRotisseria}=await supabase.rpc('admin_listar_rotisseria_modulos');
+  if(erroRotisseria){$('admin-msg').textContent='Não foi possível consultar Rotisseria: '+erroRotisseria.message;return;}
+  const rotisseriaPorEmpresa=new Map((modulosRotisseria||[]).map(m=>[m.empresa_id,!!m.ativo]));
   const gastronomiaPorEmpresa = new Map((modulosGastronomia||[]).map(m=>[m.empresa_id,!!m.ativo]));
-  clientesCache = (data || []).map(c => ({ ...c, gastronomia_ativo: gastronomiaPorEmpresa.get(c.empresa_id)||false, dias_restantes: diasRestantes(c.vencimento) }));
+  clientesCache = (data || []).map(c => ({ ...c, rotisseria_ativo:rotisseriaPorEmpresa.get(c.empresa_id)||false, gastronomia_ativo: gastronomiaPorEmpresa.get(c.empresa_id)||false, dias_restantes: diasRestantes(c.vencimento) }));
   loginScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
   renderClientes(clientesCache);
@@ -633,6 +637,7 @@ function renderClientes(lista){
     let moduloBadge = '';
     if(c.pet_ativo) moduloBadge += '<span class="modulo-chip ativo">PET ativo</span>';
     if(c.bar_ativo) moduloBadge += '<span class="modulo-chip ativo">BAR ativo</span>';
+    if(c.rotisseria_ativo) moduloBadge += '<span class="modulo-chip ativo">ROTISSERIA ativa</span>';
     if(c.gastronomia_ativo) moduloBadge += '<span class="modulo-chip ativo">GASTRONOMIA ativa</span>';
     if(!moduloBadge) moduloBadge = '<span class="modulo-chip padrao">ERP padrão</span>';
 
@@ -728,7 +733,7 @@ async function reativarEmpresa(c){
 // anterior) e só chama admin_configurar_modulo para o(s) módulo(s) que realmente mudaram.
 // Fechar o modal ou clicar em "Cancelar" nunca grava nada, porque nenhuma chamada de rede
 // acontece antes do Salvar — não há mais nada para "desfazer".
-let moduloOriginal = { pet: false, bar: false, gastronomia: false };
+let moduloOriginal = { pet: false, bar: false, gastronomia: false, rotisseria:false };
 
 function abrirModalCliente(c){
   $('modal-msg').innerHTML = '';
@@ -749,13 +754,15 @@ function abrirModalCliente(c){
   $('f-observacoes').value = c.observacoes || '';
 
   // Fonte da verdade: exatamente o que admin_listar_empresas() retornou agora para esta empresa.
-  moduloOriginal = { pet: !!c.pet_ativo, bar: !!c.bar_ativo, gastronomia: !!c.gastronomia_ativo };
+  moduloOriginal = { pet: !!c.pet_ativo, bar: !!c.bar_ativo, gastronomia: !!c.gastronomia_ativo,rotisseria:!!c.rotisseria_ativo };
   $('f-modulo-pet').checked = moduloOriginal.pet;
   $('f-modulo-pet').disabled = false;
   $('f-modulo-bar').checked = moduloOriginal.bar;
   $('f-modulo-bar').disabled = false;
   $('f-modulo-gastronomia').checked = moduloOriginal.gastronomia;
   $('f-modulo-gastronomia').disabled = false;
+  $('f-modulo-rotisseria').checked=moduloOriginal.rotisseria;
+  $('f-modulo-rotisseria').disabled=false;
 
   $('modal-cliente').classList.remove('hidden');
 }
@@ -811,6 +818,7 @@ $('form-cliente').addEventListener('submit', async (e) => {
   if(novoBar !== moduloOriginal.bar) mudancasModulo.push({ modulo: 'bar', ativo: novoBar, label: 'BAR' });
   if(novoGastronomia !== moduloOriginal.gastronomia) mudancasModulo.push({ modulo: 'gastronomia', ativo: novoGastronomia, label: 'GASTRONOMIA' });
 
+  if($('f-modulo-rotisseria').checked !== moduloOriginal.rotisseria)mudancasModulo.push({modulo:'rotisseria',ativo:$('f-modulo-rotisseria').checked,label:'ROTISSERIA'});
   const errosModulo = [];
   for(const m of mudancasModulo){
     const { error } = await supabase.rpc('admin_configurar_modulo', {
