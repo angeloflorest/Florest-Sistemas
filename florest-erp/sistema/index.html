@@ -4349,6 +4349,7 @@
           <button type="button" class="btn-secondary" id="btn-bar-estornar-busca" style="width:auto;">↩ Estornar pagamento</button>
         </div>
         <div id="bar-mesas-msg"></div>
+        <div id="bar-mesas-atualizacao" class="hidden" role="status"></div>
         <div id="bar-mesas-vazio" class="empty-state hidden">Nenhuma mesa configurada ainda. Clique em "⚙ Configurar mesas" para definir a quantidade.</div>
         <div id="bar-mesas-grid" class="bar-mesas-grid"></div>
       </div>
@@ -5833,6 +5834,7 @@
       </div>
     </div>
     <div id="bar-mesa-msg"></div>
+    <div id="bar-mesa-atualizacao" class="hidden" role="status"></div>
 
     <div class="bar-mesa-grid">
       <!-- ===== COLUNA ESQUERDA: consumo + busca/adicionar produtos ===== -->
@@ -20590,18 +20592,14 @@ async function abrirConfigSubViewBar(sub){
 function configurarRealtimeBar(){
   if(barCanalRealtime) return;
   try{
+    // Realtime apenas sinaliza dados antigos. Leituras ficam no ciclo de 60 s,
+    // no botão Atualizar e nas chamadas já existentes após cada operação local.
     barCanalRealtime = supabase.channel('bar-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_mesas' }, () => {
-        if(barSubViewAtual === 'mesas') carregarBarMesas();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_pedidos_itens' }, () => {
-        // Mantém saldo/itens em dia no modal aberto quando outro dispositivo lança/cancela um
-        // item da mesma comanda (ex.: dois garçons atendendo a mesma mesa).
-        if(barComandaAtualId && !$('modal-bar-mesa').classList.contains('hidden')) atualizarSaldoEItensMesa();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_mesas' }, p => barSinalizarMudancaMesa(p, true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_pedidos_itens' }, p => barSinalizarMudancaMesa(p, false))
       .subscribe();
   }catch(e){
-    console.warn('Realtime do Módulo Bar indisponível; as telas atualizam ao navegar/recarregar.', e);
+    console.warn('Realtime do Módulo Bar indisponível; as mesas continuam atualizando a cada 60 segundos.', e);
   }
 }
 
@@ -21464,88 +21462,150 @@ async function relatorioBarComparativoGarcons(filtros){
 }
 
 
-// Atualização silenciosa exclusiva das Mesas do Bar (5 segundos).
-// Não recarrega a página nem interfere nos campos em edição.
-let barMesasPollingEmAndamento = false;
-setInterval(async () => {
-  if(barMesasPollingEmAndamento || document.hidden ||
-     $('view-bar').classList.contains('hidden') || barSubViewAtual !== 'mesas' ||
-     $('bar-sub-mesas').classList.contains('hidden')) return;
-  barMesasPollingEmAndamento = true;
-  try {
-    const modal = $('modal-bar-mesa');
-    const modalAberto = modal && !modal.classList.contains('hidden');
-    const editando = modalAberto && (
-      barMesaCarrinho.length > 0 ||
-      (modal.contains(document.activeElement) &&
-       document.activeElement.matches('input, textarea, select, [contenteditable="true"]'))
-    );
-    // Durante digitação ou montagem do pedido, preservar integralmente o formulário.
-    if(modalAberto && !editando && barComandaAtualId) {
-      const comandaConsultada = barComandaAtualId;
-      const {data, error} = await supabase.from('bar_mesas')
-        .select('id,status,comanda_atual_id').eq('id',barMesaAtual.id).single();
-      if(!error && barComandaAtualId === comandaConsultada &&
-         !modal.classList.contains('hidden')) {
-        if(data.comanda_atual_id === comandaConsultada && data.status === 'ocupada') {
-          await atualizarSaldoEItensMesa();
-        } else {
-          // Outra estação encerrou a mesa: não permitir mostrar saldo antigo.
-          barMesaAtual = {...barMesaAtual,...data};
-          barComandaAtualId = data.comanda_atual_id || null;
-          await atualizarSaldoEItensMesa();
+// Atualização das Mesas: 60 s, com uma fila única para grade e modal.
+// As mutações mantêm suas RPCs/argumentos e solicitam atualização imediata.
+const BAR_MESAS_INTERVALO_MS = 60000;
+const barAtualizacaoMesas = { promessa: null, pendente: null, contexto: null, mesas: [], resumos: new Map(), antigas: new Set(), falhaLista: false };
+function barEstadoMesas(){
+  if(barAtualizacaoMesas.contexto !== acesso){
+    barAtualizacaoMesas.contexto = acesso;
+    barAtualizacaoMesas.mesas = [];
+    barAtualizacaoMesas.resumos.clear();
+    barAtualizacaoMesas.antigas.clear();
+    barAtualizacaoMesas.falhaLista = false;
+  }
+  return barAtualizacaoMesas;
+}
+function barMesasVisiveis(){
+  return !document.hidden && !$('view-bar').classList.contains('hidden') && barSubViewAtual === 'mesas' && !$('bar-sub-mesas').classList.contains('hidden');
+}
+function barModalMesaEmEdicao(){
+  const modal = $('modal-bar-mesa');
+  return !!modal && !modal.classList.contains('hidden') && (barMesaCarrinho.length > 0 || barMesaAjustesTocados || barMesaRecebendo || barCancelandoMesa || $('btn-bar-mesa-lancar').disabled ||
+    (modal.contains(document.activeElement) && document.activeElement?.matches('input, textarea, select, [contenteditable="true"]')));
+}
+function barMostrarAvisoAtualizacao(id, mostrar){
+  const el = $(id);
+  el.classList.toggle('hidden', !mostrar);
+  if(!mostrar){ el.replaceChildren(); return; }
+  el.innerHTML = '<span>Valor desatualizado. </span><button type="button" class="btn-secondary" data-bar-atualizar-mesas>Atualizar</button>';
+  el.querySelector('button').onclick = async () => {
+    const btn = el.querySelector('button'); btn.disabled = true;
+    try{ await barSolicitarAtualizacao({ grade: true, modal: !$('modal-bar-mesa').classList.contains('hidden'), silencioso: true }); }
+    finally{ if(btn.isConnected) btn.disabled = false; }
+  };
+}
+function barResumoSaldoValido(resp){
+  const saldo = resp?.data?.[0]?.subtotal_aberto;
+  return !resp?.error && saldo !== null && saldo !== undefined && saldo !== '' && Number.isFinite(Number(saldo));
+}
+function barMarcarSaldoModalDesatualizado(){
+  const estado = barEstadoMesas();
+  const conhecido = barComandaAtualId ? estado.resumos.get(barComandaAtualId) : null;
+  if(conhecido){ barMesaResumoAtual = { ...conhecido }; renderResumoFinanceiroMesa(); }
+  else if(barComandaAtualId){
+    barMesaResumoAtual = null;
+    ['bar-mesa-total-consumido','bar-mesa-total-pago','bar-mesa-total-aberto'].forEach(id => $(id).textContent = 'Saldo indisponível');
+  }
+  barMostrarAvisoAtualizacao('bar-mesa-atualizacao', !!barComandaAtualId);
+}
+function barRenderMesasAtualizacao(){
+  const e = barEstadoMesas(), grid = $('bar-mesas-grid');
+  $('bar-mesas-vazio').classList.toggle('hidden', e.mesas.length > 0 || e.falhaLista);
+  barMostrarAvisoAtualizacao('bar-mesas-atualizacao', e.falhaLista || e.antigas.size > 0);
+  const html = e.mesas.map(m => {
+    const r = m.comanda_atual_id ? e.resumos.get(m.comanda_atual_id) : null;
+    const antigo = e.falhaLista || e.antigas.has(m.id);
+    const texto = m.status === 'ocupada' ? (r ? `EM ABERTO — ${formatarReais(Number(r.subtotal_aberto))}` : 'Saldo indisponível') : 'LIVRE';
+    return `<div class="bar-mesa-card ${escapeHtml(m.status)}" data-mesa-id="${escapeHtml(m.id)}"><div class="bar-mesa-numero">Mesa ${escapeHtml(m.numero)}</div><div class="bar-mesa-saldo">${texto}</div>${antigo ? '<div class="modal-section-hint" role="status">Valor desatualizado</div>' : ''}</div>`;
+  }).join('');
+  if(grid.innerHTML === html) return;
+  grid.innerHTML = html;
+  grid.querySelectorAll('.bar-mesa-card').forEach(card => {
+    card.addEventListener('click', () => aoClicarMesaBar(barEstadoMesas().mesas.find(m => m.id === card.dataset.mesaId)));
+  });
+}
+function barSinalizarMudancaMesa(payload, mesa){
+  const e = barEstadoMesas(), atual = payload?.new || {}, anterior = payload?.old || {};
+  const mesaId = mesa ? (atual.id || anterior.id) : null;
+  const comandaId = mesa ? null : (atual.comanda_id || anterior.comanda_id);
+  for(const m of e.mesas) if((mesaId && m.id === mesaId) || (comandaId && m.comanda_atual_id === comandaId)) e.antigas.add(m.id);
+  if(e.antigas.size && barMesasVisiveis()) barRenderMesasAtualizacao();
+  if((mesaId && barMesaAtual?.id === mesaId) || (comandaId && barComandaAtualId === comandaId)) barMostrarAvisoAtualizacao('bar-mesa-atualizacao', true);
+}
+function barSolicitarAtualizacao({grade = false, modal = false, silencioso = true, automatica = false, forcarModal = false} = {}){
+  if(automatica && (!barMesasVisiveis() || barAtualizacaoMesas.promessa)) return barAtualizacaoMesas.promessa || Promise.resolve();
+  const p = barAtualizacaoMesas.pendente || { grade: false, modal: false, silencioso: true, forcarModal: false };
+  p.grade ||= grade; p.modal ||= modal; p.silencioso &&= silencioso; p.forcarModal ||= forcarModal;
+  barAtualizacaoMesas.pendente = p;
+  if(barAtualizacaoMesas.promessa) return barAtualizacaoMesas.promessa;
+  // Um microtask permite unir chamadas simultâneas antes de iniciar qualquer leitura.
+  barAtualizacaoMesas.promessa = Promise.resolve().then(async () => {
+    while(barAtualizacaoMesas.pendente){
+      const lote = barAtualizacaoMesas.pendente; barAtualizacaoMesas.pendente = null;
+      const contexto = acesso;
+      if(lote.grade){
+        try{ await barConsultarGradeMesas(lote.silencioso); }
+        catch(e){
+          if(contexto === acesso){ const estado = barEstadoMesas(); estado.falhaLista = true; barRenderMesasAtualizacao(); }
+          console.warn('Atualização da grade do Bar:', e);
         }
       }
-    }
-    await carregarBarMesas(true);
-  } catch(e) { console.warn('Consulta silenciosa das mesas do Bar:',e); }
-  finally { barMesasPollingEmAndamento = false; }
-}, 5000);
+      if(lote.modal && (lote.forcarModal || !barModalMesaEmEdicao())){
+        try{
+          if(lote.grade && !barEstadoMesas().falhaLista){
+            const mesa = barEstadoMesas().mesas.find(m => m.id === barMesaAtual?.id);
+            if(mesa){ barMesaAtual = { ...mesa }; barComandaAtualId = mesa.comanda_atual_id || null; }
+          }
+          await barConsultarSaldoEItensMesa();
+        }
+        catch(e){ if(contexto === acesso) barMarcarSaldoModalDesatualizado(); console.warn('Atualização da mesa do Bar:', e); }
+      }
 
-// ---------- Mesas ----------
-async function carregarBarMesas(silencioso = false){
+    }
+  }).finally(() => {
+    barAtualizacaoMesas.promessa = null;
+    if(barAtualizacaoMesas.pendente) return barSolicitarAtualizacao();
+  });
+  return barAtualizacaoMesas.promessa;
+}
+setInterval(() => {
+  if(!barMesasVisiveis()) return;
+  // Mesmo com um rascunho em edição, a grade atualiza; o formulário é preservado.
+  barSolicitarAtualizacao({ grade: true, modal: !$('modal-bar-mesa').classList.contains('hidden'), automatica: true });
+}, BAR_MESAS_INTERVALO_MS);
+function carregarBarMesas(silencioso = false){
+  return barSolicitarAtualizacao({ grade: true, silencioso });
+}
+async function barConsultarGradeMesas(silencioso){
+  const contexto = acesso, estado = barEstadoMesas();
   if(!silencioso) $('bar-mesas-msg').innerHTML = '';
   $('btn-bar-estornar-busca').classList.toggle('hidden', !podeAcessarBar('bar_estornar_pagamento'));
   const { data: mesas, error } = await supabase.from('bar_mesas').select('*').order('numero');
-  if(error){
-    if(!silencioso) $('bar-mesas-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
-    return;
+  if(contexto !== acesso) return;
+  if(error || !Array.isArray(mesas)){
+    estado.falhaLista = true; barRenderMesasAtualizacao(); return;
   }
-  const visiveis = (mesas || []).filter(m => m.status !== 'fechada');
-  $('bar-mesas-vazio').classList.toggle('hidden', visiveis.length > 0);
-
-  // O saldo mostrado no grid (LIVRE / EM ABERTO — R$X) é só uma leitura de exibição — mas desde o
-  // pagamento monetário (Migration 018, Revisão 2) um item NUNCA fica marcado como "pago" por
-  // pagamento_id (isso só acontece no estilo antigo, por seleção manual de itens), então somar
-  // "itens com pagamento_id nulo" mostraria sempre o total bruto da conta, ignorando qualquer
-  // pagamento parcial já recebido. Por isso o saldo do grid vem da MESMA fonte única de verdade do
-  // pagamento (bar_comanda_resumo_financeiro -> private.bar_comanda_saldo_calcular), uma chamada
-  // por mesa ocupada — nunca um valor guardado/calculado no navegador.
-  const comandaIds = visiveis.filter(m => m.comanda_atual_id).map(m => m.comanda_atual_id);
-  const saldoPorComanda = new Map();
-  if(comandaIds.length > 0){
-    const resumos = await Promise.all(comandaIds.map(id => supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: id })));
-    resumos.forEach((resp, i) => {
-      const r = resp && !resp.error && resp.data && resp.data[0];
-      saldoPorComanda.set(comandaIds[i], r ? Number(r.subtotal_aberto) : 0);
-    });
-  }
-
-  const novoHtmlMesas = visiveis.map(m => {
-    const saldo = m.comanda_atual_id ? (saldoPorComanda.get(m.comanda_atual_id) || 0) : 0;
-    const statusTexto = m.status === 'ocupada' ? `EM ABERTO — ${formatarReais(saldo)}` : 'LIVRE';
-    return `
-    <div class="bar-mesa-card ${m.status}" data-mesa-id="${m.id}">
-      <div class="bar-mesa-numero">Mesa ${m.numero}</div>
-      <div class="bar-mesa-saldo">${statusTexto}</div>
-    </div>`;
-  }).join('');
-  if(silencioso && $('bar-mesas-grid').innerHTML === novoHtmlMesas) return;
-  $('bar-mesas-grid').innerHTML = novoHtmlMesas;
-  document.querySelectorAll('#bar-mesas-grid .bar-mesa-card').forEach(card => {
-    const mesa = (mesas || []).find(x => x.id === card.dataset.mesaId);
-    card.addEventListener('click', () => aoClicarMesaBar(mesa));
-  });
+  estado.mesas = mesas.filter(m => m.status !== 'fechada');
+  estado.falhaLista = false;
+  estado.antigas.clear();
+  const ids = [...new Set(estado.mesas.map(m => m.comanda_atual_id).filter(Boolean))];
+  const presentes = new Set(ids);
+  for(const id of estado.resumos.keys()) if(!presentes.has(id)) estado.resumos.delete(id);
+  // Limitar o lote evita uma rajada por todas as mesas ocupadas ao mesmo tempo.
+  let proximo = 0;
+  await Promise.all(Array.from({ length: Math.min(4, ids.length) }, async () => {
+    while(proximo < ids.length){
+      const id = ids[proximo++];
+      let resp; try{ resp = await supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: id }); }catch{ resp = null; }
+      if(contexto !== acesso) return;
+      if(barResumoSaldoValido(resp)) estado.resumos.set(id, { ...resp.data[0] });
+      else for(const m of estado.mesas) if(m.comanda_atual_id === id) estado.antigas.add(m.id);
+    }
+  }));
+  if(contexto !== acesso) return;
+  for(const m of estado.mesas) if(m.status === 'ocupada' && !estado.resumos.has(m.comanda_atual_id)) estado.antigas.add(m.id);
+  barRenderMesasAtualizacao();
 }
 
 function aoClicarMesaBar(mesa){
@@ -21621,6 +21681,7 @@ async function abrirModalMesa(mesa){
   barReaberturaPainel();
   barComandaAtualId = mesa.comanda_atual_id || null;
   barMesaResumoAtual = null;
+  barMarcarSaldoModalDesatualizado();
   barMesaItemSelecionado = null;
   barMesaCarrinho = [];
   barMesaQtdItensValidos = 0;
@@ -21669,9 +21730,16 @@ async function abrirModalMesa(mesa){
 // Recarrega saldo (bar_comanda_resumo_financeiro — sempre recalculado no banco a partir dos itens
 // reais e dos pagamentos reais, nunca de um valor digitado), itens da comanda e histórico de
 // pagamentos. Chamada depois de toda ação (lançar pedido, cancelar item, receber pagamento,
-// estornar) e pelo Realtime.
-async function atualizarSaldoEItensMesa(){
-  if(!barComandaAtualId){
+// estornar), pelo ciclo de 60 s e pelo botão Atualizar.
+function atualizarSaldoEItensMesa(){
+  return barSolicitarAtualizacao({ modal: true, forcarModal: true });
+}
+async function barConsultarSaldoEItensMesa(){
+  const contexto = acesso, comandaConsultada = barComandaAtualId, mesaConsultada = barMesaAtual?.id;
+  const aindaAtual = () => contexto === acesso && comandaConsultada === barComandaAtualId && mesaConsultada === barMesaAtual?.id;
+
+  if(!comandaConsultada){
+    barMostrarAvisoAtualizacao('bar-mesa-atualizacao', false);
     barReaberturaAtual=null;barReaberturaPainel();
     barMesaResumoAtual = { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
     renderResumoFinanceiroMesa();
@@ -21688,31 +21756,42 @@ async function atualizarSaldoEItensMesa(){
   // (e não precisa de) coluna própria de autoria: cada lançamento já grava UM bar_pedidos com
   // criado_por=auth.uid(), e todos os itens daquele lançamento apontam para o mesmo pedido_id —
   // é o que já faz dois garçons na mesma mesa ficarem naturalmente separados.
-  const [resumoResp, itensResp, nomesPorId, juncoesResp] = await Promise.all([
-    supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: barComandaAtualId }),
+  const leituras = await Promise.allSettled([
+    supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: comandaConsultada }),
     buscarTodos(() => supabase
       .from('bar_pedidos_itens')
       .select('id, pedido_id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional ), bar_pedidos ( criado_por, criado_em )')
-      .eq('comanda_id', barComandaAtualId)
+      .eq('comanda_id', comandaConsultada)
       .order('criado_em')),
     resolverNomesFuncionariosBar(),
-    supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: barComandaAtualId }),
+    supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: comandaConsultada }),
   ]);
-  if(resumoResp.error || itensResp.error){
-    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error))}</div>`;
+  if(!aindaAtual()) return;
+  const rejeitada = leituras.find(r => r.status === 'rejected');
+  if(rejeitada) throw rejeitada.reason;
+  const [resumoResp, itensResp, nomesPorId, juncoesResp] = leituras.map(r => r.value);
+  if(resumoResp.error || itensResp.error || !barResumoSaldoValido(resumoResp)){
+    barMarcarSaldoModalDesatualizado();
+    $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(resumoResp.error || itensResp.error || { message: 'Saldo indisponível. Tente atualizar.' }))}</div>`;
     await carregarHistoricoPagamentosMesa();
     return;
   }
-  barMesaResumoAtual = (resumoResp.data && resumoResp.data[0]) || { subtotal_aberto: 0, total_pago: 0, total_consumido: 0, itens_em_aberto: 0, desconto: 0, acrescimo: 0, taxa_servico: 0 };
+  barMesaResumoAtual = resumoResp.data[0];
+  barEstadoMesas().resumos.set(comandaConsultada, { ...resumoResp.data[0] });
+  barEstadoMesas().antigas.delete(mesaConsultada);
+  barRenderMesasAtualizacao();
+  barMostrarAvisoAtualizacao('bar-mesa-atualizacao', false);
   renderResumoFinanceiroMesa();
   if(juncoesResp.error){ $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível carregar a origem das mesas juntadas: ${escapeHtml(mensagemBancoAcesso(juncoesResp.error))}</div>`; }
   barMesaJuncoes = !juncoesResp.error && Array.isArray(juncoesResp.data) ? juncoesResp.data : [];
-  try{await barReaberturaConsultar();barReaberturaPainel();}catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);return;}
+  try{await barReaberturaConsultar();barReaberturaPainel();}catch(e){if(aindaAtual()){$('bar-mesa-msg').textContent=barHistoricoErro(e);barMarcarSaldoModalDesatualizado();}return;}
+  if(!aindaAtual()) return;
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
   // A conta usa os itens já carregados; sua impressão não depende do histórico de pagamentos.
   atualizarBotaoRelatorioMesa();
   await carregarHistoricoPagamentosMesa();
+  if(!aindaAtual()) return;
   atualizarBotaoCancelarMesa();
   atualizarBotaoTransferirMesa();
 }
