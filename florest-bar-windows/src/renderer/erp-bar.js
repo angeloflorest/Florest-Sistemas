@@ -2985,7 +2985,18 @@ function mpEnhance(modulo,id,root,ctx,amount,allow){
 async function mpBarEnhance(id,root){MP.bar=null;if(!id)return;try{const ctx=await mpRead('bar',id);if(id!==barComandaAtualId||!root.isConnected)return;mpEnhance('bar',id,root,ctx,$('bar-mesa-pagamento-valor'),podeAcessarBar('bar_caixa'));}catch(e){if(id===barComandaAtualId)$('bar-mesa-msg').textContent='Discriminação indisponível: '+(e.message||e)}}
 async function mpBarHistory(id,root){try{const ctx=await mpRead('bar',id);if(id===barComandaAtualId)mpAttachHistory(root,ctx,true)}catch(e){if(root.isConnected){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=5;cell.textContent='Não foi possível consultar a discriminação dos produtos.';row.append(cell);root.append(row)}}}
 async function mpGastroEnhance(a,body){MP.gastronomia=null;if(!a.id){mpRecoveryNotice('gastronomia',a.mesa_id,body);return}try{const ctx=await mpRead('gastronomia',a.id);if(!body.isConnected||GS.selected!==a.id)return;mpEnhance('gastronomia',a.id,body,ctx,body.querySelector('[data-mp-amount]'),gsHas('caixa'));mpRecoveryNotice('gastronomia',a.mesa_id,body);}catch(e){if(body.isConnected)body.append(gsEl('p','Discriminação indisponível: '+(e.message||e),'gs-meta'))}}
-async function mpBarReceive(args){const selected=mpSelected('bar',args.p_comanda_id),pending=mpPending('bar',args.p_comanda_id);if(!selected.length){if(pending)throw Error('Há um recebimento por produtos pendente. Use Recuperar recebimento antes de iniciar outro.');return null}const dados={valor:args.p_valor,formas:args.p_formas,desconto:args.p_desconto,acrescimo:args.p_acrescimo,taxa_servico:args.p_taxa_servico,produtos_selecionados:selected,observacao:(MP.bar?.id===args.p_comanda_id?MP.bar.observation?.value:'')?.trim().slice(0,200)||''};if(pending){const normal=p=>({...p,formas:p.formas.map(({taxas,...f})=>f)});if(JSON.stringify(normal(pending.dados))!==JSON.stringify(normal(dados)))throw Error('Há um recebimento pendente com outros valores. Use Recuperar recebimento.');return mpPay('bar',args.p_comanda_id,pending.dados,pending.chave,pending.mesa_id)}dados.formas=await prepararTaxasRecebimentoMesa(supabase,dados.formas);return mpPay('bar',args.p_comanda_id,dados,null,barMesaAtual?.id)}
+async function mpBarReceive(args){
+ const pending=mpPending('bar',args.p_comanda_id);
+ if(pending){
+  const check=await supabase.from('bar_pagamentos').select('id,estornado').eq('comanda_id',args.p_comanda_id).eq('idempotencia_key',pending.chave);
+  if(check.error)throw check.error;
+  if(check.data?.some(p=>p.estornado))sessionStorage.removeItem(mpStorageKey('bar',args.p_comanda_id));
+  else{const data=await mpPay('bar',args.p_comanda_id,pending.dados,pending.chave,pending.mesa_id);if(data)data.recuperado=true;return data;}
+ }
+ const selected=mpSelected('bar',args.p_comanda_id);if(!selected.length)return null;
+ const dados={valor:args.p_valor,formas:args.p_formas,desconto:args.p_desconto,acrescimo:args.p_acrescimo,taxa_servico:args.p_taxa_servico,produtos_selecionados:selected,observacao:(MP.bar?.id===args.p_comanda_id?MP.bar.observation?.value:'')?.trim().slice(0,200)||''};
+ dados.formas=await prepararTaxasRecebimentoMesa(supabase,dados.formas);return mpPay('bar',args.p_comanda_id,dados,null,barMesaAtual?.id);
+}
 async function mpGastroReceive(dados,chave){return mpPay('gastronomia',dados.id,dados,chave,GS.mesaCurrent)}
 function mpRecoveryNotice(modulo,mesaId,root){
  if(!mesaId||!root?.isConnected)return;const prefix='florest-mesa-produtos:'+acesso.userId+':'+modulo+':';let pending=[];try{for(let n=0;n<sessionStorage.length;n++){const key=sessionStorage.key(n);if(!key.startsWith(prefix))continue;const p=JSON.parse(sessionStorage.getItem(key));if(p.mesa_id===mesaId)pending.push({id:key.slice(prefix.length),...p})}}catch{}
@@ -15070,6 +15081,35 @@ $('btn-bar-mesa-avancado-toggle').addEventListener('click', () => {
 // anterior (a diferença é só que a lista de formas agora tem uma única linha, com o valor
 // informado — a RPC já aceitava isso). Nada de regra nova de pagamento misto: pagamento misto
 // continua sendo vários recebimentos parciais (cada um uma forma) até o saldo chegar a zero.
+// A mesma tentativa mantém a chave até obter uma resposta definitiva, inclusive após recarregar.
+function barPagamentoStorageKey(id){return 'florest-bar-recebimento:'+empresaCache.empresaId+':'+acesso.userId+':'+id}
+async function barPagamentoSeguro(args){
+  const key=barPagamentoStorageKey(args.p_comanda_id);
+  let pending;
+  try{pending=JSON.parse(localStorage.getItem(key)||'null')}catch{return {error:{message:'Não foi possível recuperar o recebimento anterior. Confira o armazenamento deste navegador.'}}}
+  if(pending){
+    // Uma confirmação perdida pode ter sido estornada depois: conferir antes de recuperar.
+    const check=await supabase.from('bar_pagamentos').select('id,estornado').eq('comanda_id',args.p_comanda_id).eq('idempotencia_key',pending.p_idempotencia);
+    if(check.error)return {error:check.error};
+    if(check.data?.some(p=>p.estornado)){
+      try{localStorage.removeItem(key)}catch{return {error:{message:'Não foi possível atualizar a recuperação do recebimento.'}}}
+      pending=null;
+    }
+  }
+  let request=pending;
+  if(!request){
+    try{request={...args,p_formas:await prepararTaxasRecebimentoMesa(supabase,args.p_formas)}}catch(error){return {error}}
+  }
+  try{localStorage.setItem(key,JSON.stringify(request))}catch{return {error:{message:'Não foi possível guardar a identificação do recebimento. Verifique o armazenamento antes de receber.'}}}
+  let result;
+  try{result=await supabase.rpc('bar_comanda_pagar_valor',request)}catch(error){return {error}}
+  if(!result.error||['P0001','CX001','40001','22003','22P02','23503','23514','23502','42501'].includes(result.error.code)){
+    try{localStorage.removeItem(key)}catch{}
+  }
+  // Recuperar uma tentativa nunca executa também um segundo pagamento no mesmo clique.
+  if(!result.error&&pending)result.recuperado=true;
+  return result;
+}
 async function receberPagamentoMesaComForma(forma){
   if(barMesaRecebendo) return; // duplo clique / clique em outro card enquanto um está em andamento
   if(!FORMAS_PAGAMENTO_BAR.includes(forma)) return;
@@ -15101,8 +15141,8 @@ async function receberPagamentoMesaComForma(forma){
     // nunca escolhe item nenhum. O banco (bar_comanda_pagar_valor) é quem valida esse valor contra o
     // saldo real (private.bar_comanda_saldo_calcular) e só cria a venda/itens_venda quando o saldo
     // chega a exatamente zero (ver relatório). p_idempotencia protege contra duplo clique/reenvio.
-    const barReceberRpc=async args=>{try{const novo=await mpBarReceive(args);if(novo)return{data:novo,error:null}}catch(error){return{data:null,error}}if(!barReaberturaAtual?.ativa)return supabase.rpc('bar_comanda_pagar_valor',args);const {p_idempotencia,...dados}=args;try{return{data:await barHistoricoMutacao('bar_comanda_pagar_valor',dados),error:null}}catch(error){return{data:null,error}}};
-    const { data, error } = await barReceberRpc({
+    const barReceberRpc=async args=>{try{const novo=await mpBarReceive(args);if(novo)return{data:novo,error:null,recuperado:!!novo.recuperado}}catch(error){return{data:null,error}}if(!barReaberturaAtual?.ativa)return barPagamentoSeguro(args);const {p_idempotencia,...dados}=args;try{return{data:await barHistoricoMutacao('bar_comanda_pagar_valor',dados),error:null}}catch(error){return{data:null,error}}};
+    const { data, error, recuperado } = await barReceberRpc({
       p_comanda_id: comandaDoPagamento,
       p_valor: valor,
       p_formas: [{ forma_pagamento: forma, valor }],
@@ -15120,7 +15160,9 @@ async function receberPagamentoMesaComForma(forma){
     // Recibo não fiscal do Bar: não imprimir automaticamente ao receber pagamento.
     // O registro do pagamento, fechamento da mesa e demais impressões continuam inalterados.
     barMesaAjustesTocados = false;
-    $('bar-mesa-msg').innerHTML = resultado && Number(resultado.saldo_restante) > 0
+    $('bar-mesa-msg').innerHTML = recuperado
+      ? '<div class="msg success">Recebimento anterior recuperado. O saldo foi atualizado sem registrar outro pagamento.</div>'
+      : resultado && Number(resultado.saldo_restante) > 0
       ? `<div class="msg success">Pagamento de ${formatarReais(resultado.valor_recebido)} registrado em ${escapeHtml(forma)}. Saldo restante: ${formatarReais(resultado.saldo_restante)}.</div>`
       : '<div class="msg success">Pagamento registrado. Conta quitada.</div>';
 
