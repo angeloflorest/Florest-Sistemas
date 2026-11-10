@@ -1,0 +1,71 @@
+name: Compilar correcao de recebimentos do Florest Bar
+on:
+  push:
+    branches: [build/bar-recebimento-1.0.1]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: florest-bar-windows
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: florest-bar-windows/package-lock.json
+      - name: Instalar dependencias existentes
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nas dependencias' }
+          node node_modules/electron/install.js
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar Electron' }
+      - name: Validar pagamento e regressoes
+        run: |
+          npm run check
+          if ($LASTEXITCODE -ne 0) { throw 'Sintaxe invalida' }
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do aplicativo' }
+          node --test ../florest-erp/sistema/tests/bar-recebimento-seguro.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de recebimento' }
+      - name: Reutilizar Print Agent oficial sem alteracoes
+        run: |
+          New-Item -ItemType Directory -Force resources | Out-Null
+          Invoke-WebRequest 'https://github.com/angeloflorest/Florest-Sistemas/releases/download/florest-bar-v1.0.0/print-agent.exe' -OutFile resources/print-agent.exe
+          $checksum = (Get-FileHash resources/print-agent.exe -Algorithm SHA256).Hash.ToLower()
+          if ($checksum -ne '7db56ec5221c9dd2bc43cd6ac8ae8a612d98393c7b7a60986592b7e9034e94e1') { throw 'Print Agent divergente' }
+          @{version='1.3.0';sha256=$checksum} | ConvertTo-Json | Set-Content resources/print-agent.json -Encoding utf8
+      - name: Gerar instalador Windows
+        run: |
+          node node_modules/electron-builder/cli.js --win --x64 --publish never
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na compilacao' }
+      - name: Abrir pacote Windows em perfil de teste isolado
+        run: |
+          $app = Start-Process -FilePath 'dist/win-unpacked/Florest Bar.exe' -ArgumentList '--smoke-test' -PassThru -RedirectStandardOutput smoke.stdout.log -RedirectStandardError smoke.stderr.log
+          if (-not $app.WaitForExit(60000)) { $app.Kill(); throw 'Aplicativo nao iniciou no prazo' }
+          Get-Content smoke.stdout.log
+          Get-Content smoke.stderr.log
+          if ($app.ExitCode -ne 0 -or -not (Select-String -Path smoke.stdout.log -Pattern 'FLOREST_BAR_SMOKE_OK' -Quiet)) { throw 'Falha ao abrir aplicativo Windows' }
+      - name: Calcular checksums
+        run: |
+          $lines = Get-ChildItem dist/Florest-Bar-Setup-1.0.1-bar.1.exe,dist/Florest-Bar-Setup-1.0.1-bar.1.exe.blockmap,dist/bar.yml | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() + '  ' + $_.Name }
+          [IO.File]::WriteAllText((Join-Path (Get-Location) 'dist/SHA256SUMS.txt'), ($lines -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: florest-bar-1.0.1-bar.1
+          compression-level: 0
+          if-no-files-found: error
+          path: |
+            florest-bar-windows/dist/Florest-Bar-Setup-1.0.1-bar.1.exe
+            florest-bar-windows/dist/Florest-Bar-Setup-1.0.1-bar.1.exe.blockmap
+            florest-bar-windows/dist/bar.yml
+            florest-bar-windows/dist/SHA256SUMS.txt
+            florest-bar-windows/smoke.stdout.log
+            florest-bar-windows/smoke.stderr.log
