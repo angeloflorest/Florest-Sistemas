@@ -54,7 +54,6 @@ function deliveryInit(){
  if(!deliveryDraft||typeof deliveryDraft!=='object'||Array.isArray(deliveryDraft))deliveryDraft={};
  if(!['entrega','retirada'].includes(deliveryDraft.tipo)||catalog[deliveryDraft.tipo]===false)deliveryDraft.tipo=catalog.entrega?'entrega':'retirada';
  if(!Array.isArray(cart))cart=[];
- const summary=el('section',null,'delivery-order');summary.id='resumo-pedido';summary.setAttribute('aria-label','Resumo do pedido');$('produtos').after(summary);
  // Uma recusa comprovada pode voltar à edição. Um resultado incerto conserva a tentativa.
  deliveryReleaseRejected();
 }
@@ -65,15 +64,15 @@ function deliveryReleaseRejected(){if(pending?.protocolo===confirmationProtocol&
 function deliveryTotals(){return totals(deliveryDraft.tipo||'retirada')}
 function deliveryUpdate(){
  const items=deliveryItems(),n=items.reduce((sum,x)=>sum+Number(x.quantidade),0);$('ver-carrinho').textContent=(pending?'Recuperar envio pendente':'Finalizar pedido')+' ('+n+') · '+money(pending?pending.dados.expected_total:deliveryTotals().total);$('acompanhar').hidden=!receipt;
- deliveryPersist();deliverySummary($('resumo-pedido'),true);
+ deliveryPersist();deliverySummary($('checkout-resumo'),!pending&&!busy);const send=$('checkout-enviar');if(send)send.disabled=busy||(!pending&&!cart.length);
 }
 function deliverySummary(parent,editable=false){
  if(!parent)return;parent.replaceChildren(el('h3','Resumo do pedido'));
- const items=deliveryItems();if(!items.length){parent.append(el('p','Nenhum produto selecionado. Escolha os produtos acima.'));return}
+ const items=deliveryItems();if(!items.length){parent.append(el('p','Nenhum produto selecionado. Volte ao cardápio para acrescentar produtos.'));return}
  for(const [i,x]of items.entries()){
   const row=el('div',null,'delivery-item'),info=el('div');info.append(el('b',x.nome),el('p',money(x.preco)+' por unidade · Subtotal '+money(x.quantidade*x.preco)));
   if(x.observacao)info.append(el('p',x.observacao));for(const c of x.escolhas||[])if(c.nome)info.append(el('p',(c.grupo?c.grupo+': ':'')+c.nome));row.append(info);
-  if(editable&&!pending){const qty=field(row,'Quantidade de '+x.nome,'number',x.quantidade);qty.min=1;qty.max=100;qty.step=1;qty.required=true;qty.onchange=()=>{const value=Number(qty.value);qty.setCustomValidity(Number.isInteger(value)&&value>=1&&value<=100?'':'Informe uma quantidade de 1 a 100.');if(!qty.reportValidity())return;cart[i].quantidade=value;deliveryUpdate()};row.append(button('Remover '+x.nome,()=>{if(busy||pending)return;cart.splice(i,1);deliveryUpdate()},'secondary'))}else row.append(el('span','Quantidade: '+x.quantidade));
+  if(editable&&!pending){const qty=field(row,'Quantidade de '+x.nome,'number',x.quantidade);qty.min=1;qty.max=100;qty.step=1;qty.required=true;qty.onchange=()=>{if(busy||pending)return;const value=Number(qty.value);qty.setCustomValidity(Number.isInteger(value)&&value>=1&&value<=100?'':'Informe uma quantidade de 1 a 100.');if(!qty.reportValidity())return;cart[i].quantidade=value;deliveryUpdate()};row.append(button('Remover '+x.nome,()=>{if(busy||pending)return;cart.splice(i,1);deliveryUpdate()},'secondary'))}else row.append(el('span','Quantidade: '+x.quantidade));
   parent.append(row);
  }
  if(pending){parent.append(el('b','Total da tentativa: '+money(pending.dados.expected_total)));return}
@@ -98,22 +97,22 @@ function deliveryCheckout(){
  const name=input('nome','Nome do cliente','text',true),phone=input('telefone','Telefone com DDD','tel',true);name.maxLength=160;name.autocomplete='name';phone.maxLength=20;phone.autocomplete='tel';
  const street=input('rua','Rua/Avenida','text',true),number=input('numero_endereco','Número (ou S/N)','text',true),district=input('bairro','Bairro','text',true),ref=input('referencia','Complemento ou referência (opcional)');street.maxLength=200;number.maxLength=20;district.maxLength=120;ref.maxLength=300;
  const method=input('forma','Forma de pagamento','text',true,[['','Selecione'],...deliveryMethods.map(x=>[x,x])]);
- const summary=el('section',null,'delivery-checkout-summary'),notice=el('p',null,'notice');notice.setAttribute('role','status');form.append(summary,notice,el('p','A forma escolhida não confirma pagamento. O estabelecimento confirma o recebimento.','delivery-help'));
- function show(){const delivery=type.value==='entrega';for(const f of [street,number,district,ref]){f.parentElement.hidden=!delivery;f.required=delivery&&f!==ref;if(!delivery){f.removeAttribute('aria-invalid');messages[Object.keys(fields).find(k=>fields[k]===f)].textContent=''}}deliveryDraft.tipo=type.value;deliveryDraftSave();deliverySummary(summary);deliveryUpdate()}
+ const summary=el('section',null,'delivery-checkout-summary'),notice=el('p',null,'notice');summary.id='checkout-resumo';notice.setAttribute('role','status');form.append(summary,notice,el('p','A forma escolhida não confirma pagamento. O estabelecimento confirma o recebimento.','delivery-help'));
+ function show(){const delivery=type.value==='entrega';for(const f of [street,number,district,ref]){f.parentElement.hidden=!delivery;f.required=delivery&&f!==ref;if(!delivery){f.removeAttribute('aria-invalid');messages[Object.keys(fields).find(k=>fields[k]===f)].textContent=''}}deliveryDraft.tipo=type.value;deliveryDraftSave();deliveryUpdate()}
  type.onchange=()=>{deliveryDraft.tipo=type.value;show()};show();
- const submit=el('button',pending?'Repetir envio pendente':'Enviar pedido','wide');submit.type='submit';form.append(submit);
+ const submit=el('button',pending?'Repetir envio pendente':'Enviar pedido','wide');submit.type='submit';submit.id='checkout-enviar';form.append(submit);
  if(pending){for(const [n,f]of Object.entries(fields)){f.value=pending.dados[n]||'';f.disabled=true}type.value=pending.dados.tipo;for(const f of [street,number,district,ref])f.parentElement.hidden=type.value!=='entrega';if(pending.dados.endereco)summary.append(el('p','Endereço enviado: '+pending.dados.endereco));notice.textContent='O resultado anterior ainda não foi confirmado. Repita a mesma tentativa para recuperar o pedido, sem duplicar. Os dados enviados serão preservados.'}
  const back=button('Continuar escolhendo produtos',()=>{$('modal').close();render()},'secondary');back.disabled=!!pending;body.append(back);
  function invalid(n,message){messages[n].textContent=message;fields[n].setAttribute('aria-invalid','true')}
- function validate(){for(const n of Object.keys(fields)){messages[n].textContent='';fields[n].removeAttribute('aria-invalid')}if(name.value.trim().length<2)invalid('nome','Informe seu nome (pelo menos 2 caracteres).');if(!/^(?:55)?[1-9][0-9][0-9]{8,9}$/.test(phone.value.replace(/\D/g,'')))invalid('telefone','Informe um telefone válido com DDD.');if(!deliveryMethods.includes(method.value))invalid('forma','Selecione uma forma de pagamento.');if(!['entrega','retirada'].includes(type.value)||catalog[type.value]===false)invalid('tipo','Selecione um tipo de pedido disponível.');if(type.value==='entrega'){if(street.value.trim().length<2)invalid('rua','Informe a rua ou avenida.');if(!/^(?:[0-9]+[A-Za-z0-9 /.-]*|S\s*\/?\s*N)$/i.test(number.value.trim()))invalid('numero_endereco','Informe o número ou S/N quando não houver número.');if(district.value.trim().length<2)invalid('bairro','Informe o bairro.')}const first=Object.keys(fields).find(n=>fields[n].getAttribute('aria-invalid')==='true');if(first)fields[first].focus();return !first}
+ function validate(){for(const n of Object.keys(fields)){messages[n].textContent='';fields[n].removeAttribute('aria-invalid')}if(name.value.trim().length<2)invalid('nome','Informe seu nome (pelo menos 2 caracteres).');if(!/^(?:55)?[1-9][0-9][0-9]{8,9}$/.test(phone.value.replace(/\D/g,'')))invalid('telefone','Informe um telefone válido com DDD.');if(!deliveryMethods.includes(method.value))invalid('forma','Selecione uma forma de pagamento.');if(!['entrega','retirada'].includes(type.value)||catalog[type.value]===false)invalid('tipo','Selecione um tipo de pedido disponível.');if(type.value==='entrega'){if(street.value.trim().length<2)invalid('rua','Informe a rua ou avenida.');if(!/^(?:[0-9]+[A-Za-z0-9 /.-]*|S\s*\/?\s*N)$/i.test(number.value.trim()))invalid('numero_endereco','Informe o número ou S/N quando não houver número.');if(district.value.trim().length<2)invalid('bairro','Informe o bairro.')}const first=Object.keys(fields).find(n=>fields[n].getAttribute('aria-invalid')==='true');if(first){fields[first].focus();return false}const quantity=summary.querySelector('input:invalid');if(quantity)quantity.reportValidity();return !quantity}
  form.onsubmit=async e=>{
-  e.preventDefault();if(busy)return;if(!pending&&!validate())return;
+  e.preventDefault();if(busy)return;if(!pending&&!cart.length){notice.textContent='Acrescente pelo menos um produto antes de enviar.';return}if(!pending&&!validate())return;
   for(const [n,f]of Object.entries(fields))if(!pending)deliveryDraft[n]=f.value;deliveryDraftSave();
   if(!pending){const delivery=type.value==='entrega';pending={chave:crypto.randomUUID(),protocolo:confirmationProtocol,resultado:'novo',dados:{tipo:type.value,nome:name.value.trim(),telefone:phone.value,rua:delivery?street.value.trim():'',numero_endereco:delivery?number.value.trim():'',bairro:delivery?district.value.trim():'',endereco:delivery?street.value.trim()+', '+number.value.trim()+' — '+district.value.trim():'',referencia:delivery?ref.value.trim():'',forma:method.value,expected_total:deliveryTotals().total,itens:cart.map(x=>({bar_produto_id:x.bar_produto_id,quantidade:x.quantidade,preco:x.preco,observacao:x.observacao,escolhas:x.escolhas.map(c=>({grupo_id:c.grupo_id,produto_id:c.produto_id}))}))}}}
-  busy=true;submit.disabled=true;back.disabled=true;for(const f of Object.values(fields))f.disabled=true;notice.textContent='Enviando pedido…';
+  busy=true;submit.disabled=true;back.disabled=true;for(const f of Object.values(fields))f.disabled=true;notice.textContent='Enviando pedido…';deliveryUpdate();
   try{await deliveryConfirmPending();deliverySuccess()}
   catch(e){notice.textContent=e.message||'Não foi possível confirmar o envio.';if(pending?.resultado==='rejeitado'){deliveryReleaseRejected();submit.textContent='Enviar pedido';for(const f of Object.values(fields))f.disabled=false;back.disabled=false}else{submit.textContent='Repetir envio pendente';back.disabled=true}deliveryUpdate()}
-  finally{busy=false;submit.disabled=false}
+  finally{busy=false;deliveryUpdate()}
  };
 }
 async function deliveryConfirmPending(){
