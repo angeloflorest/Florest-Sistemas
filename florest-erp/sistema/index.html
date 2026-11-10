@@ -2571,12 +2571,15 @@
   .cfg-check em{ font-style:normal; font-size:13px; color: var(--ink-soft); line-height:1.45; }
   .usr-perms-topo{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 8px; font-size:13px; }
   .usr-perms-topo .link-btn{ margin-left:10px; }
+  .usr-perms-secao{ min-width:0; margin:0 0 12px; padding:8px; border:1px solid var(--line, #dce5ef); border-radius:8px; }
+  .usr-perms-secao legend{ padding:0 6px; font-size:13px; font-weight:700; }
   .usr-perms{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
   .usr-perm{
     display:flex; align-items:center; gap:8px; padding:9px 11px; border:1px solid var(--border);
     border-radius:8px; font-size:14px; cursor:pointer; background:#fff;
   }
   .usr-perm input{ width:17px; height:17px; accent-color:var(--florest-navy); }
+  .usr-perm small{ display:block; margin-top:3px; font-weight:400; }
   .usr-perm.marcado{ border-color:var(--florest-navy); background: var(--accent-soft); font-weight:600; }
   .usr-perm.travado{ opacity:.55; cursor:not-allowed; }
   .usr-chips{ display:flex; flex-wrap:wrap; gap:4px; }
@@ -5416,31 +5419,17 @@
         </div>
       </div>
 
-      <div class="usr-perms-topo">
-        <strong>Permissões — o funcionário só enxerga o que estiver marcado</strong>
-        <span>
-          <button type="button" class="link-btn" id="btn-usr-preset-caixa">Somente PDV (caixa)</button>
-          <button type="button" class="link-btn" id="btn-usr-preset-todos">Marcar todos</button>
-          <button type="button" class="link-btn" id="btn-usr-preset-nenhum">Limpar</button>
-        </span>
-      </div>
-      <div class="usr-perms" id="usr-perms"></div>
-
-      <!-- Permissões granulares do Módulo Bar: só aparece se a empresa tiver o módulo contratado
-           (ver renderPermsUsuario). Os checkboxes ficam FORA de #usr-perms por clareza visual, mas
-           permsMarcadas()/definirPerms() também leem daqui — ver essas funções.
-           Fase 5 (Migration 024): os atalhos "Bar — Garçom/Caixa/Portaria" que existiam aqui foram
-           removidos — eram herança da arquitetura anterior, de quando um "garçom" só existia como
-           um conjunto específico de permissões. Hoje um garçom é identificado estruturalmente por
-           perfis.tipo_acesso='garcom' e é administrado exclusivamente em Módulo Bar → Garçons;
-           esta seção (Usuários e Acessos) passa a existir só para dar a um funcionário do ERP,
-           caso a caixa, qualquer combinação das permissões do Bar, sem nenhum atalho de "papel"
-           pré-pronto — cada caixa é marcada manualmente. -->
-      <div id="usr-perms-bar-secao" class="hidden" style="margin-top:14px;">
+      <div id="usr-perms-editor">
         <div class="usr-perms-topo">
-          <strong>Módulo Bar — permissões detalhadas</strong>
+          <strong>Permissões do funcionário</strong>
+          <span>
+            <button type="button" class="link-btn" id="btn-usr-preset-caixa">Somente PDV (caixa)</button>
+            <button type="button" class="link-btn" id="btn-usr-preset-todos">Marcar todos</button>
+            <button type="button" class="link-btn" id="btn-usr-preset-nenhum">Limpar</button>
+          </span>
         </div>
-        <div class="usr-perms" id="usr-perms-bar"></div>
+        <div id="usr-perms-navegacao" class="usr-perms-topo" role="group" aria-label="Seções de permissões"></div>
+        <div id="usr-perms"></div>
       </div>
 
       <div class="modal-section-hint" id="usr-perms-dica"></div>
@@ -7846,56 +7835,91 @@ function usuarioMsg(html, tipo = 'error'){
   $('usuario-msg').innerHTML = html ? `<div class="msg ${tipo}">${html}</div>` : '';
 }
 
+const DETALHES_PERMISSOES_USUARIO = {
+  bar: PERMISSOES_BAR_DETALHE,
+  gastronomia: PERMISSOES_GASTRONOMIA,
+  rotisseria: PERMISSOES_ROTISSERIA,
+};
+
+function secoesPermissoesUsuario(){
+  const secoes = [{ titulo: 'ERP', permissoes: MODULOS_ACESSO.filter(m => !m.moduloComercial) }];
+  for(const { chave } of MODULOS_COMERCIAIS){
+    if(!modulosComerciais[chave]) continue;
+    const entradas = MODULOS_ACESSO.filter(m => m.moduloComercial === chave);
+    if(!entradas.length) continue;
+    secoes.push({ titulo: entradas[0].rotulo, permissoes: entradas.concat(DETALHES_PERMISSOES_USUARIO[chave] || []) });
+  }
+  return secoes;
+}
+
 function renderPermsUsuario(marcados){
   const box = $('usr-perms');
-  box.innerHTML = '';
   const dono = acesso.papel === 'proprietario';
-  MODULOS_ACESSO.forEach(m => {
-    // Módulo comercial que a empresa não tem contratado: nem mostra a opção de permissão (não
-    // faz sentido liberar para um funcionário um módulo que a própria empresa não contratou).
-    if(m.moduloComercial && !modulosComerciais[m.moduloComercial]) return;
-    // só o proprietário libera "Usuários e Acessos"; quem não é proprietário só libera o que ele mesmo tem
-    const travado = !dono && (m.k === 'usuarios' || !podeAcessar(m.k));
-    const lab = document.createElement('label');
-    lab.className = 'usr-perm' + (travado ? ' travado' : '') + (marcados.includes(m.k) ? ' marcado' : '');
-    lab.innerHTML = `<input type="checkbox" value="${m.k}" ${marcados.includes(m.k) ? 'checked' : ''} ${travado ? 'disabled' : ''}> ${escapeHtml(m.rotulo)}`;
-    lab.querySelector('input').addEventListener('change', (e) => lab.classList.toggle('marcado', e.target.checked));
-    box.appendChild(lab);
-  });
-
-  // Permissões granulares do Módulo Bar (não são itens de menu — ver PERMISSOES_BAR_DETALHE):
-  // só aparecem quando a empresa tem o módulo comercial 'bar' contratado, igual ao critério já
-  // usado acima para os itens de MODULOS_ACESSO com moduloComercial.
-  $('usr-perms-bar-secao').classList.toggle('hidden', !modulosComerciais.bar);
-  if(modulosComerciais.bar){
-    const boxBar = $('usr-perms-bar');
-    boxBar.innerHTML = '';
-    PERMISSOES_BAR_DETALHE.forEach(p => {
-      // mesma regra do restante do formulário: quem não é proprietário só pode conceder o que ele mesmo tem
-      const travado = !dono && !acesso.permissoes.includes(p.k);
-      const lab = document.createElement('label');
-      lab.className = 'usr-perm' + (travado ? ' travado' : '') + (marcados.includes(p.k) ? ' marcado' : '');
-      lab.innerHTML = `<input type="checkbox" value="${p.k}" ${marcados.includes(p.k) ? 'checked' : ''} ${travado ? 'disabled' : ''}> ${escapeHtml(p.rotulo)}`;
-      lab.querySelector('input').addEventListener('change', (e) => lab.classList.toggle('marcado', e.target.checked));
-      boxBar.appendChild(lab);
-    });
+  const navegacao = $('usr-perms-navegacao');
+  box.replaceChildren();
+  navegacao.replaceChildren();
+  for(const { titulo, permissoes } of secoesPermissoesUsuario()){
+    const secao = document.createElement('fieldset');
+    secao.className = 'usr-perms-secao';
+    const legenda = document.createElement('legend');
+    legenda.textContent = titulo;
+    const grade = document.createElement('div');
+    grade.className = 'usr-perms';
+    secao.append(legenda, grade);
+    for(const { k, rotulo } of permissoes){
+      const label = document.createElement('label');
+      label.className = 'usr-perm';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = k;
+      input.checked = marcados.includes(k);
+      input.disabled = !dono && (k === 'usuarios' || !acesso.permissoes.includes(k));
+      label.classList.toggle('travado', input.disabled);
+      const titulo = document.createElement('span');
+      titulo.textContent = k === 'pdv' ? 'PDV Principal' : rotulo;
+      const aplicativo = { pdv: 'Florest PDV Móvel', estoque: 'Florest Inventário' }[k];
+      if(aplicativo){
+        const dica = document.createElement('small');
+        dica.textContent = 'Também libera ' + aplicativo;
+        titulo.append(dica);
+      }
+      label.append(input, titulo);
+      grade.append(label);
+    }
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'btn btn-secondary';
+    botao.textContent = titulo;
+    botao.setAttribute('aria-pressed', String(!box.children.length));
+    secao.hidden = !!box.children.length;
+    botao.onclick = () => {
+      for(const painel of box.children) painel.hidden = painel !== secao;
+      for(const item of navegacao.children) item.setAttribute('aria-pressed', String(item === botao));
+    };
+    navegacao.append(botao);
+    box.append(secao);
   }
+  atualizarMarcacaoPermsUsuario();
+  $('usr-perms-dica').textContent = dono ? '' : 'Você só pode liberar permissões que já possui. Apenas o proprietário libera Usuários e Acessos.';
+}
 
-  let gs=$('usr-perms-gastronomia'); if(!gs){gs=document.createElement('div');gs.id='usr-perms-gastronomia';$('usr-perms-bar-secao').after(gs)} gs.replaceChildren(); if(modulosComerciais.gastronomia) for(const p of PERMISSOES_GASTRONOMIA){const lab=document.createElement('label');lab.className='usr-perm';const inp=document.createElement('input');inp.type='checkbox';inp.value=p.k;inp.checked=marcados.includes(p.k);inp.disabled=!dono&&!acesso.permissoes.includes(p.k);lab.append(inp,document.createTextNode(p.rotulo));gs.append(lab)}
-  let rt=$('usr-perms-rotisseria');if(!rt){rt=document.createElement('div');rt.id='usr-perms-rotisseria';$('usr-perms-bar-secao').after(rt)}rt.replaceChildren();if(modulosComerciais.rotisseria)for(const p of PERMISSOES_ROTISSERIA){const lab=document.createElement('label');lab.className='usr-perm';const inp=document.createElement('input');inp.type='checkbox';inp.value=p.k;inp.checked=marcados.includes(p.k);inp.disabled=!dono&&!acesso.permissoes.includes(p.k);lab.append(inp,document.createTextNode(p.rotulo));rt.append(lab)}
-  $('usr-perms-dica').textContent = dono ? '' : 'Você só pode liberar módulos aos quais você mesmo tem acesso, e apenas o proprietário libera “Usuários e Acessos”.';
-}
-function permsMarcadas(){
-  return [...document.querySelectorAll('#usr-perms input:checked, #usr-perms-bar input:checked, #usr-perms-gastronomia input:checked, #usr-perms-rotisseria input:checked')].map(i => i.value);
-}
-function definirPerms(lista){
-  document.querySelectorAll('#usr-perms input, #usr-perms-bar input, #usr-perms-gastronomia input, #usr-perms-rotisseria input').forEach(i => {
-    if(i.disabled) return;
-    i.checked = lista.includes(i.value);
-    i.closest('.usr-perm').classList.toggle('marcado', i.checked);
+function atualizarMarcacaoPermsUsuario(){
+  $('usr-perms').querySelectorAll('input').forEach(input => {
+    input.closest('.usr-perm').classList.toggle('marcado', input.checked);
   });
 }
+$('usr-perms').addEventListener('change', atualizarMarcacaoPermsUsuario);
 
+function permsMarcadas(){
+  return [...$('usr-perms').querySelectorAll('input:checked')].map(input => input.value);
+}
+
+function definirPerms(lista){
+  $('usr-perms').querySelectorAll('input:not(:disabled)').forEach(input => {
+    input.checked = lista.includes(input.value);
+  });
+  atualizarMarcacaoPermsUsuario();
+}
 function abrirModalUsuario(u){
   usuarioMsg('');
   const novo = !u;
@@ -7949,7 +7973,7 @@ $('btn-usr-cancelar').addEventListener('click', fecharModalUsuario);
 $('btn-usr-gerar-senha').addEventListener('click', () => { $('usr-senha').value = gerarSenhaAleatoria(); });
 $('btn-usr-preset-caixa').addEventListener('click', () => definirPerms(['pdv']));
 $('btn-usr-preset-todos').addEventListener('click', () => definirPerms(
-  MODULOS_ACESSO.map(m => m.k).filter(k => k !== 'usuarios').concat(PERMISSOES_BAR_DETALHE.map(p => p.k),PERMISSOES_GASTRONOMIA.map(p=>p.k))
+  secoesPermissoesUsuario().flatMap(secao => secao.permissoes.map(p => p.k)).filter(k => k && k !== 'usuarios')
 ));
 $('btn-usr-preset-nenhum').addEventListener('click', () => definirPerms([]));
 
@@ -23536,7 +23560,7 @@ abrirModalUsuario=function(u){
 $('btn-novo-usuario').textContent='+ Novo usuário';
 function florestAtualizarPapel(){
   const dono=$('usr-papel').value==='proprietario';
-  document.querySelectorAll('#usr-perms input,#usr-perms-bar input, #usr-perms-gastronomia input, #usr-perms-rotisseria input').forEach(i=>{if(acesso.papel==='proprietario')i.disabled=dono;});
+  $('usr-perms-editor').classList.toggle('hidden', dono);
   $('usr-perms-dica').textContent=dono?'Proprietário tem todas as permissões dos módulos contratados, sem seleção manual.':'';
 }
 
