@@ -1,0 +1,28 @@
+name: Enviar instalador validado do Bar ao rascunho
+on:
+  push:
+    branches: [publish/bar-recebimento-1.0.1]
+permissions: {}
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: angeloflorest/Florest-Sistemas
+    steps:
+      - name: Baixar somente o artefato Windows ja validado
+        run: gh run download 42826722460 --name florest-bar-1.0.1-bar.1 --dir pacote
+      - name: Conferir integridade e destino
+        run: |
+          cd pacote/dist
+          sha256sum -c SHA256SUMS.txt
+          echo '3be37a99f40abfdf0bdb2087362b50059be4c8ded6c70d4af46726fa1f2a6b5a  Florest-Bar-Setup-1.0.1-bar.1.exe' | sha256sum -c -
+          test "$(gh release view v1.0.1-bar.1 --json isDraft --jq .isDraft)" = true
+          test "$(gh release view v1.0.1-bar.1 --json targetCommitish --jq .targetCommitish)" = 1a432f149979332ccab9814bccdd863b63b3ab12
+      - name: Enviar arquivos ao rascunho existente
+        run: |
+          gh release upload v1.0.1-bar.1 pacote/dist/Florest-Bar-Setup-1.0.1-bar.1.exe pacote/dist/Florest-Bar-Setup-1.0.1-bar.1.exe.blockmap pacote/dist/bar.yml pacote/dist/SHA256SUMS.txt --clobber
