@@ -18649,7 +18649,9 @@ async function chamarEmissaoRealNFCe(documentoFiscalId){
       return { status: 'erro', mensagem: data.error };
     }
     if(error){
-      return { status: 'erro', mensagem: 'Não foi possível concluir a emissão. Tente novamente ou verifique a configuração fiscal.' };
+      let resposta=data;
+      if(!resposta && typeof error.context?.json === 'function'){try{resposta=await error.context.json();}catch{}}
+      return { status: 'erro', mensagem: resposta?.error || 'Não foi possível concluir a emissão. Tente novamente ou verifique a configuração fiscal.' };
     }
     return data;
   } catch(err){
@@ -23687,12 +23689,22 @@ async function barReaberturaOperar(acao,dados,motivo){
  const atual=barReaberturaAtual;if(!atual?.ativa)throw Error('Atualize a mesa antes de continuar.');
  return barHistoricoMutacao('bar_historico_mesa_editar',{p_comanda_id:atual.comanda_id,p_acao:acao,p_dados:{...dados,versao:atual.versao},p_motivo:motivo});
 }
+function barReaberturaAjustesFechamento(){
+ if(!barMesaAjustesTocados)return {};
+ const dados={};
+ for(const [chave,id] of [['desconto','bar-mesa-desconto'],['acrescimo','bar-mesa-acrescimo'],['taxa_servico','bar-mesa-taxa']]){
+  const campo=$(id),valor=Number(campo.value||0);
+  if(!campo.checkValidity()||!Number.isFinite(valor)||valor<0||Math.abs(valor*100-Math.round(valor*100))>1e-7)throw Error('Confira os ajustes: informe valores não negativos com até duas casas decimais.');
+  dados[chave]=Math.round(valor*100)/100;
+ }
+ return dados;
+}
 function barReaberturaPainel(){
  let panel=$('bar-reabertura-painel');if(!panel){panel=document.createElement('div');panel.id='bar-reabertura-painel';$('bar-mesa-titulo').after(panel);}
  panel.replaceChildren();panel.hidden=!barReaberturaAtual?.ativa;if(panel.hidden)return;
  const msg=document.createElement('p');msg.textContent='Venda reaberta: recebimentos anteriores preservados. Ajustes exigem motivo e caixa original aberto.';panel.append(msg);
  const close=document.createElement('button');close.type='button';close.className='btn-secondary';close.textContent='Concluir edição e fechar mesa';
- close.onclick=async()=>{close.disabled=true;try{const d=await florestDialog('Concluir edição','<p>A conta deve estar quitada. O número original da venda será mantido.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Fechar mesa');if(!d)return;await barReaberturaOperar('fechar',{},d.motivo.trim());$('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barReaberturaAtual=null;await carregarBarMesas();}catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);}finally{close.disabled=false;}};
+ close.onclick=async()=>{close.disabled=true;try{const d=await florestDialog('Concluir edição','<p>A conta deve estar quitada. O número original da venda será mantido.</p><label>Motivo<textarea name="motivo" minlength="3" maxlength="200" required></textarea></label>','Fechar mesa');if(!d)return;const ajustes=barReaberturaAjustesFechamento();const comanda=barComandaAtualId;const r=await barReaberturaOperar('fechar',ajustes,d.motivo.trim());barMesaAjustesTocados=false;await abrirModalBarPagamentoConcluido(comanda,{numero:barMesaAtual.numero},{venda_id:r.venda_id});$('modal-bar-mesa').classList.add('hidden');barComandaAtualId=null;barReaberturaAtual=null;await carregarBarMesas();}catch(e){$('bar-mesa-msg').textContent=barHistoricoErro(e);}finally{close.disabled=false;}};
  panel.append(close);
 }
 async function barReaberturaQuantidade(itemId,quantidade){
