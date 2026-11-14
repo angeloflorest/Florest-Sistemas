@@ -11,7 +11,7 @@ export function comandaRotisseriaHtml(data){
  const rows=data.itens.map(i=>`<tr><td>${esc(i.nome)}</td><td>${esc(number(i.quantidade))}</td><td>${esc(money(i.preco_unitario))}</td><td>${esc(money(i.subtotal))}</td></tr>`).join('');
  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Comanda ${esc(data.numero_comanda)}</title><style>@page{margin:8mm}body{font:13px Arial,sans-serif;color:#000;margin:0}h1{font-size:21px}table{width:100%;border-collapse:collapse}th,td{padding:7px 3px;border-bottom:1px solid #aaa;text-align:left}th:not(:first-child),td:not(:first-child){text-align:right}tr{break-inside:avoid}thead{display:table-header-group}.totais{text-align:right;margin-top:16px}.nao-fiscal{margin-top:20px;font-weight:bold}</style></head><body><h1>Comanda ${esc(data.numero_comanda)}</h1><p>${esc(data.empresa_nome||data.empresa)}</p><p>${esc(data.data_hora)}</p><table><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="totais"><p>Total consumido: ${esc(money(data.total))}</p><p>Total já pago: ${esc(money(data.ja_pago))}</p><p>Saldo pendente: ${esc(money(data.falta_pagar))}</p></div><p class="nao-fiscal">CONFERÊNCIA DA COMANDA — NÃO É DOCUMENTO FISCAL</p></body></html>`;
 }
-export function criarRotisseria({supabase,acessoAtual,emitirNFCe,mensagemFiscal,fiscalPermitido,abrirImpressoras,prepararTaxas,imprimirFiscal,contingenciaFiscal}){
+export function criarRotisseria({supabase,perguntarCupom,acessoAtual,emitirNFCe,mensagemFiscal,fiscalPermitido,abrirImpressoras,prepararTaxas,imprimirFiscal,contingenciaFiscal}){
  const root=document.getElementById('view-rotisseria');
  const st={ctx:null,area:'comandas',selected:null,detail:null,running:null,pending:false,channel:null,timer:null,debounce:null,epoch:0,user:null,token:null,historyPage:0,openSeq:0};
  const $=id=>document.getElementById(id), money=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), when=d=>new Date(d).toLocaleString('pt-BR');
@@ -115,9 +115,9 @@ export function criarRotisseria({supabase,acessoAtual,emitirNFCe,mensagemFiscal,
   const payments=section(form,'Pagamentos já registrados');for(const p of a.pagamentos||[])payments.append(el('p',`${p.forma} · ${money(p.valor)}`));if(!(a.pagamentos||[]).length)payments.append(el('p','Nenhum pagamento registrado.'));
   submit(form,'Confirmar recebimento',async()=>{
    if(!pending){const attempt={id:a.id,versao:a.versao,forma:method,valor:Number(value.value),cpf:cpf.value,cliente_id:client.value||a.cliente_id||null,vencimento:method==='Nota a Prazo'?venc.value:null,chave:crypto.randomUUID()};let pagamento={forma_pagamento:attempt.forma,valor:Math.min(attempt.valor,Number(a.saldo??a.total))};if(attempt.forma!=='Nota a Prazo'&&prepararTaxas)[pagamento]=await prepararTaxas([pagamento]);pending={...attempt,metadados:pagamento.taxas?{taxas:pagamento.taxas}:{}};}
-   let result;try{result=await rpc('receber',pending);}catch(e){if(e.confirmedFailure){pending=null;await refresh();if(st.detail&&st.detail.versao!==a.versao){closeDialog();await receiveDialog(st.detail);notice('A comanda mudou. Confira o saldo atualizado.');return;}}throw e;}closeDialog();await refresh();
-   if(result.finalizada!==false){st.selected=null;st.detail=null;closeComanda();await completed(result);}
-   else if(st.detail?.estado==='aberta'){await receiveDialog(st.detail);notice('');}else{notice('');}
+   let result;try{result=await rpc('receber',pending);}catch(e){if(e.confirmedFailure){pending=null;await refresh();if(st.detail&&st.detail.versao!==a.versao){closeDialog();await receiveDialog(st.detail);notice('A comanda mudou. Confira o saldo atualizado.');return;}}throw e;}closeDialog();
+   if(result.finalizada!==false){st.selected=null;st.detail=null;closeComanda();await completed(result);await refresh();}
+   else{await refresh();if(st.detail?.estado==='aberta'){await receiveDialog(st.detail);notice('');}else{notice('');}}
   });
  }
 
@@ -133,7 +133,7 @@ export function criarRotisseria({supabase,acessoAtual,emitirNFCe,mensagemFiscal,
   if(result.status==='autorizada'&&imprimirFiscal)feedback.append(btn('Imprimir NFC-e autorizada',()=>imprimirFiscal(doc.id)));
  }
 
- async function completed(result){const d=dialog('Venda concluída');d.append(el('p',result.numero_venda?'Venda #'+result.numero_venda:'Pagamento já registrado'),el('p',result.titulo_id?'Nota a prazo: '+money(result.valor_a_receber)+' — disponível no Financeiro.':'Troco: '+money(result.troco||0)));d.append(btn('Emitir cupom fiscal (NFC-e)',()=>emit(result.venda_id),'rt-primary'),btn('Imprimir comprovante',()=>printReceipt(result.venda_id)),btn('Continuar sem emitir agora',closeDialog));}
+ async function completed(result){perguntarCupom({chave:'rotisseria:'+result.venda_id,vendaId:result.venda_id,numeroVenda:result.numero_venda,detalhe:result.titulo_id?'Nota a prazo: '+money(result.valor_a_receber)+' — disponível no Financeiro.':'Troco: '+money(result.troco||0),imprimirComprovante:()=>printReceipt(result.venda_id)});}
  async function printReceipt(venda){await rpc('imprimir',{venda_id:venda,chave:crypto.randomUUID()});notice('');}
  async function renderCaixa(body){const data=await rpc('caixa_dados');if(!body.isConnected||st.area!=='caixa')return;const panel=section(body,'Caixa da Rotisseria');
  if(data.caixa){panel.append(el('p',`Caixa #${data.caixa.numero} · ${data.caixa.aberto_por_nome} · ${when(data.caixa.aberto_em)}`),el('p','Total recebido: '+money(data.resumo.total_recebido),'rt-total'),el('p','Dinheiro esperado: '+money(data.resumo.saldo_dinheiro_esperado)));for(const f of data.resumo.por_forma)panel.append(el('p',f.forma+': '+money(f.total)));if(activeDevice())panel.append(btn('Fechar caixa',async()=>{if(!confirm('Concluir o fechamento deste caixa? As comandas abertas serão preservadas para o próximo caixa.'))return;await rpc('caixa_fechar',{id:data.caixa.id});await refresh();await changeArea('caixa');}));}

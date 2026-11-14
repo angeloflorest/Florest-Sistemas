@@ -7068,6 +7068,7 @@ export function abrirImportador(config){
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { criarRotisseria } from './rotisseria.js';
+import { criarPerguntaCupom } from './cupom-pos-venda.js';
 import { instalarTaxasPagamento, agruparDespesasTaxas, prepararTaxasRecebimentoMesa } from './taxas-pagamento.js';
 let nfe55Painel = null, nfe55Carregamento = null;
 let nfe55ConfigPainel = null, nfe55ConfigCarregamento = null;
@@ -10009,7 +10010,7 @@ function mariaAbrir(){
 // ---------- Navegação entre módulos ----------
 let rotisseriaApp;
 function iniciarRotisseria(){
- rotisseriaApp ||= criarRotisseria({supabase,acessoAtual:()=>acesso,emitirNFCe:chamarEmissaoRealNFCe,mensagemFiscal:mensagemResultadoFiscal,fiscalPermitido:fiscalEmissaoCaixaPermitida,abrirImpressoras:()=>{if(!podeAcessar('configuracoes'))throw Error('O cadastro de impressoras exige acesso às Configurações do ERP. Solicite ao proprietário.');abrirView('configuracoes');},prepararTaxas:formas=>prepararTaxasRecebimentoMesa(supabase,formas),
+ rotisseriaApp ||= criarRotisseria({supabase,perguntarCupom:perguntarCupomVenda,acessoAtual:()=>acesso,emitirNFCe:chamarEmissaoRealNFCe,mensagemFiscal:mensagemResultadoFiscal,fiscalPermitido:fiscalEmissaoCaixaPermitida,abrirImpressoras:()=>{if(!podeAcessar('configuracoes'))throw Error('O cadastro de impressoras exige acesso às Configurações do ERP. Solicite ao proprietário.');abrirView('configuracoes');},prepararTaxas:formas=>prepararTaxasRecebimentoMesa(supabase,formas),
  contingenciaFiscal:async(venda,feedback)=>{if(await ctgContingenciaAtiva()){await ctgFluxoEmitir(venda,feedback);return true;}return false;},
  imprimirFiscal:async id=>{const {data,error}=await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id',id).maybeSingle();if(error)throw error;if(!data||data.status!=='autorizada')throw Error('NFC-e ainda não autorizada. Consulte a tela Fiscal.');if(!nfceImprimirDocumento(data).ok)throw Error('Não foi possível abrir a impressão. Consulte a tela Fiscal.');}});
  return rotisseriaApp.start();
@@ -10117,7 +10118,7 @@ async function mpBarReceive(args){
 async function mpGastroReceive(dados,chave){return mpPay('gastronomia',dados.id,dados,chave,GS.mesaCurrent)}
 function mpRecoveryNotice(modulo,mesaId,root){
  if(!mesaId||!root?.isConnected)return;const prefix='florest-mesa-produtos:'+acesso.userId+':'+modulo+':';let pending=[];try{for(let n=0;n<sessionStorage.length;n++){const key=sessionStorage.key(n);if(!key.startsWith(prefix))continue;const p=JSON.parse(sessionStorage.getItem(key));if(p.mesa_id===mesaId)pending.push({id:key.slice(prefix.length),...p})}}catch{}
- root.querySelector('.mp-recuperar')?.remove();if(!pending.length)return;const box=document.createElement('div');box.className='mp-recuperar';box.style.fontSize='.85em';box.append(document.createTextNode('Recebimento por produtos com resposta pendente. '));for(const p of pending){const button=document.createElement('button');button.type='button';button.className='btn-secondary';button.textContent='Recuperar recebimento';button.onclick=async()=>{button.disabled=true;let confirmed=false;try{const result=await mpPay(modulo,p.id,p.dados,p.chave,mesaId);confirmed=true;if(modulo==='bar'){const{data,error}=await supabase.from('bar_mesas').select('*').eq('id',mesaId).single();if(error)throw error;if(barMesaAtual?.id===mesaId){barMesaAtual=data;barComandaAtualId=data.comanda_atual_id||null;await atualizarSaldoEItensMesa();}await carregarBarMesas();if(barComandaAtualId!==p.id)mpClearConfirmed('bar',p.id);}else{await gsReload(true);await gsMesaAfterMutation(result)}box.remove();}catch(e){if(modulo==='gastronomia'&&confirmed){GS.needsRefresh=true;p.confirmado=true;try{sessionStorage.setItem(mpStorageKey(modulo,p.id),JSON.stringify(p))}catch{}}box.append(document.createTextNode(' '+(e.message||e)))}finally{button.disabled=false}};box.append(button)}root.append(box);
+ root.querySelector('.mp-recuperar')?.remove();if(!pending.length)return;const box=document.createElement('div');box.className='mp-recuperar';box.style.fontSize='.85em';box.append(document.createTextNode('Recebimento por produtos com resposta pendente. '));for(const p of pending){const button=document.createElement('button');button.type='button';button.className='btn-secondary';button.textContent='Recuperar recebimento';button.onclick=async()=>{button.disabled=true;let confirmed=false;try{const result=await mpPay(modulo,p.id,p.dados,p.chave,mesaId);confirmed=true;if(modulo==='bar'){const final=(result&&result[0])||null;if(final?.mesa_liberada===true)await abrirModalBarPagamentoConcluido(p.id,{numero:barMesaAtual?.numero},final);const{data,error}=await supabase.from('bar_mesas').select('*').eq('id',mesaId).single();if(error)throw error;if(barMesaAtual?.id===mesaId){barMesaAtual=data;barComandaAtualId=data.comanda_atual_id||null;await atualizarSaldoEItensMesa();}await carregarBarMesas();if(barComandaAtualId!==p.id)mpClearConfirmed('bar',p.id);}else{perguntarCupomGastronomia(result);await gsReload(true);await gsMesaAfterMutation(result)}box.remove();}catch(e){if(modulo==='gastronomia'&&confirmed){GS.needsRefresh=true;p.confirmado=true;try{sessionStorage.setItem(mpStorageKey(modulo,p.id),JSON.stringify(p))}catch{}}box.append(document.createTextNode(' '+(e.message||e)))}finally{button.disabled=false}};box.append(button)}root.append(box);
 }
 async function mpClosedHistory(modulo,id){if(!id)return'';try{const ctx=await mpRead(modulo,id);if(!ctx.recebimentos?.length)return'';return '<h4>Discriminação dos recebimentos</h4>'+ctx.recebimentos.map(p=>'<details><summary>'+escapeHtml(p.forma||'Recebimento')+' · '+mpMoney(p.valor)+(p.estornado?' · Estornado':'')+'</summary>'+p.itens.map(i=>'<div>'+escapeHtml(i.nome)+' · '+mpMoney(i.valor)+'</div>').join('')+(p.observacao?'<div>Observação: '+escapeHtml(p.observacao)+'</div>':'')+'</details>').join('')}catch{return '<p>Discriminação dos recebimentos temporariamente indisponível.</p>'}}
 
@@ -10148,6 +10149,7 @@ async function gsSendPending(){
    // Uma única solicitação por clique, sem limite artificial de 25 segundos e sem repetição automática.
    const result=await gsRPC(p.acao,p.dados,p.chave);
    GS.pending=null;GS.formDirty=false;
+   if(['receber','finalizar'].includes(p.acao))perguntarCupomGastronomia(result);
    if(!mesaPayment&&!(GS.area==='mesas'&&$('gs-dialog').classList.contains('gs-mesa-dialog')&&['adicionar','mesa_lancar'].includes(p.acao))&&$('gs-dialog').open)$('gs-dialog').close();
    gsNotice('');
    try{await gsReload(true)}catch(e){GS.needsRefresh=true;gsNotice('Recebimento registrado, mas a atualização da tela falhou. Atualize os dados antes de continuar.')}
@@ -11894,7 +11896,7 @@ const pdvEhCodigoDeBarras = (t) => /^\d{8,14}$/.test(t);
 function focarCampoPdv(){
   setTimeout(() => {
     if($('view-pdv').classList.contains('hidden')) return;
-    if(document.querySelector('.pdx-modal:not(.hidden)')) return; // com um painel aberto, o foco é dele
+    if(document.querySelector('#dialog-cupom-pos-venda[open], .pdx-modal:not(.hidden)')) return; // com um painel aberto, o foco é dele
     $('pdv-busca-produto').focus();
   }, 0);
 }
@@ -12490,7 +12492,7 @@ $('btn-adicionar-pdv').addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
   if($('view-pdv').classList.contains('hidden')) return;
   if(e.ctrlKey || e.metaKey || e.altKey || !e.key || e.key.length !== 1) return;
-  if(document.querySelector('.modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
+  if(document.querySelector('#dialog-cupom-pos-venda[open], .modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
   const el = document.activeElement;
   const tag = el && el.tagName;
   if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) return;
@@ -12883,6 +12885,7 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   const numeroVenda = linha ? linha.numero_venda : null;
 
   if(!vendaId || !numeroVenda) throw new Error('Resposta da venda não confirmada.');
+  await abrirModalVendaConcluida(vendaId, numeroVenda);
   if(notaPrazo) pdvPrazoSalvarTentativa(null);
   pdvMensagem(`Venda nº ${numeroVenda} registrada com sucesso!${notaPrazo ? ' Nota a Prazo: título em aberto no Contas a Receber; nenhum valor recebido.' : ''}`, 'success');
 
@@ -12897,11 +12900,6 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   renderCarrinho();
   $('pdv-busca-produto').focus();
 
-  if(vendaId && numeroVenda){
-    await abrirModalVendaConcluida(vendaId, numeroVenda);   // o pedido só imprime se o operador clicar em "Imprimir pedido"
-  } else {
-    impEnfileirarRecibo('venda', vendaId);            // sem modal não há botão: mantém o recibo não fiscal como antes
-  }
   } catch(e){
     pdvMensagem('Não foi possível confirmar a resposta da venda. Se foi Nota a Prazo, repita com os mesmos dados para recuperar o resultado sem duplicar. Confira o histórico antes de iniciar outra venda.');
   } finally {
@@ -13337,7 +13335,7 @@ function pdxAberto(id){ return !$(id).classList.contains('hidden'); }
 document.addEventListener('keydown', (e) => {
   if($('view-pdv').classList.contains('hidden')) return;
   // o modal fiscal pós-venda (e o importador) têm prioridade total
-  if(document.querySelector('.modal-overlay:not(.hidden), .imp-overlay')) return;
+  if(document.querySelector('#dialog-cupom-pos-venda[open], .modal-overlay:not(.hidden), .imp-overlay')) return;
 
   if(e.key === 'Escape'){
     if(pdxAberto('pdx-modal-config')){ pdxCfgFechar(); }
@@ -13372,7 +13370,7 @@ window.addEventListener('keydown', (e) => {
   if(!(e.key === 'F9' || e.code === 'F9' || e.keyCode === 120)) return;
   if(e.ctrlKey || e.altKey || e.metaKey) return;
   if($('view-pdv').classList.contains('hidden')) return;
-  if(document.querySelector('.modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
+  if(document.querySelector('#dialog-cupom-pos-venda[open], .modal-overlay:not(.hidden), .imp-overlay, .pdx-modal:not(.hidden)')) return;
   e.preventDefault();
   pdxPesqAbrir();
 }, true);
@@ -13806,30 +13804,27 @@ async function fiscalEmissaoCaixaPermitida(){
   return data.emite_nota_fiscal;
 }
 
+// A pergunta é comum aos quatro módulos e não depende de recarregar mesas/listagens.
+let cupomPosVenda;
+function perguntarCupomVenda(opcoes){
+ cupomPosVenda ||= criarPerguntaCupom({
+  escopo:()=>[acesso.userId,empresaCache.empresaId],permitido:fiscalEmissaoCaixaPermitida,
+  preparar:async vendaId=>{const {data,error}=await supabase.rpc('fiscal_emitir_nota',{p_venda_id:vendaId});if(error)throw error;return data;},
+  selecionar:nfceDocParaEmitir,emitir:chamarEmissaoRealNFCe,mensagem:mensagemResultadoFiscal,
+  imprimir:async id=>{const {data,error}=await supabase.from('documentos_fiscais').select(NFCE_COLUNAS_IMPRESSAO).eq('id',id).maybeSingle();if(error)throw error;if(!data||data.status!=='autorizada')throw Error('NFC-e ainda não autorizada. Consulte a tela Fiscal.');if(!nfceImprimirDocumento(data).ok)throw Error('Não foi possível abrir a impressão. Use Imprimir cupom fiscal ou consulte a tela Fiscal.');},
+  contingencia:async(venda,feedback,suspender)=>{if(await ctgContingenciaAtiva()){await suspender(()=>ctgFluxoEmitir(venda,feedback));return true;}return false;},
+  falhaTecnica:ctgFalhaTecnicaDoResultado,tentarContingencia:ctgTentarContingenciaPorFalha
+ });
+ cupomPosVenda(opcoes);
+}
 async function abrirModalVendaConcluida(vendaId, numeroVenda){
-  try {
-    if(!await fiscalEmissaoCaixaPermitida()){
-      pdvFecharModalVendaConcluida();
-      return;
-    }
-  } catch(e){
-    pdvFecharModalVendaConcluida();
-    pdvMensagem('Venda registrada. Não foi possível consultar a configuração fiscal. Confira a emissão na tela Fiscal.');
-    return;
-  }
-  vendaConcluidaAtualId = vendaId;
-  vendaEmissaoEmAndamento = false;
-  pedidoImpressao = { vendaId, enviados: 0, ocupado: false };
-  $('modal-venda-concluida-titulo').textContent = `Venda #${numeroVenda} concluída com sucesso`;
-  $('modal-venda-pedido-msg').innerHTML = '';
-  $('modal-venda-concluida-msg').innerHTML = '';
-  $('btn-venda-imprimir-pedido').disabled = false;
-  $('btn-venda-imprimir-pedido').textContent = 'Imprimir pedido';
-  $('btn-venda-emitir-sim').disabled = false;
-  $('btn-venda-emitir-sim').textContent = 'Emitir NFC-e';
-  $('btn-venda-emitir-nao').disabled = false;
-  $('btn-venda-emitir-nao').textContent = 'Finalizar';
-  $('modal-venda-concluida').classList.remove('hidden');
+ let enviados=0;
+ perguntarCupomVenda({vendaId,numeroVenda,aoFechar:focarCampoPdv,imprimirComprovante:async()=>{const args={p_venda_id:vendaId};if(enviados)args.p_reimpressao=true;const {data,error}=await supabase.rpc('impressao_recibo_venda_enfileirar',args);if(error)throw error;enviados++;if(data?.impressora_configurada===false)throw Error('Pedido registrado na fila, mas sem impressora configurada para o Caixa. Confira Configurações > Impressoras.');}});
+}
+function perguntarCupomGastronomia(resultado){
+ if(resultado?.estado!=='finalizado')return;
+ perguntarCupomVenda({chave:'gastronomia:'+resultado.id,vendaId:resultado.venda_id,numeroVenda:resultado.numero_venda,
+  resolverVenda:async()=>{const detalhe=await gsRPC('atendimento_detalhe',{id:resultado.id});const atendimento=detalhe.atendimentos?.[0];if(atendimento?.estado!=='finalizado')throw Error('O atendimento ainda não foi finalizado.');return atendimento.venda_id;}});
 }
 
 function pdvFecharModalVendaConcluida(){
@@ -22558,6 +22553,7 @@ async function receberPagamentoMesaComForma(forma){
       return;
     }
     const resultado = (data && data[0]) || null;
+    if(resultado?.mesa_liberada===true)await abrirModalBarPagamentoConcluido(comandaDoPagamento,{numero:barMesaAtual.numero},resultado);
     // Recibo não fiscal do Bar: não imprimir automaticamente ao receber pagamento.
     // O registro do pagamento, fechamento da mesa e demais impressões continuam inalterados.
     barMesaAjustesTocados = false;
@@ -22589,9 +22585,6 @@ async function receberPagamentoMesaComForma(forma){
     setBarMesaFormaCardsDisabled(false);
   }
 
-  if(mesaFoiLiberada){
-    await abrirModalBarPagamentoConcluido(comandaDoPagamento, { numero: barMesaAtual.numero });
-  }
 }
 $('bar-mesa-forma-cards').querySelectorAll('.bar-forma-card').forEach(b => {
   b.addEventListener('click', () => receberPagamentoMesaComForma(b.dataset.forma));
@@ -22794,39 +22787,9 @@ $('btn-bar-estornar-busca-ir').addEventListener('click', async () => {
 // "Emitir nota" chama o fluxo fiscal UMA ÚNICA VEZ, para essa venda_id — a
 // lógica provisória que coletava vários venda_id (um por pagamento), avisava "serão emitidas N
 // notas" e percorria várias vendas em loop não existe mais.
-async function abrirModalBarPagamentoConcluido(comandaId, mesaInfo){
-  $('modal-bar-pagamento-concluido').classList.add('hidden');
-  barFiscalComandaAtual = null;
-  barFiscalVendaIdAtual = null;
-  try {
-    if(!await fiscalEmissaoCaixaPermitida()) return;
-  } catch(e){
-    $('bar-mesa-msg').textContent = 'Pagamento registrado. Não foi possível consultar a configuração fiscal. Confira a emissão na tela Fiscal.';
-    return;
-  }
-  const { data: comanda, error } = await supabase
-    .from('bar_comandas')
-    .select('venda_id')
-    .eq('id', comandaId)
-    .maybeSingle();
-  if(error || !comanda || !comanda.venda_id) return;
-
-  const { data: venda, error: erroVenda } = await supabase
-    .from('vendas')
-    .select('total')
-    .eq('id', comanda.venda_id)
-    .maybeSingle();
-  if(erroVenda || !venda) return;
-
-  barFiscalComandaAtual = comandaId;
-  barFiscalVendaIdAtual = comanda.venda_id;
-
-  $('bar-pagamento-concluido-titulo').textContent = `Pagamento concluído — Mesa ${mesaInfo.numero}`;
-  $('bar-pagamento-concluido-total').textContent = `Total da conta: ${formatarReais(venda.total)}`;
-  $('bar-pagamento-concluido-msg').innerHTML = '';
-  $('btn-bar-pagamento-emitir-sim').disabled = false;
-  $('btn-bar-pagamento-emitir-sim').textContent = 'Sim, emitir nota';
-  $('modal-bar-pagamento-concluido').classList.remove('hidden');
+async function abrirModalBarPagamentoConcluido(comandaId, mesaInfo, resultado={}){
+ perguntarCupomVenda({chave:'bar:'+comandaId,vendaId:resultado.venda_id,numeroVenda:resultado.numero_venda,
+  resolverVenda:async()=>{const {data,error}=await supabase.from('bar_comandas').select('venda_id').eq('id',comandaId).maybeSingle();if(error)throw error;return data?.venda_id;}});
 }
 
 $('btn-bar-pagamento-emitir-nao').addEventListener('click', () => {
