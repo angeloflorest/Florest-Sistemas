@@ -17697,6 +17697,18 @@ async function abrirVendaFiscalPorId(vendaId){
   await renderVendaFiscal(venda, req);
 }
 
+// Permite emitir mais tarde uma NFC-e pendente, sem liberar notas já emitidas ou incertas.
+function fiscalPodeEmitirVenda(venda, documentos){
+  if(venda.cancelada_em) return false;
+  if(documentos.length === 0) return true;
+  const nfces = documentos.filter(d => d.tipo_documento === 'nfce');
+  return nfces.some(d => d.status === 'nao_emitida') && nfces.every(d => {
+    const tentativa = docMarcador(d);
+    return ['nao_emitida', 'rejeitada'].includes(d.status) && !docPrecisaSuporte(d)
+      && !['enviando', 'desconhecida', 'denegada'].includes(tentativa?.situacao);
+  });
+}
+
 async function renderVendaFiscal(venda, req = ++fiscalVendaReq){
   const empresaId = await obterEmpresaId();
   if(req !== fiscalVendaReq) return;
@@ -17737,7 +17749,7 @@ async function renderVendaFiscal(venda, req = ++fiscalVendaReq){
     containerItens.appendChild(row);
   });
 
-  const { data: documentos } = await supabase
+  const { data: documentos, error: erroDocumentos } = await supabase
     .from('documentos_fiscais')
     .select('*')
     .eq('empresa_id', empresaId)
@@ -17750,11 +17762,20 @@ async function renderVendaFiscal(venda, req = ++fiscalVendaReq){
 
   const acoes = $('fiscal-venda-acoes');
   acoes.innerHTML = '';
-  if((!documentos || documentos.length === 0) && !venda.cancelada_em){
+  if(erroDocumentos){
+    $('fiscal-venda-msg').textContent = 'Não foi possível consultar os documentos fiscais. Atualize a venda antes de emitir.';
+  }
+  if(!erroDocumentos && fiscalPodeEmitirVenda(venda, documentos || [])){
     const btn = document.createElement('button');
     btn.className = 'btn-accent';
-    btn.textContent = 'Emitir nota';
-    btn.addEventListener('click', () => emitirNotaDaVenda(venda.id));
+    btn.textContent = 'Emitir cupom fiscal';
+    btn.addEventListener('click', async () => {
+      if(btn.disabled) return;
+      btn.disabled = true;
+      try { await emitirNotaDaVenda(venda.id); }
+      catch(e){ $('fiscal-venda-msg').textContent = e.message || 'Não foi possível concluir a emissão. Consulte a situação na tela Fiscal.'; }
+      finally { btn.disabled = false; }
+    });
     acoes.appendChild(btn);
   }
   await ctgTesteMontarBotao(venda, documentos || [], acoes);     // "Testar contingência (homologação)": só Fiscal + homologação
@@ -18346,7 +18367,7 @@ function renderDocumentosDaVenda(vendaId, documentos){
   });
 
   if(documentos.some(d => d.status === 'nao_emitida')){
-    container.innerHTML += '<p class="modal-section-hint" style="margin-top:10px;">Cancelamento e nova tentativa detalhada ficam disponíveis em uma próxima etapa.</p>';
+    container.innerHTML += '<p class="modal-section-hint" style="margin-top:10px;">Documento ainda não emitido. Use “Emitir cupom fiscal” nas ações da venda, quando disponível.</p>';
   }
 
   // Notas canceladas: preenche, sem bloquear a tela, data/justificativa/protocolo do cancelamento.

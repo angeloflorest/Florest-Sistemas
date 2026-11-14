@@ -1,0 +1,22 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{chromium}=require('playwright');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+function source(name){const start=html.search(new RegExp('(?:async )?function '+name+'\\('));assert.ok(start>=0,name);const tail=html.slice(start),end=tail.search(/^}\r?$/m);assert.ok(end>0,name);return tail.slice(0,end+1);}
+test('Fiscal: emissão posterior reutiliza a NFC-e pendente e mantém bloqueios',{timeout:60000},async()=>{const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/chromium'});try{const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('https://fiscal.test/**',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><html lang="pt-BR"><body>'+['fiscal-venda-titulo','fiscal-venda-sub','fiscal-venda-cancelada-aviso','fiscal-venda-itens','fiscal-venda-acoes','fiscal-venda-msg','fiscal-venda-resultado'].map(id=>`<div id="${id}"></div>`).join('')+'</body></html>'}));await page.goto('https://fiscal.test/');
+ await page.addScriptTag({content:`const $=id=>document.getElementById(id);let fiscalVendaReq=0,fiscalVendaAbertaId=null,docs=[],queryError=null;window.calls=[];const obterEmpresaId=async()=>'empresa-teste',formatarReais=String,escapeHtml=String,renderDocumentosDaVenda=()=>{},ctgTesteMontarBotao=async()=>{},ctgTesteRenderUltimo=()=>{},ctgContingenciaAtiva=async()=>false,carregarFiscal=()=>{},abrirVendaFiscalPorId=async()=>{},mensagemResultadoFiscal=r=>r.status,ctgFalhaTecnicaDoResultado=()=>false;const FISCAL_ESTADOS_SUPORTE=['divergente_requer_suporte','cancelada_na_sefaz_requer_suporte','denegada_confirmada'];function docMarcador(doc){return doc?.retorno_provedor?.emissao_tentativa||null;}
+ ${source('docPrecisaSuporte')}
+ ${source('fiscalPodeEmitirVenda')}
+ ${source('nfceDocParaEmitir')}
+ ${source('renderVendaFiscal')}
+ ${source('emitirNotaDaVenda')}
+ const supabase={from(table){const q={select(){return q},eq(){return q},then(resolve){return Promise.resolve({data:table==='itens_venda'?[]:docs}).then(resolve)},order:async()=>({data:docs,error:queryError})};return q;},rpc:async(name,args)=>{calls.push([name,args]);await new Promise(r=>setTimeout(r,80));return {data:docs,error:null}}};const chamarEmissaoRealNFCe=async id=>{calls.push(['emissor',id]);return {status:'autorizada'}};
+ window.show=async(documentos,cancelada=false,erro=false)=>{docs=documentos;queryError=erro?{message:'Falha de conexão'}:null;calls=[];await renderVendaFiscal({id:'venda-721',numero_venda:721,total:40,tipo:'bar',criado_em:'2026-11-13T12:00:00Z',forma_pagamento:'Cartão de Débito',cancelada_em:cancelada?'2026-11-14T12:00:00Z':null});};`});
+ const pending={id:'documento-existente',tipo_documento:'nfce',status:'nao_emitida'};
+ await page.evaluate(d=>show([d]),pending);const button=page.getByRole('button',{name:'Emitir cupom fiscal',exact:true});await button.waitFor();assert.deepEqual(await page.evaluate(()=>calls),[]);await button.dblclick();await page.getByText('autorizada',{exact:true}).waitFor();assert.deepEqual(await page.evaluate(()=>calls),[['fiscal_emitir_nota',{p_venda_id:'venda-721'}],['emissor','documento-existente']]);
+ for(const docs of [[],[pending],[{tipo_documento:'nfce',status:'rejeitada'},pending]]){await page.evaluate(d=>show(d),docs);assert.equal(await button.count(),1);}
+ for(const status of ['autorizada','cancelada','processando','situacao_desconhecida','denegada']){for(const docs of [[{tipo_documento:'nfce',status}],[pending,{tipo_documento:'nfce',status}]]){await page.evaluate(d=>show(d),docs);assert.equal(await button.count(),0,status);}}
+ for(const situacao of ['enviando','desconhecida','denegada']){await page.evaluate(d=>show([d]),{...pending,retorno_provedor:{emissao_tentativa:{situacao}}});assert.equal(await button.count(),0,situacao);}
+ await page.evaluate(d=>show([d]),{...pending,retorno_provedor:{emissao_tentativa:{conciliacao:{estado:'divergente_requer_suporte'}}}});assert.equal(await button.count(),0);
+ await page.evaluate(d=>show([d],true),pending);assert.equal(await button.count(),0);await page.evaluate(()=>show([{tipo_documento:'nfse',status:'nao_emitida'}]));assert.equal(await button.count(),0);
+ await page.evaluate(()=>show([],false,true));assert.equal(await button.count(),0);assert.match(await page.locator('#fiscal-venda-msg').textContent(),/Não foi possível consultar/);assert.deepEqual(errors,[]);
+ }finally{await browser.close()}});
