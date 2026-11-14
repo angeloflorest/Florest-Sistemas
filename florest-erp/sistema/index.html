@@ -2252,7 +2252,7 @@
   .pdx-cliente span{ color:#B9BEC8; }
   .pdx-cliente b{ color:var(--florest-yellow); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:360px; }
   .pdx-cpf-nota{ display:flex; align-items:center; gap:7px; font-size:13px; min-width:0; }
-  .pdx-cpf-nota span{ color:#B9BEC8; white-space:nowrap; }
+  .pdx-cpf-nota span,.pdx-cpf-nota label{ color:#B9BEC8; white-space:nowrap; }
   .pdx-cpf-nota input{
     width:150px; padding:6px 9px; font-size:13px; border-radius:7px; border:1px solid #4A505C;
     background:#1B2027; color:#fff; font-family:inherit;
@@ -3387,8 +3387,8 @@
           </select>
         </div>
         <div class="pdx-cpf-nota">
-          <span>CPF na nota:</span>
-          <input type="text" id="pdv-cpf-nota" inputmode="numeric" placeholder="Opcional" autocomplete="off" maxlength="14">
+          <label for="pdv-cpf-nota">CPF/CNPJ na nota:</label>
+          <input type="text" id="pdv-cpf-nota" inputmode="numeric" placeholder="CPF ou CNPJ (opcional)" autocomplete="off" maxlength="18" aria-describedby="pdx-cpf-nota-erro">
           <span class="pdx-cpf-nota-erro" id="pdx-cpf-nota-erro"></span>
         </div>
         <div class="pdx-teclas"><kbd>F2</kbd> Cliente &nbsp; <kbd>F3</kbd> Finalizar &nbsp; <kbd>F5</kbd> Desconto &nbsp; <kbd>F9</kbd> Buscar produto &nbsp; <kbd>ESC</kbd> Cancelar</div>
@@ -3437,7 +3437,7 @@
             <h3>Cliente da venda</h3>
             <button type="button" class="pdx-btn-mini" id="btn-pdx-cliente-fechar">Fechar (ESC)</button>
           </div>
-          <input type="text" id="pdx-cliente-busca" class="pdx-input" placeholder="Pesquisar cliente pelo nome..." autocomplete="off">
+          <input type="text" id="pdx-cliente-busca" class="pdx-input" placeholder="Pesquisar por nome, CPF ou CNPJ..." autocomplete="off">
           <div class="pdx-cliente-lista" id="pdx-cliente-lista"></div>
         </div>
       </div>
@@ -11824,7 +11824,7 @@ let pdvRenderQtd = 0;             // quantos itens desse array já estão no DOM
 let pdvListaFechada = false;      // lista escondida por clique fora (o texto e os resultados continuam guardados)
 let pdvUltimoAdicionado = null;
 let pdvAudio = null;
-const pdvClientesCpf = new Map(); // id do cliente -> cpf (somente dígitos), para autopreencher "CPF na nota"
+const pdvClientesCpf = new Map(); // id do cliente -> CPF/CNPJ, para autopreencher o documento na nota
 
 /** Confere os 11 dígitos e os dois dígitos verificadores do CPF (mesmo algoritmo da função private.cpf_valido no banco). */
 function cpfValido(v){
@@ -11844,24 +11844,34 @@ function cpfValido(v){
   return true;
 }
 
-/** Mostra/esconde o aviso de CPF inválido no rodapé do PDV e marca o campo. Retorna true se o conteúdo atual é aceitável (vazio ou válido). */
+/** Remove apenas a pontuação usual: letras e outros caracteres continuam inválidos. */
+function normalizarDocumentoNota(v){
+  return String(v ?? '').replace(/[.\/\-\s]/g, '');
+}
+function cnpjValido(v){
+  const d = normalizarDocumentoNota(v);
+  if(!/^\d{14}$/.test(d) || /^(\d)\1{13}$/.test(d)) return false;
+  const pesos = [[5,4,3,2,9,8,7,6,5,4,3,2],[6,5,4,3,2,9,8,7,6,5,4,3,2]];
+  return pesos.every((lista, etapa) => {
+    const soma = lista.reduce((total, peso, i) => total + Number(d[i]) * peso, 0);
+    const resto = soma % 11;
+    return Number(d[12 + etapa]) === (resto < 2 ? 0 : 11 - resto);
+  });
+}
+function documentoNotaValido(v){
+  const d = normalizarDocumentoNota(v);
+  return /^\d{11}$/.test(d) ? cpfValido(d) : cnpjValido(d);
+}
+/** Documento opcional: aceita CPF ou CNPJ com os dígitos verificadores corretos. */
 function pdxValidarCpfNota(){
   const campo = $('pdv-cpf-nota');
   const erro = $('pdx-cpf-nota-erro');
-  const d = somenteDigitos(campo.value);
-  if(!d){
-    campo.classList.remove('pdx-cpf-nota-invalida');
-    erro.textContent = '';
-    return true;
-  }
-  if(!cpfValido(d)){
-    campo.classList.add('pdx-cpf-nota-invalida');
-    erro.textContent = 'CPF inválido';
-    return false;
-  }
-  campo.classList.remove('pdx-cpf-nota-invalida');
-  erro.textContent = '';
-  return true;
+  const d = normalizarDocumentoNota(campo.value);
+  const valido = !d || documentoNotaValido(d);
+  campo.classList.toggle('pdx-cpf-nota-invalida', !valido);
+  campo.setAttribute('aria-invalid', String(!valido));
+  erro.textContent = valido ? '' : 'CPF ou CNPJ inválido';
+  return valido;
 }
 
 const PDV_COLUNAS = 'id, nome, codigo, gtin, preco_venda, quantidade_estoque, unidade_comercial';
@@ -11907,7 +11917,7 @@ async function prepararPdv(){
     opt.value = c.id;
     opt.textContent = c.nome;
     select.appendChild(opt);
-    if(c.cpf) pdvClientesCpf.set(c.id, somenteDigitos(c.cpf));
+    if(c.cpf) pdvClientesCpf.set(c.id, normalizarDocumentoNota(c.cpf));
   });
   if(selecionado) select.value = selecionado;
   pdxAtualizarClienteRotulo();
@@ -12795,13 +12805,13 @@ $('btn-finalizar-venda').addEventListener('click', async () => {
   if(pdvCarrinho.length === 0 || pdvFinalizando) return;
   const notaPrazo = pdvNotaPrazo;
 
-  // "CPF na nota" é opcional, mas se foi digitado algo precisa ser um CPF válido antes de finalizar.
+  // CPF/CNPJ na nota é opcional; o documento informado precisa ser válido antes de finalizar.
   if(!pdxValidarCpfNota()){
-    pdvMensagem('CPF informado em "CPF na nota" é inválido. Corrija ou apague o campo antes de finalizar.');
+    pdvMensagem('CPF ou CNPJ informado na nota é inválido. Corrija ou apague o campo antes de finalizar.');
     $('pdv-cpf-nota').focus();
     return;
   }
-  const cpfNota = somenteDigitos($('pdv-cpf-nota').value) || null;
+  const cpfNota = normalizarDocumentoNota($('pdv-cpf-nota').value) || null;
 
   const clienteId = $('pdv-cliente').value || null;
   if(notaPrazo && !pdvClienteCadastradoId()){ pdvErroPagamento('Nota a Prazo exige um cliente cadastrado. Selecione o cliente.'); pdxAbrirCliente(); return; }
@@ -13232,7 +13242,7 @@ $('pdx-add-qtd').addEventListener('keydown', (e) => {
 // misto/parcial, Migration 028): handlers e estado em pdvAdicionarPagamento/atualizarPainelPagamentoPdv,
 // logo depois de atualizarTotalPdv. A antiga seleção de uma forma única (#pdv-pagamento) não existe mais.
 
-// ----- CPF na nota (campo opcional no rodapé do PDV; ver pdxValidarCpfNota) -----
+// ----- CPF/CNPJ na nota (campo opcional no rodapé do PDV) -----
 $('pdv-cpf-nota').addEventListener('input', pdxValidarCpfNota);
 $('pdv-cpf-nota').addEventListener('blur', pdxValidarCpfNota);
 
@@ -13249,7 +13259,8 @@ function pdxRenderClientes(){
   lista.innerHTML = '';
   const atual = $('pdv-cliente').value;
   Array.from($('pdv-cliente').options).forEach(o => {
-    if(termo && o.value && !o.textContent.toLowerCase().includes(termo)) return;
+    const documentoBusca = normalizarDocumentoNota(termo);
+    if(termo && o.value && !o.textContent.toLowerCase().includes(termo) && !(/^\d+$/.test(documentoBusca) && (pdvClientesCpf.get(o.value) || '').includes(documentoBusca))) return;
     if(termo && !o.value) return; // “Consumidor Final” só aparece sem filtro
     const b = document.createElement('button');
     b.type = 'button';
@@ -13259,10 +13270,10 @@ function pdxRenderClientes(){
       $('pdv-cliente').value = o.value;
       pdxAtualizarClienteRotulo();
       atualizarPainelPagamentoPdv();
-      // Cliente com CPF válido no cadastro: preenche "CPF na nota" automaticamente.
+      // Cliente com CPF ou CNPJ válido no cadastro: preenche o documento na nota automaticamente.
       // O operador ainda pode alterar ou apagar o campo antes de finalizar a venda.
       const cpfDoCliente = o.value ? pdvClientesCpf.get(o.value) : null;
-      if(cpfDoCliente && cpfValido(cpfDoCliente)){
+      if(cpfDoCliente && documentoNotaValido(cpfDoCliente)){
         $('pdv-cpf-nota').value = cpfDoCliente;
         pdxValidarCpfNota();
       }
