@@ -23656,6 +23656,7 @@ async function barHistoricoDetalhar(id){
     const d=await barHistoricoRpc('florest_venda_detalhar',{p_venda:id}),v=d.venda,c=d.comanda;
     const bloqueio=!!d.fiscal_bloqueado||(d.documentos||[]).length>0,acoes=['<option value="consulta">Somente consulta</option>'];
     if(!v.cancelada_em&&!bloqueio&&barHistoricoPode('bar_venda_editar'))acoes.push('<option value="editar">Editar e voltar para a mesa</option>');
+    if(!v.cancelada_em&&c?.status==='fechada'&&(barHistoricoPode('bar_caixa')||podeAcessar('pdv')||podeAcessar('configuracoes')))acoes.push('<option value="reimprimir">Reimprimir comprovante</option>');
     for(const doc of d.documentos||[])acoes.push(`<option value="doc:${escapeHtml(doc.id)}">Documento ${(doc.tipo_documento||'').toUpperCase()} ${escapeHtml(doc.numero||'—')} · ${escapeHtml(doc.status)}</option>`);
     let html=`<p>Mesa ${escapeHtml(String(c?.mesa_numero??'—'))} · ${escapeHtml(new Date(v.criado_em).toLocaleString('pt-BR'))} · Responsável: ${escapeHtml(d.responsavel_nome||'—')}</p><p>Cliente: ${escapeHtml(d.cliente_nome||'—')} · Pagamento: ${escapeHtml(v.forma_pagamento)} · ${v.cancelada_em?'Cancelada':c?.status==='aberta'?'Em aberto':'Concluída'}</p><p>Total: <strong>${formatarReais(v.total)}</strong> · Desconto: ${formatarReais(c?.desconto||0)} · Acréscimo: ${formatarReais(c?.acrescimo||0)} · Taxa: ${formatarReais(c?.taxa_servico||0)}</p>`;
     html+='<table><thead><tr><th>Produto/serviço</th><th>Quantidade</th><th>Valor</th><th>Subtotal</th></tr></thead><tbody>'+(d.itens||[]).map(i=>`<tr><td>${escapeHtml(i.nome)}</td><td>${escapeHtml(String(i.quantidade))}</td><td>${formatarReais(i.preco_unitario)}</td><td>${formatarReais(i.subtotal)}</td></tr>`).join('')+'</tbody></table>';
@@ -23669,7 +23670,13 @@ async function barHistoricoDetalhar(id){
     let reabertura=null;
     const choice=await florestDialog('Venda nº '+v.numero_venda,html,'Continuar',async valores=>{
       if(valores.acao==='editar')await barHistoricoEditar(d,valores.motivo,reabertura,r=>{reabertura=r;});
+      if(valores.acao==='reimprimir'){
+        const r=await barHistoricoRpc('impressao_recibo_venda_enfileirar',{p_venda_id:v.id,p_reimpressao:true});
+        if(!r?.ok)throw Error('Não foi possível solicitar a reimpressão do comprovante.');
+        if(r.impressora_configurada===false)throw Error('Comprovante registrado na fila, mas não há impressora configurada para o Caixa. Confira Configurações > Impressoras.');
+      }
     });if(!choice||choice.acao==='consulta')return;
+    if(choice.acao==='reimprimir'){$('bar-historico-msg').textContent='Comprovante não fiscal enviado à fila da impressora do Caixa. Aguarde a impressão pelo Florest Print Agent.';return;}
     if(choice.acao.startsWith('doc:')){await barHistoricoDocumento(choice.acao.slice(4));return;}
     if(choice.acao==='editar')return;
     await carregarBarHistorico();
