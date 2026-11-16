@@ -1,63 +1,49 @@
-# iFood — preparação exclusiva do Gastronomia
+# iFood na Gastronomia — conexão de testes
 
-Implementado em 09/11/2026, sem cadastro de desenvolvedor, CNPJ, credenciais ou autorização de loja. Esta entrega é a preparação da integração; não é uma integração homologada e não basta inserir credenciais para receber pedidos reais.
+Atualizado em 16/11/2026. A preparação de 09/11 foi ampliada para conexão centralizada no servidor. A liberação inicial usa a empresa autorizada SPETTOS DAY e exclusivamente o merchant de teste. Não habilita lojas de produção nem outras empresas.
 
-## Disponível no ERP
+## Fluxo
 
-Gastronomia → Configurações → Integração iFood, somente para quem já pode configurar Gastronomia. A API pública executa como chamador e delega a uma função privada que verifica empresa ativa, módulo contratado, permissão de visualizar/configurar e empresa esperada; alterar o navegador não concede acesso.
+1. Gastronomia → Configurações → iFood: cadastro da loja, credenciais protegidas no Vault, teste de conexão, consulta manual e pausa.
+2. O servidor consulta Events em rotina agendada, inclusive com o navegador fechado. A reserva por empresa evita execuções sobrepostas; falhas respeitam Retry-After.
+3. Eventos são persistidos antes do ACK. Pedidos e comandos usam chaves únicas; eventos repetidos não repetem atendimento, estoque ou impressão.
+4. Gastronomia → Pedidos mostra a fila iFood, o valor pago online e o valor a cobrar. É preciso vincular os códigos externos aos produtos/adicionais da mesma empresa antes de confirmar.
+5. Confirmação, preparo, pronto, despacho próprio e cancelamento são enviados ao iFood. HTTP 202 significa aceito para processamento; o estado só muda com o evento correspondente. Comando com resultado incerto não é repetido automaticamente.
+6. Após confirmação efetiva, o pedido entra nos atendimentos com origem `ifood`. Usa a receita e estoque da Gastronomia, preserva os preços recebidos e imprime duas vias deduplicadas. Pedidos agendados só são importados no horário de preparo.
+7. Pagamentos ONLINE compõem a quitação sem gerar recebimento no caixa físico. OFFLINE só entra no caixa quando o operador registra o recebimento real. A venda preserva a forma de pagamento; taxas e repasses do iFood não são estimados.
+8. Cancelamentos com dinheiro recebido ou venda consolidada ficam explicitamente para conciliação financeira/fiscal. Antes do preparo, cancelamento sem recebimentos devolve estoque; após preparo não presume recuperação física de insumos.
 
-- Nome, ID opcional da loja e ambiente planejado, com versão para evitar sobrescrever outro terminal.
-- Vínculos por código externo, separando produtos e adicionais. Desativação preserva o registro.
-- Simulador local de pagamento online, dinheiro com troco e evento duplicado. Não envia dados ao iFood e não cria atendimento, venda, recebimento, estoque ou impressão.
-- Estruturas privadas para configuração, vínculos, reserva única por loja/pedido com valores financeiros separados, fila de eventos deduplicada por empresa/evento e fila de comandos com chave única por empresa.
-- Contrato de pedido com identificação externa, itens, adicionais, observações, agendamento, entrega, pagamentos e benefícios. Valores em centavos; divergências e produtos sem vínculo exigem revisão.
-- Adaptador de servidor testado com transporte simulado: autenticação centralizada, renovação por `expiresIn`, consulta de pedidos, polling limitado às lojas permitidas e ACK. Assinatura HMAC-SHA256 validada sobre os bytes originais com Web Crypto.
+## Isolamento
 
-## Barreiras da preparação
+- Merchant, credenciais, vínculos, eventos, pedidos, comandos e pagamentos pertencem a uma empresa.
+- Sessão e empresa esperada são verificadas nas ações do operador. Pedidos fora do merchant autorizado são recusados.
+- Worker é exclusivo de `service_role`. O agendamento usa assinatura HMAC com prazo e corpo vinculado; a chave nunca entra na fila HTTP.
+- Somente as ramificações da origem iFood foram acrescentadas aos helpers compartilhados de pagamentos, venda e impressão. A RPC existente recusa alterações manuais de conteúdo/expedição em pedidos iFood, direcionando às ações próprias.
+- Nenhuma credencial é incluída no Git ou retornada à interface.
 
-O estado do banco aceita somente `preparacao`. Nenhuma opção da interface ativa a integração. Não há cron, worker, credencial armazenada, concessão de acesso de lojas ou abertura automática de estabelecimento.
+## Validação e pendências de homologação
 
-`supabase/functions/gastronomia-ifood/index.ts` é um receptor bloqueado preparado em código (POST retorna 503; não confirma recebimento e não anuncia presença). Não é cadastrado como webhook no iFood. O adaptador permanece fora dos arquivos públicos da interface e inicia desativado. A chave secreta não tem campo no navegador.
+Autenticação e status da loja foram validados contra a API real; após polling o iFood retornou loja conectada e aberta. A consulta real ainda não recebeu pedidos no momento da publicação.
 
-O normalizador não publica dados nas tabelas operacionais. As regras atuais de origem/autoria de atendimentos, caixa, estoque, pedidos manuais, cardápio e Print Agent foram preservadas. Não há mudanças nos módulos Bar, PDV, Rotisseria ou outros.
+Testes de unidade, de navegador com transporte simulado e PostgreSQL isolado cobrem falhas antes de ACK, comandos incertos, isolamento, preços, pagamentos, duplicação de eventos/estoque e impressão. Isso não substitui a homologação externa.
 
-## Como testar agora
+Próximo teste: gerar um pedido no portal iFood, vincular seus códigos externos a produtos existentes, confirmar e acompanhar os eventos na Gastronomia. Conferir a impressão física no agente dessa empresa. Não afirmar homologação aprovada sem o relatório do iFood.
 
-1. Abrir Gastronomia → Configurações → Integração iFood e salvar o nome da loja sem preencher ID ou credenciais.
-2. Vincular um código externo a um produto desta empresa. `DEMO-001` corresponde ao produto fictício do simulador.
-3. Usar os exemplos online e dinheiro com troco. R$ 35 online não entra na gaveta; R$ 35 em dinheiro aparece como a cobrar, com R$ 15 de troco para R$ 50.
-4. Simular confirmação repetida: uma confirmação, sem pedido, baixa ou impressão duplicada.
+Complementos de terceiro nível, composição ambígua e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo e a conciliação de repasses via Financial são escopos próprios e não foram ativadas.
 
-Verificações automatizadas:
+## Verificações
 
 ```sh
-node --test florest-erp/sistema/tests/ifood-preparacao.test.cjs
+node --test florest-erp/sistema/tests/ifood-preparacao.test.cjs florest-erp/sistema/tests/ifood-conexao.test.cjs
 node florest-erp/sistema/tests/ifood-browser.cjs
 ```
 
-O teste de navegador requer Playwright e Chromium; usa RPC simulada. Os testes não usam dados ou credenciais reais de lojas.
+O teste de navegador requer Playwright e Chromium. Não contém credenciais reais.
 
-## Etapa futura, após o cadastro
+## Referências oficiais
 
-1. Aplicação Food/PDV centralizada, CNPJ definitivo, credenciais protegidas no servidor, lojas de teste e autorização por merchant. Verificar a titularidade e homologação com o iFood.
-2. Implantar receptor autenticado por assinatura antes do parse, validar merchant por empresa e persistir evento antes de responder. Webhook não utiliza o ACK do polling. Presença/KEEPALIVE deve anunciar somente lojas explicitamente habilitadas e saudáveis.
-3. Implantar worker durável com reserva, tentativas limitadas, atrasos, dead-letter/revisão e monitoramento. Consumir eventos duplicados/fora de ordem e mudanças/cancelamentos/negociações. Polling principal respeita 30 segundos; fallback do webhook segue a configuração homologada. ACK somente depois da persistência durável, inclusive de eventos desconhecidos.
-4. Validar os contratos reais e divergências entre exemplos da documentação e referência de API. O adaptador usa o módulo Events `/events/v1.0/events:polling` e `/events/v1.0/events/acknowledgment`; não mistura endpoints de Order, Logistics ou Groceries.
-5. Adaptar o importador com origem/autoria reais `ifood`, vínculo único merchant/pedido, instantâneo de preço e composição, sem atribuir usuário fictício. Resolver produtos/adicionais sem vínculo antes de aceitar e baixar estoque. Preservar histórico e distinguir eventos de cancelamento, atualização parcial e negociação.
-6. Enviar confirmar, iniciar preparo, pronto e despacho conforme a modalidade; consultar motivos de cancelamento e tratar Handshake. `202 Accepted` não é confirmação final. Timeout de comando deve virar resultado incerto e ser reconciliado antes de qualquer repetição.
-7. Financeiro: separar pré-pago online, pendência offline e dinheiro efetivamente recebido. Não considerar todo CASH como recebido; não cobrar novamente online; preservar bandeira, cupons/patrocinadores, taxas e repasses. Taxa de entrega ou serviço não implica saldo físico. Não estimar taxas/repasse a partir do total do pedido.
-8. Imprimir duas vias na impressora única da Gastronomia após confirmação efetiva, deduplicadas por pedido/lote/evento; reimpressão explícita. Definir o que cada via pode conter conforme as regras atuais de privacidade do iFood.
-9. Homologar entrega própria/iFood, retirada, agendamento, adicionais, cupons, múltiplos pagamentos, cancelamentos e negociações. Testar falhas e reconciliação, inclusive navegador fechado. Definir retenção de dados e monitoramento antes de produção.
-10. Somente então liberar ativação controlada por empresa. Sincronização de cardápio/fotos/preços é uma etapa própria (Catalog), não foi ativada nesta entrega.
-
-## Fontes oficiais consultadas
-
-- [Autenticação centralizada](https://developer.ifood.com.br/en-US/docs/food/guides/modules/authentication/centralized)
-- [Estrutura dos pedidos e pagamentos](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/details)
-- [Assinatura do webhook](https://developer.ifood.com.br/en-US/docs/food/guides/modules/events/webhook-signature)
-- [Comportamento do webhook](https://developer.ifood.com.br/en-US/docs/food/guides/modules/events/webhook-overview)
-- [Polling e ACK](https://developer.ifood.com.br/en-US/docs/food/guides/modules/events/polling-overview)
-- [Endpoints de pedidos](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/endpoints)
-- [Homologação de pedidos](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation)
-
-Os pedidos de origem `site` e `ifood` compartilham Gastronomia → Pedidos, com faixa amarela “Cardápio digital” e vermelha “iFood”. A aba Mesas continua dedicada aos atendimentos de mesa. Pedidos manuais mantêm sua origem verdadeira.
+- https://developer.ifood.com.br/en-US/docs/food/guides/modules/authentication/centralized
+- https://developer.ifood.com.br/en-US/docs/food/guides/modules/events/polling-overview
+- https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/details
+- https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/endpoints
+- https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation

@@ -32,6 +32,15 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
  return {
   async poll(ids){guard();if(!Array.isArray(ids)||!ids.length||ids.length>100)throw new IFoodError('Informe de 1 a 100 lojas.');ids.forEach(merchant);if(now()<nextPoll)throw new IFoodError('Aguarde o intervalo de polling.',{retryAfter:nextPoll-now()});nextPoll=now()+30000;try{return await api('/events/v1.0/events:polling?categories=FOOD',{headers:{'x-polling-merchants':ids.join(',')}})||[]}catch(e){if(e.retryAfter)nextPoll=Math.max(nextPoll,now()+e.retryAfter);throw e}},
   async acknowledge(events){guard();if(!Array.isArray(events)||!events.length||events.length>2000)throw new IFoodError('Lote de eventos inválido.');events.forEach(e=>{merchant(e.merchantId);if(!uuid.test(e.id))throw new IFoodError('Evento inválido.');});return api('/events/v1.0/events/acknowledgment',{method:'POST',body:JSON.stringify(events.map(e=>({id:e.id})))})},
+  async status(merchantId){merchant(merchantId);return api('/merchant/v1.0/merchants/'+merchantId+'/status')},
+  async cancellationReasons(id,merchantId){merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');return api('/order/v1.0/orders/'+id+'/cancellationReasons')},
+  async command(id,merchantId,action,payload={}){
+   merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');
+   const paths={confirmar:'confirm',preparar:'startPreparation',pronto:'readyToPickup',despachar:'dispatch',solicitar_cancelamento:'requestCancellation'};
+   if(!paths[action])throw new IFoodError('Comando inválido.');
+   return api('/order/v1.0/orders/'+id+'/'+paths[action],{method:'POST',...(Object.keys(payload).length?{body:JSON.stringify(payload)}:{})});
+  },
+  async dispute(disputeId,merchantId,action,payload={}){merchant(merchantId);if(!uuid.test(disputeId)||!['accept','reject'].includes(action))throw new IFoodError('Negociação inválida.');return api('/order/v1.0/disputes/'+disputeId+'/'+action,{method:'POST',body:JSON.stringify(payload)})},
   async order(id,merchantId){merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');const data=await api('/order/v1.0/orders/'+id);if(data?.merchant?.id!==merchantId)throw new IFoodError('Pedido pertence a outra loja.');return data},
  };
 }

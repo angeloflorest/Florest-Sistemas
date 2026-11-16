@@ -18,8 +18,9 @@ export function normalizeOrder(order,mappings=[]){
   if(typeof i.quantity!=='number'||!Number.isFinite(i.quantity)||i.quantity<=0)throw Error('Quantidade inválida.');
   const code=text(i.externalCode,100),product=map(code,'produto');
   if(!product)warnings.push('Produto sem vínculo: '+text(i.name,120));
-  const options=(i.options||[]).map(o=>{if(typeof o.quantity!=='number'||!Number.isFinite(o.quantity)||o.quantity<=0)throw Error('Quantidade do adicional inválida.');const external=text(o.externalCode,100),id=map(external,'adicional');if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));return {codigo:external,produto_id:id,nome:text(o.name,120),quantidade:o.quantity,unitario:cents(o.unitPrice)};});
-  return {id:text(i.uniqueId||i.id||String(index),100),codigo:code,produto_id:product,nome:text(i.name,120),quantidade:i.quantity,unitario:cents(i.unitPrice),total:cents(i.totalPrice),observacao:text(i.observations),adicionais:options};
+  if((i.options||[]).some(o=>(o.customization||o.customizations||[]).length))warnings.push('Complemento de terceiro nível exige revisão antes de confirmar.');
+  const options=(i.options||[]).map(o=>{if(typeof o.quantity!=='number'||!Number.isFinite(o.quantity)||o.quantity<=0)throw Error('Quantidade do adicional inválida.');const external=text(o.externalCode,100),id=map(external,'adicional');if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));return {codigo:external,produto_id:id,nome:text(o.name,120),quantidade:o.quantity,unitario:cents(o.unitPrice),total:cents(o.price??o.quantity*(o.unitPrice+(o.addition||0)))};});
+  return {id:text(i.uniqueId||i.id||String(index),100),codigo:code,produto_id:product,nome:text(i.name,120),quantidade:i.quantity,unitario:cents(i.unitPrice),total:cents(i.totalPrice),observacao:text(i.observations,1024),adicionais:options};
  });
  const payments=methods.map(m=>{
   const type=text(m.type).trim(),method=text(m.method).trim(),value=cents(m.value);
@@ -36,7 +37,7 @@ export function normalizeOrder(order,mappings=[]){
   total:amount,pago_online:prepaid,a_cobrar:pending,dinheiro_a_cobrar:payments.filter(m=>m.tipo==='OFFLINE'&&m.forma==='CASH').reduce((s,m)=>s+m.valor,0),
   dinheiro_recebido:0,beneficios:order.benefits||[],avisos:warnings};
 }
-const states={PLC:'recebido',PLACED:'recebido',CFM:'confirmado',CONFIRMED:'confirmado',SPS:'em_preparo',PREPARATION_STARTED:'em_preparo',RTP:'pronto',READY_TO_PICKUP:'pronto',DSP:'despachado',DISPATCHED:'despachado',CON:'concluido',CONCLUDED:'concluido',CAN:'cancelado',CANCELLED:'cancelado'};
+const states={SPE:'pronto',SEPARATION_ENDED:'pronto',SEPARATION_STARTED:'em_preparo',PLC:'recebido',PLACED:'recebido',CFM:'confirmado',CONFIRMED:'confirmado',SPS:'em_preparo',PREPARATION_STARTED:'em_preparo',RTP:'pronto',READY_TO_PICKUP:'pronto',DSP:'despachado',DISPATCHED:'despachado',CON:'concluido',CONCLUDED:'concluido',CAN:'cancelado',CANCELLED:'cancelado'};
 export function eventRecord(event){
  if(!event||!uuidPattern.test(event.id)||!uuidPattern.test(event.merchantId)||!uuidPattern.test(event.orderId)||!Number.isFinite(Date.parse(event.createdAt)))throw Error('Evento de pedido inválido.');
  return {id:event.id,merchant_id:event.merchantId,pedido_id:event.orderId,ocorrido_em:event.createdAt,estado:states[event.fullCode]||states[event.code]||'revisar',codigo:text(event.fullCode||event.code,100)};
@@ -47,7 +48,7 @@ export function applyEvent(previous,event){
  if(previous.merchant_id!==next.merchant_id||previous.pedido_id!==next.pedido_id)throw Error('Evento pertence a outra loja ou pedido.');
  if(previous.ids.includes(next.id))return previous;
  const ids=[...previous.ids,next.id];
- if(Date.parse(next.ocorrido_em)<Date.parse(previous.ocorrido_em)||['cancelado','concluido'].includes(previous.estado))return {...previous,ids};
+ if(Date.parse(next.ocorrido_em)<Date.parse(previous.ocorrido_em)||(previous.estado==='cancelado'||(previous.estado==='concluido'&&next.estado!=='cancelado')))return {...previous,ids};
  return {...next,ids};
 }
 export function sampleOrder(offline=false){return {
