@@ -1,6 +1,7 @@
 // Transporte injetável: o banco confirma persistência antes do ACK e reserva comandos antes de enviá-los.
 import {createIFoodClient} from './adapter.mjs';
 import {normalizeOrder} from './core.mjs';
+import {syncCatalog} from './catalog.mjs';
 export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
  const cfg=await rpc('reservar',empresa);if(!cfg)return {ocupado:true};
  const api=createIFoodClient({enabled:true,...cfg.credenciais,merchants:[cfg.merchant_id],fetchImpl});
@@ -26,6 +27,7 @@ export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
    try {if(['aceitar_negociacao','recusar_negociacao'].includes(cmd.acao)){const {disputeId,...body}=cmd.payload;await api.dispute(disputeId,merchant,cmd.acao==='aceitar_negociacao'?'accept':'reject',body)}else await api.command(cmd.pedido_id,merchant,cmd.acao,cmd.payload);await rpc('resultado_comando',empresa,{id:cmd.id,estado:'enviado'});}
    catch(e){await rpc('resultado_comando',empresa,{id:cmd.id,estado:e.uncertain?'incerto':'falha'});}
   }
+  await syncCatalog({empresa,merchant,api,rpc,deadline:Math.min(deadline,Date.now()+18000)});
   await rpc('liberar',empresa);return {recebidos:received};
  }catch(e){await rpc('liberar',empresa,{erro:e.message||'Falha de comunicação com o iFood.',espera_ms:e.retryAfter||0});throw e;}
 }

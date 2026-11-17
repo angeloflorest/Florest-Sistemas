@@ -17,8 +17,8 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
   try{return await fetchImpl(base+path,{method,headers,...(body!==undefined?{body}:{}),signal:AbortSignal.timeout(15000),redirect:'error'})}
   catch{throw new IFoodError('Falha de comunicação com o iFood.',{uncertain:method!=='GET'})}
  }
- async function checked(response){
-  if(!response.ok){const retry=response.headers.get('Retry-After');const seconds=Number(retry);const delay=retry?(Number.isFinite(seconds)?Math.max(0,seconds)*1000:Math.max(0,Date.parse(retry)-now())):0;throw new IFoodError('iFood retornou HTTP '+response.status+'.',{status:response.status,uncertain:response.status>=500,retryAfter:Number.isFinite(delay)?delay:0})}
+ async function checked(response,detail=false){
+  if(!response.ok){const retry=response.headers.get('Retry-After');const seconds=Number(retry);const delay=retry?(Number.isFinite(seconds)?Math.max(0,seconds)*1000:Math.max(0,Date.parse(retry)-now())):0;let info='';if(detail){try{info=' '+JSON.stringify(await response.json()).slice(0,600)}catch{}}throw new IFoodError('iFood retornou HTTP '+response.status+'.'+info,{status:response.status,uncertain:response.status>=500,retryAfter:Number.isFinite(delay)?delay:0})}
   if(response.status===204||response.status===202)return null;
   try{return await response.json()}catch{throw new IFoodError('Resposta inválida do iFood.',{uncertain:true})}
  }
@@ -27,11 +27,18 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
   if(!tokenRequest)tokenRequest=(async()=>{const data=await checked(await request('/authentication/v1.0/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grantType:'client_credentials',clientId,clientSecret}).toString()}));if(!data?.accessToken||!Number.isFinite(Number(data.expiresIn))||Number(data.expiresIn)<=0)throw new IFoodError('Token iFood inválido.');token=data.accessToken;tokenUntil=now()+Math.max(0,Number(data.expiresIn)*1000-60000);return token})();
   try{return await tokenRequest}finally{tokenRequest=null}
  }
- async function api(path,options={}){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0}return checked(response)}
+ async function api(path,options={}){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0}return checked(response,path.startsWith('/catalog/'))}
  function merchant(id){guard();if(!allowed.has(id))throw new IFoodError('Loja fora do escopo autorizado.');}
  return {
   async poll(ids){guard();if(!Array.isArray(ids)||!ids.length||ids.length>100)throw new IFoodError('Informe de 1 a 100 lojas.');ids.forEach(merchant);if(now()<nextPoll)throw new IFoodError('Aguarde o intervalo de polling.',{retryAfter:nextPoll-now()});nextPoll=now()+30000;try{return await api('/events/v1.0/events:polling?categories=FOOD',{headers:{'x-polling-merchants':ids.join(',')}})||[]}catch(e){if(e.retryAfter)nextPoll=Math.max(nextPoll,now()+e.retryAfter);throw e}},
   async acknowledge(events){guard();if(!Array.isArray(events)||!events.length||events.length>2000)throw new IFoodError('Lote de eventos inválido.');events.forEach(e=>{merchant(e.merchantId);if(!uuid.test(e.id))throw new IFoodError('Evento inválido.');});return api('/events/v1.0/events/acknowledgment',{method:'POST',body:JSON.stringify(events.map(e=>({id:e.id})))})},
+  async catalog(merchantId,action,{catalogId,id,payload}={}){
+   merchant(merchantId);const root='/catalog/v2.0/merchants/'+merchantId;
+   if(catalogId&&!uuid.test(catalogId)||id&&!uuid.test(id))throw new IFoodError('Identificador de catálogo inválido.');
+   const routes={categories:[root+'/catalogs/'+catalogId+'/categories','GET'],createCategory:[root+'/catalogs/'+catalogId+'/categories','POST'],putItem:[root+'/items','PUT'],item:[root+'/items/'+id+'/flat','GET'],status:[root+'/items/status','PATCH'],batch:[root+'/batch/'+id,'GET'],image:[root+'/image/upload','POST']};
+   if(!routes[action])throw new IFoodError('Operação de catálogo inválida.');const [path,method]=routes[action];return api(path,{method,...(payload?{body:JSON.stringify(payload)}:{})});
+  },
+  async catalogs(merchantId){merchant(merchantId);return api('/catalog/v2.0/merchants/'+merchantId+'/catalogs')},
   async status(merchantId){merchant(merchantId);return api('/merchant/v1.0/merchants/'+merchantId+'/status')},
   async cancellationReasons(id,merchantId){merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');return api('/order/v1.0/orders/'+id+'/cancellationReasons')},
   async command(id,merchantId,action,payload={}){

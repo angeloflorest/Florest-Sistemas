@@ -50,14 +50,14 @@ export async function mountIFood(root,{rpc,catalog,current=()=>true,notice=()=>{
  root.append(el('p','Carregando integração iFood…'));try{await reload()}catch(e){if(current()){root.replaceChildren(el('p','Não foi possível carregar a preparação iFood.'));throw e}}
 }
 
-export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,notice=()=>{},open=()=>{},invoke=async()=>{throw Error('Consulta indisponível.')},canCancel=false,onClose=()=>{},sharedGrid=false,closed=false,knownOrders=[],toolbar=null,onCount=()=>{}}){
+export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,notice=()=>{},open=()=>{},invoke=async()=>{throw Error('Consulta indisponível.')},canCancel=false,onClose=()=>{},sharedGrid=false,closed=false,knownOrders=[],toolbar=null,onCount=()=>{},showRefresh=true}){
  let managed=[],refreshButton=null,refreshTimer=null;
  async function reload(){
   const data=await rpc('pedidos');if(!current())return;const activeDialog=root.querySelector('dialog[open]'),activeId=activeDialog?.dataset.pedido,scroll=activeDialog?.querySelector('.gs-ifood-dialog-body')?.scrollTop||0;clearTimeout(refreshTimer);if(sharedGrid){for(const node of managed)node.remove();managed=[]}else root.replaceChildren();
   if(!data.conectado&&!data.pedidos.length&&!(data.falhas||[]).length)return;
   if(!sharedGrid)root.append(el('h3','Pedidos iFood'));
   for(const f of data.falhas||[]){const warning=el('p','Pedido iFood '+(f.pedido_id||'')+' requer revisão: '+(f.erro||f.codigo));root.append(warning);managed.push(warning)}
-  if(!refreshButton||!refreshButton.isConnected){refreshButton=el('button','Atualizar pedidos iFood');refreshButton.type='button';refreshButton.onclick=()=>reload().catch(e=>notice(e.message));(toolbar||root).append(refreshButton)}
+  if(showRefresh&&(!refreshButton||!refreshButton.isConnected)){refreshButton=el('button','Atualizar pedidos iFood');refreshButton.type='button';refreshButton.onclick=()=>reload().catch(e=>notice(e.message));(toolbar||root).append(refreshButton)}
   const visible=data.pedidos.filter(p=>{if(!sharedGrid)return true;const a=knownOrders.find(a=>a.id===p.atendimento_id);const finished=['concluido','cancelado'].includes(p.estado_ifood)||Boolean(a&&['finalizado','cancelado'].includes(a.estado));return finished===closed});onCount(visible.length);
   for(const p of visible){
    const box=el('article');box.className='gs-card gs-order gs-order--ifood';const n=p.normalizado||{},terminal=['cancelado','concluido'].includes(p.estado_ifood);

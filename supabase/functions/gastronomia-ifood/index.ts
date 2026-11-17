@@ -5,7 +5,7 @@ const allowedOrigins=new Set(['https://erp.florestsistemas.com.br','http://local
 const url=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 async function rpc(action:string,empresa:string|null=null,data:Record<string,unknown>={}){
- const {data:result,error}=await admin.rpc('gastronomia_ifood_worker',{p_acao:action,p_empresa:empresa,p_dados:data});
+ const {data:result,error}=await admin.rpc(action.startsWith('catalogo_')?'gastronomia_ifood_catalogo_worker':'gastronomia_ifood_worker',{p_acao:action.startsWith('catalogo_')?action.slice(9):action,p_empresa:empresa,p_dados:data});
  if(error)throw Error(error.message);return result;
 }
 Deno.serve(async(req:Request)=>{
@@ -25,6 +25,7 @@ Deno.serve(async(req:Request)=>{
    if(body.validar_empresa){
     const cfg=await rpc('config',body.validar_empresa);
     const api=createIFoodClient({enabled:true,...cfg.credenciais,merchants:[cfg.merchant_id]});
+    if(body.consultar_catalogo===true){const catalogos=await api.catalogs(cfg.merchant_id);return reply({catalogos,categorias:await api.catalog(cfg.merchant_id,'categories',{catalogId:catalogos[0].catalogId}),...(body.item_id?{item:await api.catalog(cfg.merchant_id,'item',{id:body.item_id})}:{})})}
     const status=await api.status(cfg.merchant_id);
     if(body.ativar===true)await rpc('conectar',body.validar_empresa);
     return reply({ok:true,status_loja:status});

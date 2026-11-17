@@ -29,7 +29,7 @@ Testes de unidade, de navegador com transporte simulado e PostgreSQL isolado cob
 
 Próximo teste: gerar um pedido no portal iFood, vincular seus códigos externos a produtos existentes, confirmar e acompanhar os eventos na Gastronomia. Conferir a impressão física no agente dessa empresa. Não afirmar homologação aprovada sem o relatório do iFood.
 
-Complementos até o terceiro nível preservam árvore, códigos e quantidades e são resolvidos no estoque da mesma empresa. Composição ambígua, níveis adicionais e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo e a conciliação de repasses via Financial são escopos próprios e não foram ativadas.
+Complementos até o terceiro nível preservam árvore, códigos e quantidades e são resolvidos no estoque da mesma empresa. Composição ambígua, níveis adicionais e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo foi ativada somente na loja de teste autorizada. Conciliação de repasses via Financial continua separada: pagamento online reconhecido não comprova depósito bancário.
 
 ## Verificações
 
@@ -49,3 +49,13 @@ O teste de navegador requer Playwright e Chromium. Não contém credenciais reai
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation
 
 Atualização dos complementos: taxas adicionais do iFood são preservadas no total original e demonstradas separadamente; não entram na receita/fiscal da empresa. Em pedidos pagos online, o valor da empresa é rateado entre os pagamentos com ajuste determinístico de centavos, preservando os valores originais recebidos da API. Taxa de plataforma com cobrança offline fica em revisão para conciliação.
+
+
+## Catálogo, pesquisa e relatórios por canal
+
+- Pedidos começa na data civil de hoje em America/Sao_Paulo; pesquisar outra data consulta o banco pelo período, sem depender dos 500 atendimentos do contexto. Em aberto e Finalizados/cancelados usam a data selecionada. Atualizar recarrega todos os canais da lista. Até 1000 registros por fonte/dia, com aviso de limite.
+- Configurações → Relatórios de vendas por canal: origem, início e fim (até 93 dias). Vendas usam data de entrada do pedido; recebimentos presenciais usam data do pagamento. Cancelamentos não compõem o total de vendas; testes são identificados. Online não é tratado como dinheiro recebido nem como repasse bancário confirmado.
+- Incluir no cardápio + Salvar mantém o Cardápio Digital e enfileira publicação/pausa no iFood conectado. Estoque não determina a inclusão. A 99Food permanece aguardando ativação.
+- O catálogo usa IDs estáveis, snapshots com hash e comparação de versão ao concluir. Mudanças concorrentes não são substituídas por resultados antigos. Categorias são reaproveitadas sem distinção de maiúsculas/minúsculas. Apenas itens gerenciados pela integração são publicados/pausados; não exclui o catálogo remoto.
+- Nome, preço, categoria, opções inclusas e foto são enviados. Fotos WebP do armazenamento da própria empresa são convertidas para PNG; o decodificador tem versão e hash WASM fixos. Falhas de foto ficam explícitas. GET após PUT confirma o item; resposta assíncrona é consultada novamente sem repetir PUT.
+- A fila de catálogo roda depois dos comandos de pedido e tem orçamento próprio de tempo. O polling de pedidos permanece em 30 segundos. A liberação para outras empresas/produção depende da homologação.
