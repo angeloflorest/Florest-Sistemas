@@ -106,7 +106,7 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
      const response=await invoke('motivos_cancelamento',{pedido_id:p.pedido_id});
      const reasons=Array.isArray(response.motivos)?response.motivos:(response.motivos?.reasons||response.motivos?.cancellationReasons||[]);
      if(!reasons.length)throw Error('O iFood não disponibilizou motivos de cancelamento para este pedido.');
-     const select=el('select');for(const r of reasons){const o=el('option',r.description||r.reason||r.cancelCode||r.cancellationCode);o.value=r.cancelCode||r.cancellationCode||r.code||'';select.append(o)}
+     const select=el('select');for(const r of reasons){const o=el('option',r.description||r.reason||r.cancelCodeId||r.cancelCode||r.cancellationCode);o.value=r.cancelCodeId||r.cancelCode||r.cancellationCode||r.code||'';select.append(o)}
      const submit=el('button','Confirmar solicitação de cancelamento');submit.type='button';submit.onclick=async()=>{submit.disabled=true;try{if(!select.value)throw Error('Motivo inválido.');box.closest('dialog').dataset.editing='false';await rpc('comando',{pedido_id:p.pedido_id,acao:'solicitar_cancelamento',chave:crypto.randomUUID(),payload:{cancellationCode:select.value,reason:select.selectedOptions[0].textContent}});notice('Cancelamento solicitado. Aguarde o evento do iFood.');await reload()}catch(e){notice(e.message);submit.disabled=false}};
      box.closest('dialog').dataset.editing='true';box.append(select,submit);
     }catch(e){notice(e.message);cancel.disabled=false}};const cancelArea=el('div',undefined,'gs-ifood-cancel');cancelArea.append(cancel);box.append(cancelArea);
