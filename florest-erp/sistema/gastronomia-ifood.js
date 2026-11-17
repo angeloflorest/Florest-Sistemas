@@ -1,5 +1,5 @@
 import {normalizeOrder,sampleOrder,applyEvent} from './ifood/core.mjs';
-const el=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e};
+const el=(tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e};
 const money=v=>(v/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export async function mountIFood(root,{rpc,catalog,current=()=>true,notice=()=>{},invoke=async()=>{throw Error('Conexão indisponível.')}}){
  let data,sim=null,history=null;
@@ -58,10 +58,13 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
   const refresh=el('button','Atualizar pedidos iFood');refresh.type='button';refresh.onclick=()=>reload().catch(e=>notice(e.message));root.append(refresh);
   for(const p of data.pedidos){
    const box=el('article');box.className='gs-card gs-order gs-order--ifood';const n=p.normalizado||{};
-   box.append(el('div','iFood','gs-order-channel gs-order-channel--ifood'),el('h4','#'+(n.numero||p.pedido_id)+' · '+p.estado_ifood),el('p',n.cliente||'Cliente iFood'),el('p','Total: '+money(n.total||0)+' · Pago no iFood: '+money(n.pago_online||0)+' · A cobrar: '+money(n.a_cobrar||0)));
+   const brand=el('div',undefined,'gs-order-channel gs-order-channel--ifood'),logo=el('img');logo.src='./assets/ifood-logo.svg';logo.alt='iFood';logo.width=76;logo.height=40;brand.append(logo,el('span','Pedido iFood'));
+   box.append(brand,el('h4','#'+(n.numero||p.pedido_id)+' · '+p.estado_ifood),el('p',n.cliente||'Cliente iFood'));
+   const finance=el('div',undefined,'gs-ifood-finance');for(const [label,value]of [['Total do pedido',n.total],['Pago no iFood',n.pago_online],['A cobrar',n.a_cobrar]]){const cell=el('div');cell.append(el('span',label),el('strong',money(value||0)));finance.append(cell)}box.append(finance);
    if(n.agendado)box.append(el('p','Agendado: '+new Date(n.inicio_preparo).toLocaleString('pt-BR')));
    for(const i of n.itens||[])box.append(el('p',i.quantidade+' × '+i.nome+' · Código iFood: '+(i.codigo||'não informado')+(i.produto_id?'':' — Pendente de vínculo')));
-   for(const message of [...(n.avisos||[]),p.revisao_motivo,p.erro].filter(Boolean))box.append(el('p',message));
+   const warnings=[...new Set([...(n.avisos||[]),p.revisao_motivo,p.erro].filter(Boolean))];
+   if(warnings.length){const warning=el('details',undefined,'gs-ifood-warning');warning.open=true;warning.append(el('summary','Pedido recebido — '+warnings.length+' pendência(s) para revisar'));const list=el('ul');for(const message of warnings)list.append(el('li',message));warning.append(list);box.append(warning)}
    if(p.negociacao)box.append(el('p','Negociação iFood: '+(p.negociacao.message||p.negociacao.status||'Requer atenção')+' · Prazo: '+(p.negociacao.expiresAt||'consulte o iFood')));
    if(p.atendimento_id){const b=el('button','Abrir atendimento');b.type='button';b.onclick=()=>open(p.atendimento_id);box.append(b)}
    const next={recebido:['confirmar','Confirmar pedido'],confirmado:['preparar','Iniciar preparo'],em_preparo:['pronto','Pedido pronto']};
