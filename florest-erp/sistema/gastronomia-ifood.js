@@ -88,7 +88,6 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
     box.append(flow,sending);
    }
    if(!terminal){const message=p.estado_ifood==='despachado'?'Pedido saiu para entrega. Aguardando conclusão pelo iFood.':p.estado_ifood==='pronto'?(n.tipo==='DELIVERY'&&n.entrega_por==='MERCHANT'?'Despache quando o pedido sair com o entregador da loja.':n.tipo==='DELIVERY'?'Aguardando coleta e atualização da entrega pelo iFood.':'Aguardando retirada e conclusão pelo iFood.'):'';if(message)box.append(el('p',message,'gs-meta'))}
-   if(p.atendimento_id){const details=el('details',undefined,'gs-ifood-local');details.append(el('summary','Atendimento interno do ERP (opcional)'),el('p','Consulte itens, pagamentos e impressão. Abrir esta tela não avisa nem altera a etapa no iFood.','gs-meta'));const b=el('button','Abrir atendimento no ERP');b.type='button';b.onclick=()=>{box.closest('dialog')?.close();open(p.atendimento_id)};details.append(b);box.append(details)}
    if(canCancel&&data.conectado&&!['cancelado','concluido'].includes(p.estado_ifood)){
     const cancel=el('button','Solicitar cancelamento no iFood');cancel.type='button';cancel.onclick=async()=>{cancel.disabled=true;try{
      const response=await invoke('motivos_cancelamento',{pedido_id:p.pedido_id});
