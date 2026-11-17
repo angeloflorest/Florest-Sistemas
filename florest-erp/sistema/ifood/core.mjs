@@ -13,14 +13,14 @@ export function normalizeOrder(order,mappings=[]){
  const methods=order.payments?.methods;
  if(!Array.isArray(methods)||methods.length>30)throw Error('Pagamentos inválidos.');
  const warnings=[];
- const map=(code,kind)=>mappings.find(m=>m.ativo!==false&&m.tipo===kind&&m.codigo_externo===code)?.produto_id||null;
+ const map=(code,kind,name)=>{const active=mappings.filter(m=>m.ativo!==false&&m.tipo===kind);return (order.isTest===true?active.find(m=>m.nome_teste&&m.nome_teste===name)?.produto_id:null)||active.find(m=>!m.nome_teste&&m.codigo_externo===code)?.produto_id||null};
  const items=order.items.map((i,index)=>{
   if(typeof i.quantity!=='number'||!Number.isFinite(i.quantity)||i.quantity<=0)throw Error('Quantidade inválida.');
-  const code=text(i.externalCode,100),product=map(code,'produto');
+  const code=text(i.externalCode,100),product=map(code,'produto',text(i.name,120));
   if(!product)warnings.push('Produto sem vínculo: '+text(i.name,120));
   function option(o,level=2){
    if(typeof o.quantity!=='number'||!Number.isFinite(o.quantity)||o.quantity<=0)throw Error('Quantidade do adicional inválida.');
-   const external=text(o.externalCode,100),id=map(external,'adicional');if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));
+   const external=text(o.externalCode,100),id=map(external,'adicional',text(o.name,120));if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));
    const children=o.customizations??o.customization??[];if(!Array.isArray(children))throw Error('Complementos inválidos.');
    if(level>=3&&children.length)warnings.push('Complementos além do terceiro nível exigem revisão.');
    return {id:text(o.id,100),codigo:external,produto_id:id,nome:text(o.name,120),grupo:text(o.groupName,120),quantidade:o.quantity,unitario:cents(o.unitPrice),total:cents(o.price??o.quantity*(o.unitPrice+(o.addition||0))),adicionais:level<3?children.map(c=>option(c,level+1)):[]};
