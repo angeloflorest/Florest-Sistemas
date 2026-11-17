@@ -1,11 +1,12 @@
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.49.8';
-import {createIFoodClient} from './adapter.mjs';
+import {serverClient} from './runtime.mjs';
+import {syncCatalog} from './catalog.mjs';
 import {syncCompany} from './worker.mjs';
 const allowedOrigins=new Set(['https://erp.florestsistemas.com.br','http://localhost:4173']);
 const url=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 async function rpc(action:string,empresa:string|null=null,data:Record<string,unknown>={}){
- const {data:result,error}=await admin.rpc(action.startsWith('catalogo_')?'gastronomia_ifood_catalogo_worker':'gastronomia_ifood_worker',{p_acao:action.startsWith('catalogo_')?action.slice(9):action,p_empresa:empresa,p_dados:data});
+ const {data:result,error}=await admin.rpc(action.startsWith('h_')?'gastronomia_ifood_homologacao_worker':action.startsWith('catalogo_')?'gastronomia_ifood_catalogo_worker':'gastronomia_ifood_worker',{p_acao:action.startsWith('h_')?action.slice(2):action.startsWith('catalogo_')?action.slice(9):action,p_empresa:empresa,p_dados:data});
  if(error)throw Error(error.message);return result;
 }
 Deno.serve(async(req:Request)=>{
@@ -22,9 +23,10 @@ Deno.serve(async(req:Request)=>{
   const body=JSON.parse(raw);
   if(body.acao==='cron'){
    if(!await rpc('cron_validar',null,{assinatura:req.headers.get('x-ifood-worker')||'',momento:req.headers.get('x-ifood-momento')||'',corpo:raw}))return reply({erro:'Não autorizado.'},401);
+   if(body.catalogo_empresa){const cfg=await rpc('config',body.catalogo_empresa);const api=serverClient({cfg,empresa:body.catalogo_empresa,rpc});await syncCatalog({empresa:body.catalogo_empresa,merchant:cfg.merchant_id,api,rpc,bulk:true,deadline:Date.now()+50000});return reply({ok:true})}
    if(body.validar_empresa){
     const cfg=await rpc('config',body.validar_empresa);
-    const api=createIFoodClient({enabled:true,...cfg.credenciais,merchants:[cfg.merchant_id]});
+    const api=serverClient({cfg,empresa:body.validar_empresa,rpc});
     if(body.consultar_catalogo===true){const catalogos=await api.catalogs(cfg.merchant_id);return reply({catalogos,categorias:await api.catalog(cfg.merchant_id,'categories',{catalogId:catalogos[0].catalogId}),...(body.item_id?{item:await api.catalog(cfg.merchant_id,'item',{id:body.item_id})}:{})})}
     const status=await api.status(cfg.merchant_id);
     if(body.ativar===true)await rpc('conectar',body.validar_empresa);
@@ -44,7 +46,8 @@ Deno.serve(async(req:Request)=>{
   const empresa=state.empresa_id;
   if(body.acao==='sincronizar')return reply(await syncCompany({empresa,rpc}));
   const cfg=await rpc('config',empresa);
-  const api=createIFoodClient({enabled:true,...cfg.credenciais,merchants:[cfg.merchant_id]});
+  const api=serverClient({cfg,empresa,rpc});
+  if(body.acao==='catalogos'){const catalogs=await api.catalogs(cfg.merchant_id);return reply({contextos:[...new Set(catalogs.filter((c:any)=>c.status==='AVAILABLE').flatMap((c:any)=>c.context||[]))]})}
   if(body.acao==='conectar'){
    const status=await api.status(cfg.merchant_id);await rpc('conectar',empresa);return reply({ok:true,status_loja:status});
   }

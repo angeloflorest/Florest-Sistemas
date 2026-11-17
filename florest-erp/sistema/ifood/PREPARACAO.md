@@ -1,6 +1,6 @@
 # iFood na Gastronomia — conexão de testes
 
-Atualizado em 16/11/2026. A preparação de 09/11 foi ampliada para conexão centralizada no servidor. A liberação inicial usa a empresa autorizada SPETTOS DAY e exclusivamente o merchant de teste. Não habilita lojas de produção nem outras empresas.
+Atualizado em 17/11/2026. A preparação de 09/11 foi ampliada para conexão centralizada no servidor. A liberação inicial usa a empresa autorizada SPETTOS DAY e exclusivamente o merchant de teste. Não habilita lojas de produção nem outras empresas.
 
 ## Fluxo
 
@@ -29,7 +29,7 @@ Testes de unidade, de navegador com transporte simulado e PostgreSQL isolado cob
 
 Próximo teste: gerar um pedido no portal iFood, vincular seus códigos externos a produtos existentes, confirmar e acompanhar os eventos na Gastronomia. Conferir a impressão física no agente dessa empresa. Não afirmar homologação aprovada sem o relatório do iFood.
 
-Complementos até o terceiro nível preservam árvore, códigos e quantidades e são resolvidos no estoque da mesma empresa. Composição ambígua, níveis adicionais e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo foi ativada somente na loja de teste autorizada. Conciliação de repasses via Financial continua separada: pagamento online reconhecido não comprova depósito bancário.
+Complementos até o terceiro nível preservam árvore, códigos e quantidades e são resolvidos no estoque da mesma empresa. Composição ambígua, níveis adicionais e preço fracionado sem representação exata ficam em revisão. Negociações usam os motivos específicos e alternativas oferecidos pelo iFood; a resposta tem prazo, validação de valores e bloqueio de duplicação entre aceitar, recusar e contrapropor. Reembolsos e cancelamentos parciais permanecem explicitamente para conciliação financeira, sem inventar devolução de dinheiro ou estoque. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo foi ativada somente na loja de teste autorizada. Conciliação de repasses via Financial continua separada: pagamento online reconhecido não comprova depósito bancário.
 
 ## Verificações
 
@@ -48,7 +48,7 @@ O teste de navegador requer Playwright e Chromium. Não contém credenciais reai
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/endpoints
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation
 
-Atualização dos complementos: taxas adicionais do iFood são preservadas no total original e demonstradas separadamente; não entram na receita/fiscal da empresa. Em pedidos pagos online, o valor da empresa é rateado entre os pagamentos com ajuste determinístico de centavos, preservando os valores originais recebidos da API. Taxa de plataforma com cobrança offline fica em revisão para conciliação.
+Atualização dos complementos: taxas adicionais do iFood são preservadas no total original e demonstradas separadamente; não entram na receita/fiscal da empresa. Em pedidos pagos online, o valor da empresa é rateado entre os pagamentos com ajuste determinístico de centavos, preservando os valores originais recebidos da API. A taxa de plataforma cobrada presencialmente é guardada no recebido bruto do caixa; somente a parcela da loja quita a venda.
 
 
 ## Catálogo, pesquisa e relatórios por canal
@@ -59,3 +59,25 @@ Atualização dos complementos: taxas adicionais do iFood são preservadas no to
 - O catálogo usa IDs estáveis, snapshots com hash e comparação de versão ao concluir. Mudanças concorrentes não são substituídas por resultados antigos. Categorias são reaproveitadas sem distinção de maiúsculas/minúsculas. Apenas itens gerenciados pela integração são publicados/pausados; não exclui o catálogo remoto.
 - Nome, preço, categoria, opções inclusas e foto são enviados. Fotos WebP do armazenamento da própria empresa são convertidas para PNG; o decodificador tem versão e hash WASM fixos. Falhas de foto ficam explícitas. GET após PUT confirma o item; resposta assíncrona é consultada novamente sem repetir PUT.
 - A fila de catálogo roda depois dos comandos de pedido e tem orçamento próprio de tempo. O polling de pedidos permanece em 30 segundos. A liberação para outras empresas/produção depende da homologação.
+
+## Verificação de 17/11/2026
+
+- Cache de token no Vault por empresa e fingerprint das credenciais, até `expiresIn`; 401 invalida somente o token usado. Renovação concorrente usa reserva. A cadência real é marcada antes do polling; tolera pequeno desvio do cron sem reduzir o mínimo de 30 segundos.
+- CONCLUDED fecha o atendimento e registra a venda uma vez após a quitação. O teste #4715 foi reconciliado: venda de R$ 26,00, pagamentos de R$ 26,00, zero recebimentos presenciais; R$ 1,00 de taxa iFood permanece fora da venda.
+- OFFLINE exige permissão de caixa/pedidos, caixa Gastronomia aberto, valor integral pendente e confirmação do operador. Chave repetida não repete recebimento. A taxa da plataforma não aumenta a receita da loja.
+- Endereço, instruções, observações de itens, contato/localizador, código de coleta, documento fiscal informado, bandeira, troco e patrocinadores dos benefícios constam na consulta e nas novas impressões. Documento somente na via Caixa. Jobs antigos não são reimpressos automaticamente.
+- O catálogo tem acionamento assinado após commit, independente do polling; alterações simples de preço/status usam lote de até 100 itens e conferem COMPLETED e SUCCESS por recurso. Nome/descrição/preço têm limites; existe suporte a contextModifiers no payload, com interface para os contextos já disponibilizados pelo iFood, sem criar novos contextos na loja. Mudanças estruturais usam PUT e confirmação por GET; atualização de nome reaproveita o ID da categoria já gerenciada.
+- 29 testes de unidade, navegador e PostgreSQL isolado cobrem persistência antes de ACK, isolamento, repetição, fechamento, caixa fechado, taxa presencial, cupons por patrocinador, agendamento/retirada, negociação, lote parcial e status da interface.
+- Advisors: tabelas privadas com RLS sem políticas são intencionalmente inacessíveis ao cliente; RPCs autenticadas fazem checagem de permissão/empresa. Acrescentados índices das FKs de eventos, pagamentos e vínculos iFood.
+
+### Etapas externas ainda não concluídas
+
+1. Executar o roteiro oficial Order + Events no portal, incluindo cancelamento originado no ERP, retirada/agendamento e pagamento presencial. Os testes simulados não equivalem ao relatório oficial.
+2. Configurar impressora/Print Agent da empresa e confirmar fisicamente as duas vias. Os dois jobs existentes continuam pendentes; nenhuma impressão foi presumida.
+3. Homologar Catalog por ticket com demonstração real dos fluxos e medição de propagação (2 s individual / 100 itens em 10 s). O lote foi testado com transporte isolado; o prazo externo não é garantido por um teste local. Horários por produto (dias, horas e datas) e personalização dos contextos realmente disponíveis têm interface própria. O servidor calcula a disponibilidade em São Paulo e sincroniza mudanças de status na rotina de 30 s. Nenhuma regra foi aplicada aos produtos atuais.
+4. Conferir aplicação PDV de produção e permissões no portal após aprovação. A guarda por merchant de teste permanece; não habilitar lojas reais automaticamente.
+5. Financial (repasses bancários líquidos) não faz parte de Order/Events. Os relatórios atuais são vendas e pagamentos, não confirmação de depósito bancário.
+
+Referências adicionais: [autenticação](https://developer.ifood.com.br/en-US/docs/food/guides/modules/authentication/intro), [Handshake](https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/handshake-platform), [catálogo](https://developer.ifood.com.br/en-US/docs/food/guides/modules/catalog/endpoints), [critérios Catalog](https://developer.ifood.com.br/en-US/docs/food/guides/modules/catalog/homologation), [política por módulo](https://developer.ifood.com.br/en-US/docs/getting-started/homologation/categories).
+
+O catálogo reserva e conclui até 100 atualizações em chamadas de banco em lote, sem abrir 100 conexões. Falhas transitórias têm tentativas limitadas com backoff; 4xx de validação não são repetidos. Cancelamento reconfirma os motivos vigentes antes do envio, usa o código no campo `reason` do contrato Order e trata CAR/CARF sem encerrar o pedido indevidamente. Eventos de acompanhamento do entregador são exibidos separadamente dos estados Order.

@@ -1,10 +1,11 @@
 // Transporte injetável: o banco confirma persistência antes do ACK e reserva comandos antes de enviá-los.
-import {createIFoodClient} from './adapter.mjs';
+import {serverClient} from './runtime.mjs';
 import {normalizeOrder} from './core.mjs';
 import {syncCatalog} from './catalog.mjs';
 export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
+ const wait=Number(await rpc('h_espera_poll',empresa));if(wait>0&&wait<=5000)await new Promise(r=>setTimeout(r,wait+5));
  const cfg=await rpc('reservar',empresa);if(!cfg)return {ocupado:true};
- const api=createIFoodClient({enabled:true,...cfg.credenciais,merchants:[cfg.merchant_id],fetchImpl});
+ const api=serverClient({cfg,empresa,rpc,fetchImpl});
  const merchant=cfg.merchant_id,deadline=Date.now()+55000;let received=0;
  try {
   const events=await api.poll([merchant]);
@@ -24,10 +25,12 @@ export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
   await rpc('agendados',empresa);
   for(const pending of await rpc('comandos',empresa)){if(Date.now()>deadline)break;
    const cmd=await rpc('reservar_comando',empresa,{id:pending.id});if(!cmd)continue;
-   try {if(['aceitar_negociacao','recusar_negociacao'].includes(cmd.acao)){const {disputeId,...body}=cmd.payload;await api.dispute(disputeId,merchant,cmd.acao==='aceitar_negociacao'?'accept':'reject',body)}else await api.command(cmd.pedido_id,merchant,cmd.acao,cmd.payload);await rpc('resultado_comando',empresa,{id:cmd.id,estado:'enviado'});}
+   try {if(['aceitar_negociacao','recusar_negociacao','alternativa_negociacao'].includes(cmd.acao)){const {disputeId,...body}=cmd.payload;await api.dispute(disputeId,merchant,cmd.acao==='aceitar_negociacao'?'accept':cmd.acao==='alternativa_negociacao'?'alternative':'reject',body)}else {if(cmd.acao==='solicitar_cancelamento'){const response=await api.cancellationReasons(cmd.pedido_id,merchant),reasons=Array.isArray(response)?response:response?.reasons||response?.cancellationReasons||[];if(!reasons.some(r=>String(r.code||r.cancelCode||r.cancellationCode)===String(cmd.payload.cancellationCode)))throw Error('O iFood não permite mais este motivo de cancelamento. Atualize o pedido.')}await api.command(cmd.pedido_id,merchant,cmd.acao,cmd.payload);}await rpc('resultado_comando',empresa,{id:cmd.id,estado:'enviado'});}
    catch(e){await rpc('resultado_comando',empresa,{id:cmd.id,estado:e.uncertain?'incerto':'falha'});}
   }
-  await syncCatalog({empresa,merchant,api,rpc,deadline:Math.min(deadline,Date.now()+18000)});
+  await rpc('h_concluir',empresa);
+  await rpc('catalogo_agendar',empresa);
+  await syncCatalog({empresa,merchant,api,rpc,bulk:true,deadline:Math.min(deadline,Date.now()+18000)});
   await rpc('liberar',empresa);return {recebidos:received};
  }catch(e){await rpc('liberar',empresa,{erro:e.message||'Falha de comunicação com o iFood.',espera_ms:e.retryAfter||0});throw e;}
 }
