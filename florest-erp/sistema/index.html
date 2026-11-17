@@ -4354,6 +4354,13 @@
 #view-gastronomia .gs-ifood-dialog::backdrop{background:#102d4b88}
 #view-gastronomia .gs-ifood-dialog-close{display:block;margin-left:auto;padding:8px 14px}
 #view-gastronomia .gs-ifood-dialog .gs-order--ifood{margin:10px 0 0}
+#view-gastronomia .gs-ifood-dialog{padding:0;overflow:hidden}
+#view-gastronomia .gs-ifood-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #f0d2d5;background:#fff}
+#view-gastronomia .gs-ifood-dialog-head h2{font-size:18px;margin:0}
+#view-gastronomia .gs-ifood-dialog-head .gs-ifood-dialog-close{margin:0;width:auto;flex:none}
+#view-gastronomia .gs-ifood-dialog-body{max-height:calc(88vh - 74px);overflow:auto;padding:12px 16px}
+#view-gastronomia .gs-ifood-dialog-body .gs-order--ifood{margin:0}
+
 
 
 #view-gastronomia .gs-order--cardapio{border:1px solid #90baf0;background:#f0f7ff}
@@ -4361,7 +4368,7 @@
 #view-gastronomia details.gs-section>summary{cursor:pointer;font-weight:700;padding:10px 0}
 </style>
 <div id="view-rotisseria" class="view hidden"></div>
-<div id="view-gastronomia" class="hidden"><div class="view-header"><div><h2>Módulo Gastronomia</h2><p>Mesas, entregas e retiradas no mesmo acompanhamento.</p></div></div><div class="bar-subnav" id="gs-nav"></div><div class="gs-toolbar"><button type="button" class="btn" id="gs-new">Novo atendimento</button><button type="button" class="btn" id="gs-refresh">Atualizar</button><span id="gs-connection" class="gs-meta"></span></div><div id="gs-feedback" role="status"></div><div id="gs-body"></div><p class="gs-meta">Pedidos do Cardápio Digital, iFood e 99Food ficam em Pedidos. As integrações são preparadas em Configurações; conexões externas desativadas nesta etapa.</p></div>
+<div id="view-gastronomia" class="hidden"><div class="view-header"><div><h2>Módulo Gastronomia</h2><p>Mesas, entregas e retiradas no mesmo acompanhamento.</p></div></div><div class="bar-subnav" id="gs-nav"></div><div class="gs-toolbar"><button type="button" class="btn" id="gs-new">Novo atendimento</button><button type="button" class="btn" id="gs-refresh">Atualizar</button><span id="gs-connection" class="gs-meta"></span></div><div id="gs-feedback" role="status"></div><div id="gs-body"></div><p class="gs-meta">Pedidos do Cardápio Digital, iFood e 99Food ficam em Pedidos. Configure cada integração em Configurações.</p></div>
 <dialog id="gs-dialog" class="gs-modal"><button type="button" class="gs-close" aria-label="Fechar">Fechar</button><div id="gs-dialog-body"></div></dialog>
 
 <div id="view-bar" class="hidden">
@@ -10195,7 +10202,7 @@ async function gsReload(force=false,limited=false){if(GS.loading){await (limited
 
 
 // Atualização silenciosa exclusiva das abas Mesas e Pedidos da Gastronomia.
-function gsPollingPermitido(){return GS.ctx&&!document.hidden&&!$('view-gastronomia').classList.contains('hidden')&&['mesas','pedidos'].includes(GS.area)&&!GS.busy&&!GS.pending&&!GS.loading}
+function gsPollingPermitido(){return !document.querySelector('.gs-ifood-dialog[open]')&&GS.ctx&&!document.hidden&&!$('view-gastronomia').classList.contains('hidden')&&['mesas','pedidos'].includes(GS.area)&&!GS.busy&&!GS.pending&&!GS.loading}
 function gsSnapshotArea(ctx,area){
  if(area==='mesas')return JSON.stringify({mesas:ctx.mesas.map(m=>[m.id,m.numero,m.status]),atendimentos:ctx.atendimentos.filter(a=>a.tipo==='mesa').map(a=>[a.id,a.mesa_id,a.estado,a.versao,a.total,a.pago,a.itens?.map(i=>[i.id,i.quantidade,i.cancelado])])});
  return JSON.stringify(ctx.atendimentos.filter(a=>a.tipo!=='mesa').map(a=>[a.id,a.estado,a.versao,a.total,a.pago,a.itens?.length,a.expedicao]));
@@ -10209,7 +10216,7 @@ async function gsAtualizarSilencioso(){
  if(ctx.cardapio_versao!==GS.ctx.cardapio_versao)return;
  const mudou=anterior!==gsSnapshotArea(ctx,area);
  GS.ctx=ctx;window.GSFotos?.setPhotos(ctx.configuracao?.opcoes?.cardapio?.produtos||[]);
- if(!mudou)return;
+ if(!mudou){if(area==='pedidos'&&!$('gs-dialog').open&&!document.querySelector('.gs-ifood-dialog[open]'))gsRender();return;}
  if($('gs-dialog').open){
    if(mesaAberta&&!GS.formDirty&&!GS.mesaLaunchDirty&&!document.activeElement?.closest('#gs-dialog input,#gs-dialog textarea,#gs-dialog select')){
      await gsOpenMesa(mesaAberta);
@@ -10236,7 +10243,15 @@ function gsRender(){
  if(!GS.ctx)return;const tabs=[['mesas','Mesas','visualizar'],['pedidos','Pedidos','visualizar'],['caixa','Caixa','caixa'],['garcons','Garçons','configurar'],['compostos','Produto Composto','configurar'],['historico','Histórico de Vendas','caixa'],['configuracao','Configurações','configurar']].filter(t=>gsHas(t[2]));if(!tabs.some(t=>t[0]===GS.area))GS.area=tabs[0]?.[0]||'mesas';
  $('gs-nav').replaceChildren(...tabs.map(([id,label])=>{const b=gsBtn(label,()=>{GS.formDirty=false;GS.area=id;gsRender()});b.className='bar-subnav-item'+(GS.area===id?' active':'');return b}));
  $('gs-new').parentElement.hidden=GS.area==='caixa';$('gs-new').hidden=GS.area!=='pedidos'||!(gsHas('mesas')||gsHas('pedidos'));
- $('gs-refresh').hidden=true;const body=$('gs-body');body.replaceChildren();if(GS.area==='configuracao'){gsConfig(body);return}if(GS.area==='caixa'){gsCash(body).catch(gsNotice);return}if(['garcons','compostos','historico'].includes(GS.area)){gsTools(body).catch(gsNotice);return}
+ $('gs-refresh').hidden=true;const body=$('gs-body');
+ if(GS.area==='pedidos'){
+  if(document.querySelector('.gs-ifood-dialog[open]'))return;
+  const token=GS.ordersRender=crypto.randomUUID(),company=GS.ctx.empresa_id,next=gsEl('div');
+  const valid=()=>GS.ordersRender===token&&GS.area==='pedidos'&&GS.ctx?.empresa_id===company;
+  if(body.dataset.gsArea!=='pedidos')body.replaceChildren(gsEl('p','Carregando pedidos…','gs-meta'));body.dataset.gsArea='pedidos';body.setAttribute('aria-busy','true');
+  gsOrders(next,valid).then(()=>{if(valid()&&!document.querySelector('.gs-ifood-dialog[open]')){body.replaceChildren(...next.childNodes);body.setAttribute('aria-busy','false')}}).catch(error=>{if(valid()){body.setAttribute('aria-busy','false');gsNotice(error)}});return;
+ }
+ GS.ordersRender=null;body.dataset.gsArea=GS.area;body.replaceChildren();if(GS.area==='configuracao'){gsConfig(body);return}if(GS.area==='caixa'){gsCash(body).catch(gsNotice);return}if(['garcons','compostos','historico'].includes(GS.area)){gsTools(body).catch(gsNotice);return}
  if(GS.area==='mesas'){const grid=gsEl('div','','gs-grid gs-tables');for(const m of GS.ctx.mesas){const a=GS.ctx.atendimentos.find(a=>a.mesa_id===m.id&&a.estado==='aberto'),card=gsBtn('',()=>gsOpenMesa(m.id));card.className='gs-card gs-table';card.append(gsEl('h3','Mesa '+m.numero),gsEl('b',a?'Ocupada':'Livre'));if(a){card.append(gsEl('p',a.cliente_nome||'Cliente não informado','gs-meta'));if(a.garcom_nome)card.append(gsEl('p','Garçom: '+a.garcom_nome,'gs-meta'));card.append(gsEl('p',gsTime(a),'gs-meta'),gsEl('p','Consumo '+gsMoney(a.financeiro?.subtotal??a.total)),gsEl('p',gsChargeSummary(a).split(' · ').slice(1).join(' · '),'gs-meta'),gsEl('b','Saldo '+gsMoney(Math.max(0,Number(a.total)-Number(a.pago)))))}grid.append(card)}body.append(grid);if($('gs-dialog').open&&$('gs-dialog').classList.contains('gs-mesa-dialog')&&!GS.formDirty){const current=GS.selected?GS.ctx.atendimentos.find(x=>x.id===GS.selected):GS.ctx.atendimentos.find(x=>x.mesa_id===GS.mesaCurrent&&x.estado==='aberto');const m=GS.ctx.mesas.find(m=>m.id===GS.mesaCurrent);if(current)gsMesaPanel(current);else if(m)gsMesaPanel(null,m)}return}
  gsOrders(body);
 }
@@ -10244,7 +10259,7 @@ function gsRender(){
 async function gsIFood(body){
  const company=GS.ctx.empresa_id,view=GS.ifoodView=crypto.randomUUID();
  const current=()=>body.isConnected&&GS.area==='configuracao'&&GS.ctx?.empresa_id===company&&GS.ifoodView===view;
- const {mountIFood}=await import('./gastronomia-ifood.js?v=20261117-compacto');if(!current())return;
+ const {mountIFood}=await import('./gastronomia-ifood.js?v=20261117-estavel');if(!current())return;
  await mountIFood(body,{catalog:GS.ctx.catalogo,current,notice:gsNotice,invoke:async(action,values={})=>{
   if(!current())throw Error('A empresa da sessão mudou.');
   const {data,error}=await supabase.functions.invoke('gastronomia-ifood',{body:{acao:action,empresa_id:company,...values}});
@@ -10503,15 +10518,15 @@ $('gs-dialog').addEventListener('cancel',event=>{if($('gs-dialog').classList.con
 
 function gsOrderChannelHeader(channel){const header=gsEl('div',channel.label,'gs-order-channel gs-order-channel--'+channel.className);if(channel.className==='ifood'){header.textContent='';const logo=gsEl('img');logo.src='./assets/ifood-logo.svg';logo.alt='iFood';logo.width=76;logo.height=40;header.append(logo,gsEl('span','Pedido iFood'))}return header}
 function gsOrderChannel(a){return a.origem==='ifood'?{label:'iFood',className:'ifood'}:a.origem==='99food'?{label:'99Food',className:'99food'}:a.origem==='site'?{label:'Cardápio digital',className:'cardapio'}:{label:gsOrigin(a),className:'manual'}}
-function gsOrders(body){
- const tabs=gsEl('div','','gs-actions');for(const [v,label]of [['abertos','Em aberto'],['finalizados','Finalizados']]){const b=gsBtn(label,()=>{GS.orderState=v;gsRender()});b.classList.toggle('gs-primary',(GS.orderState||'abertos')===v);tabs.append(b)}body.append(tabs);const closed=GS.orderState==='finalizados',list=GS.ctx.atendimentos.filter(a=>a.tipo!=='mesa'&&(!gsHas('pedidos')||a.origem!=='ifood')&&(closed?['finalizado','cancelado'].includes(a.estado):!['finalizado','cancelado'].includes(a.estado))),grid=gsEl('div','','gs-grid gs-orders-compact');const counter=gsEl('p',list.length+' pedidos','gs-meta'),empty=gsEl('p','Nenhum pedido.','gs-empty');empty.hidden=!!list.length;body.append(counter,grid);grid.append(empty);for(const a of list){const channel=gsOrderChannel(a),card=gsEl('article','','gs-card gs-order gs-order--'+channel.className),actions=gsEl('div','','gs-actions');card.append(gsOrderChannelHeader(channel),gsEl('h3','#'+a.numero+' · '+(a.tipo==='entrega'?'Entrega':'Retirada')),gsEl('b',a.cliente_nome||'Cliente não informado'),gsEl('p',gsTime(a),'gs-meta'),gsEl('p',a.itens.filter(i=>!i.cancelado).reduce((n,i)=>n+Number(i.quantidade),0)+' itens','gs-meta'));if(closed)card.append(gsEl('p','Valor total: '+gsMoney(Number(a.total)||0),'gs-meta'));actions.append(gsBtn('Abrir',()=>gsDetail(a.id)));if(a.estado==='aberto'&&gsHas('pedidos'))actions.append(gsBtn('Editar',()=>gsEdit(a)));if(gsHas('pedidos')&&a.itens.some(i=>!i.cancelado))actions.append(gsBtn('Reimprimir',()=>gsAction('reimprimir',a)));for(const item of a.itens.filter(i=>!i.cancelado).slice(0,3)){const line=gsEl('div',item.snapshot?.produto_nome||'Produto','gs-meta');window.GSFotos?.addImage(line,item.snapshot?.produto_id||item.produto_id,30);card.append(line)}card.append(actions);grid.append(card)}
+async function gsOrders(body,valid=()=>body.isConnected){
+ const tabs=gsEl('div','','gs-actions');for(const [v,label]of [['abertos','Em aberto'],['finalizados','Finalizados / cancelados']]){const b=gsBtn(label,()=>{GS.orderState=v;gsRender()});b.classList.toggle('gs-primary',(GS.orderState||'abertos')===v);b.setAttribute('aria-pressed',String((GS.orderState||'abertos')===v));tabs.append(b)}body.append(tabs);const closed=GS.orderState==='finalizados',list=GS.ctx.atendimentos.filter(a=>a.tipo!=='mesa'&&(!gsHas('pedidos')||a.origem!=='ifood')&&(closed?['finalizado','cancelado'].includes(a.estado):!['finalizado','cancelado'].includes(a.estado))),grid=gsEl('div','','gs-grid gs-orders-compact');const counter=gsEl('p',list.length+' pedidos','gs-meta'),empty=gsEl('p','Nenhum pedido.','gs-empty');empty.hidden=!!list.length;body.append(counter,grid);grid.append(empty);for(const a of list){const channel=gsOrderChannel(a),card=gsEl('article','','gs-card gs-order gs-order--'+channel.className),actions=gsEl('div','','gs-actions');card.append(gsOrderChannelHeader(channel),gsEl('h3','#'+a.numero+' · '+(a.tipo==='entrega'?'Entrega':'Retirada')),gsEl('b',a.cliente_nome||'Cliente não informado'),gsEl('p',closed?new Date(a.finalizado_em||a.criado_em).toLocaleString('pt-BR'):gsTime(a),'gs-meta'),gsEl('p',a.itens.filter(i=>!i.cancelado).reduce((n,i)=>n+Number(i.quantidade),0)+' itens','gs-meta'));if(closed)card.append(gsEl('b',a.estado==='cancelado'?'Cancelado':'Finalizado','gs-meta'),gsEl('p','Valor total: '+gsMoney(Number(a.total)||0),'gs-meta'));actions.append(gsBtn('Abrir',()=>gsDetail(a.id)));if(a.estado==='aberto'&&gsHas('pedidos'))actions.append(gsBtn('Editar',()=>gsEdit(a)));if(gsHas('pedidos')&&a.itens.some(i=>!i.cancelado))actions.append(gsBtn('Reimprimir',()=>gsAction('reimprimir',a)));for(const item of a.itens.filter(i=>!i.cancelado).slice(0,3)){const line=gsEl('div',item.snapshot?.produto_nome||'Produto','gs-meta');window.GSFotos?.addImage(line,item.snapshot?.produto_id||item.produto_id,30);card.append(line)}card.append(actions);grid.append(card)}
  if(gsHas('pedidos')){
   const company=GS.ctx.empresa_id,host=grid;
-  import('./gastronomia-ifood.js?v=20261117-compacto').then(({mountIFoodOrders})=>mountIFoodOrders(host,{current:()=>host.isConnected&&GS.ctx?.empresa_id===company,notice:gsNotice,open:gsDetail,canCancel:gsHas('cancelar'),sharedGrid:true,closed,knownOrders:GS.ctx.atendimentos,toolbar:tabs,onCount:n=>{counter.textContent=(list.length+n)+' pedidos';empty.hidden=list.length+n>0},invoke:async(action,values={})=>{
+  await import('./gastronomia-ifood.js?v=20261117-estavel').then(({mountIFoodOrders})=>mountIFoodOrders(host,{current:()=>valid()&&GS.ctx?.empresa_id===company,notice:gsNotice,open:gsDetail,canCancel:gsHas('cancelar'),onClose:()=>{if(valid())gsRender()},sharedGrid:true,closed,knownOrders:GS.ctx.atendimentos,toolbar:tabs,onCount:n=>{counter.textContent=(list.length+n)+' pedidos';empty.hidden=list.length+n>0},invoke:async(action,values={})=>{
    const {data,error}=await supabase.functions.invoke('gastronomia-ifood',{body:{acao:action,empresa_id:company,...values}});if(error||data?.erro)throw Error(data?.erro||'Falha ao consultar o iFood.');return data;
   },rpc:async(action,values={})=>{
    const {data,error}=await supabase.rpc('gastronomia_ifood_admin',{p_acao:action,p_dados:{...values,empresa_esperada:company}});if(error)throw error;if(data.empresa_id!==company)throw Error('A empresa da sessão mudou.');return data;
-  }})).catch(gsNotice);
+  }}));
  }
 }
 function gsChoices(parent,product){const fields=[],rules=GS.ctx.configuracao?.opcoes?.cardapio?.regras_grupos||{};for(const g of product.grupos||[]){const min=rules[g.id]?.minimo??g.quantidade_escolhas,max=rules[g.id]?.maximo??g.quantidade_escolhas;parent.append(gsEl('h4',g.nome+' · escolha de '+min+' a '+max));for(let i=0;i<max;i++){const el=gsSelect(parent,g.nome+' · opção '+(i+1),[['','Selecione'],...(g.opcoes||[]).filter(o=>o.disponivel!==false).map(o=>[o.produto_id,o.nome])]);el.required=i<min;fields.push({g:g.id,el})}}return fields}
