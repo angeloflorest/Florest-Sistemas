@@ -18,8 +18,14 @@ export function normalizeOrder(order,mappings=[]){
   if(typeof i.quantity!=='number'||!Number.isFinite(i.quantity)||i.quantity<=0)throw Error('Quantidade inválida.');
   const code=text(i.externalCode,100),product=map(code,'produto');
   if(!product)warnings.push('Produto sem vínculo: '+text(i.name,120));
-  if((i.options||[]).some(o=>(o.customization||o.customizations||[]).length))warnings.push('Complemento de terceiro nível exige revisão antes de confirmar.');
-  const options=(i.options||[]).map(o=>{if(typeof o.quantity!=='number'||!Number.isFinite(o.quantity)||o.quantity<=0)throw Error('Quantidade do adicional inválida.');const external=text(o.externalCode,100),id=map(external,'adicional');if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));return {codigo:external,produto_id:id,nome:text(o.name,120),quantidade:o.quantity,unitario:cents(o.unitPrice),total:cents(o.price??o.quantity*(o.unitPrice+(o.addition||0)))};});
+  function option(o,level=2){
+   if(typeof o.quantity!=='number'||!Number.isFinite(o.quantity)||o.quantity<=0)throw Error('Quantidade do adicional inválida.');
+   const external=text(o.externalCode,100),id=map(external,'adicional');if(!id)warnings.push('Adicional sem vínculo: '+text(o.name,120));
+   const children=o.customizations??o.customization??[];if(!Array.isArray(children))throw Error('Complementos inválidos.');
+   if(level>=3&&children.length)warnings.push('Complementos além do terceiro nível exigem revisão.');
+   return {id:text(o.id,100),codigo:external,produto_id:id,nome:text(o.name,120),grupo:text(o.groupName,120),quantidade:o.quantity,unitario:cents(o.unitPrice),total:cents(o.price??o.quantity*(o.unitPrice+(o.addition||0))),adicionais:level<3?children.map(c=>option(c,level+1)):[]};
+  }
+  const options=(i.options||[]).map(o=>option(o));
   return {id:text(i.uniqueId||i.id||String(index),100),codigo:code,produto_id:product,nome:text(i.name,120),quantidade:i.quantity,unitario:cents(i.unitPrice),total:cents(i.totalPrice),observacao:text(i.observations,1024),adicionais:options};
  });
  const payments=methods.map(m=>{
@@ -30,11 +36,19 @@ export function normalizeOrder(order,mappings=[]){
  });
  if(payments.filter(m=>m.tipo==='ONLINE').reduce((s,m)=>s+m.valor,0)!==prepaid||payments.filter(m=>m.tipo==='OFFLINE').reduce((s,m)=>s+m.valor,0)!==pending)warnings.push('Valores dos pagamentos precisam de conferência.');
  if(prepaid+pending!==amount)warnings.push('Total do pedido e pagamentos precisam de conferência.');
+ const fees=cents(order.total?.additionalFees??0),feeItems=(order.additionalFees||[]).reduce((sum,f)=>sum+cents(f.value),0);
+ if(fees!==feeItems)warnings.push('Taxas do iFood precisam de conferência.');
+ const merchantTotal=amount-fees;if(merchantTotal<0)throw Error('Taxas maiores que o pedido.');
+ if(fees>prepaid)warnings.push('Taxa iFood em pagamento offline exige conciliação antes de confirmar.');
+ const online=payments.map((p,index)=>({...p,index})).filter(p=>p.tipo==='ONLINE');
+ let allocated=0;const split=online.map(p=>{const exact=prepaid?fees*p.valor/prepaid:0,share=Math.floor(exact);allocated+=share;return {index:p.index,share,remainder:exact-share}}).sort((a,b)=>b.remainder-a.remainder||a.index-b.index);
+ for(let n=0;n<Math.min(fees-allocated,split.length);n++)split[n].share++;
+ for(const [index,p]of payments.entries()){const fee=split.find(x=>x.index===index)?.share||0;p.taxa_ifood=fee;p.valor_empresa=p.valor-fee}
  const scheduled=order.orderTiming==='SCHEDULED';
  if(scheduled&&!Number.isFinite(Date.parse(order.preparationStartDateTime)))warnings.push('Agendamento sem início de preparo válido.');
  return {id:order.id,merchant_id:order.merchant.id,numero:text(order.displayId,50),tipo:order.orderType,agendado:scheduled,inicio_preparo:order.preparationStartDateTime||null,
   entrega_por:text(order.delivery?.deliveredBy,30),cliente:text(order.customer?.name,120),itens:items,pagamentos:payments,
-  total:amount,pago_online:prepaid,a_cobrar:pending,dinheiro_a_cobrar:payments.filter(m=>m.tipo==='OFFLINE'&&m.forma==='CASH').reduce((s,m)=>s+m.valor,0),
+  total:amount,total_empresa:merchantTotal,taxas_ifood:fees,pago_online_empresa:payments.filter(p=>p.tipo==='ONLINE').reduce((sum,p)=>sum+p.valor_empresa,0),pago_online:prepaid,a_cobrar:pending,dinheiro_a_cobrar:payments.filter(m=>m.tipo==='OFFLINE'&&m.forma==='CASH').reduce((s,m)=>s+m.valor,0),
   dinheiro_recebido:0,beneficios:order.benefits||[],avisos:warnings};
 }
 const states={SPE:'pronto',SEPARATION_ENDED:'pronto',SEPARATION_STARTED:'em_preparo',PLC:'recebido',PLACED:'recebido',CFM:'confirmado',CONFIRMED:'confirmado',SPS:'em_preparo',PREPARATION_STARTED:'em_preparo',RTP:'pronto',READY_TO_PICKUP:'pronto',DSP:'despachado',DISPATCHED:'despachado',CON:'concluido',CONCLUDED:'concluido',CAN:'cancelado',CANCELLED:'cancelado'};

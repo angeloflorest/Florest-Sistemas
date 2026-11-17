@@ -65,7 +65,9 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
    box.append(brand,el('h4','#'+(n.numero||p.pedido_id)+' · '+p.estado_ifood),el('p',n.cliente||'Cliente iFood'));
    const finance=el('div',undefined,'gs-ifood-finance');for(const [label,value]of [[terminal?'Total original':'Total do pedido',n.total],[terminal?'Online no pedido':'Pago no iFood',n.pago_online],[terminal?'A cobrar originalmente':'A cobrar',n.a_cobrar]]){const cell=el('div');cell.append(el('span',label),el('strong',money(value||0)));finance.append(cell)}box.append(finance);
    if(n.agendado)box.append(el('p','Agendado: '+new Date(n.inicio_preparo).toLocaleString('pt-BR')));
-   for(const i of n.itens||[])box.append(el('p',i.quantidade+' × '+i.nome+' · Código iFood: '+(i.codigo||'não informado')+(i.produto_id||terminal?'':' — Pendente de vínculo')));
+   if(n.taxas_ifood)box.append(el('p','Valor da empresa: '+money(n.total_empresa)+' · Taxas do iFood: '+money(n.taxas_ifood)+' (fora da venda)','gs-meta'));
+   function itemLine(i,level=1){const line=el('p',i.quantidade+' × '+i.nome+' · Código iFood: '+(i.codigo||'não informado')+(i.produto_id||terminal?'':' — Pendente de vínculo'));if(level>1)line.style.marginLeft=(level-1)*16+'px';box.append(line);for(const child of i.adicionais||[])itemLine(child,level+1)}
+   for(const i of n.itens||[])itemLine(i);
    const warnings=terminal?[]:[...new Set([...(n.avisos||[]),p.revisao_motivo,p.erro].filter(Boolean).map(message=>message.includes('CANCELLATION_REQUESTED')?'Cancelamento solicitado — aguardando a decisão do iFood.':message))];
    if(terminal)box.append(el('p',p.estado_ifood==='cancelado'?'Pedido cancelado no iFood. Exibido somente para consulta do histórico.':'Pedido concluído no iFood.'));
    if(warnings.length){const warning=el('details',undefined,'gs-ifood-warning');warning.open=true;warning.append(el('summary','Pedido recebido — '+warnings.length+' pendência(s) para revisar'));const list=el('ul');for(const message of warnings)list.append(el('li',message));warning.append(list);box.append(warning)}

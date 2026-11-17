@@ -23,13 +23,13 @@ Atualizado em 16/11/2026. A preparação de 09/11 foi ampliada para conexão cen
 
 ## Validação e pendências de homologação
 
-Autenticação e status da loja foram validados contra a API real; após polling o iFood retornou loja conectada e aberta. A consulta real ainda não recebeu pedidos no momento da publicação.
+Autenticação e status da loja foram validados contra a API real; após polling o iFood retornou loja conectada e aberta. A consulta real recebeu os pedidos de teste #7585 e #7557. Ambos foram cancelados pelo iFood antes da confirmação; o #7557 foi cancelado por falta de confirmação no prazo. Não foram forçados de volta a estados ativos.
 
 Testes de unidade, de navegador com transporte simulado e PostgreSQL isolado cobrem falhas antes de ACK, comandos incertos, isolamento, preços, pagamentos, duplicação de eventos/estoque e impressão. Isso não substitui a homologação externa.
 
 Próximo teste: gerar um pedido no portal iFood, vincular seus códigos externos a produtos existentes, confirmar e acompanhar os eventos na Gastronomia. Conferir a impressão física no agente dessa empresa. Não afirmar homologação aprovada sem o relatório do iFood.
 
-Complementos de terceiro nível, composição ambígua e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo e a conciliação de repasses via Financial são escopos próprios e não foram ativadas.
+Complementos até o terceiro nível preservam árvore, códigos e quantidades e são resolvidos no estoque da mesma empresa. Composição ambígua, níveis adicionais e preço fracionado sem representação exata ficam em revisão. Negociações com motivo específico de aceitação devem ser respondidas no Gestor iFood; a interface sinaliza essa exigência. Eventos não reconhecidos são guardados e sinalizados. A sincronização de catálogo e a conciliação de repasses via Financial são escopos próprios e não foram ativadas.
 
 ## Verificações
 
@@ -47,3 +47,5 @@ O teste de navegador requer Playwright e Chromium. Não contém credenciais reai
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/details
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/endpoints
 - https://developer.ifood.com.br/en-US/docs/food/guides/modules/order/homologation
+
+Atualização dos complementos: taxas adicionais do iFood são preservadas no total original e demonstradas separadamente; não entram na receita/fiscal da empresa. Em pedidos pagos online, o valor da empresa é rateado entre os pagamentos com ajuste determinístico de centavos, preservando os valores originais recebidos da API. Taxa de plataforma com cobrança offline fica em revisão para conciliação.
