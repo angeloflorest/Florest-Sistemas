@@ -50,13 +50,16 @@ export async function mountIFood(root,{rpc,catalog,current=()=>true,notice=()=>{
  root.append(el('p','Carregando integração iFood…'));try{await reload()}catch(e){if(current()){root.replaceChildren(el('p','Não foi possível carregar a preparação iFood.'));throw e}}
 }
 
-export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,notice=()=>{},open=()=>{},invoke=async()=>{throw Error('Consulta indisponível.')},canCancel=false}){
+export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,notice=()=>{},open=()=>{},invoke=async()=>{throw Error('Consulta indisponível.')},canCancel=false,sharedGrid=false,closed=false,knownOrders=[],toolbar=null,onCount=()=>{}}){
+ let managed=[],refreshButton=null;
  async function reload(){
-  const data=await rpc('pedidos');if(!current())return;root.replaceChildren();
+  const data=await rpc('pedidos');if(!current())return;if(sharedGrid){for(const node of managed)node.remove();managed=[]}else root.replaceChildren();
   if(!data.conectado&&!data.pedidos.length&&!(data.falhas||[]).length)return;
-  const title=el('h3','Pedidos iFood');root.append(title);for(const f of data.falhas||[])root.append(el('p','Pedido iFood '+(f.pedido_id||'')+' requer revisão: '+(f.erro||f.codigo)));
-  const refresh=el('button','Atualizar pedidos iFood');refresh.type='button';refresh.onclick=()=>reload().catch(e=>notice(e.message));root.append(refresh);
-  for(const p of data.pedidos){
+  if(!sharedGrid)root.append(el('h3','Pedidos iFood'));
+  for(const f of data.falhas||[]){const warning=el('p','Pedido iFood '+(f.pedido_id||'')+' requer revisão: '+(f.erro||f.codigo));root.append(warning);managed.push(warning)}
+  if(!refreshButton||!refreshButton.isConnected){refreshButton=el('button','Atualizar pedidos iFood');refreshButton.type='button';refreshButton.onclick=()=>reload().catch(e=>notice(e.message));(toolbar||root).append(refreshButton)}
+  const visible=data.pedidos.filter(p=>{if(!sharedGrid)return true;const a=knownOrders.find(a=>a.id===p.atendimento_id);const finished=a?['finalizado','cancelado'].includes(a.estado):['concluido','cancelado'].includes(p.estado_ifood);return finished===closed});onCount(visible.length);
+  for(const p of visible){
    const box=el('article');box.className='gs-card gs-order gs-order--ifood';const n=p.normalizado||{};
    const brand=el('div',undefined,'gs-order-channel gs-order-channel--ifood'),logo=el('img');logo.src='./assets/ifood-logo.svg';logo.alt='iFood';logo.width=76;logo.height=40;brand.append(logo,el('span','Pedido iFood'));
    box.append(brand,el('h4','#'+(n.numero||p.pedido_id)+' · '+p.estado_ifood),el('p',n.cliente||'Cliente iFood'));
@@ -91,7 +94,12 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
     }
    }
    for(const c of p.comandos||[])box.append(el('p',c.acao+': '+c.estado+(c.estado==='incerto'?' — aguarde reconciliação; não repita o pedido.':'')));
-   root.append(box);
+   const compact=el('article',undefined,'gs-card gs-order gs-order--ifood gs-ifood-compact'),compactBrand=brand.cloneNode(true),number=el('h3','#'+(n.numero||p.pedido_id)+' · '+p.estado_ifood),customer=el('b',n.cliente||'Cliente iFood');customer.className='gs-ifood-customer';customer.title=n.cliente||'Cliente iFood';
+   compact.append(compactBrand,number,customer,el('p',(n.itens||[]).reduce((sum,i)=>sum+Number(i.quantidade||0),0)+' itens · '+money(n.total||0),'gs-meta'));
+   if(warnings.length)compact.append(el('p',warnings.length+' pendência(s) para revisar','gs-ifood-pending'));
+   if(p.negociacao)compact.append(el('p','Negociação requer atenção','gs-ifood-pending'));
+   const dialog=el('dialog',undefined,'gs-ifood-dialog');dialog.setAttribute('aria-label','Pedido iFood #'+(n.numero||p.pedido_id));const close=el('button','Fechar');close.type='button';close.className='gs-ifood-dialog-close';close.onclick=()=>dialog.close();dialog.append(close,box);
+   const show=el('button','Abrir pedido');show.type='button';show.className='gs-button';show.onclick=()=>dialog.showModal();compact.append(show,dialog);root.append(compact);managed.push(compact);
   }
  }
  await reload();
