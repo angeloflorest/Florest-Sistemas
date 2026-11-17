@@ -26,7 +26,7 @@ export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
   for(const pending of await rpc('comandos',empresa)){if(Date.now()>deadline)break;
    const cmd=await rpc('reservar_comando',empresa,{id:pending.id});if(!cmd)continue;
    try {if(['aceitar_negociacao','recusar_negociacao','alternativa_negociacao'].includes(cmd.acao)){const {disputeId,...body}=cmd.payload;await api.dispute(disputeId,merchant,cmd.acao==='aceitar_negociacao'?'accept':cmd.acao==='alternativa_negociacao'?'alternative':'reject',body)}else {if(cmd.acao==='solicitar_cancelamento'){const response=await api.cancellationReasons(cmd.pedido_id,merchant),reasons=Array.isArray(response)?response:response?.reasons||response?.cancellationReasons||[];if(!reasons.some(r=>String(r.cancelCodeId||r.code||r.cancelCode||r.cancellationCode)===String(cmd.payload.cancellationCode)))throw Error('O iFood não permite mais este motivo de cancelamento. Atualize o pedido.')}await api.command(cmd.pedido_id,merchant,cmd.acao,cmd.payload);}await rpc('resultado_comando',empresa,{id:cmd.id,estado:'enviado'});}
-   catch(e){await rpc('resultado_comando',empresa,{id:cmd.id,estado:e.uncertain?'incerto':'falha'});}
+   catch(e){await rpc('resultado_comando',empresa,{id:cmd.id,estado:e.uncertain?'incerto':'falha',erro:e.message||'Falha ao enviar comando iFood.',status_http:e.status||null});}
   }
   await rpc('h_concluir',empresa);
   await rpc('catalogo_agendar',empresa);

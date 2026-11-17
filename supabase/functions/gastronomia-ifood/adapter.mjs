@@ -18,7 +18,7 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
   catch{throw new IFoodError('Falha de comunicação com o iFood.',{uncertain:method!=='GET'})}
  }
  async function checked(response,detail=false){
-  if(!response.ok){const retry=response.headers.get('Retry-After');const seconds=Number(retry);const delay=retry?(Number.isFinite(seconds)?Math.max(0,seconds)*1000:Math.max(0,Date.parse(retry)-now())):0;let info='';if(detail){try{info=' '+JSON.stringify(await response.json()).slice(0,600)}catch{}}throw new IFoodError('iFood retornou HTTP '+response.status+'.'+info,{status:response.status,uncertain:response.status>=500,retryAfter:Number.isFinite(delay)?delay:0})}
+  if(!response.ok){const retry=response.headers.get('Retry-After');const seconds=Number(retry);const delay=retry?(Number.isFinite(seconds)?Math.max(0,seconds)*1000:Math.max(0,Date.parse(retry)-now())):0;let info='';if(detail){try{const raw=await response.json();if(detail==='order'){const data=raw.error&&typeof raw.error==='object'?raw.error:raw;info=' '+[data.code,data.message].filter(x=>typeof x==='string').join(': ').slice(0,400);for(const secret of [clientSecret,token])if(secret)info=info.split(secret).join('[oculto]');info=info.replace(/Bearer\s+[^\s]+/gi,'Bearer [oculto]')}else info=' '+JSON.stringify(raw).slice(0,600)}catch{}}throw new IFoodError('iFood retornou HTTP '+response.status+'.'+info,{status:response.status,uncertain:response.status>=500,retryAfter:Number.isFinite(delay)?delay:0})}
   if(response.status===204)return null;
   if(response.status===202){if(!detail)return null;const raw=await response.text();if(!raw.trim())return null;try{return JSON.parse(raw)}catch{throw new IFoodError('Resposta inválida do catálogo iFood.',{uncertain:true})}}
   try{return await response.json()}catch{throw new IFoodError('Resposta inválida do iFood.',{uncertain:true})}
@@ -33,7 +33,7 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
   })();
   try{return await tokenRequest}finally{tokenRequest=null}
  }
- async function api(path,options={}){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0;if(tokenStore)await tokenStore.invalidate(access)}return checked(response,path.startsWith('/catalog/'))}
+ async function api(path,options={}){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0;if(tokenStore)await tokenStore.invalidate(access)}return checked(response,path.startsWith('/catalog/')?true:path.endsWith('/requestCancellation')?'order':false)}
  function merchant(id){guard();if(!allowed.has(id))throw new IFoodError('Loja fora do escopo autorizado.');}
  return {
   async poll(ids){guard();if(!Array.isArray(ids)||!ids.length||ids.length>100)throw new IFoodError('Informe de 1 a 100 lojas.');ids.forEach(merchant);if(now()<nextPoll)throw new IFoodError('Aguarde o intervalo de polling.',{retryAfter:nextPoll-now()});await getToken();if(beforePoll)await beforePoll();nextPoll=now()+30000;try{return await api('/events/v1.0/events:polling?categories=FOOD',{headers:{'x-polling-merchants':ids.join(',')}})||[]}catch(e){if(e.retryAfter)nextPoll=Math.max(nextPoll,now()+e.retryAfter);throw e}},
