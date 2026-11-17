@@ -75,17 +75,17 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
    const steps=[['confirmar','Confirmar pedido','recebido'],['preparar','Iniciar preparo','confirmado'],['pronto','Pedido pronto','em_preparo']];
    if(n.tipo==='DELIVERY'&&n.entrega_por==='MERCHANT')steps.push(['despachar','Saiu para entrega','pronto']);
    const stage=steps.findIndex(step=>step[2]===p.estado_ifood),flow=el('div',undefined,'gs-ifood-flow');flow.setAttribute('aria-label','Etapas do pedido no iFood');
-   if(!terminal&&stage>=0){
+   {
+    const sending=el('p','', 'gs-ifood-flow-status');sending.setAttribute('role','status');
     for(const [index,[acao,label]] of steps.entries()){
-     if(index<stage)continue;
-     if(index>stage)flow.append(el('span','→','gs-ifood-flow-arrow'));
+     if(index>0)flow.append(el('span','→','gs-ifood-flow-arrow'));
      const command=(p.comandos||[]).find(c=>c.acao===acao&&['pendente','enviado','incerto','confirmado'].includes(c.estado));
-     if(index===stage&&command){const status=el('span',command.estado==='incerto'?'Conferindo retorno do iFood…':label+' — aguardando iFood…','gs-ifood-flow-wait');status.setAttribute('role','status');flow.append(status);continue}
-     const b=el('button',label);b.type='button';b.disabled=index!==stage||!data.conectado||(acao==='confirmar'&&(n.avisos||[]).length>0)||(acao!=='confirmar'&&!p.atendimento_id)||(acao==='preparar'&&n.agendado&&Date.parse(n.inicio_preparo)>Date.now());
-     b.setAttribute('aria-label',label);if(index===stage)b.setAttribute('aria-current','step');
-     b.onclick=async()=>{b.disabled=true;try{await rpc('comando',{pedido_id:p.pedido_id,acao,chave:crypto.randomUUID()});notice(label+': solicitação registrada. A próxima etapa libera após a confirmação do iFood.');await reload()}catch(e){notice(e.message);b.disabled=false}};flow.append(b);
+     if(index===stage&&command)sending.textContent=command.estado==='pendente'?'Envio ao iFood na fila…':command.estado==='incerto'?'Conferindo retorno do iFood…':'Enviado. Aguardando confirmação do iFood…';
+     const b=el('button',label);b.type='button';b.disabled=terminal||Boolean(command)||index!==stage||!data.conectado||(acao==='confirmar'&&(n.avisos||[]).length>0)||(acao!=='confirmar'&&!p.atendimento_id)||(acao==='preparar'&&n.agendado&&Date.parse(n.inicio_preparo)>Date.now());
+     b.setAttribute('aria-label',label);if(index<stage||command?.estado==='confirmado'||(!terminal&&stage<0))b.classList.add('gs-ifood-step-done');if(index===stage&&!command)b.setAttribute('aria-current','step');
+     b.onclick=async()=>{b.disabled=true;sending.textContent='Registrando envio ao iFood…';try{await rpc('comando',{pedido_id:p.pedido_id,acao,chave:crypto.randomUUID()});await reload()}catch(e){sending.textContent=e.message||'Não foi possível registrar o envio.';notice(e.message);b.disabled=false}};flow.append(b);
     }
-    box.append(flow,el('p','Siga da esquerda para a direita. Cada ação avisa o iFood; a próxima etapa libera após o retorno.','gs-meta'));
+    box.append(flow,sending);
    }
    if(!terminal){const message=p.estado_ifood==='despachado'?'Pedido saiu para entrega. Aguardando conclusão pelo iFood.':p.estado_ifood==='pronto'?(n.tipo==='DELIVERY'&&n.entrega_por==='MERCHANT'?'Despache quando o pedido sair com o entregador da loja.':n.tipo==='DELIVERY'?'Aguardando coleta e atualização da entrega pelo iFood.':'Aguardando retirada e conclusão pelo iFood.'):'';if(message)box.append(el('p',message,'gs-meta'))}
    if(p.atendimento_id){const details=el('details',undefined,'gs-ifood-local');details.append(el('summary','Atendimento interno do ERP (opcional)'),el('p','Consulte itens, pagamentos e impressão. Abrir esta tela não avisa nem altera a etapa no iFood.','gs-meta'));const b=el('button','Abrir atendimento no ERP');b.type='button';b.onclick=()=>{box.closest('dialog')?.close();open(p.atendimento_id)};details.append(b);box.append(details)}
