@@ -51,7 +51,7 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
    merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');
    const paths={confirmar:'confirm',preparar:'startPreparation',pronto:'readyToPickup',despachar:'dispatch',solicitar_cancelamento:'requestCancellation'};
    if(!paths[action])throw new IFoodError('Comando inválido.');
-   if(action==='solicitar_cancelamento'){if(!/^[0-9]{3}$/.test(String(payload.cancellationCode||'')))throw new IFoodError('Código de cancelamento inválido.');payload={reason:String(payload.cancellationCode)}}
+   if(action==='solicitar_cancelamento'){if(!/^[0-9]{3}$/.test(String(payload.cancellationCode||'')))throw new IFoodError('Código de cancelamento inválido.');payload={cancellationCode:String(payload.cancellationCode),reason:String(payload.reason||payload.cancellationCode).slice(0,250)}}
    return api('/order/v1.0/orders/'+id+'/'+paths[action],{method:'POST',...(Object.keys(payload).length?{body:JSON.stringify(payload)}:{})});
   },
   async dispute(disputeId,merchantId,action,payload={}){merchant(merchantId);if(!uuid.test(disputeId)||!['accept','reject','alternative'].includes(action))throw new IFoodError('Negociação inválida.');return api('/order/v1.0/disputes/'+disputeId+'/'+action,{method:'POST',body:JSON.stringify(payload)})},
