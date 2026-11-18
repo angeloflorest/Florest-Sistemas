@@ -1,0 +1,40 @@
+-- Execute only in BEGIN/ROLLBACK; metadata fixtures never upload real files.
+DO $test$
+DECLARE e uuid:=gen_random_uuid();u uuid:=gen_random_uuid();e2 uuid:=gen_random_uuid();u2 uuid:=gen_random_uuid();pid uuid;otherpid uuid;rootid uuid:=gen_random_uuid();childid uuid:=gen_random_uuid();root2 uuid:=gen_random_uuid();foreigncat uuid:=gen_random_uuid();r jsonb;token text;path1 text;path2 text;blocked boolean;
+BEGIN
+ INSERT INTO public.empresas(id,nome,status_conta,bloqueado) VALUES(e,'TESTE ROTISSERIA MIDIA','aprovado',false),(e2,'TESTE ROTISSERIA OUTRA MIDIA','aprovado',false);
+ INSERT INTO auth.users(id,email) VALUES(u,'rot-video-'||u||'@example.invalid'),(u2,'rot-video-'||u2||'@example.invalid');
+ INSERT INTO public.perfis(id,empresa_id,nome,papel,ativo) VALUES(u,e,'Teste mídia','proprietario',true),(u2,e2,'Outra mídia','proprietario',true);
+ INSERT INTO public.empresa_modulos(empresa_id,modulo,ativo) VALUES(e,'rotisseria',true),(e2,'rotisseria',true);
+ INSERT INTO public.produtos(empresa_id,nome,preco_venda,quantidade_estoque,unidade_comercial) VALUES(e,'Costela texana',59.9,100,'UN') RETURNING id INTO pid;
+ INSERT INTO public.produtos(empresa_id,nome,preco_venda,quantidade_estoque,unidade_comercial) VALUES(e2,'Outro produto',10,100,'UN') RETURNING id INTO otherpid;
+ PERFORM set_config('request.jwt.claim.sub',u2::text,true);PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',foreigncat,'nome','Privada'));
+ PERFORM set_config('request.jwt.claim.sub',u::text,true);r:=public.rotisseria_rpc('cardapio_dados');token:=r->>'token';
+ PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',rootid,'nome','Carnes','ordem',1));
+ PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',childid,'nome','Bovinas','pai',rootid,'ordem',2));
+ PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',root2,'nome','Combos','ordem',3));
+ PERFORM public.rotisseria_rpc('cardapio_categoria_produto',jsonb_build_object('produto_id',pid,'id',childid));
+ PERFORM public.rotisseria_rpc('cardapio_produto',jsonb_build_object('produto_id',pid,'disponivel',true));PERFORM public.rotisseria_rpc('cardapio_salvar','{"ativo":true}');
+ r:=public.rotisseria_cardapio_publico('catalogo',token,jsonb_build_object('categoria',rootid),NULL,repeat('a',64));IF jsonb_array_length(r->'produtos')<>1 OR jsonb_array_length(r->'categorias')<>3 OR r->'produtos'->0->>'categoria'<>childid::text THEN RAISE EXCEPTION 'Filtro principal não incluiu subcategoria ou categorias de outra empresa';END IF;
+ r:=public.rotisseria_cardapio_publico('catalogo',token,jsonb_build_object('categoria',root2),NULL,repeat('a',64));IF jsonb_array_length(r->'produtos')<>0 THEN RAISE EXCEPTION 'Filtro de outra categoria ignorado';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',rootid,'nome','Ciclo','pai',childid));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Permitiu ciclo';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',gen_random_uuid(),'nome','Terceiro nível','pai',childid));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Permitiu terceiro nível';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_categoria_excluir',jsonb_build_object('id',rootid));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Excluiu categoria com subcategorias';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_categoria_produto',jsonb_build_object('produto_id',pid,'id',foreigncat));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Vinculou categoria de outra empresa';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_categoria_salvar',jsonb_build_object('id',foreigncat,'nome','Sobrescrever'));EXCEPTION WHEN insufficient_privilege THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Sobrescreveu outra empresa';END IF;
+ path1:=e::text||'/1-'||gen_random_uuid()||'.mp4';path2:=e::text||'/2-'||gen_random_uuid()||'.webm';
+ EXECUTE 'SET LOCAL ROLE authenticated';
+ INSERT INTO storage.objects(bucket_id,name,metadata) VALUES('rotisseria-cardapio-videos',path1,'{"mimetype":"video/mp4","size":100}'),('rotisseria-cardapio-videos',path2,'{"mimetype":"video/webm","size":100}');
+ blocked:=false;BEGIN INSERT INTO storage.objects(bucket_id,name) VALUES('rotisseria-cardapio-videos',e2::text||'/1-'||gen_random_uuid()||'.mp4');EXCEPTION WHEN insufficient_privilege THEN blocked:=true;END;
+ EXECUTE 'RESET ROLE';IF NOT blocked THEN RAISE EXCEPTION 'Upload de outra empresa permitido';END IF;
+ PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',1,'path',path1));PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',2,'path',path2));
+ r:=public.rotisseria_cardapio_publico('catalogo',token,'{}',NULL,repeat('a',64));IF jsonb_array_length(r->'videos')<>2 OR r->'videos'->0 ? 'path' OR r->'videos'->0->>'url' NOT LIKE '%/rotisseria-cardapio-videos/%' THEN RAISE EXCEPTION 'Vídeos não publicados corretamente';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',2,'path',path1));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Misturou posições dos vídeos';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',1,'path','https://outra-origem.example/video.mp4'));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Aceitou URL externa';END IF;
+ blocked:=false;BEGIN PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',1,'path',e::text||'/1-'||gen_random_uuid()||'.mp4'));EXCEPTION WHEN OTHERS THEN blocked:=true;END;IF NOT blocked THEN RAISE EXCEPTION 'Aceitou vídeo sem upload';END IF;
+ PERFORM public.rotisseria_rpc('cardapio_video_salvar',jsonb_build_object('slot',1,'path',NULL));r:=public.rotisseria_rpc('cardapio_dados');IF jsonb_array_length(r->'videos')<>1 OR (r->'videos'->0->>'slot')::int<>2 THEN RAISE EXCEPTION 'Remover vídeo 1 apagou vídeo 2';END IF;
+ PERFORM public.rotisseria_rpc('cardapio_categoria_excluir',jsonb_build_object('id',childid));IF NOT EXISTS(SELECT 1 FROM public.produtos WHERE id=pid AND quantidade_estoque=100) OR EXISTS(SELECT 1 FROM private.rotisseria_cardapio_classificacao WHERE empresa_id=e) THEN RAISE EXCEPTION 'Exclusão alterou produto ou não limpou vínculo';END IF;
+ IF NOT EXISTS(SELECT 1 FROM storage.buckets WHERE id='rotisseria-cardapio-videos' AND file_size_limit=26214400 AND allowed_mime_types=ARRAY['video/mp4','video/webm']) THEN RAISE EXCEPTION 'Limites do bucket incorretos';END IF;
+ IF has_function_privilege('anon','private.rotisseria_video_autorizado(text)','EXECUTE') OR has_table_privilege('authenticated','private.rotisseria_cardapio_categorias','INSERT') THEN RAISE EXCEPTION 'Permissões indevidas';END IF;
+END $test$;
+SELECT 'PASS: categorias, subcategorias, filtros, isolamento, RLS de vídeos, duas posições independentes, limites e preservação dos produtos' resultado;
