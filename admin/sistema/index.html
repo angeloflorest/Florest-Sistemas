@@ -409,6 +409,7 @@
         <textarea id="f-observacoes"></textarea>
       </div>
 
+      <section id="cadastro-documental"></section>
       <div class="modal-section-label">Módulos contratados</div>
       <div class="modulo-toggle-row" id="modulo-pet-row">
         <input type="checkbox" id="f-modulo-pet">
@@ -446,6 +447,7 @@
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { montarCadastroDocumental } from './cadastro-documental.mjs?v=20261118';
 
 // Mesma configuração Supabase do Florest ERP (florest-erp/sistema/index.html) — o Admin agora fala
 // direto com o mesmo banco do ERP, sem projeto separado e sem transporte HMAC.
@@ -454,6 +456,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_UCNen-tR3sZvlMvNBCzh3w_6Wer5Pin';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
+const cadastroDocumental=montarCadastroDocumental({host:$('cadastro-documental'),rpc:(name,args)=>supabase.rpc(name,args)});
 
 const loading = $('loading');
 const loginScreen = $('login-screen');
@@ -545,6 +548,7 @@ $('form-login').addEventListener('submit', async (e) => {
 });
 
 $('btn-logout').addEventListener('click', async () => {
+  fecharModal();
   await supabase.auth.signOut();
   appScreen.classList.add('hidden');
   loginScreen.classList.remove('hidden');
@@ -765,9 +769,10 @@ function abrirModalCliente(c){
   $('f-modulo-rotisseria').disabled=false;
 
   $('modal-cliente').classList.remove('hidden');
+  cadastroDocumental.open(c);
 }
 
-function fecharModal(){ $('modal-cliente').classList.add('hidden'); }
+function fecharModal(){ cadastroDocumental.close();$('modal-cliente').classList.add('hidden'); }
 $('btn-cancelar-modal').addEventListener('click', fecharModal);
 $('modal-cliente').addEventListener('click', (e) => { if(e.target.id === 'modal-cliente') fecharModal(); });
 
@@ -790,16 +795,18 @@ $('form-cliente').addEventListener('submit', async (e) => {
     return;
   }
 
-  // 1) Dados comerciais (admin_atualizar_empresa) — inalterado em relação à versão anterior.
-  const { error: erroComercial } = await supabase.rpc('admin_atualizar_empresa', {
-    p_empresa_id: empresaId,
-    p_responsavel: $('f-responsavel').value.trim() || null,
-    p_email: $('f-email').value.trim() || null,
-    p_vencimento: $('f-vencimento').value || null,
-    p_valor_mensal: $('f-valor-mensal').value ? parseFloat($('f-valor-mensal').value) : null,
-    p_status_pagamento: $('f-status-pagamento').value,
-    p_observacoes: $('f-observacoes').value.trim() || null
-  });
+  let dadosDocumentais;
+  try{dadosDocumentais=cadastroDocumental.values(empresaId)}catch(error){btn.disabled=false;btn.textContent='Salvar';$('modal-msg').textContent=error.message;return}
+  // Dados comerciais e complementares são gravados na mesma transação.
+  const { error: erroComercial } = await supabase.rpc('admin_salvar_cadastro_documental', {
+    p_empresa: empresaId, p_dados:dadosDocumentais, p_comercial:{
+    responsavel: $('f-responsavel').value.trim() || null,
+    email: $('f-email').value.trim() || null,
+    vencimento: $('f-vencimento').value || null,
+    valor_mensal: $('f-valor-mensal').value ? parseFloat($('f-valor-mensal').value) : null,
+    status_pagamento: $('f-status-pagamento').value,
+    observacoes: $('f-observacoes').value.trim() || null
+  }});
 
   if(erroComercial){
     btn.disabled = false;
