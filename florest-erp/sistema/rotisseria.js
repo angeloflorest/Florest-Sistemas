@@ -4,12 +4,13 @@ export function quantidadeRotisseria(texto){
  const s=String(texto).trim(); if(!/^\d+(?:[.,]\d{1,4})?$/.test(s))throw Error('Informe uma quantidade positiva, com até quatro casas decimais.');
  const n=Number(s.replace(',','.'));if(!Number.isFinite(n)||n<=0||n>999999999)throw Error('Quantidade inválida.');return n;
 }
-export function comandaRotisseriaHtml(data){
+export function comandaRotisseriaHtml(data,{largura=80}={}){
+ const paper=Number(largura)===58?58:80;
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
  const number=v=>Number(v).toLocaleString('pt-BR',{maximumFractionDigits:4});
- const rows=data.itens.map(i=>i.descritivo?`<tr><td colspan="4">${esc(i.nome)}</td></tr>`:`<tr><td>${esc(i.nome)}</td><td>${i.quantidade==null?'':esc(number(i.quantidade))}</td><td>${i.preco_unitario==null?'':esc(money(i.preco_unitario))}</td><td>${esc(money(i.subtotal))}</td></tr>`).join('');
- return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Comanda ${esc(data.numero_comanda)}</title><style>@page{margin:8mm}body{font:13px Arial,sans-serif;color:#000;margin:0}h1{font-size:21px}table{width:100%;border-collapse:collapse}th,td{padding:7px 3px;border-bottom:1px solid #aaa;text-align:left}th:not(:first-child),td:not(:first-child){text-align:right}td:first-child{white-space:pre-line}tr{break-inside:avoid}thead{display:table-header-group}.totais{text-align:right;margin-top:16px}.nao-fiscal{margin-top:20px;font-weight:bold}</style></head><body><h1>Comanda ${esc(data.numero_comanda)}</h1><p>${esc(data.empresa_nome||data.empresa)}</p><p>${esc(data.data_hora)}</p><table><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="totais"><p>Total consumido: ${esc(money(data.total))}</p><p>Total já pago: ${esc(money(data.ja_pago))}</p><p>Saldo pendente: ${esc(money(data.falta_pagar))}</p></div><p class="nao-fiscal">CONFERÊNCIA DA COMANDA — NÃO É DOCUMENTO FISCAL</p></body></html>`;
+ const rows=data.itens.map(i=>i.descritivo?`<tr><td>${esc(i.nome)}</td></tr>`:`<tr><td><div>${esc(i.nome)}</div><div class="valores"><span>${i.quantidade==null?'':esc(number(i.quantidade))}${i.preco_unitario==null?'':' × '+esc(money(i.preco_unitario))}</span><strong>${esc(money(i.subtotal))}</strong></div></td></tr>`).join('');
+ return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Comanda ${esc(data.numero_comanda)}</title><style>@page{size:${paper}mm 200mm;margin:0}html{background:#edf0f3}body{box-sizing:border-box;width:${paper}mm;padding:3mm;font:12px "Courier New",monospace;color:#000;background:#fff;margin:0 auto;overflow-wrap:anywhere}h1{font-size:17px}table{table-layout:fixed}.valores{display:flex;justify-content:space-between;gap:6px;font-size:11px;margin-top:4px}.valores strong{white-space:nowrap}@media print{html{background:#fff}body{margin:0}}table{width:100%;border-collapse:collapse}th,td{padding:5px 1px;border-bottom:1px solid #aaa;text-align:left}th:not(:first-child),td:not(:first-child){text-align:right}td:first-child{white-space:pre-line}tr{break-inside:avoid}thead{display:table-header-group}.totais{text-align:right;margin-top:16px}.nao-fiscal{margin-top:20px;font-weight:bold}</style></head><body><h1>Comanda ${esc(data.numero_comanda)}</h1><p>${esc(data.empresa_nome||data.empresa)}</p><p>${esc(data.data_hora)}</p><table><thead><tr><th>Produtos</th></tr></thead><tbody>${rows}</tbody></table><div class="totais"><p>Total consumido: ${esc(money(data.total))}</p><p>Total já pago: ${esc(money(data.ja_pago))}</p><p>Saldo pendente: ${esc(money(data.falta_pagar))}</p></div><p class="nao-fiscal">CONFERÊNCIA DA COMANDA — NÃO É DOCUMENTO FISCAL</p></body></html>`;
 }
 export function criarRotisseria({supabase,perguntarCupom,acessoAtual,emitirNFCe,mensagemFiscal,fiscalPermitido,abrirImpressoras,prepararTaxas,imprimirFiscal,contingenciaFiscal}){
  const root=document.getElementById('view-rotisseria');
@@ -88,15 +89,17 @@ export function criarRotisseria({supabase,perguntarCupom,acessoAtual,emitirNFCe,
  async function printComanda(id){
   notice('');const data=await rpc('imprimir_comanda',{id,canal:'navegador'}),d=dialog('Imprimir · Comanda '+data.numero_comanda);
   d.append(el('p',`${data.itens.length} produto(s) · Total: ${money(data.total)}`));
-  d.append(btn('Imprimir pelo navegador',()=>printInBrowser(data)));
+  const paper=select(d,'Papel da impressora térmica',[['80','80 mm'],['58','58 mm']],'80');
+  const ticket=el('iframe');ticket.title='Prévia do cupom térmico não fiscal';ticket.className='rt-thermal-preview';ticket.setAttribute('sandbox','');const updatePreview=()=>{ticket.srcdoc=comandaRotisseriaHtml(data,{largura:Number(paper.value)});};paper.onchange=updatePreview;updatePreview();d.append(ticket);
+  d.append(btn('Imprimir pelo navegador',()=>printInBrowser(data,Number(paper.value))));
   let pending=null;const thermal=btn('Enviar à impressora cadastrada',async()=>{pending||={id,canal:'impressora',chave:crypto.randomUUID()};try{await rpc('imprimir_comanda',pending);}catch(e){if(e.confirmedFailure)pending=null;throw e;}thermal.textContent='Enviado à fila de impressão';thermal.dataset.sent='true';notice('');});
   if(!st.ctx.config?.impressora_id)thermal.disabled=true;d.append(thermal);
   if(!st.ctx.config?.impressora_id)d.append(el('p','Para usar o Print Agent, selecione a impressora nas Configurações da Rotisseria.','rt-muted'));
-  const preview=el('details');preview.append(el('summary','Ver lista de produtos'));for(const i of data.itens)preview.append(el('p',`${i.quantidade} × ${i.nome} · ${money(i.subtotal)}`));d.append(preview);
+
  }
- async function printInBrowser(data){
+ async function printInBrowser(data,largura=80){
   const frame=el('iframe');frame.title='Impressão da comanda';frame.className='rt-print-frame';const host=$('rt-dialog')||root;
-  await new Promise((resolve,reject)=>{frame.onload=()=>{try{const win=frame.contentWindow;const cleanup=()=>frame.remove();win.addEventListener('afterprint',cleanup,{once:true});win.focus();win.print();setTimeout(cleanup,60000);resolve();}catch(e){frame.remove();reject(e);}};frame.srcdoc=comandaRotisseriaHtml(data);host.append(frame);});
+  await new Promise((resolve,reject)=>{frame.onload=()=>{try{const win=frame.contentWindow;const paper=largura===58?58:80;const height=Math.ceil(win.document.body.getBoundingClientRect().height*25.4/96)+2;const style=win.document.createElement('style');style.textContent=`@page{size:${paper}mm ${Math.max(40,height)}mm;margin:0}`;win.document.head.append(style);const cleanup=()=>frame.remove();win.addEventListener('afterprint',cleanup,{once:true});win.focus();win.print();setTimeout(cleanup,60000);resolve();}catch(e){frame.remove();reject(e);}};frame.srcdoc=comandaRotisseriaHtml(data,{largura});host.append(frame);});
  }
  function paymentHistory(a){const d=dialog('Pagamentos · Comanda '+a.numero);for(const p of a.pagamentos||[])d.append(el('p',`${p.forma} · ${money(p.valor)} · ${when(p.criado_em)}`));}
 
