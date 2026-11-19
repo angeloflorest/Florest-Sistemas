@@ -33,7 +33,7 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
   })();
   try{return await tokenRequest}finally{tokenRequest=null}
  }
- async function api(path,options={}){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0;if(tokenStore)await tokenStore.invalidate(access)}return checked(response,path.startsWith('/catalog/')?true:path.endsWith('/requestCancellation')?'order':false)}
+ async function api(path,options={},withStatus=false){const access=await getToken();const response=await request(path,{...options,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json',...options.headers}});if(response.status===401){token=null;tokenUntil=0;if(tokenStore)await tokenStore.invalidate(access)}const value=await checked(response,path.startsWith('/catalog/')?true:path.endsWith('/requestCancellation')?'order':false);return withStatus?{status:response.status}:value}
  function merchant(id){guard();if(!allowed.has(id))throw new IFoodError('Loja fora do escopo autorizado.');}
  return {
   async poll(ids){guard();if(!Array.isArray(ids)||!ids.length||ids.length>100)throw new IFoodError('Informe de 1 a 100 lojas.');ids.forEach(merchant);if(now()<nextPoll)throw new IFoodError('Aguarde o intervalo de polling.',{retryAfter:nextPoll-now()});await getToken();if(beforePoll)await beforePoll();nextPoll=now()+30000;try{return await api('/events/v1.0/events:polling?categories=FOOD',{headers:{'x-polling-merchants':ids.join(',')}})||[]}catch(e){if(e.retryAfter)nextPoll=Math.max(nextPoll,now()+e.retryAfter);throw e}},
@@ -52,7 +52,7 @@ export function createIFoodClient({enabled=false,clientId,clientSecret,merchants
    const paths={confirmar:'confirm',preparar:'startPreparation',pronto:'readyToPickup',despachar:'dispatch',solicitar_cancelamento:'requestCancellation'};
    if(!paths[action])throw new IFoodError('Comando inválido.');
    if(action==='solicitar_cancelamento'){if(!/^[0-9]{3}$/.test(String(payload.cancellationCode||'')))throw new IFoodError('Código de cancelamento inválido.');payload={cancellationCode:String(payload.cancellationCode),reason:String(payload.reason||payload.cancellationCode).slice(0,250)}}
-   return api('/order/v1.0/orders/'+id+'/'+paths[action],{method:'POST',...(Object.keys(payload).length?{body:JSON.stringify(payload)}:{})});
+   return api('/order/v1.0/orders/'+id+'/'+paths[action],{method:'POST',...(Object.keys(payload).length?{body:JSON.stringify(payload)}:{})},true);
   },
   async dispute(disputeId,merchantId,action,payload={}){merchant(merchantId);if(!uuid.test(disputeId)||!['accept','reject','alternative'].includes(action))throw new IFoodError('Negociação inválida.');return api('/order/v1.0/disputes/'+disputeId+'/'+action,{method:'POST',body:JSON.stringify(payload)})},
   async order(id,merchantId){merchant(merchantId);if(!uuid.test(id))throw new IFoodError('Pedido inválido.');const data=await api('/order/v1.0/orders/'+id);if(data?.merchant?.id!==merchantId)throw new IFoodError('Pedido pertence a outra loja.');return data},
