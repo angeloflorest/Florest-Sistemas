@@ -4,3 +4,5 @@
 .logo-loja{display:block;width:min(100%,560px);height:auto;margin:0 auto 18px;object-fit:contain}.logo-loja[hidden]{display:none}
 /* Square framing hides the side padding already present in product thumbnails. */
 .product img{height:auto;aspect-ratio:1/1;object-fit:cover}
+/* Oculta o endereço quando o cliente escolhe retirada. */
+#conteudo label[hidden]{display:none}

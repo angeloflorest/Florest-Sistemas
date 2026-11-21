@@ -41,3 +41,8 @@ html.rt-focus,html.rt-focus body{overflow:hidden}
 #view-rotisseria .rt-comanda.ocupada{background:#ffe16a;border-color:#e2aa00;border-top-color:#e2aa00}#view-rotisseria .rt-comanda.ocupada strong,#view-rotisseria .rt-comanda.ocupada span{color:#142c42}.rt-menu-qr{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:16px 0}.rt-menu-qr img{width:220px;height:220px;object-fit:contain}.rt-order-customer{margin:0;padding:8px;background:#fff0aa;border-radius:8px;font-weight:600;flex-shrink:0}.rt-digital-order small:last-child{font-weight:800}
 /* Only the Rotisseria digital-menu settings. */
 .rt-menu-videos-admin{display:grid;grid-template-columns:1fr 1fr;gap:16px}.rt-menu-video-card{min-width:0}.rt-menu-video-preview{aspect-ratio:16/9;background:#1d1712;display:grid;place-items:center;border-radius:9px;overflow:hidden;margin-bottom:14px}.rt-menu-video-preview video{width:100%;height:100%;object-fit:cover}.rt-menu-video-preview p{color:#eedec3}.rt-menu-category-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px;border-bottom:1px solid #dce5ef}.rt-menu-category-row strong{flex:1;min-width:180px}@media(max-width:700px){.rt-menu-videos-admin{grid-template-columns:1fr}}
+
+/* Modalidade de recebimento dos pedidos do cardápio da Rotisseria. */
+#view-rotisseria .rt-order-mode,.rt-order-customer .rt-order-mode{display:block;margin-top:8px;padding:6px 10px;border-radius:7px;background:#e1edff;color:#123b69;font-size:13px;font-weight:800}
+#view-rotisseria .rt-order-mode-delivery{background:#123b69;color:#fff}
+.rt-order-customer .rt-order-address{display:block;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere}
