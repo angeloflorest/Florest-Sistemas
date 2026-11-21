@@ -52,9 +52,9 @@ export function normalizeOrder(order,mappings=[]){
  for(let n=0;n<Math.min(onlineFees-allocated,split.length);n++)split[n].share++;
  for(const [index,p]of payments.entries()){const fee=split.find(x=>x.index===index)?.share||0;p.taxa_ifood=fee;p.valor_empresa=p.valor-fee}
  if(subsidy)payments.push({tipo:'ONLINE',forma:'SUBSIDIO_IFOOD',valor:subsidy,valor_empresa:subsidy,taxa_ifood:0,origem:'BENEFICIO',bandeira:'',troco_para:0,troco:0});
- const scheduled=order.orderTiming==='SCHEDULED';
- if(scheduled&&!Number.isFinite(Date.parse(order.preparationStartDateTime)))warnings.push('Agendamento sem início de preparo válido.');
- return {id:order.id,merchant_id:order.merchant.id,numero:text(order.displayId,50),tipo:order.orderType,agendado:scheduled,inicio_preparo:order.preparationStartDateTime||null,
+ const scheduled=order.orderTiming==='SCHEDULED',preparation=order.preparationStartDateTime||order.schedule?.preparationStartDateTime||order.scheduled?.preparationStartDateTime||null;
+ if(scheduled&&!Number.isFinite(Date.parse(preparation)))warnings.push('Agendamento sem início de preparo válido.');
+ return {id:order.id,merchant_id:order.merchant.id,numero:text(order.displayId,50),tipo:order.orderType,agendado:scheduled,inicio_preparo:preparation,
   is_test:order.isTest===true,criado_em:text(order.createdAt,60),entrega_por:text(order.delivery?.deliveredBy,30),informacoes:orderInformation(order),patrocinadores:sponsors,subsidios:subsidy,desconto_loja:Math.min(merchantDiscount,base),cliente:text(order.customer?.name,120),itens:items,pagamentos:payments,
   total:amount,total_empresa:merchantTotal,taxas_ifood:fees,taxas_offline:offlineFees,pago_online_empresa:payments.filter(p=>p.tipo==='ONLINE').reduce((sum,p)=>sum+p.valor_empresa,0),pago_online:prepaid,a_cobrar:pending,dinheiro_a_cobrar:payments.filter(m=>m.tipo==='OFFLINE'&&m.forma==='CASH').reduce((s,m)=>s+m.valor,0),
   dinheiro_recebido:0,beneficios:order.benefits||[],avisos:warnings};
@@ -63,7 +63,7 @@ export function orderInformation(order){const d=order.delivery||{},a=d.deliveryA
  endereco:text(a.formattedAddress||[a.streetName,a.streetNumber].filter(Boolean).join(', '),350),bairro:text(a.neighborhood,100),cidade:text(a.city,100),uf:text(a.state,20),cep:text(a.postalCode,20),complemento:text(a.complement,200),referencia:text(a.reference,300),instrucoes:text(d.observations||order.takeout?.observations||order.extraInfo,1024),observacoes:text(order.observations,1024),codigo_coleta:text(d.pickupCode,30),previsao:text(d.deliveryDateTime||order.takeout?.takeoutDateTime,60),telefone:text(customer.phone?.number,50),localizador:text(customer.phone?.localizer,50),documento:text(customer.documentNumber||customer.taxPayerIdentificationNumber||order.additionalInfo?.taxPayerIdentificationNumber,30)
 }}
 export function normalizeDispute(raw={}){return {...raw,disputeId:raw.disputeId||raw.id||null,acceptCancellationReasons:raw.acceptCancellationReasons||raw.metadata?.acceptCancellationReasons||[],alternatives:raw.alternatives||[]}}
-const states={SPE:'pronto',SEPARATION_ENDED:'pronto',SEPARATION_STARTED:'em_preparo',PLC:'recebido',PLACED:'recebido',CFM:'confirmado',CONFIRMED:'confirmado',SPS:'em_preparo',PREPARATION_STARTED:'em_preparo',RTP:'pronto',READY_TO_PICKUP:'pronto',DSP:'despachado',DISPATCHED:'despachado',CON:'concluido',CONCLUDED:'concluido',CAN:'cancelado',CANCELLED:'cancelado'};
+const states={SPE:'pronto',SEPARATION_ENDED:'pronto',SEPARATION_STARTED:'em_preparo',PLC:'recebido',PLACED:'recebido',CFM:'confirmado',CONFIRMED:'confirmado',SPS:'em_preparo',PRS:'em_preparo',PREPARATION_STARTED:'em_preparo',RTP:'pronto',READY_TO_PICKUP:'pronto',DSP:'despachado',DISPATCHED:'despachado',CON:'concluido',CONCLUDED:'concluido',CAN:'cancelado',CANCELLED:'cancelado'};
 export function eventRecord(event){
  if(!event||!uuidPattern.test(event.id)||!uuidPattern.test(event.merchantId)||!uuidPattern.test(event.orderId)||!Number.isFinite(Date.parse(event.createdAt)))throw Error('Evento de pedido inválido.');
  return {id:event.id,merchant_id:event.merchantId,pedido_id:event.orderId,ocorrido_em:event.createdAt,estado:states[event.fullCode]||states[event.code]||'revisar',codigo:text(event.fullCode||event.code,100)};

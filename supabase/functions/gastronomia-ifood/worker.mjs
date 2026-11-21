@@ -14,14 +14,17 @@ export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
    await api.acknowledge(events);
    await rpc('ack',empresa,{ids:events.map(e=>e.id)});received=events.length;
   }else await rpc('eventos',empresa,{eventos:[]});
+  // Um ACK aceito pelo iFood pode ter perdido a resposta ou a gravação local.
+  // Repetir somente o ACK de eventos já persistidos é seguro; comandos não são repetidos.
+  const unacked=await rpc('acks_pendentes',empresa);
+  if(Array.isArray(unacked)&&unacked.length){await api.acknowledge(unacked);await rpc('ack',empresa,{ids:unacked.map(e=>e.id)});}
   const waiting=await rpc('pendentes',empresa);
-  for(const event of waiting){if(Date.now()>deadline)break;
+  for(const event of waiting){if(Date.now()>deadline-20000)break;
    try{
-    if(event.pedido_id){const order=await api.order(event.pedido_id,merchant);const normalized=normalizeOrder(order,cfg.vinculos);await rpc('pedido',empresa,{detalhe:order,normalizado:normalized,evento_id:event.evento_id});}
+    if(event.pedido_id&&event.consultar_detalhe!==false){const order=await api.order(event.pedido_id,merchant);const normalized=normalizeOrder(order,cfg.vinculos);await rpc('pedido',empresa,{detalhe:order,normalizado:normalized,evento_id:event.evento_id});}
     await rpc('processar',empresa,{evento_id:event.evento_id});
    }catch(e){await rpc('falha_evento',empresa,{evento_id:event.evento_id,erro:e.message||'Falha ao processar pedido.'});}
   }
-  for(const id of await rpc('revisar',empresa)){if(Date.now()>deadline)break;try{const order=await api.order(id,merchant);await rpc('pedido',empresa,{detalhe:order,normalizado:normalizeOrder(order,cfg.vinculos)});}catch{ /* Evento permanece guardado e visível para revisão. */ }}
   await rpc('agendados',empresa);
   for(const pending of await rpc('comandos',empresa)){if(Date.now()>deadline)break;
    const cmd=await rpc('reservar_comando',empresa,{id:pending.id});if(!cmd)continue;
@@ -41,6 +44,9 @@ export async function syncCompany({empresa,rpc,fetchImpl=fetch}) {
     await rpc('resultado_comando',empresa,{id:cmd.id,estado:'enviado',status_http:statusHttp,motivos_consultados_em:motivosConsultadosEm});
    }catch(e){await rpc('resultado_comando',empresa,{id:cmd.id,estado:e.uncertain?'incerto':'falha',erro:e.message||'Falha ao enviar comando iFood.',status_http:e.status||null,motivos_consultados_em:motivosConsultadosEm});}
   }
+  await rpc('conciliar_alteracoes',empresa);
+  // Revisões e catálogo não podem consumir o tempo destinado à confirmação/cancelamento.
+  for(const id of await rpc('revisar',empresa)){if(Date.now()>deadline-15000)break;try{const order=await api.order(id,merchant);await rpc('pedido',empresa,{detalhe:order,normalizado:normalizeOrder(order,cfg.vinculos)});}catch{ /* Evento permanece guardado e visível para revisão. */ }}
   await rpc('h_concluir',empresa);
   await rpc('catalogo_agendar',empresa);
   await syncCatalog({empresa,merchant,api,rpc,bulk:true,deadline:Math.min(deadline,Date.now()+18000)});
