@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.rotisseria-cardapio]
 verify_jwt = false
+
+[functions.bar-cardapio]
+verify_jwt = false

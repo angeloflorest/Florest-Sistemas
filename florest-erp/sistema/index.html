@@ -2854,6 +2854,7 @@
 .xmlc-resumo ul{max-height:240px;overflow:auto;margin:8px 0 0;padding-left:20px}
 </style>
 <link rel="stylesheet" href="./rotisseria.css">
+<link rel="stylesheet" href="./bar-pedidos.css">
 </head>
 <body>
 
@@ -4389,6 +4390,7 @@
       </div>
       <div class="bar-subnav" id="bar-subnav">
         <button type="button" class="bar-subnav-item active" data-barview="mesas">Mesas</button>
+        <button type="button" class="bar-subnav-item" data-barview="pedidos">Pedidos</button>
         <button type="button" class="bar-subnav-item" data-barview="caixa">Caixa</button>
         <button type="button" class="bar-subnav-item" data-barview="garcons">Garçons</button>
         <button type="button" class="bar-subnav-item" data-barview="produtos">Produtos Compostos</button>
@@ -4397,6 +4399,8 @@
         <button type="button" class="bar-subnav-item" data-barview="configuracoes">Configurações</button>
       </div>
       <div id="bar-aviso-modulo" class="hidden"><div class="msg error">O módulo comercial Bar não está ativo para esta empresa.</div></div>
+
+      <div id="bar-sub-pedidos" class="bar-subview hidden"></div>
 
       <!-- ---- SUBVIEW: MESAS ---- -->
       <div id="bar-sub-mesas" class="bar-subview">
@@ -4517,6 +4521,7 @@
       <div id="bar-sub-configuracoes" class="bar-subview hidden">
         <div class="bar-subnav" id="bar-config-subnav">
           <button type="button" class="bar-subnav-item active" data-barconfigview="mesas">Mesas</button>
+          <button type="button" class="bar-subnav-item" data-barconfigview="cardapio">Cardápio digital</button>
           <button type="button" class="bar-subnav-item" data-barconfigview="destino">Destino dos Produtos</button>
           <button type="button" class="bar-subnav-item" data-barconfigview="impressoras">Impressoras</button>
         </div>
@@ -4525,6 +4530,7 @@
              mesma tabela bar_configuracoes) — só deixou de ser modal e passou a viver aqui. As
              mesmas bar_mesas usadas pelo Mini PDV e pelo Florest Garçom continuam sendo as únicas;
              não existe cadastro de mesas paralelo. -->
+        <div id="bar-config-sub-cardapio" class="bar-subview hidden"></div>
         <div id="bar-config-sub-mesas" class="bar-subview">
           <div class="bar-config-card">
             <div class="rel-secao-titulo">Configuração das mesas</div>
@@ -7107,6 +7113,7 @@ export function abrirImportador(config){
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { criarRotisseria } from './rotisseria.js';
+import { criarPedidosBar } from './bar-pedidos.js';
 import { criarPerguntaCupom } from './cupom-pos-venda.js';
 import { instalarTaxasPagamento, agruparDespesasTaxas, prepararTaxasRecebimentoMesa } from './taxas-pagamento.js';
 let nfe55Painel = null, nfe55Carregamento = null;
@@ -7611,6 +7618,7 @@ $('form-login-legado').addEventListener('submit', async (e) => {
 // ---------- Logout ----------
 $('btn-logout').addEventListener('click', async () => {
   rotisseriaApp?.stop();
+  barPedidosApp?.stop();
   await supabase.auth.signOut();
   acesso = { userId: null, papel: 'proprietario', permissoes: [], ativo: true };
   pdvCarrinho = [];           // o cupom em andamento não pode passar para o próximo usuário
@@ -10084,6 +10092,7 @@ function abrirView(view){
   const cfgAcessoView = MODULOS_ACESSO.find(m => m.view === view);
   if(!cfgAcessoView || !podeAcessar(cfgAcessoView.k)) return;
   if(view !== 'rotisseria') rotisseriaApp?.stop();
+  if(view !== 'bar') barPedidosApp?.stop();
   viewAtual = view;                                   // MARIA flutuante: decide se aparece nesta tela
   atualizarMariaFlutuante();
   if(view !== 'configuracoes') paEncerrarTudo();      // Print Agent: encerra modal do código, intervalo e busca em andamento
@@ -20714,6 +20723,10 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
 // bar_pedido_lancar (Migration 018). Quando o saldo real da comanda chega a zero, o próprio banco
 // libera a mesa automaticamente (bar_comanda_pagar_valor chama bar_mesa_fechar internamente) — não
 // existe mais botão "Fechar mesa" manual.
+let barPedidosApp;
+function pedidosBarApp(){
+ return barPedidosApp ||= criarPedidosBar({supabase,escopo:()=>[acesso?.userId,empresaCache?.empresaId],permitido:podeAcessarBar,perguntarCupom:perguntarCupomVenda,prepararTaxas:formas=>prepararTaxasRecebimentoMesa(supabase,formas),visivel:()=>!$('view-bar').classList.contains('hidden')&&barSubViewAtual==='pedidos'});
+}
 let barSubViewAtual = 'mesas';
 let barCanalRealtime = null;
 let barMesaAtual = null; // mesa atualmente aberta no modal-bar-mesa (objeto bar_mesas, recarregado após cada ação)
@@ -20754,6 +20767,7 @@ function podeAcessarBar(permissao){
 // esconde/mostra cada ação (lançar pedido, receber pagamento, estornar) conforme a permissão de
 // quem está logado.
 const BAR_SUBVIEW_PERMISSOES = {
+  pedidos: ['bar_pedidos','bar_caixa'],
   historico: ['bar_historico_consultar'],
   mesas: ['bar_visualizar','bar_mesas','bar_pedidos','bar_caixa','bar_portaria','bar_configurar','bar_estornar_pagamento'],
   // Caixa do Bar: proprietário ou bar_caixa; funcionário acessa somente o próprio caixa.
@@ -20793,10 +20807,12 @@ document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(
 
 async function abrirSubViewBar(sub){
   if(!visivelBarSubview(sub)) return;
+  barPedidosApp?.stop();
   barSubViewAtual = sub;
   document.querySelectorAll('#bar-subnav .bar-subnav-item[data-barview]').forEach(b => b.classList.toggle('active', b.dataset.barview === sub));
-  ['mesas','caixa','garcons','produtos','relatorios','configuracoes','historico'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
+  ['mesas','pedidos','caixa','garcons','produtos','relatorios','configuracoes','historico'].forEach(v => $('bar-sub-' + v).classList.toggle('hidden', v !== sub));
   if(sub === 'mesas'){ cxBarChipAtualizar(); await carregarBarMesas(); }
+  else if(sub === 'pedidos') await pedidosBarApp().start($('bar-sub-pedidos'));
   else if(sub === 'caixa') await cxBarAbrirSub();
   else if(sub === 'garcons') await carregarBarGarcons();
   else if(sub === 'produtos') await carregarBarProdutos();
@@ -20814,8 +20830,10 @@ document.querySelectorAll('#bar-config-subnav .bar-subnav-item[data-barconfigvie
 async function abrirConfigSubViewBar(sub){
   barConfigSubViewAtual = sub;
   document.querySelectorAll('#bar-config-subnav .bar-subnav-item[data-barconfigview]').forEach(b => b.classList.toggle('active', b.dataset.barconfigview === sub));
-  ['mesas','destino','impressoras'].forEach(v => $('bar-config-sub-' + v).classList.toggle('hidden', v !== sub));
-  if(sub === 'mesas') await carregarBarConfigMesas();
+  barPedidosApp?.stop();
+  ['mesas','destino','impressoras','cardapio'].forEach(v => $('bar-config-sub-' + v).classList.toggle('hidden', v !== sub));
+  if(sub === 'cardapio') await pedidosBarApp().configure($('bar-config-sub-cardapio'));
+  else if(sub === 'mesas') await carregarBarConfigMesas();
   else if(sub === 'destino') await carregarBarDestino();
   else if(sub === 'impressoras') await carregarImpressoras();
 }
