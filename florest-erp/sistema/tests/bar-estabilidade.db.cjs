@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {PGlite}=require(process.env.PGLITE_PATH||'/tmp/erp-perf-pg/node_modules/@electric-sql/pglite');
 const dir=path.join(__dirname,'fixtures/bar-estabilidade'),read=n=>fs.readFileSync(path.join(dir,n),'utf8');
-const migration=fs.readFileSync(path.join(__dirname,'../../../supabase/migrations/20261122202927_bar_estabilidade_pedidos.sql'),'utf8');
+const migration=fs.readFileSync(path.join(__dirname,'../../../supabase/migrations/20261122205034_bar_estabilidade_pedidos.sql'),'utf8');
 const id=n=>'00000000-0000-0000-0000-'+String(n).padStart(12,'0'),E=id(1),M=id(2),C=id(3),K=id(4);
 async function setup(updated){const db=new PGlite();await db.exec(`
  CREATE SCHEMA auth;CREATE SCHEMA private;CREATE ROLE anon;CREATE ROLE authenticated;
