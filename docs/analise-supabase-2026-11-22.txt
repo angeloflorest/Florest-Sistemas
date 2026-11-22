@@ -1,0 +1,97 @@
+Análise de desempenho do Florest ERP — 22/11/2026
+Horários de operação em Brasília. Estatísticas SQL acumuladas desde 21/11 00:14;
+incluem o período anterior à migração Nano -> Micro, não são medidas só do Micro.
+
+O QUE ESTAVA REPETINDO
+1. PDV Windows: a rodada de 15 segundos buscava contexto, todas as páginas de
+   produtos/clientes, atalhos e resumo do caixa, mesmo sem alteração de cadastro.
+   pdv_desktop_catalogo: 18.275 chamadas, média acumulada 21 ms.
+   O SQLite local não elimina essas consultas ao Supabase.
+2. Bar: uma consulta da lista de mesas e outra consulta financeira por comanda
+   ocupada em cada atualização. bar_comanda_resumo_financeiro: 11.507 chamadas,
+   média histórica 36,5 ms. Quatro chamadas simultâneas apenas limitavam a rajada.
+3. Gastronomia: temporizador de 5 segundos, Realtime e retorno à aba podiam
+   consultar o contexto simultaneamente, pois a atualização silenciosa não
+   compartilhava a requisição em andamento.
+4. Impressão: impressao_agente_jobs_reservar teve 43.770 chamadas históricas,
+   média 15,2 ms; a contagem ficou inalterada entre amostras desta auditoria.
+   Não é evidência de que impressões antigas estivessem consumindo CPU agora.
+5. iFood: worker com 43.363 chamadas históricas, média 9,25 ms. Uma rodada envolve
+   autorização, reserva, token, eventos, ACK, comandos e conciliação. O cron é
+   de 30 segundos. Usa o mesmo Postgres do ERP, mas o total de chamadas, sozinho,
+   não comprova saturação. Não desligamos a entrada de pedidos para reduzir carga.
+
+CORREÇÕES APLICADAS AO BANCO E À WEB
+- Novo RPC bar_comandas_resumos: autoriza a empresa uma vez por lote de até 200
+  comandas e usa exatamente private.bar_comanda_saldo_calcular, sem mudar valores.
+  Exemplo: 50 mesas ocupadas passam de 51 chamadas HTTP para duas por atualização.
+  Falhas mantêm o saldo anterior identificado como desatualizado.
+- Atualizações silenciosas concorrentes da Gastronomia compartilham a consulta;
+  resposta de outra empresa ou sessão anterior é descartada.
+- 48 impressões que já haviam vencido saíram de pendente para falhou/expirado,
+  com histórico preservado. Nenhuma venda foi refeita ou cupom reenviado.
+- Uma rotina a cada 10 minutos encerra no máximo 500 pendências já vencidas,
+  usando SKIP LOCKED. Não depende de um agente de impressão conectado.
+- Não alteramos valores de vendas, limites de timeout, plano ou cobrança.
+
+PDV WINDOWS — VERSÃO 0.3.1
+- Envio automático de vendas mantém a rodada de 15 segundos e a idempotência.
+- Download completo automático do catálogo passa a 60 segundos: até 75% menos
+  downloads periódicos quando comparado ao ciclo anterior de 15 segundos.
+- Atualização manual continua imediata. Falhas de catálogo têm espera progressiva
+  de 30 a 300 segundos; não impedem tentativas de envio de vendas na rodada.
+- A redução só vale nos computadores que instalarem a nova versão; publicar
+  código não altera executáveis que já estão instalados.
+
+IMPRESSÕES: CAUSAS, NÃO CONFUNDIR COM QUEDAS
+Antes: 49 pendentes (48 vencidas) e 99 falhas. As 99 falhas eram 83 sem_impressora,
+15 impressora_com_erro e uma expirado. Depois da correção: 1 pendente, 147 falhas
+históricas, 4.300 impressas e zero pendências vencidas na amostra das 11:48.
+O aumento para 147 corresponde às 48 vencidas encerradas, não a 48 novas falhas.
+Configuração e estado físico das impressoras precisam ser conferidos nas estações
+afetadas; não há evidência de que todos esses registros tenham a mesma causa.
+
+TIMEOUTS E SAÚDE ATUAL
+- Os 23 timeouts citados anteriormente pertenciam à janela anterior da auditoria.
+  A janela móvel 21/11 11:43 -> 22/11 11:43 contém 10: cinco bar_pedido_lancar,
+  um pdv_desktop_catalogo, três operações Realtime e um sem SQL registrado.
+  Timeout 57014 significa interrupção da consulta, não necessariamente queda.
+- Papéis authenticated/authenticator têm limite de execução de 8 segundos;
+  anon, de 3 segundos. Não aumentamos o limite para esconder consultas lentas.
+- Em 22/11 11:33 -> 11:48, 1.827 chamadas REST: zero respostas 5xx, p95 de
+  tempo na origem 40 ms e máximo 160 ms. Não inclui a rede do cliente nem prova
+  disponibilidade de 100% ou ausência de falhas fora dessa janela.
+- Amostra 11:48: cinco conexões de clientes, zero consultas bloqueadas,
+  zero transações abandonadas e zero deadlocks registrados.
+- Reinício do banco: 10:51:36, correspondente à mudança de tamanho solicitada.
+- Advisors de saúde sem avisos. Advisors de desempenho ainda apontam melhorias
+  de RLS, índices redundantes e FKs. Não removemos índices por estarem sem uso
+  logo após reinício nem adicionamos 60 índices sem examinar as consultas.
+  Referências: https://supabase.com/docs/guides/database/database-linter
+
+AWS E IFOOD
+- Usuário, slot e publicação da reserva externa AWS foram removidos na atualização
+  anterior. Na amostra atual há zero sessões da reserva. Erros de replicação
+  anteriores não devem ser tratados como erros novos. Recursos nativos do
+  Supabase não foram removidos. Encerramento de cobrança AWS não foi verificado.
+- As quatro falhas de comandos iFood vistas na auditoria eram solicitações de
+  cancelamento em ambiente de TESTE de 17/11, não quatro vendas travadas hoje.
+- Ainda há erros CX003 de tentativas de enviar vendas vinculadas a caixa fechado;
+  é validação de negócio, não evidência de indisponibilidade. O usuário excluiu
+  a recuperação dessas vendas deste atendimento; não alteramos essa fila.
+
+VALIDAÇÃO
+- Equivalência entre RPC em lote e individual usando comandas existentes,
+  sem modificar dados financeiros; isolamento entre empresas verificado.
+- 18 testes do fluxo de mesas, quatro testes de leitura e três de concorrência
+  da Gastronomia; testes de falha, troca de sessão e preservação de rascunho.
+- PDV Windows: 38 testes, incluindo SQLite, idempotência, catálogo e atualização;
+  checagem de sintaxe. O instalador é produzido e validado pelo workflow Windows.
+
+LIMITES DO DIAGNÓSTICO
+As repetições acima são desperdícios comprovados no código e foram reduzidas.
+Os dados não permitem atribuir todos os incidentes anteriores a uma única causa.
+Supabase Pro e Micro aumentam recursos, mas não tornam a capacidade ilimitada.
+É necessário observar o próximo período de movimento e o tempo entre criação
+do pedido e exibição para confirmar o resultado sob carga real. Não foi feito
+teste de estresse no ambiente dos clientes, nem promessa de ausência de quedas.

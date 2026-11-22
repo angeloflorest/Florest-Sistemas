@@ -10225,12 +10225,20 @@ function gsSnapshotArea(ctx,area){
  if(area==='mesas')return JSON.stringify({mesas:ctx.mesas.map(m=>[m.id,m.numero,m.status]),atendimentos:ctx.atendimentos.filter(a=>a.tipo==='mesa').map(a=>[a.id,a.mesa_id,a.estado,a.versao,a.total,a.pago,a.itens?.map(i=>[i.id,i.quantidade,i.cancelado])])});
  return JSON.stringify(ctx.atendimentos.filter(a=>a.tipo!=='mesa').map(a=>[a.id,a.estado,a.versao,a.total,a.pago,a.itens?.length,a.expedicao]));
 }
-async function gsAtualizarSilencioso(){
- if(!gsPollingPermitido())return;
+let gsAtualizacaoSilenciosa=null;
+function gsAtualizarSilencioso(){
+ if(gsAtualizacaoSilenciosa)return gsAtualizacaoSilenciosa;
+ if(!gsPollingPermitido())return Promise.resolve();
+ const sessao=acesso,empresa=GS.ctx.empresa_id;
+ const run=gsConsultarSilencioso(sessao,empresa);
+ gsAtualizacaoSilenciosa=run;
+ return run.finally(()=>{if(gsAtualizacaoSilenciosa===run)gsAtualizacaoSilenciosa=null});
+}
+async function gsConsultarSilencioso(sessao,empresa){
  const area=GS.area,anterior=gsSnapshotArea(GS.ctx,area),mesaAberta=area==='mesas'&&$('gs-dialog').open&&$('gs-dialog').classList.contains('gs-mesa-dialog')?GS.mesaCurrent:null;
  // Não sobrescrever formulários, seleção, valores digitados ou operações em andamento.
  const ctx=await gsRPC('contexto');
- if(!gsPollingPermitido()||GS.area!==area)return;
+ if(!gsPollingPermitido()||GS.area!==area||acesso!==sessao||GS.ctx.empresa_id!==empresa||ctx.empresa_id!==empresa)return;
  if(ctx.cardapio_versao!==GS.ctx.cardapio_versao)return;
  const mudou=anterior!==gsSnapshotArea(ctx,area);
  GS.ctx=ctx;window.GSFotos?.setPhotos(ctx.configuracao?.opcoes?.cardapio?.produtos||[]);
@@ -21866,17 +21874,18 @@ async function barConsultarGradeMesas(silencioso){
   const ids = [...new Set(estado.mesas.map(m => m.comanda_atual_id).filter(Boolean))];
   const presentes = new Set(ids);
   for(const id of estado.resumos.keys()) if(!presentes.has(id)) estado.resumos.delete(id);
-  // Limitar o lote evita uma rajada por todas as mesas ocupadas ao mesmo tempo.
-  let proximo = 0;
-  await Promise.all(Array.from({ length: Math.min(4, ids.length) }, async () => {
-    while(proximo < ids.length){
-      const id = ids[proximo++];
-      let resp; try{ resp = await supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: id }); }catch{ resp = null; }
-      if(contexto !== acesso) return;
-      if(barResumoSaldoValido(resp)) estado.resumos.set(id, { ...resp.data[0] });
-      else for(const m of estado.mesas) if(m.comanda_atual_id === id) estado.antigas.add(m.id);
+  // Um RPC por lote substitui uma chamada HTTP por comanda ocupada.
+  for(let inicio=0;inicio<ids.length;inicio+=200){
+    const lote=ids.slice(inicio,inicio+200);
+    let resp;try{resp=await supabase.rpc('bar_comandas_resumos',{p_comanda_ids:lote})}catch{resp=null}
+    if(contexto !== acesso) return;
+    const resumos=new Map(!resp?.error&&Array.isArray(resp?.data)?resp.data.map(r=>[r.comanda_id,r]):[]);
+    for(const id of lote){
+      const resumo=resumos.get(id);
+      if(resumo&&barResumoSaldoValido({data:[resumo]}))estado.resumos.set(id,{...resumo});
+      else for(const m of estado.mesas)if(m.comanda_atual_id===id)estado.antigas.add(m.id);
     }
-  }));
+  }
   if(contexto !== acesso) return;
   for(const m of estado.mesas) if(m.status === 'ocupada' && !estado.resumos.has(m.comanda_atual_id)) estado.antigas.add(m.id);
   barRenderMesasAtualizacao();
