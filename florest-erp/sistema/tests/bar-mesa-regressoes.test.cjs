@@ -23,11 +23,14 @@ function preparar(){
     }
     return nodes.get(id);
   };
-  const context=vm.createContext({$:el,console,crypto:{randomUUID:()=> 'uuid-operacao'},
+  const saved=new Map();
+  const context=vm.createContext({$:el,console,AbortController,setTimeout,clearTimeout,acesso:{userId:'u'},
+    localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},
+    crypto:{randomUUID:()=> 'uuid-operacao'},
     escapeHtml:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
     formatarReais:v=>'R$ '+Number(v).toFixed(2),formatarQuantidade:String,
     nomeUsuarioBar:()=> 'Operador',mensagemBancoAcesso:e=>e.message,
-    modulosComerciais:{bar:true},abrirModalCancelarItem:()=>{},
+    barOrigemDaJuncao:()=>null,mpBarEnhance:()=>{},modulosComerciais:{bar:true},abrirModalCancelarItem:()=>{},
     renderResumoFinanceiroMesa:()=>{},atualizarBotaoCancelarMesa:()=>{},
     atualizarBotaoTransferirMesa:()=>{},carregarBarMesas:async()=>{},
     podeAcessarBar:()=>true,
@@ -37,7 +40,8 @@ function preparar(){
       from(){const q={select:()=>q,eq:()=>q,order:()=>q};return q;}},
     carregarHistoricoPagamentosMesa:async()=>{},
   });
-  vm.runInContext("let barComandaAtualId='comanda',barMesaAtual={id:'mesa'},barMesaQtdItensValidos=0,barMesaQtdPagamentos=0,barMesaResumoAtual={},barMesaCarrinho=[],barMesaItemSelecionado=null,barSubViewAtual='mesas';",context);
+  vm.runInContext("let barComandaAtualId='comanda',barMesaAtual={id:'mesa',empresa_id:'empresa'},barMesaQtdItensValidos=0,barMesaQtdPagamentos=0,barMesaResumoAtual={},barMesaCarrinho=[],barMesaItemSelecionado=null,barSubViewAtual='mesas',barReaberturaAtual=null;",context);
+  vm.runInContext(trecho('// Prazo apenas para leituras;','async function resolverNomesFuncionariosBar(){'),context);
   vm.runInContext(trecho('function atualizarBotaoRelatorioMesa(){','// Acompanha o papel na fila'),context);
   return {el,calls,context,run:s=>vm.runInContext(s,context)};
 }
@@ -85,7 +89,7 @@ test('produto composto incompleto não entra no pedido e mantém a escolha abert
 test('lançar pedido fecha resultados e preserva itens enviados e vínculo da comanda',async()=>{
   const t=preparar();
   t.context.atualizarSaldoEItensMesa=async()=>{};
-  const requests=[];t.context.supabase.rpc=async(name,args)=>{requests.push({name,args});return {data:[{comanda_id:'nova-comanda'}]};};
+  const requests=[];t.context.supabase.rpc=async(name,args)=>{requests.push({name,args});return {data:[{comanda_id:'nova-comanda',pedido_id:'pedido'}]};};
   t.run(trecho("$('btn-bar-mesa-add-carrinho').addEventListener",'function renderItensComandaMesa(itens, nomesPorId){'));
   t.run("barMesaCarrinho=[{barProdutoId:'produto',quantidade:2,precoUnitario:15,observacao:'Sem gelo',escolhas:null}];");
   t.el('bar-mesa-busca-resultados').classList.remove('hidden');
@@ -98,7 +102,11 @@ test('impressão aparece com itens carregados mesmo enquanto histórico de pagam
   const t=preparar();let release;
   t.context.carregarHistoricoPagamentosMesa=()=>new Promise(resolve=>{release=resolve;});
   t.context.renderItensComandaMesa=()=>{};
-  t.run(trecho('async function atualizarSaldoEItensMesa(){','// "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR"'));
+  t.context.barEstadoMesas=()=>({resumos:new Map(),antigas:new Set()});
+  t.context.barResumoSaldoValido=()=>true;t.context.barRenderMesasAtualizacao=()=>{};t.context.barMostrarAvisoAtualizacao=()=>{};
+  t.context.barReaberturaConsultar=async()=>{};t.context.barReaberturaPainel=()=>{};
+  t.context.barSolicitarAtualizacao=()=>t.run('barConsultarSaldoEItensMesa()');
+  t.run(trecho('function atualizarSaldoEItensMesa(){','// "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR"'));
   const pending=t.run('atualizarSaldoEItensMesa()');
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(typeof release,'function');

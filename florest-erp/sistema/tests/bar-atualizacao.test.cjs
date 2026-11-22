@@ -3,7 +3,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 function source(a,b){const i=html.indexOf(a),j=html.indexOf(b,i+a.length);assert.ok(i>=0&&j>i);return html.slice(i,j);}
-const controller=source('// Atualização das Mesas: 60 s,','function aoClicarMesaBar(mesa){');
+const readHelpers=source('// Prazo apenas para leituras;','async function resolverNomesFuncionariosBar(){');
+const controller=readHelpers+source('// Atualização das Mesas: 60 s,','function aoClicarMesaBar(mesa){');
 const modal=source('function atualizarSaldoEItensMesa(){','// "TOTAL CONSUMIDO / JÁ PAGO / FALTA PAGAR"');
 const realtime=source('function configurarRealtimeBar(){','// ---------- Relatórios (Módulo Bar)');
 

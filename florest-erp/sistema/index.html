@@ -21299,7 +21299,7 @@ $('btn-bar-rel-exportar-xlsx').onclick = async () => {
 
 // ---------- Histórico de mesas por comanda e por caixa (somente leitura) ----------
 async function barHistBuscar(montar){
-  const r = await buscarTodos(montar, { tamanhoPagina: 800, maximo: 100000 });
+  const r = await barBuscarTodos(montar, { tamanhoPagina: 800, maximo: 100000 });
   if(r.error) throw new Error(r.error.message || 'Falha ao consultar histórico');
   return r.data || [];
 }
@@ -21444,10 +21444,22 @@ async function buscarItensPorPedidoBar(pedidoIds){
 // precisam continuar mostrando o nome de quem lançou. Se a chamada falhar por qualquer motivo, os
 // relatórios/o Mini PDV continuam funcionando — só mostram um identificador curto no lugar do
 // nome, nunca quebram a tela.
+// Prazo apenas para leituras; não cancela nem repete pagamentos ou pedidos.
+async function barLer(request,limite=12000){
+ const controller=new AbortController();let timer;
+ try{
+  const read=typeof request==='function'?request(controller.signal):request;
+  const pending=read?.abortSignal?read.abortSignal(controller.signal):read;
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('A leitura demorou. Confira a conexão e atualize novamente.'))},limite)});
+  return await Promise.race([pending,timeout]);
+ }finally{clearTimeout(timer)}
+}
+function barBuscarTodos(montar,opcoes){return buscarTodos(()=>({range:(...args)=>barLer(montar().range(...args))}),opcoes)}
+
 async function resolverNomesFuncionariosBar(){
   const nomesPorId = {};
   try {
-    const { data: funcionarios, error } = await supabase.rpc('bar_funcionarios_nomes');
+    const { data: funcionarios, error } = await barLer(supabase.rpc('bar_funcionarios_nomes'));
     if(!error && funcionarios){
       funcionarios.forEach(u => { nomesPorId[u.id] = u.nome; });
     }
@@ -21851,7 +21863,7 @@ async function barConsultarGradeMesas(silencioso){
   const contexto = acesso, estado = barEstadoMesas();
   if(!silencioso) $('bar-mesas-msg').innerHTML = '';
   $('btn-bar-estornar-busca').classList.toggle('hidden', !podeAcessarBar('bar_estornar_pagamento'));
-  const { data: mesas, error } = await supabase.from('bar_mesas').select('*').order('numero');
+  const { data: mesas, error } = await barLer(supabase.from('bar_mesas').select('*').order('numero'));
   if(contexto !== acesso) return;
   if(error || !Array.isArray(mesas)){
     estado.falhaLista = true; barRenderMesasAtualizacao(); return;
@@ -21865,7 +21877,7 @@ async function barConsultarGradeMesas(silencioso){
   // Um RPC por lote substitui uma chamada HTTP por comanda ocupada.
   for(let inicio=0;inicio<ids.length;inicio+=200){
     const lote=ids.slice(inicio,inicio+200);
-    let resp;try{resp=await supabase.rpc('bar_comandas_resumos',{p_comanda_ids:lote})}catch{resp=null}
+    let resp;try{resp=await barLer(supabase.rpc('bar_comandas_resumos',{p_comanda_ids:lote}))}catch{resp=null}
     if(contexto !== acesso) return;
     const resumos=new Map(!resp?.error&&Array.isArray(resp?.data)?resp.data.map(r=>[r.comanda_id,r]):[]);
     for(const id of lote){
@@ -21995,6 +22007,8 @@ async function abrirModalMesa(mesa){
     $('bar-mesa-historico-body').innerHTML = '<tr><td colspan="5">Carregando pagamentos da mesa...</td></tr>';
   }
   await Promise.all([carregarCardapioBar(), atualizarSaldoEItensMesa()]);
+  if(barMesaAtual?.id!==mesa.id)return;
+  try{barRestaurarEnvio(mesa)}catch(e){$('bar-mesa-msg').textContent='Não foi possível recuperar o envio salvo: '+e.message}
   mpRecoveryNotice('bar',mesa.id,$('bar-mesa-msg'));
 }
 
@@ -22028,14 +22042,14 @@ async function barConsultarSaldoEItensMesa(){
   // criado_por=auth.uid(), e todos os itens daquele lançamento apontam para o mesmo pedido_id —
   // é o que já faz dois garçons na mesma mesa ficarem naturalmente separados.
   const leituras = await Promise.allSettled([
-    supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: comandaConsultada }),
-    buscarTodos(() => supabase
+    barLer(supabase.rpc('bar_comanda_resumo_financeiro', { p_comanda_id: comandaConsultada })),
+    barBuscarTodos(() => supabase
       .from('bar_pedidos_itens')
       .select('id, pedido_id, quantidade, preco_unitario, destino_operacional, estornado, pagamento_id, criado_em, produtos ( nome ), bar_pedidos_itens_escolhas ( grupo_nome, produto_nome, destino_operacional ), bar_pedidos ( criado_por, criado_em )')
       .eq('comanda_id', comandaConsultada)
       .order('criado_em')),
     resolverNomesFuncionariosBar(),
-    supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: comandaConsultada }),
+    barLer(supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: comandaConsultada })),
   ]);
   if(!aindaAtual()) return;
   const rejeitada = leituras.find(r => r.status === 'rejected');
@@ -22103,7 +22117,7 @@ function renderResumoFinanceiroMesa(){
 // operador troca o item escolhido. É a MESMA consulta de antes (só sem popular um <select>): a
 // busca de "Adicionar produto" agora filtra esta mesma lista, já carregada, no navegador.
 async function carregarCardapioBar(){
-  const { data, error } = await buscarTodos(() => supabase
+  const { data, error } = await barBuscarTodos(() => supabase
     .from('bar_produtos')
     .select(`id, tipo, destino_operacional, produtos ( nome, preco_venda, referencia${recursos.produtoAtivo ? ', ativo' : ''} ),
              bar_produto_grupos ( id, nome, quantidade_escolhas, ordem,
@@ -22219,6 +22233,7 @@ function renderEscolhasMesa(){
 // desde a Migration 017/bar_pedido_enviar — só não era usada assim pelo frontend); nenhuma lógica
 // de estoque nova, nenhuma baixa acontece aqui, só ao clicar em "Lançar pedido".
 $('btn-bar-mesa-add-carrinho').addEventListener('click', () => {
+  if(!barPodeEditarCarrinho())return;
   const bp = barMesaItemSelecionado;
   if(!bp) return;
   const qtd = parseFloat($('bar-mesa-item-qtd').value);
@@ -22277,51 +22292,94 @@ function renderCarrinhoMesa(){
       </div>`;
   }).join('');
   cont.querySelectorAll('[data-remover-carrinho]').forEach(btn => btn.addEventListener('click', () => {
+    if(!barPodeEditarCarrinho())return;
     barMesaCarrinho.splice(Number(btn.dataset.removerCarrinho), 1);
     renderCarrinhoMesa();
   }));
 }
 
+// Cada tentativa é guardada antes do envio e recuperada com a mesma chave.
+function barEnvioKey(mesa){
+ if(!acesso?.userId||!mesa?.empresa_id||!mesa?.id)throw Error('Atualize a mesa antes de lançar.');
+ return 'florest-bar-envio:'+acesso.userId+':'+mesa.empresa_id+':'+mesa.id;
+}
+function barEnvioPendente(mesa){const value=localStorage.getItem(barEnvioKey(mesa));return value?JSON.parse(value):null}
+function barLimparEnvio(mesa,chave){const atual=barEnvioPendente(mesa);if(!chave||atual?.chave===chave)localStorage.removeItem(barEnvioKey(mesa))}
+function barRestaurarEnvio(mesa){
+ const pending=barEnvioPendente(mesa);if(!pending)return;
+ barMesaCarrinho=pending.carrinho;renderCarrinhoMesa();
+ $('btn-bar-mesa-lancar').textContent='Recuperar envio pendente';
+ $('bar-mesa-msg').textContent='Há um envio aguardando confirmação. Use Recuperar envio pendente para conferir a mesma tentativa.';
+}
+function barPodeEditarCarrinho(){
+ try{if(barMesaAtual&&barEnvioPendente(barMesaAtual)){$('bar-mesa-msg').textContent='Recupere o envio pendente antes de alterar o carrinho.';return false}return true}catch(e){$('bar-mesa-msg').textContent=e.message;return false}
+}
+// Esperar menos no navegador não presume rollback: a mesma chave permanece guardada.
+async function barAguardarEnvio(request){let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Envio sem resposta confirmada. Use Recuperar envio pendente; não faça outro lançamento.')),20000)})])}finally{clearTimeout(timer)}}
+async function barEnviarPedidoSeguro(mesa,itens,carrinho,comanda){
+ let pending,key,recuperado;const sessao=acesso;
+ try{
+  key=barEnvioKey(mesa);
+  const prepare=()=>{
+   pending=barEnvioPendente(mesa);recuperado=!!pending;
+   if(pending&&JSON.stringify(pending.origem)!==JSON.stringify(itens))throw Error('O envio pendente tem outro conteúdo. Reabra a mesa para recuperar o carrinho original.');
+   if(!pending){pending={chave:crypto.randomUUID(),origem:itens,itens:itens.map((i,n)=>n===0?{...i,_comanda_esperada:comanda||null}:i),carrinho:JSON.parse(JSON.stringify(carrinho))};localStorage.setItem(key,JSON.stringify(pending))}
+  };
+  if(typeof navigator!=='undefined'&&navigator.locks)await navigator.locks.request(key,prepare);else prepare();
+  let result=pending.resultado;
+  if(!result){
+   const {data,error}=await barAguardarEnvio(supabase.rpc('bar_pedido_lancar',{p_mesa_id:mesa.id,p_itens:pending.itens,p_idempotencia:pending.chave}));
+   if(error){
+    // Estes códigos confirmam rollback; falhas de rede/autorização não descartam a tentativa.
+    if(['P0001','22023','40001','23514','22P02'].includes(error.code))barLimparEnvio(mesa,pending.chave);
+    return {error};
+   }
+   result=data?.[0];if(!result?.pedido_id||!result?.comanda_id)throw Error('Resposta não confirmada. Preserve este envio e recupere a mesma tentativa.');
+   pending.resultado=result;if(barEnvioPendente(mesa)?.chave===pending.chave)localStorage.setItem(key,JSON.stringify(pending));
+  }
+  if(sessao!==acesso)throw Error('A sessão mudou. O envio foi preservado para o operador original.');
+  return {data:[{...result,recuperado_bar:recuperado,chave_envio_bar:pending.chave}],error:null};
+ }catch(error){return {error}}
+}
+
 $('btn-bar-mesa-lancar').addEventListener('click', async () => {
   if(barMesaCarrinho.length === 0){ $('bar-mesa-msg').innerHTML = '<div class="msg error">Adicione ao menos um item ao pedido antes de lançar.</div>'; return; }
-  const btn = $('btn-bar-mesa-lancar');
+  const btn = $('btn-bar-mesa-lancar');if(btn.disabled)return;
+  const sessao=acesso,mesaEnvio={...barMesaAtual};
+  try{
   btn.disabled = true; btn.textContent = 'Lançando...';
-  const idempotencia = crypto.randomUUID();
+
   // bar_pedido_lancar (Migration 018) abre a mesa sozinha (sem perguntar pessoas, pessoas=0) se
   // ela ainda estiver livre, e reaproveita a comanda já aberta caso contrário — nunca duplica
   // comanda (idempotente pela mesma chave de sempre, herdada de bar_pedido_enviar). Envia TODOS os
   // itens do carrinho de uma vez (bar_pedido_enviar já aceita até 200 itens por chamada) — a baixa
   // de estoque continua acontecendo só aqui, por item, exatamente como antes.
-  const { data, error } = await supabase.rpc('bar_pedido_lancar', {
-    p_mesa_id: barMesaAtual.id,
-    p_itens: barMesaCarrinho.map(item => ({
-      bar_produto_id: item.barProdutoId,
-      quantidade: item.quantidade,
-      observacao: item.observacao,
-      escolhas: item.escolhas,
-    })),
-    p_idempotencia: idempotencia,
-  });
-  btn.disabled = false; btn.textContent = 'Lançar pedido';
+  const linhas=barMesaCarrinho.map(item=>({bar_produto_id:item.barProdutoId,quantidade:item.quantidade,observacao:item.observacao,escolhas:item.escolhas}));
+  const {data,error}=await barEnviarPedidoSeguro(mesaEnvio,linhas,barMesaCarrinho,barComandaAtualId);
+  if(sessao!==acesso||barMesaAtual?.id!==mesaEnvio.id)return;
   if(error){
     $('bar-mesa-msg').innerHTML = `<div class="msg error">${escapeHtml(mensagemBancoAcesso(error))}</div>`;
     return;
   }
   const resultado = (data && data[0]) || null;
+  if(resultado?.recuperado_bar){barMesaCarrinho=[];renderCarrinhoMesa();barLimparEnvio(mesaEnvio,resultado.chave_envio_bar);$('modal-bar-mesa').classList.add('hidden');await carregarBarMesas();$('bar-mesas-msg').textContent='Envio recuperado sem repetir pedido, estoque ou impressão. Abra a mesa para conferir a situação atual.';return;}
   if(resultado){
     barComandaAtualId = resultado.comanda_id;
     if(resultado.mesa_aberta_agora){
-      const { data: mesaAtualizada } = await supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single();
+      const { data: mesaAtualizada } = await barLer(supabase.from('bar_mesas').select('*').eq('id', barMesaAtual.id).single());
       if(mesaAtualizada) barMesaAtual = mesaAtualizada;
     atualizarBotaoTransferirMesa();
     }
   }
   barMesaCarrinho = [];
   renderCarrinhoMesa();
+  barLimparEnvio(mesaEnvio,resultado?.chave_envio_bar);
   $('bar-mesa-busca-resultados').classList.add('hidden');
   $('bar-mesa-msg').innerHTML = '<div class="msg success">Pedido lançado.</div>';
   await atualizarSaldoEItensMesa();
   if(barSubViewAtual === 'mesas') await carregarBarMesas();
+  }catch(e){if(sessao===acesso)$('bar-mesa-msg').textContent=e.message||String(e)}
+  finally{if(sessao===acesso){btn.disabled=false;btn.textContent='Lançar pedido';try{if(barEnvioPendente(mesaEnvio))btn.textContent='Recuperar envio pendente'}catch{}}}
 });
 
 let barMesaJuncoes = [];
@@ -22734,10 +22792,7 @@ async function carregarHistoricoPagamentosMesa(){
   const comandaConsultada = barComandaAtualId;
   let data, error;
   try {
-    const resposta = await Promise.race([
-      supabase.rpc('bar_comanda_pagamentos_listar', { p_comanda_id: comandaConsultada }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('A consulta demorou mais de 10 segundos.')), 10000))
-    ]);
+    const resposta = await barLer(supabase.rpc('bar_comanda_pagamentos_listar', { p_comanda_id: comandaConsultada }),10000);
     data = resposta.data;
     error = resposta.error;
   } catch (e) {
@@ -23794,7 +23849,7 @@ async function barHistoricoDetalhar(id){
 let barReaberturaAtual=null;
 async function barReaberturaConsultar(){
  const id=barComandaAtualId;if(!id){barReaberturaAtual=null;return;}
- const {data,error}=await supabase.rpc('bar_historico_mesa_editar',{p_comanda_id:id,p_acao:'contexto'});
+ const {data,error}=await barLer(supabase.rpc('bar_historico_mesa_editar',{p_comanda_id:id,p_acao:'contexto'}));
  if(id!==barComandaAtualId)return;
  if(error){barReaberturaAtual=null;throw error;}
  barReaberturaAtual=data?.ativa?{...data,comanda_id:id}:null;
