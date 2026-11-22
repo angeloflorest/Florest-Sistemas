@@ -50,6 +50,9 @@ históricas, 4.300 impressas e zero pendências vencidas na amostra das 11:48.
 O aumento para 147 corresponde às 48 vencidas encerradas, não a 48 novas falhas.
 Configuração e estado físico das impressoras precisam ser conferidos nas estações
 afetadas; não há evidência de que todos esses registros tenham a mesma causa.
+O único job ainda pendente não tem destino vinculado a impressora nem agente
+ativo na empresa. O último contato registrado foi em 03/11. Não é atraso na
+consulta do Supabase; falta uma estação apta a executar a impressão.
 
 TIMEOUTS E SAÚDE ATUAL
 - Os 23 timeouts citados anteriormente pertenciam à janela anterior da auditoria.
@@ -87,6 +90,11 @@ VALIDAÇÃO
   da Gastronomia; testes de falha, troca de sessão e preservação de rascunho.
 - PDV Windows: 38 testes, incluindo SQLite, idempotência, catálogo e atualização;
   checagem de sintaxe. O instalador é produzido e validado pelo workflow Windows.
+  Workflow 45034840365 concluído com sucesso, incluindo testes de interface e
+  abertura do executável empacotado. Instalador 0.3.1 publicado em:
+  https://github.com/angeloflorest/Florest-Sistemas/releases/tag/pdv-windows-0.3.1
+- Web publicada: SHA 900a19c68f91abd4f51e3c3801c1a154e33df8a9; conteúdo servido
+  por erp.florestsistemas.com.br conferido por SHA-256 contra o arquivo enviado.
 
 LIMITES DO DIAGNÓSTICO
 As repetições acima são desperdícios comprovados no código e foram reduzidas.
