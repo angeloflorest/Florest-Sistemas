@@ -28,3 +28,9 @@ Quatro tabelas privadas com RLS e sem acesso direto de anon/authenticated guarda
 - `BAR_REFRESH_BROWSER=/caminho/playwright node --test florest-erp/sistema/tests/bar-atualizacao.test.cjs`: regressão das mesas.
 - `node --test florest-erp/sistema/tests/cupom-pos-venda.browser.cjs`: componente fiscal existente.
 - `tests/bar-cardapio.sql`: executar somente dentro de BEGIN/ROLLBACK; fixtures fictícias, isolamento, preços, endereço, segredo, reenvios, caixa fechado, venda única, contexto fiscal sem emitir documento, composto com escolha e regressão de mesa presencial. Nenhum teste transmite documento à SEFAZ ou confirma impressão física.
+
+## Leitura das mesas — 22/11/2026
+
+A conferência de reabertura passa a iniciar junto com saldo, itens e junções, preservando a verificação antes de desenhar os itens. A resolução dos nomes de funcionários compartilha uma consulta em andamento por sessão e reutiliza respostas bem-sucedidas por até 60 segundos. Uma consulta de nomes acima de dois segundos usa o identificador curto já existente; a próxima tentativa pode recuperar o nome. Respostas tardias ou de outra sessão não substituem o cache atual. Nenhuma chamada de escrita, cálculo de saldo, pagamento, estoque ou emissão fiscal foi modificada.
+
+Validação adicional: `tests/bar-leitura-desempenho.test.cjs` e dois cenários novos em `tests/bar-atualizacao.test.cjs`, incluindo consulta presa, falha, recuperação, isolamento de sessão e início paralelo da conferência de reabertura. A verificação focada de mesas, pedidos, aparência do cardápio, fechamento reaberto e pergunta de cupom passou em 34 testes. Esta otimização não equivale a resolver a causa dos picos históricos de latência do servidor.
