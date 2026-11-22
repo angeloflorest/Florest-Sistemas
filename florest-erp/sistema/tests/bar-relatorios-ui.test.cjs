@@ -16,7 +16,7 @@ test('interface: quatro relatórios, cinco seletores, Limpar, isolamento e XLSX 
   const doc=html.slice(html.indexOf('function montarHtmlDocumentoRelatorio('),html.indexOf('// ---------- Nome da empresa para o cabeçalho'));
   const pagination=html.slice(html.indexOf('async function buscarTodos('),html.indexOf('// Texto de busca seguro'));
   const stubs=[...new Set([...code.matchAll(/gerar: (relatorio\w+)/g)].map(m=>m[1]))].filter(n=>n!=='relatorioBarHistoricoMesaCaixa').map(n=>`function ${n}(){}`).join('\n');
-  const browser=await chromium.launch({channel:'msedge',headless:true});
+  const browser=await chromium.launch({...(process.env.BAR_REL_EXECUTABLE?{executablePath:process.env.BAR_REL_EXECUTABLE,args:['--no-sandbox']}:{channel:'msedge'}),headless:true});
   try {
     const page=await browser.newPage({acceptDownloads:true,viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror',e=>errors.push(e.message));
@@ -31,7 +31,7 @@ test('interface: quatro relatórios, cinco seletores, Limpar, isolamento e XLSX 
       const mensagemBancoAcesso=e=>e.message; const dataLocalISO=d=>d.toISOString().slice(0,10);
       const formatarDataBR=String, cxDataHora=String, brl=String;
       const obterNomeEmpresaImpressaoRelatorio=async()=> 'Empresa de teste';
-      const supabase={from(t){ const filters=[]; const q={select(){return q},eq(k,v){filters.push([k,v]);return q},order(){return q},async range(a,b){
+      const supabase={async rpc(name,args){window.consultas.push({rpc:name,args});return{data:{...structuredClone(fixture),empresa_id:'empresa-da-sessao'}}},from(t){ const filters=[]; const q={select(){return q},eq(k,v){filters.push([k,v]);return q},order(){return q},async range(a,b){
         window.consultas.push({t,filters});
         if(!filters.some(([k,v])=>k==='empresa_id'&&v==='empresa-da-sessao'))throw Error('Consulta sem empresa');
         return {data:(fixture[aliases[t]]||[]).slice(a,b+1)};

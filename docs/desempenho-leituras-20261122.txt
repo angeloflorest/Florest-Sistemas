@@ -1,0 +1,56 @@
+Atualização de leituras do ERP — 22/11/2026
+
+Aplicado ao Supabase:
+- gastronomia_atualizacao consulta uma revisão antes de reconstruir o contexto.
+  Mantém a verificação a cada 5 segundos e o sinal Realtime existente.
+  Revalidação completa de segurança/conteúdo em até 30 segundos para alterações
+  sem sinal, sem remover atendimentos do histórico nem mudar filtros da tela.
+  Produtos, composição, configurações e perfis participam da revisão.
+- Catálogo inalterado é preservado no cliente. A amostra em produção passou de
+  157.109 bytes para 177 bytes de resposta quando não havia alterações.
+- bar_relatorio_dados filtra os quatro novos relatórios antes de transferir dados.
+  Mesmos cálculos JS; dias em America/Sao_Paulo; preserva recebimentos posteriores
+  ao período, estornos legados e componentes cujo item original é de outra data.
+- Novas funções autenticadas, com empresa ativa e autorização verificadas.
+- Edge gastronomia-cardapio versão 3: compartilha leituras simultâneas do mesmo
+  link e limita aberturas excessivas por link/origem (240/minuto por processo).
+  Não mantém cache de preços entre requisições concluídas e não limita confirmação
+  ou acompanhamento de pedidos. Limite local, não substitui proteção distribuída.
+
+Cliente web:
+- Leitura de fundo tem cancelamento após 12 segundos e espera crescente em falhas,
+  limitada a 30 segundos. Não repete pagamentos, vendas ou impressões.
+- Respostas antigas são descartadas após troca de sessão, empresa ou contexto.
+- Visual, regras financeiras e cadastros preservados. Preserva a reversão do Bar
+  já presente na main a1c4a16, sem reintroduzir a mudança revertida.
+
+Validação:
+- 19 testes de cálculo/transporte, leitura concorrente, prazo e proteção do catálogo.
+- 16 testes de atualização de mesas em Chromium.
+- Interface dos quatro relatórios, cinco seletores e XLSX válido em Chromium.
+- PostgreSQL isolado: 12 comparações completas dos relatórios contra o cálculo
+  anterior, incluindo casos de fronteira de datas e pagamentos posteriores.
+- Contexto novo comparado ao existente em produção com igualdade de conteúdo;
+  revisão repetida retorna inalterado, sem alteração de dados financeiros.
+- Scripts inline conferidos; função Edge testada com transporte simulado.
+
+Pendências NÃO aplicadas:
+- Revisão automática rejeitou o pacote inicial com alterações de políticas,
+  remoção de índices e exclusão permanente de logs combinadas com a nova lógica.
+  As leituras foram isoladas, testadas e aplicadas em uma migração menor aceita.
+- Otimização das cinco políticas e remoção das duas cópias de índices:
+  testes isolados em 80 combinações mantiveram exatamente as mesmas autorizações;
+  índices canônicos preservados. A confirmação do Supabase expirou e a execução
+  não ocorreu. SQL preparado fora do diretório de migrations automáticas em
+  docs/pendencias/otimizar-politicas-e-indices.sql, ainda sem publicação no banco.
+- Nenhum log foi excluído e não há rotina nova de exclusão nesta atualização.
+- Plano, capacidade contratada, Spend Cap e cobrança não foram alterados.
+- Windows 0.3.1 já foi disponibilizado anteriormente; instalar nas estações exige
+  acesso a cada computador ou ação de seu operador. Não instalamos remotamente.
+
+Reprodução dos testes PostgreSQL em memória:
+ npm install --prefix /tmp/erp-perf-pg --ignore-scripts @electric-sql/pglite@0.3.14
+ node florest-erp/sistema/tests/leituras-operacionais.db.cjs
+ node florest-erp/sistema/tests/politicas-desempenho.db.cjs
+PGLITE_PATH permite indicar outro diretório do pacote. Fixtures artificiais;
+nenhuma dessas rotinas cria vendas no Supabase de produção.

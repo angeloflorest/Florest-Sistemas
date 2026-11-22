@@ -1,0 +1,47 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "fiscal_contadores",
+    "policyname": "fiscal_contadores_ins",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM perfis p\n  WHERE ((p.id = auth.uid()) AND (p.empresa_id = fiscal_contadores.empresa_id) AND (p.ativo = true) AND (p.papel = 'proprietario'::text))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "fiscal_contadores",
+    "policyname": "fiscal_contadores_sel",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM perfis p\n  WHERE ((p.id = auth.uid()) AND (p.empresa_id = fiscal_contadores.empresa_id) AND (p.ativo = true))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "fiscal_contadores",
+    "policyname": "fiscal_contadores_upd",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM perfis p\n  WHERE ((p.id = auth.uid()) AND (p.empresa_id = fiscal_contadores.empresa_id) AND (p.ativo = true) AND (p.papel = 'proprietario'::text))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM perfis p\n  WHERE ((p.id = auth.uid()) AND (p.empresa_id = fiscal_contadores.empresa_id) AND (p.ativo = true) AND (p.papel = 'proprietario'::text))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "fiscal_pacotes_xml",
+    "policyname": "fiscal_pacotes_xml_sel",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM perfis p\n  WHERE ((p.id = auth.uid()) AND (p.empresa_id = fiscal_pacotes_xml.empresa_id) AND (p.ativo = true))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "pdv_movel_caixas",
+    "policyname": "pdv_movel_caixas_ler",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "((empresa_id = private.exigir_empresa_ativa()) AND (private.perm('pdv'::text) OR private.perm('financeiro'::text) OR private.perm('relatorios'::text)) AND ((aberto_por = auth.uid()) OR private.perm('financeiro'::text) OR private.perm('relatorios'::text)))",
+    "with_check": null
+  }
+]

@@ -1,3 +1,5 @@
+import {createCatalogGuard} from './catalog-guard.mjs';
+const catalogGuard=createCatalogGuard();
 const base=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const origins=(Deno.env.get('GASTRONOMIA_ORIGENS')||'https://erp.florestsistemas.com.br').split(',');
 const protocolo='cardapio-confirmacao-v2';
@@ -11,10 +13,13 @@ Deno.serve(async(req:Request)=>{
   const text=await req.text();if(text.length>55000)throw Error('Solicitação muito grande.');b=JSON.parse(text);
   if(!b||!['catalogo','confirmar','acompanhar'].includes(b.acao)||!/^[a-f0-9]{64}$/.test(b.token||'')||(b.acao==='confirmar'&&!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(b.chave||'')))throw Error('Solicitação inválida.');
  }catch{return new Response(JSON.stringify({error:'Solicitação inválida. Não foi enviada ao banco.',resultado:'nao_enviado',protocolo}),{status:400,headers})}
+ if(b.acao==='catalogo'&&!catalogGuard.allow(b.token,(req.headers.get('x-forwarded-for')||'').split(',')[0].trim()))return new Response(JSON.stringify({error:'Muitos acessos ao cardápio. Aguarde um minuto e tente novamente.'}),{status:429,headers:{...headers,'Retry-After':'60'}});
  const incerto=(status:number)=>new Response(JSON.stringify({error:'Não foi possível confirmar o resultado. Preserve esta tentativa e repita usando a mesma chave e o mesmo conteúdo.',resultado:'incerto',protocolo,chave:b.chave||null}),{status,headers});
  try{
-  const r=await fetch(base+'/rest/v1/rpc/gastronomia_cardapio_publico',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({p_acao:b.acao,p_token:b.token,p_dados:b.dados||{},p_chave:b.chave||null}),signal:AbortSignal.timeout(20000)});
-  let data;try{data=await r.json()}catch{return incerto(502)}
+  const read=async()=>{const response=await fetch(base+'/rest/v1/rpc/gastronomia_cardapio_publico',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({p_acao:b.acao,p_token:b.token,p_dados:b.dados||{},p_chave:b.chave||null}),signal:AbortSignal.timeout(20000)});let data;try{data=await response.json()}catch{return {ok:false,status:502,invalid:true,data:null}}return {ok:response.ok,status:response.status,invalid:false,data}};
+  const r=b.acao==='catalogo'?await catalogGuard.read(b.token,read):await read();
+  if(r.invalid)return incerto(502);
+  const data=r.data;
   if(!r.ok){
    // P0001 + HTTP 400 é o RAISE EXCEPTION de negócio devolvido pelo PostgREST:
    // a transação DESTA execução foi revertida. Não prova o resultado de tentativas anteriores.
