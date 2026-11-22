@@ -21435,38 +21435,17 @@ async function buscarItensPorPedidoBar(pedidoIds){
 // precisam continuar mostrando o nome de quem lançou. Se a chamada falhar por qualquer motivo, os
 // relatórios/o Mini PDV continuam funcionando — só mostram um identificador curto no lugar do
 // nome, nunca quebram a tela.
-// Dados de exibição: uma consulta compartilhada por sessão, renovada em até 60 s.
-const BAR_NOMES_CACHE_MS = 60000;
-const BAR_NOMES_TIMEOUT_MS = 2000;
-let barNomesCache = null;
 async function resolverNomesFuncionariosBar(){
-  const contexto = acesso;
-  if(!barNomesCache || barNomesCache.contexto !== contexto){
-    barNomesCache = { contexto, dados: null, atualizadoEm: 0, promessa: null };
+  const nomesPorId = {};
+  try {
+    const { data: funcionarios, error } = await supabase.rpc('bar_funcionarios_nomes');
+    if(!error && funcionarios){
+      funcionarios.forEach(u => { nomesPorId[u.id] = u.nome; });
+    }
+  } catch(err){
+    console.warn('Não foi possível resolver os nomes de funcionários para o Bar.', err);
   }
-  const cache = barNomesCache;
-  if(cache.dados && Date.now() - cache.atualizadoEm < BAR_NOMES_CACHE_MS) return { ...cache.dados };
-  if(!cache.promessa){
-    cache.promessa = (async () => {
-      const nomesPorId = {};
-      let timer;
-      try {
-        const { data: funcionarios, error } = await Promise.race([
-          supabase.rpc('bar_funcionarios_nomes'),
-          new Promise(resolve => { timer = setTimeout(() => resolve({ error: { message: 'Nomes temporariamente indisponíveis.' } }), BAR_NOMES_TIMEOUT_MS); })
-        ]);
-        if(!error && Array.isArray(funcionarios)){
-          funcionarios.forEach(u => { nomesPorId[u.id] = u.nome; });
-          cache.dados = nomesPorId;
-          cache.atualizadoEm = Date.now();
-        }
-      } catch(err){
-        console.warn('Não foi possível resolver os nomes de funcionários para o Bar.', err);
-      } finally { clearTimeout(timer); }
-      return nomesPorId;
-    })().finally(() => { cache.promessa = null; });
-  }
-  return { ...await cache.promessa };
+  return nomesPorId;
 }
 
 function nomeUsuarioBar(id, nomesPorId){
@@ -22048,10 +22027,9 @@ async function barConsultarSaldoEItensMesa(){
       .order('criado_em')),
     resolverNomesFuncionariosBar(),
     supabase.rpc('bar_mesa_juncoes_listar', { p_comanda_id: comandaConsultada }),
-    barReaberturaConsultar(),
   ]);
   if(!aindaAtual()) return;
-  const rejeitada = leituras.slice(0, 4).find(r => r.status === 'rejected');
+  const rejeitada = leituras.find(r => r.status === 'rejected');
   if(rejeitada) throw rejeitada.reason;
   const [resumoResp, itensResp, nomesPorId, juncoesResp] = leituras.map(r => r.value);
   if(resumoResp.error || itensResp.error || !barResumoSaldoValido(resumoResp)){
@@ -22068,8 +22046,7 @@ async function barConsultarSaldoEItensMesa(){
   renderResumoFinanceiroMesa();
   if(juncoesResp.error){ $('bar-mesa-msg').innerHTML = `<div class="msg error">Não foi possível carregar a origem das mesas juntadas: ${escapeHtml(mensagemBancoAcesso(juncoesResp.error))}</div>`; }
   barMesaJuncoes = !juncoesResp.error && Array.isArray(juncoesResp.data) ? juncoesResp.data : [];
-  if(leituras[4].status === 'rejected'){ $('bar-mesa-msg').textContent=barHistoricoErro(leituras[4].reason);barMarcarSaldoModalDesatualizado();return; }
-  barReaberturaPainel();
+  try{await barReaberturaConsultar();barReaberturaPainel();}catch(e){if(aindaAtual()){$('bar-mesa-msg').textContent=barHistoricoErro(e);barMarcarSaldoModalDesatualizado();}return;}
   if(!aindaAtual()) return;
   renderItensComandaMesa(itensResp.data || [], nomesPorId);
   barMesaQtdItensValidos = (itensResp.data || []).filter(it => !it.estornado).length;
@@ -23807,9 +23784,9 @@ async function barHistoricoDetalhar(id){
 // Fluxo exclusivo de reedição do Histórico do Bar. O servidor decide elegibilidade e saldo.
 let barReaberturaAtual=null;
 async function barReaberturaConsultar(){
- const id=barComandaAtualId,contexto=acesso;if(!id){barReaberturaAtual=null;return;}
+ const id=barComandaAtualId;if(!id){barReaberturaAtual=null;return;}
  const {data,error}=await supabase.rpc('bar_historico_mesa_editar',{p_comanda_id:id,p_acao:'contexto'});
- if(contexto!==acesso||id!==barComandaAtualId)return;
+ if(id!==barComandaAtualId)return;
  if(error){barReaberturaAtual=null;throw error;}
  barReaberturaAtual=data?.ativa?{...data,comanda_id:id}:null;
 }

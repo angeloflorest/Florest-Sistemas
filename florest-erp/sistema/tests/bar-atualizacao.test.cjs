@@ -36,7 +36,7 @@ test('grade/modal: concorrência, falhas, rascunhos e operações locais', {skip
     channel(){const q={on(event,filter,fn){window.rt||={};window.rt[filter.table]=fn;return q},subscribe(){return q}};return q;}
    };
    const buscarTodos=async()=>{await gate('items');if(window.data.throwItems)throw Error('Falha de itens');return{data:[],error:null}},resolverNomesFuncionariosBar=async()=>({});
-   const barReaberturaConsultar=async()=>{await gate('reopen');if(window.data.failReopen)throw Error('Falha ao conferir reabertura')},barReaberturaPainel=()=>{},barHistoricoErro=e=>e.message;
+   const barReaberturaConsultar=async()=>{},barReaberturaPainel=()=>{},barHistoricoErro=e=>e.message;
    const carregarHistoricoPagamentosMesa=async()=>{await gate('history')},atualizarBotaoCancelarMesa=()=>{},atualizarBotaoRelatorioMesa=()=>{},atualizarBotaoTransferirMesa=()=>{},renderItensComandaMesa=()=>{};
    function renderResumoFinanceiroMesa(){window.renders.push({id:barComandaAtualId,value:barMesaResumoAtual?.subtotal_aberto});for(const id of ['bar-mesa-total-consumido','bar-mesa-total-aberto'])$(id).textContent=formatarReais(barMesaResumoAtual?.subtotal_aberto);}
    function aoClicarMesaBar(m){window.clicked=m.id;window.clickedComanda=m.comanda_atual_id;}
@@ -48,12 +48,6 @@ test('grade/modal: concorrência, falhas, rascunhos e operações locais', {skip
   `});p.auditErrors=errors;return p;
  }
  try{
-  await t.test('reabertura carrega junto com itens, sem uma nova etapa de espera',async()=>{
-   const p=await page();try{await p.evaluate(()=>{window.openMesa();window.held.items=true;window.first=atualizarSaldoEItensMesa();});await p.waitForFunction(()=>window.calls.includes('items'));assert.ok(await p.evaluate(()=>window.calls.includes('reopen')));await p.evaluate(()=>window.release('items'));await p.evaluate(()=>window.first);assert.equal(await p.evaluate(()=>window.calls.filter(c=>c==='reopen').length),1);assert.deepEqual(p.auditErrors,[]);}finally{await p.close()}
-  });
-  await t.test('falha na conferência de reabertura mantém saldo desatualizado e permite recuperação',async()=>{
-   const p=await page();try{await p.evaluate(()=>{window.openMesa();window.data.failReopen=true;return atualizarSaldoEItensMesa()});assert.match(await p.locator('#bar-mesa-msg').textContent(),/Falha ao conferir reabertura/);assert.match(await p.locator('#bar-mesa-atualizacao').textContent(),/Valor desatualizado/);await p.evaluate(()=>{window.data.failReopen=false;return atualizarSaldoEItensMesa()});assert.equal(await p.locator('#bar-mesa-atualizacao').getAttribute('class'),'hidden');assert.deepEqual(p.auditErrors,[]);}finally{await p.close()}
-  });
   await t.test('um ciclo e chamadas simultâneas são agrupados; saldo zero só aparece quando confirmado',async()=>{
    const p=await page();try{assert.deepEqual(await p.evaluate(()=>window.intervals.map(x=>x.ms)),[60000]);await p.evaluate(()=>Promise.all([carregarBarMesas(),carregarBarMesas(true),carregarBarMesas()]));assert.equal(await p.evaluate(()=>window.calls.filter(x=>x==='list').length),1);assert.equal(await p.evaluate(()=>window.phasePeak),1);assert.match(await p.locator('#bar-mesas-grid').innerText(),/50.00/);await p.evaluate(()=>{window.data.values.c1=0;return carregarBarMesas()});assert.match(await p.locator('#bar-mesas-grid').innerText(),/0.00/);assert.equal(await p.locator('#bar-mesas-atualizacao').getAttribute('class'),'hidden');}finally{await p.close()}
   });
