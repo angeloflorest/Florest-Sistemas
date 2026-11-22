@@ -2,6 +2,27 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createSync } = require("../src/sync.cjs");
+test('rodadas automáticas enviam vendas sem baixar catálogo completo a cada 15 segundos',async()=>{
+ const f=fixture();let clock=1000,sends=0,receives=0;
+ f.storage.pendentes=()=>[{id_local:'a',numero_local:1,dados_json:'{}'}];
+ f.transport.sendSale=async v=>{sends++;return{...v,idRemoto:'r'}};
+ f.transport.receiveCatalog=async()=>{receives++;return{empresaId:'empresa-a',produtos:[],clientes:[]}};
+ const sync=createSync({...f,empresaId:'empresa-a',now:()=>clock});
+ for(let n=0;n<4;n++){await sync.run({automatico:true});clock+=15000;}
+ assert.equal(sends,4);assert.equal(receives,1);
+ await sync.run({automatico:true});assert.equal(receives,2);
+ await sync.run();assert.equal(receives,3);await sync.stop();
+});
+test('falha do catálogo tem espera progressiva sem bloquear envios nem atualização manual',async()=>{
+ const f=fixture();let clock=1000,calls=0;
+ f.transport.receiveCatalog=async()=>{calls++;throw Error('offline')};
+ const sync=createSync({...f,empresaId:'empresa-a',now:()=>clock});
+ await sync.run({automatico:true});assert.equal(f.confirmations.length,1);
+ clock+=15000;await sync.run({automatico:true});assert.equal(calls,1);
+ clock+=15000;await sync.run({automatico:true});assert.equal(calls,2);
+ clock+=30000;await sync.run({automatico:true});assert.equal(calls,2);
+ await sync.run();assert.equal(calls,3);await sync.stop();
+});
 function fixture() {
   const rows = [{ id_local: "a", numero_local: 1, dados_json: '{"total":10}' }];
   const confirmations = [],

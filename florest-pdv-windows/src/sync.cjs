@@ -7,6 +7,8 @@ function createSync({
   transport,
   empresaId,
   intervalMs = 15000,
+  catalogIntervalMs = 60000,
+  now = Date.now,
   onStatus = () => {},
 }) {
   if (!empresaId || !storage || !transport)
@@ -15,13 +17,15 @@ function createSync({
   let active = null;
   let timer = null;
   let stopped = false;
+  let nextCatalogAt = 0;
+  let catalogFailures = 0;
   const report = (status) => {
     try {
       onStatus(status);
     } catch {}
   };
 
-  async function execute({ enviar = true, receber = true } = {}) {
+  async function execute({ enviar = true, receber = true, automatico = false } = {}) {
     const status = { empresaId, enviados: 0, recebidos: 0, erros: [] };
     if (enviar) {
       // Um lote por rodada mantém a interface responsiva; próxima rodada retoma a fila.
@@ -62,14 +66,18 @@ function createSync({
         }
       }
     }
-    if (receber && !stopped) {
+    if (receber && !stopped && (!automatico || now() >= nextCatalogAt)) {
       try {
         const catalogo = await transport.receiveCatalog({ empresaId });
         if (!catalogo || catalogo.empresaId !== empresaId)
           throw new Error("Catálogo de outra empresa");
         storage.atualizarCatalogo(empresaId, catalogo);
         status.recebidos = catalogo.produtos.length + catalogo.clientes.length;
+        catalogFailures = 0;
+        nextCatalogAt = now() + Math.max(intervalMs, catalogIntervalMs);
       } catch (error) {
+        catalogFailures++;
+        nextCatalogAt = now() + Math.min(300000, 30000 * 2 ** Math.min(catalogFailures - 1, 4));
         status.erros.push({ mensagem: String(error.message || error) });
       }
     }
@@ -80,10 +88,10 @@ function createSync({
 
   function run(options) {
     if (stopped) return Promise.reject(new Error("Sincronização encerrada"));
-    const requested = { enviar: options?.enviar ?? true, receber: options?.receber ?? true };
+    const requested = { enviar: options?.enviar ?? true, receber: options?.receber ?? true, automatico: options?.automatico ?? false };
     // Compartilha a rodada; se o botão pedir uma etapa não incluída nela, executa depois.
     if (running) {
-      if ((requested.enviar && !active.enviar) || (requested.receber && !active.receber))
+      if ((requested.enviar && !active.enviar) || (requested.receber && (!active.receber || (!requested.automatico && active.automatico))))
         return running.then(() => run(requested));
       return running;
     }
@@ -99,7 +107,7 @@ function createSync({
     if (!timer) {
       timer = setInterval(
         () => {
-          run().catch((error) =>
+          run({ automatico: true }).catch((error) =>
             report({ erros: [{ mensagem: error.message }] }),
           );
         },
@@ -107,7 +115,7 @@ function createSync({
       );
       timer.unref?.();
     }
-    return run();
+    return run({ automatico: true });
   }
   async function stop() {
     stopped = true;

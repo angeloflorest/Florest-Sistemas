@@ -66,7 +66,7 @@ jobs:
             const release = await github.rest.repos.createRelease({
               ...context.repo, tag_name: tag, target_commitish: context.sha,
               name: `Florest PDV Windows ${version} — testes`, prerelease: true,
-              body: 'Versão 0.3.0 para validação: fluxo fiscal online pelo ERP, número remoto preservado, atualização com validação de checksum e backup SQLite, caixa e proteção do cupom durante sincronização. Ainda exige validação integrada com conta de testes e impressora. Instale por cima para preservar os dados.'
+              body: 'Sincronização otimizada: envio de vendas a cada 15 s; catálogo automático a cada 60 s, com espera progressiva em falhas e atualização manual imediata. Mantém o fluxo fiscal online pelo ERP, número remoto preservado, atualização com validação de checksum e backup SQLite, caixa e proteção do cupom durante sincronização. Ainda exige validação integrada com conta de testes e impressora. Instale por cima para preservar os dados.'
             });
             for (const name of fs.readdirSync('florest-pdv-windows/dist').filter(n => n.endsWith('.exe') || n.endsWith('.blockmap') || n === 'latest.yml' || n === 'Manual-Florest-PDV.html')) {
               const file = path.join('florest-pdv-windows/dist', name);

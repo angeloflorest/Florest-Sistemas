@@ -1,6 +1,6 @@
 {
   "name": "florest-pdv-windows",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Florest PDV Windows — vendas offline e sincronização com o Florest ERP",
   "main": "src/main.cjs",
