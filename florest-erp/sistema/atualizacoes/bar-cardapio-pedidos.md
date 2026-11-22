@@ -1,5 +1,13 @@
 # Pedidos e cardápio digital do Bar
 
+## Apresentação do cardápio — 22/11/2026
+
+O cardápio público tem cabeçalho com a identidade da loja, busca fixa e cartões adaptados a celular e computador. As cores principal e de fundo continuam vindas da configuração de cada empresa. Fotos usam enquadramento integral (`contain`) em lista, grade e detalhe do produto, preservando garrafas, latas e pratos sem cortes. A escolha do produto abre a foto ampliada. Carrinho, preços, publicação, entrega/retirada, envio e isolamento por token mantêm o contrato existente.
+
+O cabeçalho utiliza as iniciais do nome enquanto não houver logo; ele aceita a imagem de identidade quando fornecida pelo catálogo. Nenhuma logo foi criada ou atribuída ao Nova Ponte nesta atualização: o arquivo original ainda precisa ser enviado pelo proprietário. Nenhuma foto de produto foi substituída. O mesmo link da loja continua válido, inclusive ao navegar pelo atalho de acessibilidade.
+
+Validação visual: onze fotos reais do catálogo Nova Ponte carregadas em 390 e 1440 px, sem cortes ou rolagem horizontal. Teste isolado adicional em 320, 390 e 1440 px: fotos verticais/horizontais, detalhe, logo opcional e preservação do token da loja.
+
 Bar → Pedidos recebe exclusivamente pedidos do cardápio digital do Bar, para entrega ou retirada. Os cartões seguem a grade da Rotisseria (145 px mínimos; 120 px no celular) e mostram número, cliente, modalidade, itens, total e andamento. Abrir mostra telefone, endereço, escolhas e observações. A lista atualiza a cada 15 segundos enquanto estiver visível, com botão de atualização manual e paginação. Finalizados e recusados têm consulta separada.
 
 Bar → Configurações → Cardápio digital configura somente a empresa ativa: nome de apresentação, texto, cores, lista ou grade, produtos publicados, descrição, categoria e foto. Cada empresa recebe um token, link, QR Code e numeração de pedidos próprios. O carrinho do cliente também é separado pelo token. Novas configurações começam pausadas e nenhum produto é publicado automaticamente. Gastronomia, Rotisseria e a prévia estática `cardapio/bar-teste/` permanecem independentes.
