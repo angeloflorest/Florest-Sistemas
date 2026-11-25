@@ -99,3 +99,10 @@ Na próxima tentativa oficial: confirmar os pedidos gerados na etapa 2, aguardar
 - Recusar negociação usa os nove códigos de `negotiationReasons` documentados, com seleção obrigatória e validação no servidor. Aceitação e contrapropostas mantêm seus motivos e regras anteriores.
 - O histórico distingue solicitação enviada com HTTP 202 de cancelamento confirmado. A comprovação aceita RESTAURANT ou ORDER_API, exige evento processado com ACK na mesma empresa/loja/pedido e um comando local confirmado no horário desse evento. SCHEDULER não comprova cancelamento solicitado pelo ERP.
 - Regressões: 24 testes unitários, teste de recusa no navegador, testes existentes de cancelamento e homologação no navegador, e PostgreSQL isolado (`NODE_PATH=/tmp/erp-perf-pg/node_modules node florest-erp/sistema/tests/ifood-recusa-diagnostico.db.cjs`, com PGlite instalado nesse ambiente). Nenhum teste dispara cancelamento na API real. A aprovação continua dependendo do roteiro oficial.
+
+## Confirmação de todos os pedidos e situação atual — 25/11/2026
+
+- O resumo de pendências permite confirmar cada pedido explicitamente, inclusive agendados, sem abrir o detalhe. Mantém bloqueios por revisão, cancelamento e envio anterior. Não confirma automaticamente. A orientação de homologação destaca confirmar todos os pedidos gerados antes de avançar.
+- A situação exibida acompanha o estado recebido: CONFIRMED/CFM, PREPARATION_STARTED/PRS, READY_TO_PICKUP/RTP, DISPATCHED/DSP, CONCLUDED/CON e CANCELLED/CAN. Um comando histórico de confirmação não mantém a mensagem CONFIRMED nas etapas posteriores. Recebimento ou HTTP 202 não antecipam o estado.
+- Na tentativa de 25/11, #4662 teve confirmação, despacho e conclusão com ACK; #7414 não teve comando de confirmação e foi cancelado pelo SCHEDULER; #7975 também não teve comando de confirmação. Os registros anteriores são preservados e não são corrigidos retroativamente.
+- Testes: 24 unitários e navegador cobrindo confirmação no resumo, espera de CFM, bloqueios, estados sucessivos e regressões de fluxo/cancelamento/acompanhamento. Nenhum pedido real foi confirmado ou reenviado por estes testes.
