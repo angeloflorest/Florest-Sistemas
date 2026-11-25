@@ -93,3 +93,9 @@ O diagnóstico real retornou HTTP 400 / InvalidParameter para corpo contendo ape
 - Testes: 32 testes unitários; navegador cobre resumo, ausência de comandos automáticos, posição inferior, histórico sob demanda e proteção de parcial; PostgreSQL isolado cobre atualização antes da importação, repetição, snapshot anterior, bloqueio de recebimento/fechamento e isolamento do histórico. Os testes existentes de fluxo, cancelamento, homologação e estabilidade continuam passando.
 
 Na próxima tentativa oficial: confirmar os pedidos gerados na etapa 2, aguardar os eventos de confirmação e ACK, anexar evidência e somente então executar a etapa 3 no UUID indicado pelo assistente. Os eventos reais mostram cancelamentos iniciados no ERP, mas não comprovam qual UUID o avaliador exigiu nas tentativas anteriores. A mensagem genérica sobre logs não comprova ausência de um endpoint de envio de logs. Estas alterações não alteram relatórios antigos nem garantem aprovação.
+
+## Recusa e diagnóstico de cancelamento — 25/11/2026
+
+- Recusar negociação usa os nove códigos de `negotiationReasons` documentados, com seleção obrigatória e validação no servidor. Aceitação e contrapropostas mantêm seus motivos e regras anteriores.
+- O histórico distingue solicitação enviada com HTTP 202 de cancelamento confirmado. A comprovação aceita RESTAURANT ou ORDER_API, exige evento processado com ACK na mesma empresa/loja/pedido e um comando local confirmado no horário desse evento. SCHEDULER não comprova cancelamento solicitado pelo ERP.
+- Regressões: 24 testes unitários, teste de recusa no navegador, testes existentes de cancelamento e homologação no navegador, e PostgreSQL isolado (`NODE_PATH=/tmp/erp-perf-pg/node_modules node florest-erp/sistema/tests/ifood-recusa-diagnostico.db.cjs`, com PGlite instalado nesse ambiente). Nenhum teste dispara cancelamento na API real. A aprovação continua dependendo do roteiro oficial.
