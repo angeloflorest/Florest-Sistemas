@@ -1735,26 +1735,34 @@
     border-bottom:1px solid var(--border);
     font-size:13px;
   }
-  /* Notas de Entrada — layout da conferência do XML: vínculo e conversão em linha própria. */
   #modal-importar-nota .modal-card-wide{max-width:1000px;width:calc(100% - 16px);box-sizing:border-box;}
-  #modal-importar-nota .ne-item-row{grid-template-columns:minmax(0,2fr) minmax(48px,.45fr) minmax(75px,.65fr) minmax(75px,.65fr);align-items:start;}
-  #modal-importar-nota .ne-item-row > span{min-width:0;overflow-wrap:anywhere;}
-  #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5){grid-column:1/-1;min-width:0;padding:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;}
-  #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5)::before{content:'Vínculo do produto e conversão de embalagem';display:block;font-weight:700;margin-bottom:10px;color:var(--florest-navy);}
-  #modal-importar-nota .ne-pesquisa-produto{display:grid;gap:6px;min-width:0;}
-  #modal-importar-nota .ne-pesquisa-produto > div{min-width:0;}
-  #modal-importar-nota .ne-conversao-embalagem{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 14px;margin-top:12px;}
-  #modal-importar-nota .ne-conversao-embalagem > label{font-size:12px;align-self:center;}
-  #modal-importar-nota .ne-conversao-embalagem > input{min-width:0;margin:0!important;}
-  #modal-importar-nota .ne-conversao-embalagem > p{grid-column:1/-1;margin:7px 0;line-height:1.5;}
-  #modal-importar-nota .ne-conversao-embalagem > label:has(input[type=checkbox]){grid-column:1/-1;display:flex;align-items:flex-start;gap:8px;}
-  #modal-importar-nota .ne-conversao-embalagem input[type=checkbox]{width:auto;flex:none;}
+  #modal-importar-nota .ne-item-row{display:block;padding:14px;margin:8px 0;border:1px solid var(--border);border-radius:8px;}
+  #modal-importar-nota .ne-item-row h4{margin:0 0 4px;overflow-wrap:anywhere;}
+  #modal-importar-nota .ne-xml-dados{margin:0 0 12px;color:var(--ink-soft);}
+  #modal-importar-nota .ne-pesquisa-produto{display:grid;gap:6px;margin:8px 0;}
+  #modal-importar-nota .ne-pesquisa-produto button{justify-self:start;}
+  #modal-importar-nota .ne-pesquisa-produto p:empty,
+  #modal-importar-nota .ne-pesquisa-produto div:empty{display:none;}
+  #modal-importar-nota .ne-conversao-embalagem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px;}
+  #modal-importar-nota .ne-conversao-embalagem label{font-size:12px;}
+  #modal-importar-nota .ne-conversao-embalagem input{margin-top:4px;}
+  #modal-importar-nota .ne-conversao-embalagem > p,
+  #modal-importar-nota .ne-precos,
+  #modal-importar-nota .ne-confirmar-conversao{grid-column:1/-1;}
+  #modal-importar-nota .ne-conversao-embalagem > p{margin:0;font-weight:600;}
+  #modal-importar-nota .ne-precos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:10px;background:var(--surface-soft,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;}
+  #modal-importar-nota .ne-precos output{display:block;margin-top:6px;font-size:15px;font-weight:700;}
+  #modal-importar-nota .ne-confirmar-conversao:not([hidden]){display:flex;align-items:center;gap:8px;}
+  #modal-importar-nota .ne-confirmar-conversao input{width:auto;margin:0;}
   #modal-importar-nota .ne-status-vinculo{margin-top:8px;overflow-wrap:anywhere;}
+  #modal-importar-nota .ne-cadastro-produto{width:min(420px,calc(100% - 32px));padding:22px;border:1px solid var(--border);border-radius:12px;}
+  #modal-importar-nota .ne-cadastro-produto::backdrop{background:#0f172a80;}
+  #modal-importar-nota .ne-cadastro-produto input{display:block;margin:4px 0 16px;}
+  #modal-importar-nota .ne-cadastro-produto button{margin-right:8px;}
   @media(max-width:640px){
     #modal-importar-nota.modal-overlay{padding:8px;}
     #modal-importar-nota .modal-card{padding:14px;max-height:94vh;}
-    #modal-importar-nota .ne-item-row{grid-template-columns:minmax(0,1.6fr) 45px 66px 66px;gap:5px;font-size:11px;}
-    #modal-importar-nota #ne-itens-lista .ne-item-row > span:nth-child(5){padding:9px;}
+    #modal-importar-nota .ne-conversao-embalagem{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
   .ne-item-row:last-child{ border-bottom:none; }
   .ne-item-row input, .ne-item-row select{
@@ -4898,9 +4906,6 @@
       </div>
 
       <div class="modal-section-label">Produtos</div>
-      <div class="ne-item-row" style="font-weight:700; font-size:11px; text-transform:uppercase; color:var(--ink-soft); border-bottom:2px solid var(--border);">
-        <span>Descrição / GTIN</span><span>Qtd.</span><span>Vl. unit.</span><span>Vl. total</span>
-      </div>
       <div id="ne-itens-lista"></div>
 
       <div class="modal-section-label">Forma de pagamento</div>
@@ -20205,7 +20210,7 @@ $('btn-registrar-emitente').addEventListener('click', async () => {
 });
 
 // ---------- Notas de Entrada ----------
-let neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,nePrepararVinculos,neMontarPesquisa,neMontarConversao;
+let neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,nePrepararVinculos,neMontarPesquisa,neAbrirCadastro,neMontarConversao;
 let notaEmConferencia = null;
 
 // Formata quantidade decimal sem arredondar (mantém até 4 casas, removendo zeros à direita desnecessários)
@@ -20451,7 +20456,7 @@ $('ne-arquivo-xml').addEventListener('change', async (e) => {
     dados.fornecedor.nomeEncontrado = fornecedorEncontrado ? fornecedorEncontrado.razao_social : null;
 
     // Verifica compatibilidade antes de aceitar a prévia de conversão.
-    ({neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,nePrepararVinculos,neMontarPesquisa,neMontarConversao}=await import('./notas-entrada.js?v=20261119-vinculos'));
+    ({neCalcularConversao,neDadosConversao,neBuscarProdutos,neCarregarGtins,nePrepararVinculos,neMontarPesquisa,neAbrirCadastro,neMontarConversao}=await import('./notas-entrada.js?v=20261125-conferencia-precos'));
     await neBuscarProdutos(supabase);
     const {itens,produtosPorId}=await nePrepararVinculos(supabase,dados);
     dados.itens=itens;
@@ -20500,27 +20505,48 @@ function renderConferenciaNota(){
     const row = document.createElement('div');
     row.className = 'ne-item-row';
 
-    const vinculoHtml=`${item.vinculo_origem==='fornecedor'?'<p class="modal-note" data-ne-vinculo-origem>Vínculo localizado pelo código deste fornecedor. Confira a unidade cadastrada e o fator de conversão.</p>':''}<div class="ne-pesquisa-produto"></div>
-      <label class="ne-label-preco" style="${item.produto_id?'display:none;':''}">Preço de venda por unidade de estoque (produto novo)</label>
-      <input type="number" step="0.01" class="ne-preco-venda-novo" data-idx="${idx}" placeholder="Preço de venda" value="${item.preco_venda_novo??item.valor_unitario}" style="margin-top:4px; ${item.produto_id?'display:none;':''}">
-      <div class="ne-conversao-embalagem"></div><div class="ne-status-vinculo" data-idx="${idx}"></div>`;
-
     row.innerHTML = `
-      <span>${escapeHtml(item.descricao)}${item.gtin ? '<br><span style="font-size:11px;color:var(--ink-soft);">GTIN: '+escapeHtml(item.gtin)+'</span>' : ''}</span>
-      <span>${formatarQuantidade(item.quantidade)}</span>
-      <span>${formatarReais(item.valor_unitario)}</span>
-      <span>${formatarReais(item.valor_total)}</span>
-      <span>${vinculoHtml}</span>
+      <h4>${escapeHtml(item.descricao)}</h4>
+      <p class="ne-xml-dados">XML: ${formatarQuantidade(item.quantidade)} ${escapeHtml(item.unidade_comercial)} ·
+        ${formatarReais(item.valor_unitario)} por ${escapeHtml(item.unidade_comercial)} ·
+        Total do item: ${formatarReais(item.valor_total)}
+        ${item.gtin ? ' · GTIN: '+escapeHtml(item.gtin) : ''}</p>
+      <details>
+        <summary>Vincular ou cadastrar produto</summary>
+        <div class="ne-pesquisa-produto"></div>
+      </details>
+      <div class="ne-conversao-embalagem"></div>
+      <div class="ne-status-vinculo" role="status"></div>
     `;
     listaItens.appendChild(row);
 
     const getProduct=()=>notaEmConferenciaProdutosPorId[item.produto_id];
-    neMontarPesquisa(row.querySelector('.ne-pesquisa-produto'),{client:supabase,selected:getProduct(),isCurrent:()=>notaEmConferencia===d&&row.isConnected,onSelect:p=>{row.querySelector('[data-ne-vinculo-origem]')?.remove();item.vinculo_origem=null;if(p)notaEmConferenciaProdutosPorId[p.id]=p;item.produto_id=p?.id||null;row.querySelector('.ne-preco-venda-novo').style.display=p?'none':'';row.querySelector('.ne-label-preco').style.display=p?'none':'';conversion.reset();}});
-    const conversion=neMontarConversao(row.querySelector('.ne-conversao-embalagem'),item,{getProduct,onChange:()=>{avaliarVinculoItem(idx,row);atualizarResumoNota()}});
-
-    const precoInput = row.querySelector('.ne-preco-venda-novo');
-    precoInput.addEventListener('input', (e) => {
-      notaEmConferencia.itens[idx].preco_venda_novo = parseFloat(e.target.value) || 0;
+    const vinculo=row.querySelector('summary');
+    const atualizarVinculo=()=>{
+      const product=getProduct();
+      vinculo.textContent=product?'Produto: '+product.nome+' · Alterar vínculo':'Vincular ou cadastrar produto';
+    };
+    atualizarVinculo();
+    const conversion=neMontarConversao(row.querySelector('.ne-conversao-embalagem'),item,{
+      getProduct,
+      canEditPrice:podeAcessar('produtos')||podeAcessar('estoque'),
+      onChange:()=>{avaliarVinculoItem(idx,row);atualizarResumoNota()},
+    });
+    neMontarPesquisa(row.querySelector('.ne-pesquisa-produto'),{
+      client:supabase,
+      selected:getProduct(),
+      isCurrent:()=>notaEmConferencia===d&&row.isConnected,
+      onCreate:save=>neAbrirCadastro(row,item,save),
+      onSelect:(product,newStock)=>{
+        const changed=item.produto_id!==(product?.id||null);
+        if(product)notaEmConferenciaProdutosPorId[product.id]=product;
+        item.produto_id=product?.id||null;
+        item.vinculo_origem=null;
+        if(changed)conversion.reset(newStock);
+        else if(newStock)conversion.setStock(newStock);
+        atualizarVinculo();
+        row.querySelector('details').open=false;
+      },
     });
 
     avaliarVinculoItem(idx, row);
@@ -20539,7 +20565,7 @@ function renderConferenciaNota(){
 // A quantidade e o valor fiscal do item permanecem intactos; a entrada usa a conversão separada.
 function avaliarVinculoItem(idx,row){
  const item=notaEmConferencia.itens[idx],produto=notaEmConferenciaProdutosPorId[item.produto_id],status=row.querySelector('.ne-status-vinculo');
- try{if(item.vinculo_fornecedor_id&&!item.produto_id)throw Error('Este código do fornecedor já possui vínculo. Selecione o produto correto para continuar.');const c=neCalcularConversao(item,produto);if(produto?.ativo===false)throw Error('Produto inativo. Vincule um produto ativo ou reative o cadastro.');item.unidade_bloqueante=c.exigeConfirmacao&&!item.conversao_confirmada;item.estoque_atual=produto?.quantidade_estoque||0;status.textContent=item.unidade_bloqueante?'Confirme a conversão de embalagem após conferir o cálculo.':'Entrada deste item: '+c.quantidade+' '+c.unidadeEstoque+(produto?' · Estoque atual: '+formatarQuantidade(item.estoque_atual):' · Novo produto.');}
+ try{if(item.vinculo_fornecedor_id&&!item.produto_id)throw Error('Este código do fornecedor já possui vínculo. Selecione o produto correto para continuar.');const c=neCalcularConversao(item,produto);if(produto?.ativo===false)throw Error('Produto inativo. Vincule um produto ativo ou reative o cadastro.');item.unidade_bloqueante=c.exigeConfirmacao&&!item.conversao_confirmada;item.estoque_atual=produto?.quantidade_estoque||0;status.textContent=item.preco_venda_invalido?'Informe um preço de venda válido, com até duas casas decimais.':produto?'Estoque atual: '+formatarQuantidade(item.estoque_atual)+' '+c.unidadeEstoque:'Novo produto será cadastrado ao confirmar a nota.';}
  catch(e){item.unidade_bloqueante=true;status.textContent=e.message}
 }
 
@@ -20629,7 +20655,8 @@ function atualizarResumoNota(){
 
   const unidadesBloqueando = d.itens.some(i => i.unidade_bloqueante);
 
-  $('btn-confirmar-entrada').disabled = divergencia || unidadesBloqueando;
+  const precosInvalidos = d.itens.some(i => i.preco_venda_invalido);
+  $('btn-confirmar-entrada').disabled = divergencia || unidadesBloqueando || precosInvalidos || $('btn-confirmar-entrada').dataset.confirmando === 'true';
 
   const novos = d.itens.filter(i => !i.produto_id || i.produto_id === '').length;
   $('ne-resumo').innerHTML =
@@ -20641,7 +20668,7 @@ function atualizarResumoNota(){
 
 $('btn-confirmar-entrada').addEventListener('click', async () => {
   const d = notaEmConferencia;
-  if(!d) return;
+  if(!d || $('btn-confirmar-entrada').disabled) return;
   // Produto inativo não recebe entrada em nota nova (o banco também recusa): reative o cadastro ou vincule a outro produto.
   const itensInativos = d.itens.filter(i => i.produto_id && notaEmConferenciaProdutosPorId[i.produto_id] && notaEmConferenciaProdutosPorId[i.produto_id].ativo === false);
   if(itensInativos.length){
@@ -20651,8 +20678,6 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
 
   const ehAvista = $('ne-tab-avista').classList.contains('active');
   const btn = $('btn-confirmar-entrada');
-  btn.disabled = true;
-  btn.textContent = 'Confirmando...';
   $('ne-msg').innerHTML = '';
 
   const payload = {
@@ -20700,17 +20725,27 @@ $('btn-confirmar-entrada').addEventListener('click', async () => {
       cst_csosn: item.cst_csosn || null,
       cst_pis: item.cst_pis || null,
       cst_cofins: item.cst_cofins || null,
-      preco_venda: item.produto_id ? null : (item.preco_venda_novo || item.valor_unitario),
+      preco_venda: item.produto_id ? null : item.preco_venda_editado,
+      preco_venda_atualizado: item.produto_id ? item.preco_venda_editado : null,
     })),
     pagamento: ehAvista
       ? { valor: parseFloat($('ne-avista-valor').value) || 0, data: $('ne-avista-data').value }
       : { parcelas: coletarParcelasAtuais() },
   };
 
-  const { data: novoNotaId, error } = await supabase.rpc('notas_entrada_confirmar', { p_nota: payload });
-
-  btn.disabled = false;
-  btn.textContent = 'Confirmar entrada';
+  btn.dataset.confirmando = 'true';
+  btn.disabled = true;
+  btn.textContent = 'Confirmando...';
+  let error;
+  try {
+    ({error}=await supabase.rpc('notas_entrada_confirmar',{p_nota:payload}));
+  } catch(err){
+    error=err;
+  } finally {
+    delete btn.dataset.confirmando;
+    btn.textContent = 'Confirmar entrada';
+    atualizarResumoNota();
+  }
 
   if(error){
     let msg = 'Erro ao confirmar entrada: ' + error.message;

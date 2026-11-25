@@ -1,2 +1,26 @@
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{const page=await b.newPage();await page.route('http://localhost/**',r=>{const n=new URL(r.request().url()).pathname;return r.fulfill({contentType:n==='/'?'text/html':'text/javascript',body:n==='/'?'<main id="root"></main>':fs.readFileSync(path.join(__dirname,'..',n),'utf8')})});await page.goto('http://localhost/');await page.evaluate(async()=>{const m=await import('/notas-entrada.js');window.item={quantidade:3,valor_total:119.7,unidade_comercial:'PCT',unidade_compra:'PCT',unidade_estoque:'KG',produto_id:'p',vinculo_fornecedor_id:'p'};window.product={id:'p',unidade_comercial:'KG'};window.read=()=>m.neDadosConversao(item,product);m.neMontarConversao(document.getElementById('root'),item,{getProduct:()=>product,onChange:()=>{}})});const stock=page.getByLabel('Unidade de estoque',{exact:true});assert.equal(await stock.inputValue(),'KG');assert.equal(await stock.evaluate(x=>x.readOnly),true);await page.getByLabel('Fator para unidade de estoque',{exact:true}).fill('4');assert.match(await page.locator('main').textContent(),/3 PCT × 4 = 12 KG/);assert.equal(await page.evaluate(()=>{try{read();return false}catch{return true}}),true);await page.getByRole('checkbox').check();const data=await page.evaluate(()=>read());assert.equal(data.quantidade_estoque_entrada,'12');assert.equal(data.unidade_estoque,'KG');assert.equal(await page.evaluate(()=>item.quantidade),3);await page.getByLabel('Fator para unidade de estoque',{exact:true}).fill('5');assert.equal(await page.getByRole('checkbox').isChecked(),false);console.log('PASS: unidade vinculada preservada, prévia de conversão correta e nova conferência ao alterar fator.')}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{const page=await b.newPage();await page.route('http://localhost/**',r=>{const n=new URL(r.request().url()).pathname;return r.fulfill({contentType:n==='/'?'text/html':'text/javascript',body:n==='/'?'<main id="root"></main>':fs.readFileSync(path.join(__dirname,'..',n),'utf8')})});await page.goto('http://localhost/');await page.evaluate(async()=>{const m=await import('/notas-entrada.js');window.item={quantidade:3,valor_total:119.7,unidade_comercial:'PCT',unidade_compra:'PCT',unidade_estoque:'KG',produto_id:'p',vinculo_fornecedor_id:'p'};window.product={id:'p',unidade_comercial:'KG'};window.read=()=>m.neDadosConversao(item,product);m.neMontarConversao(document.getElementById('root'),item,{getProduct:()=>product,onChange:()=>{}})});const stock=page.getByLabel('Unidade de estoque',{exact:true});assert.equal(await stock.inputValue(),'KG');assert.equal(await stock.evaluate(x=>x.readOnly),true);await page.getByLabel('Unidades por embalagem',{exact:true}).fill('4');assert.match(await page.locator('main').textContent(),/3 PCT × 4 = 12 KG/);assert.equal(await page.evaluate(()=>{try{read();return false}catch{return true}}),true);await page.getByRole('checkbox').check();const data=await page.evaluate(()=>read());assert.equal(data.quantidade_estoque_entrada,'12');assert.equal(data.unidade_estoque,'KG');assert.equal(await page.evaluate(()=>item.quantidade),3);await page.getByLabel('Unidades por embalagem',{exact:true}).fill('5');assert.equal(await page.getByRole('checkbox').isChecked(),false);await page.evaluate(async()=>{
+ const m=await import('/notas-entrada.js'), root=document.querySelector('main');
+ window.example={descricao:'Café 500 g',quantidade:1,valor_total:45,unidade_comercial:'CX'};
+ const existing={unidade_comercial:'UN',preco_venda:4.90};
+ root.replaceChildren();
+ m.neMontarConversao(root,example,{getProduct:()=>existing,onChange:()=>{}});
+ window.openCadastro=()=>m.neAbrirCadastro(root,example,()=>{});
+});
+await page.getByLabel('Quantidade recebida',{exact:true}).fill('3');
+await page.getByLabel('Unidades por embalagem',{exact:true}).fill('5');
+assert.match(await page.locator('main').textContent(),/3 CX × 5 = 15 UN/);
+assert.match(await page.locator('output').textContent(),/3,00/);
+const price=page.getByLabel('Preço de venda por unidade (R$)',{exact:true});
+assert.equal(Number(await price.inputValue()),4.90);
+assert.equal(await page.evaluate(()=>example.preco_venda_editado),undefined);
+await price.fill('5.50');
+assert.equal(Number(await page.evaluate(()=>example.preco_venda_editado)),5.5);
+await price.fill('4.90');
+assert.equal(await page.evaluate(()=>example.preco_venda_editado),null);
+await page.evaluate(()=>openCadastro());
+assert.equal(await page.getByRole('dialog').isVisible(),true);
+assert.match(await page.getByRole('dialog').textContent(),/Café 500 g/);
+await page.getByRole('button',{name:'Cancelar'}).click();
+assert.equal(await page.getByRole('dialog').count(),0);
+console.log('PASS: unidade vinculada preservada, prévia de conversão correta e nova conferência ao alterar fator.')}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
