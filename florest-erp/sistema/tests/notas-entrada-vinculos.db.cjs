@@ -20,4 +20,27 @@ await db.query('select private.notas_entrada_confirmar($1)',[nota]);
 const product=(await db.query('select nome,preco_venda from public.produtos where id=$1',[p])).rows[0];
 assert.equal(product.nome,'Produto estoque');
 assert.equal(Number(product.preco_venda),25.90);
-assert.equal(Number((await db.query('select quantidade_estoque from public.produtos where id=$1',[p])).rows[0].quantidade_estoque),17);assert.equal((await db.query('select unidade_comercial from public.produtos where id=$1',[p])).rows[0].unidade_comercial,'KG');const history=(await db.query('select * from public.notas_entrada_itens')).rows[0];assert.equal(Number(history.quantidade),3);assert.equal(Number(history.quantidade_estoque_entrada),12);assert.equal(Number(history.valor_total),119.7);assert.equal((await db.query('select count(*)::int n from public.despesas')).rows[0].n,1);await assert.rejects(db.query('select private.notas_entrada_confirmar($1)',[nota]),/já foi lançada/);await db.exec(`set test.tenant='${other}'`);await assert.rejects(db.query('select public.notas_entrada_produtos_vinculados($1,$2)',[f,['AREIA4']]),/nesta empresa/);assert.equal((await db.query("select has_function_privilege('anon','public.notas_entrada_produtos_vinculados(uuid,text[])','execute') v")).rows[0].v,false);await db.close();console.log('PASS: erro reproduzido com rollback integral; vínculo prévio, conversão confirmada, estoque/fiscal preservados, duplicidade e isolamento.');})().catch(e=>{console.error(e);process.exit(1)});
+assert.equal(Number((await db.query('select quantidade_estoque from public.produtos where id=$1',[p])).rows[0].quantidade_estoque),17);assert.equal((await db.query('select unidade_comercial from public.produtos where id=$1',[p])).rows[0].unidade_comercial,'KG');const history=(await db.query('select * from public.notas_entrada_itens')).rows[0];assert.equal(Number(history.quantidade),3);assert.equal(Number(history.quantidade_estoque_entrada),12);assert.equal(Number(history.valor_total),119.7);assert.equal((await db.query('select count(*)::int n from public.despesas')).rows[0].n,1);await assert.rejects(db.query('select private.notas_entrada_confirmar($1)',[nota]),/já foi lançada/);await db.exec(fs.readFileSync(path.join(migrations,'20261125183117_notas_entrada_conflito_fornecedor.sql'),'utf8'));
+await db.exec('create unique index produto_fornecedor_empresa_forn_codigo_uk on public.produto_fornecedor(empresa_id,fornecedor_id,codigo_produto_fornecedor) where codigo_produto_fornecedor is not null');
+const q='55555555-5555-4555-8555-555555555555',f2='66666666-6666-4666-8666-666666666666';
+await db.query('insert into public.produtos(id,empresa_id,nome,unidade_comercial,quantidade_estoque) values($1,$2,$3,$4,0)',[q,e,'Segundo produto','KG']);
+await db.query('insert into public.fornecedores(id,empresa_id,razao_social) values($1,$2,$3)',[f2,e,'Outro fornecedor']);
+delete nota.itens[0].preco_venda_atualizado;
+nota.chave_acesso='2'.repeat(44);
+Object.assign(nota.itens[0],{produto_id:q,quantidade_recebida:2,quantidade_estoque_entrada:8});
+await assert.rejects(db.query('select private.notas_entrada_confirmar($1)',[nota]),/Confira o vínculo/);
+assert.equal(Number((await db.query('select quantidade_estoque from public.produtos where id=$1',[q])).rows[0].quantidade_estoque),0);
+nota.itens[0].preservar_vinculo_fornecedor_id=p;
+await db.query('select private.notas_entrada_confirmar($1)',[nota]);
+const conflict=(await db.query('select produto_id,codigo_fornecedor,descricao from public.notas_entrada_itens where produto_id=$1',[q])).rows[0];
+assert.deepEqual(conflict,{produto_id:q,codigo_fornecedor:'AREIA4',descricao:'Areia 4 kg'});
+assert.equal((await db.query('select produto_id from public.produto_fornecedor where fornecedor_id=$1 and codigo_produto_fornecedor=$2',[f,'AREIA4'])).rows[0].produto_id,p);
+delete nota.itens[0].preservar_vinculo_fornecedor_id;
+nota.itens[0].produto_id=p;
+for(const [digit,fornecedor] of [[3,f],[4,f2]]){
+ nota.chave_acesso=String(digit).repeat(44);
+ nota.fornecedor.id=fornecedor;
+ await db.query('select private.notas_entrada_confirmar($1)',[nota]);
+}
+assert.equal((await db.query('select count(*)::int n from public.produto_fornecedor where produto_id=$1 and codigo_produto_fornecedor=$2',[p,'AREIA4'])).rows[0].n,2);
+await db.exec(`set test.tenant='${other}'`);await assert.rejects(db.query('select public.notas_entrada_produtos_vinculados($1,$2)',[f,['AREIA4']]),/nesta empresa/);assert.equal((await db.query("select has_function_privilege('anon','public.notas_entrada_produtos_vinculados(uuid,text[])','execute') v")).rows[0].v,false);await db.close();console.log('PASS: erro reproduzido com rollback integral; vínculo prévio, conversão confirmada, estoque/fiscal preservados, duplicidade e isolamento.');})().catch(e=>{console.error(e);process.exit(1)});

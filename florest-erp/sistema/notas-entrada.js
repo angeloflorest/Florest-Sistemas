@@ -3,7 +3,28 @@ function scaled(value,places,label){const s=String(value??'').trim().replace(','
 function decimal(value,places){const s=value.toString().padStart(places+1,'0');return (s.slice(0,-places)+'.'+s.slice(-places)).replace(/\.?0+$/,'')}
 const unit=value=>String(value||'').trim().toUpperCase();
 export function neCalcularConversao(item,product){const received=scaled(item.quantidade_recebida??item.quantidade,4,'Quantidade recebida'),original=scaled(item.quantidade,4,'Quantidade do XML'),factor=scaled(item.fator_conversao??1,6,'Fator'),total=scaled(item.valor_total,2,'Valor do item');if(received<=0n||received>99999999999999n||factor<=0n||factor>1000000000000n)throw Error('Informe quantidade e fator positivos dentro dos limites.');const multiplied=received*factor;if(multiplied%1000000n)throw Error('A quantidade de estoque resultante precisa ter até quatro casas decimais.');const quantity=multiplied/1000000n;if(quantity<=0n||quantity>99999999999999n)throw Error('Quantidade de estoque fora do limite.');const purchase=unit(item.unidade_compra??item.unidade_comercial),stock=unit(product?.unidade_comercial||item.unidade_estoque||item.unidade_comercial);if(!purchase||!stock||purchase.length>10||stock.length>10)throw Error('Informe unidade de compra e unidade de estoque válidas.');const cost=(total*1000000n+quantity/2n)/quantity;if(cost>99999999999999n)throw Error('Custo unitário fora do limite.');return {recebida:decimal(received,4),fator:decimal(factor,6),quantidade:decimal(quantity,4),custo:decimal(cost,4),unidadeCompra:purchase,unidadeEstoque:stock,exigeConfirmacao:received!==original||factor!==1000000n||purchase!==stock}}
-export function neDadosConversao(item,product){if(item.vinculo_fornecedor_id&&!item.produto_id)throw Error('Este código do fornecedor já possui vínculo. Selecione o produto correto antes de confirmar.');const c=neCalcularConversao(item,product);if(c.exigeConfirmacao&&item.conversao_confirmada!==true)throw Error('Confira e confirme a conversão deste item.');return {quantidade_recebida:c.recebida,unidade_compra:c.unidadeCompra,fator_conversao:c.fator,unidade_estoque:c.unidadeEstoque,quantidade_estoque_entrada:c.quantidade,conversao_confirmada:item.conversao_confirmada===true}}
+export function neConflitoVinculo(item){
+ return Boolean(item.vinculo_fornecedor_id && item.produto_id!==item.vinculo_fornecedor_id);
+}
+export function neValidarVinculo(item){
+ if(!neConflitoVinculo(item))return;
+ if(!item.produto_id)throw Error('Este código do fornecedor já possui vínculo. Selecione um produto existente.');
+ if(!item.confirmou_vinculo_apenas_nota)throw Error('Confirme o produto a usar somente nesta nota ou selecione o produto do vínculo atual.');
+}
+export function neDadosConversao(item,product){
+ neValidarVinculo(item);
+ const c=neCalcularConversao(item,product);
+ if(c.exigeConfirmacao&&item.conversao_confirmada!==true)throw Error('Confira e confirme a conversão deste item.');
+ return {
+  quantidade_recebida:c.recebida,
+  unidade_compra:c.unidadeCompra,
+  fator_conversao:c.fator,
+  unidade_estoque:c.unidadeEstoque,
+  quantidade_estoque_entrada:c.quantidade,
+  conversao_confirmada:item.conversao_confirmada===true,
+  preservar_vinculo_fornecedor_id:neConflitoVinculo(item)?item.vinculo_fornecedor_id:null,
+ };
+}
 export async function neBuscarProdutos(client,{term='',page=0,gtins=null,signal}={}){let query=client.rpc('notas_entrada_produtos_buscar',{p_termo:term.trim(),p_pagina:page,p_gtins:gtins});if(signal&&query.abortSignal)query=query.abortSignal(signal);const {data,error}=await query;if(error){if(error.code==='PGRST202'||error.code==='42883')throw Error('A correção de Notas de Entrada ainda não foi instalada no banco. Confira o SQL desta entrega.');throw error}if(!data||data.versao!=='ne_20261026_v1'||!Array.isArray(data.produtos))throw Error('Versão incompatível da pesquisa/conversão de Notas de Entrada.');return data}
 export async function neCarregarGtins(client,items){const gtins=[...new Set(items.map(i=>i.gtin).filter(g=>/^\d{8,14}$/.test(g||'')))],found={};for(let i=0;i<gtins.length;i+=100){const data=await neBuscarProdutos(client,{gtins:gtins.slice(i,i+100)});for(const p of data.produtos)found[p.gtin.replace(/^0+/,'')]=p}return found}
 // Resolve GTIN primeiro e, na ausência, o vínculo prévio do fornecedor, antes da prévia.
@@ -16,11 +37,38 @@ export async function nePrepararVinculos(client,dados){
   if(data?.versao!=='ne_vinculos_20261119_v1'||!Array.isArray(data.vinculos))throw Error('Resposta incompatível dos vínculos do fornecedor.');
   for(const link of data.vinculos){if(link.produto?.id)byCode[link.codigo_fornecedor]=link.produto}
  }
- const itens=dados.itens.map(item=>{const gtin=item.gtin?byGtin[item.gtin.replace(/^0+/,'')]:null,match=gtin||byCode[String(item.codigo_fornecedor||'').trim()];if(match)products[match.id]=match;return {...item,produto_id:match?.id||null,vinculo_fornecedor_id:byCode[String(item.codigo_fornecedor||'').trim()]?.id||null,vinculo_origem:gtin?'gtin':match?'fornecedor':null,quantidade_recebida:item.quantidade,unidade_compra:item.unidade_comercial,fator_conversao:1,unidade_estoque:match?.unidade_comercial||item.unidade_comercial,conversao_confirmada:false}});
+ const itens=dados.itens.map(item=>{
+  const gtin=item.gtin?byGtin[item.gtin.replace(/^0+/,'')]:null;
+  const linked=byCode[String(item.codigo_fornecedor||'').trim()];
+  const match=gtin||linked;
+  if(match)products[match.id]=match;
+  if(linked)products[linked.id]=linked;
+  return {...item,produto_id:match?.id||null,vinculo_fornecedor_id:linked?.id||null,
+   vinculo_origem:gtin?'gtin':match?'fornecedor':null,quantidade_recebida:item.quantidade,
+   unidade_compra:item.unidade_comercial,fator_conversao:1,
+   unidade_estoque:match?.unidade_comercial||item.unidade_comercial,conversao_confirmada:false};
+ });
  return {itens,produtosPorId:products};
 }
 const make=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e};
-export function neMontarPesquisa(root,{client,selected,onSelect,onCreate,isCurrent=()=>true,delay=300}){const label=make('label','Pesquisar produto por nome, código interno ou GTIN'),input=make('input'),current=make('p'),status=make('p'),results=make('div'),pages=make('div'),create=make('button','Cadastrar novo produto');input.type='search';input.placeholder='Digite para pesquisar em todo o cadastro';input.autocomplete='off';input.id='ne-busca-'+crypto.randomUUID();label.htmlFor=input.id;status.setAttribute('role','status');results.style.cssText='max-height:230px;overflow:auto;display:grid;gap:5px';current.style.cssText='font-size:12px;font-weight:600';create.type='button';create.className='btn-secondary';root.append(label,input,current,status,results,pages,create);let timer,generation=0,controller,page=0;const selectedText=()=>current.textContent=selected?'Vinculado: '+selected.nome+(selected.ativo===false?' (INATIVO)':''):'Novo produto: será cadastrado ao confirmar a entrada.';selectedText();function invalidate(){generation++;clearTimeout(timer);controller?.abort()}
+export function neMontarPesquisa(root,{client,selected,onSelect,onCreate,linkedProduct,isCurrent=()=>true,delay=300}){const label=make('label','Pesquisar produto por nome, código interno ou GTIN'),input=make('input'),current=make('p'),status=make('p'),results=make('div'),pages=make('div'),create=make('button','Cadastrar novo produto');input.type='search';input.placeholder='Digite para pesquisar em todo o cadastro';input.autocomplete='off';input.id='ne-busca-'+crypto.randomUUID();label.htmlFor=input.id;status.setAttribute('role','status');results.style.cssText='max-height:230px;overflow:auto;display:grid;gap:5px';current.style.cssText='font-size:12px;font-weight:600';create.type='button';create.className='btn-secondary';create.classList.toggle('hidden',!!linkedProduct);root.append(label,input,current,status,results,pages,create);let timer,generation=0,controller,page=0;const selectedText=()=>current.textContent=selected?'Vinculado: '+selected.nome+(selected.ativo===false?' (INATIVO)':''):'Novo produto: será cadastrado ao confirmar a entrada.';selectedText();
+ if(linkedProduct){
+  const saved=make('button','Usar vínculo atual: '+linkedProduct.nome);
+  saved.type='button';
+  saved.className='btn-secondary';
+  saved.onclick=()=>{
+   if(!isCurrent())return;
+   selected=linkedProduct;
+   selectedText();
+   onSelect(linkedProduct);
+   invalidate();
+   results.replaceChildren();
+   pages.replaceChildren();
+   status.textContent='';
+  };
+  root.append(saved);
+ }
+ function invalidate(){generation++;clearTimeout(timer);controller?.abort()}
  async function search(next=0){invalidate();const run=generation,term=input.value.trim();page=next;results.replaceChildren();pages.replaceChildren();if(!term){status.textContent='Digite nome, código ou GTIN. O vínculo atual é preservado.';return}if(!isCurrent())return;controller=new AbortController();status.textContent='Pesquisando…';try{const data=await neBuscarProdutos(client,{term,page,signal:controller.signal});if(run!==generation||!isCurrent())return;for(const p of data.produtos){const b=make('button',p.nome+' · Código '+(p.codigo||'—')+' · GTIN '+(p.gtin||'—')+' · '+(p.unidade_comercial||'sem unidade'));b.type='button';b.className='btn-secondary';b.style.textAlign='left';b.onclick=()=>{if(!isCurrent())return;selected=p;selectedText();onSelect(p);invalidate();results.replaceChildren();pages.replaceChildren();status.textContent='Produto vinculado.'};results.append(b)}status.textContent=data.produtos.length?data.produtos.length+' resultado(s) · página '+(page+1):'Nenhum produto encontrado nesta pesquisa.';for(const [text,n,enabled]of [['Anterior',page-1,page>0],['Próxima',page+1,data.tem_mais===true]]){const b=make('button',text);b.type='button';b.disabled=!enabled;b.className='btn-secondary';b.onclick=()=>search(n);pages.append(b)}}catch(e){if(run===generation&&isCurrent()&&e.name!=='AbortError')status.textContent='Falha na pesquisa: '+(e.message||e)}}
  input.oninput=()=>{invalidate();results.replaceChildren();pages.replaceChildren();status.textContent='Aguardando digitação…';timer=setTimeout(()=>search(0),delay)};input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();search(0)}};create.onclick=()=>onCreate(unidade=>{if(!isCurrent())return;invalidate();selected=null;selectedText();results.replaceChildren();pages.replaceChildren();status.textContent='Cadastro preparado para confirmar com a nota.';onSelect(null,unidade)});return {input,search,dispose:invalidate}}
 export function neAbrirCadastro(root,item,onSave){
