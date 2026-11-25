@@ -10587,6 +10587,20 @@ async function gsOrders(body,valid=()=>body.isConnected){
    if(action==='historico'){const r=await supabase.rpc('gastronomia_ifood_historico',{p_empresa:company,p_pedido:values.pedido_id});if(r.error)throw r.error;return r.data}if(action==='receber_presencial'){const r=await supabase.rpc('gastronomia_ifood_receber',{p_empresa:company,p_pedido:values.pedido_id,p_valor:values.valor,p_forma:values.forma,p_chave:values.chave});if(r.error)throw r.error;return r.data}if(action==='pedidos'){if(initialInbox){const inbox=initialInbox;initialInbox=null;return inbox}const r=await supabase.rpc('gastronomia_pedidos_data',{p_data:day,p_empresa:company});if(r.error)throw r.error;return r.data.ifood}const {data,error}=await supabase.rpc('gastronomia_ifood_admin',{p_acao:action,p_dados:{...values,empresa_esperada:company}});if(error)throw error;if(data.empresa_id!==company)throw Error('A empresa da sessão mudou.');return data;
   }}));
  }
+ if(company==='773dfacb-c0e7-4bd9-8eb4-5208818b1848'&&gsHas('pedidos')&&!closed&&valid()){
+  const {mountSandbox99Food}=await import('./gastronomia-99food-sandbox.js');
+  const current=()=>valid()&&GS.ctx?.empresa_id===company;
+  if(!current())return;
+  await mountSandbox99Food(body,{current,list:async()=>{
+   const {data,error}=await supabase.rpc('gastronomia_99food_sandbox_pedidos',{p_empresa:company});
+   if(error)throw error;
+   return data;
+  },accept:async orderId=>{
+   const {data,error}=await supabase.functions.invoke('gastronomia-99food-sandbox-aceite',{body:{empresa_id:company,order_id:orderId}});
+   if(error)throw error;
+   return data;
+  }});
+ }
 }
 function gsChoices(parent,product){const fields=[],rules=GS.ctx.configuracao?.opcoes?.cardapio?.regras_grupos||{};for(const g of product.grupos||[]){const min=rules[g.id]?.minimo??g.quantidade_escolhas,max=rules[g.id]?.maximo??g.quantidade_escolhas;parent.append(gsEl('h4',g.nome+' · escolha de '+min+' a '+max));for(let i=0;i<max;i++){const el=gsSelect(parent,g.nome+' · opção '+(i+1),[['','Selecione'],...(g.opcoes||[]).filter(o=>o.disponivel!==false).map(o=>[o.produto_id,o.nome])]);el.required=i<min;fields.push({g:g.id,el})}}return fields}
 async function gsOrderNotifications(a,parent){const box=gsSection(parent,'Impressão e WhatsApp');if(a.tipo==='retirada'){const {mountManualPickupNotice}=await import('./gastronomia-whatsapp-manual.js');mountManualPickupNotice(box,a)}gsTable(box,['Via','Situação real','Erro'],(a.impressao?.jobs||[]).map(j=>[j.via||j.destino||'Pedido',j.status==='impresso'?'Confirmada pelo agente':j.status==='falhou'?'Falha':j.status==='processando'?'Em processamento':'Solicitação na fila',j.erro||'—']));const {data,error}=await supabase.rpc('gastronomia_whatsapp_estado',{p_id:a.id});if(!box.isConnected)return;if(error)box.append(gsEl('p','Não foi possível consultar WhatsApp: '+error.message));else box.append(gsEl('p',data?'WhatsApp: '+data.estado+(data.erro?' · '+data.erro:''):'WhatsApp: nenhuma notificação de pronto gerada.','gs-meta'));if(data?.estado==='falha')box.append(gsBtn('Reenviar após corrigir a conexão',async()=>{const key=crypto.randomUUID();const {error}=await supabase.rpc('gastronomia_whatsapp_repetir',{p_id:a.id,p_chave:key});if(error)throw error;gsNotice('Notificação recolocada na fila. O envio ainda não foi confirmado.');gsDetail(a.id)}))}
