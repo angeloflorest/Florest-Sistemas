@@ -16,6 +16,7 @@ export async function mountSandbox99Food(root,{list,accept,invoke,current,closed
  let busy=false;
  function button(parent,label,fn){const b=el('button',label,'gs-btn');b.type='button';b.onclick=async()=>{if(!active()||busy)return;busy=true;b.disabled=true;try{await fn()}catch(e){if(active())notify(e.message||'Não foi possível concluir.')}finally{busy=false;b.disabled=false}};parent.append(b);return b}
  async function send(order,action,payload={}){
+  const dialog=root.querySelector('.gs-99food-dialog[open]');if(dialog)dialog.dataset.editing='false';
   notify('Enviando operação à 99Food…');
   const result=await call(action,{order_id:order.order_id,chave:crypto.randomUUID(),payload});
   if(!active())return;
@@ -28,7 +29,7 @@ export async function mountSandbox99Food(root,{list,accept,invoke,current,closed
  function items(parent,lines,depth=0){if(depth>8)return;const ul=el('ul');for(const line of (Array.isArray(lines)?lines:[]).slice(0,200)){const li=el('li',`${line.amount??1} × ${line.name||'Item'} · ${money(line.total_price)}`);if(line.remark)li.append(el('p',line.remark));if(line.sub_item_list?.length)items(li,line.sub_item_list,depth+1);ul.append(li)}parent.append(ul)}
  function print(order){const d=order.detalhe??{},dialog=el('dialog'),article=el('article');article.append(el('h2','99Food · PEDIDO DE TESTE'),el('p','#'+(order.order_index??'')+' · '+order.order_id),el('p',stateLabel(order)),el('p',d.receive_address?.name||'Cliente'),el('p',d.receive_address?.poi_address||''));items(article,d.order_items);article.append(el('p','Total informado pela 99Food: '+money(d.price?.real_pay_price)));dialog.append(article);button(dialog,'Imprimir',()=>{const frame=document.createElement('iframe');frame.hidden=true;dialog.append(frame);const doc=frame.contentDocument;doc.body.replaceChildren(article.cloneNode(true));const style=doc.createElement('style');style.textContent='body{color:#000;background:#fff;font:15px monospace}h2{font-size:18px}';doc.head.append(style);frame.contentWindow.focus();frame.contentWindow.print();frame.remove()});button(dialog,'Fechar',()=>{dialog.close();dialog.remove()});document.body.append(dialog);dialog.showModal()}
  async function refresh(){
-  const received=await list();if(!active())return;if(sharedGrid){for(const node of managed)node.remove();managed=[]}else orders.replaceChildren();
+  const received=await list();if(!active())return;const opened=root.querySelector('.gs-99food-dialog[open]'),openId=opened?.dataset.pedido,scroll=opened?.querySelector('.gs-ifood-dialog-body')?.scrollTop||0;if(opened?.dataset.editing==='true')return;if(sharedGrid){for(const node of managed)node.remove();managed=[]}else orders.replaceChildren();
   const missing=received.filter(unavailable);diagnostics.hidden=!missing.length;diagnosticTitle.textContent='Registros sem consulta na 99Food ('+missing.length+')';diagnosticBody.replaceChildren(el('p','Estes registros retornaram código 12004 e ficam separados dos pedidos em aberto. O histórico foi preservado.','gs-meta'));for(const o of missing)diagnosticBody.append(el('p','Pedido #'+(o.order_index??'—')+' · ID '+o.order_id+' · '+formatter.format(new Date(o.recebido_em))+' · Não disponível para consulta na 99Food.','gs-meta'));
   const visible=received.filter(o=>!unavailable(o)&&(!day||new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Number(o.detalhe?.create_time)*1000||o.recebido_em))===day)).filter(o=>closed?(o.status_99food===600||o.status_99food>=900):!(o.status_99food===600||o.status_99food>=900));
   onCount(visible.length);
@@ -55,7 +56,15 @@ export async function mountSandbox99Food(root,{list,accept,invoke,current,closed
    button(actions,'Imprimir conferência',()=>print(order));card.append(actions);
    const history=el('details');history.append(el('summary','Histórico da integração'));
    for(const c of order.comandos||[])history.append(el('p',`${c.acao}: ${c.estado}${c.erro?' · '+c.erro:''}${c.request_id?' · protocolo '+c.request_id:''}`));
-   for(const e of order.eventos||[])history.append(el('p',e.tipo+' · '+formatter.format(new Date(e.recebido_em))));card.append(history);orders.append(card);managed.push(card);
+   for(const e of order.eventos||[])history.append(el('p',e.tipo+' · '+formatter.format(new Date(e.recebido_em))));card.append(history);
+   if(sharedGrid){
+    const compact=el('article','','gs-card gs-order gs-order--99food'),preview=el('div','','gs-order-preview'),customer=d.receive_address?.name||[d.receive_address?.first_name,d.receive_address?.last_name].filter(Boolean).join(' ')||'Cliente 99Food';
+    compact.append(el('div','99Food','gs-order-channel gs-order-channel--99food'),preview);
+    preview.append(el('h3','#'+(order.order_index??'—')+' · '+stateLabel(order)),el('b',customer),el('p',(d.order_items||[]).reduce((sum,item)=>sum+Number(item.amount||0),0)+' itens · '+money(d.price?.real_pay_price),'gs-meta'),el('p',formatter.format(new Date(order.recebido_em)),'gs-meta'));
+    if(order.pronto)preview.append(el('p','Pedido pronto','gs-meta'));if(pending)preview.append(el('p','Operação aguardando confirmação','gs-meta'));if(order.ultimo_erro)preview.append(el('p','Requer conferência','gs-meta'));
+    const dialog=el('dialog','','gs-ifood-dialog gs-99food-dialog'),head=el('div','','gs-ifood-dialog-head'),content=el('div','','gs-ifood-dialog-body'),close=el('button','Fechar');dialog.dataset.pedido=order.order_id;dialog.setAttribute('aria-label','Pedido 99Food #'+(order.order_index??'—'));close.type='button';close.onclick=()=>dialog.close();head.append(el('h2','Pedido 99Food #'+(order.order_index??'—')),close);content.append(card);dialog.append(head,content);dialog.addEventListener('input',()=>{dialog.dataset.editing='true'});dialog.addEventListener('change',()=>{dialog.dataset.editing='true'});
+    button(compact,'Abrir pedido',()=>dialog.showModal());compact.append(dialog);orders.append(compact);managed.push(compact);if(openId===order.order_id){dialog.showModal();content.scrollTop=scroll}
+   }else{orders.append(card);managed.push(card)}
   }
  }
  try{await refresh()}catch(e){if(active())notify(e.message||'Não foi possível carregar os pedidos da 99Food.')}finally{initialRender=false}
