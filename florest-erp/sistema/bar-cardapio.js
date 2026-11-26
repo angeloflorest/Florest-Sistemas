@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id),token=new URLSearchParams(location.hash.slice(1)).get('loja')||'',storage='florest-bar-menu:'+token,endpoint='https://etulhyboogqhyyevpnlo.supabase.co/functions/v1/bar-cardapio';
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;},money=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const novaPonteDescricao='Picanha na chapa, porções para compartilhar e cerveja gelada. De terça a domingo, escolha seus favoritos do Nova Ponte e peça para entrega ou retirada.';
 const novaPonteDigest='a0c20cd97e867886f2939a055ab06cda0631be85704fd6d9a395f550f3fe3118';
 let cart=[],pending=null,receipt=null,busy=false,page=0,seq=0,timer;
 try{const saved=JSON.parse(localStorage.getItem(storage)||'{}');cart=Array.isArray(saved.cart)?saved.cart:[];pending=saved.pending||null;receipt=saved.receipt||null;}catch{}
@@ -53,10 +54,10 @@ function storeIdentity(data){
  const themed=document.body.classList.contains('nova-ponte');
  $('loja').textContent=themed?'Restaurante Nova Ponte':data.nome;
  document.title=data.nome+' · Cardápio';
- $('descricao').textContent=themed&&data.descricao==='ABERTO DE TERÇA A DOMINGO, PEDIU CHEGOU'?'Aberto de terça a domingo. Pediu, chegou.':data.descricao||'';
+ $('descricao').textContent=themed&&data.descricao==='ABERTO DE TERÇA A DOMINGO, PEDIU CHEGOU'?novaPonteDescricao:data.descricao||'';
  const initials=String(data.nome||'').split(/\s+/).filter(w=>w&&!['RESTAURANTE','BAR','DA','DE','DO','DOS','DAS','E'].includes(w.toUpperCase())).slice(0,2).map(w=>w[0]).join('').toUpperCase();
  $('marca-loja').textContent=initials||String(data.nome||'').slice(0,2).toUpperCase();
- const logo=$('logo-loja'),source=themed?'./assets/nova-ponte/mesa-nova-ponte.webp':imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
+ const logo=$('logo-loja'),source=themed?'./assets/nova-ponte/placa.webp':imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
  if(source){logo.alt=themed?'':'Logo de '+data.nome;logo.src=source;logo.onerror=()=>{logo.hidden=true;$('marca-loja').hidden=false;};}else logo.removeAttribute('src');
  if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=themed?'#1745a3':data.cor;}
  if(/^#[a-f0-9]{6}$/i.test(data.fundo||''))document.documentElement.style.setProperty('--paper',data.fundo);
@@ -66,10 +67,8 @@ async function render(){
  const request=++seq,r=await api('catalogo',{busca:$('busca').value,pagina:page});if(request!==seq)return;storeIdentity(r);
  const products=r.produtos.slice(0,20);$('resumo-produtos').textContent=products.length?(r.produtos.length>20?'20 opções nesta página':products.length+' '+(products.length===1?'opção':'opções')):'Explore nossos sabores';
  $('produtos').replaceChildren();for(const [index,p]of products.entries()){
-  const card=el('article',null,'product'),photo=productPhoto(p,'picture',index<4);
-  if(document.body.classList.contains('nova-ponte')){
-   const plate=el('div',null,'product-photo-plate');plate.append(photo);card.append(plate);
-  }else card.append(photo);
+  const card=el('article',null,'product');
+  card.append(productPhoto(p,'picture',index<4));
   if(p.categoria)card.append(el('small',p.categoria));card.append(el('h2',p.nome));if(p.descricao)card.append(el('p',p.descricao));
   const price=el('p',money(p.preco),'product-price');price.append(el('span','/ '+p.unidade));
   const chooseButton=button('Escolher',()=>choose(p));chooseButton.setAttribute('aria-label','Escolher '+p.nome);card.append(price,chooseButton);$('produtos').append(card);

@@ -96,36 +96,40 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 .nova-ponte::before{
   content:"";
   position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:url('./assets/nova-ponte/balcao.webp') center 54%/cover no-repeat;
+  background:url('./assets/nova-ponte/bar-ambiente.webp') center 54%/cover no-repeat;
 }
-/* Uma cena contínua, com a placa dentro do ambiente do restaurante. */
+/* Identidade e atendimento ficam juntos em uma área azul de alto contraste. */
 .nova-ponte .menu-hero {
-  display:grid;
-  align-items:end;
   isolation:isolate;
-  min-height:clamp(330px,35vw,440px);
-  padding:20px 20px 19px;
-  text-align:center;
-  background:radial-gradient(ellipse at 45% 10%,#23436e,#0a1933 78%);
+  display:block;
+  min-height:0;
+  padding:25px 26px 27px;
+  text-align:left;
+  background:#10284b;
   border-bottom:3px solid #deb477;
 }
-.nova-ponte .menu-hero::before{display:none}
+.nova-ponte .menu-hero::before{
+  inset:0 0 0 31%;width:auto;height:auto;border:0;border-radius:0;
+  background:url('./assets/nova-ponte/bar-capa.webp') 72% 56%/cover no-repeat;
+  z-index:-2;
+}
 .nova-ponte .menu-hero::after{
   inset:0;width:auto;height:auto;border:0;border-radius:0;
-  background:linear-gradient(180deg,transparent 57%,#0b193376 76%,#0b1933 100%);
+  background:linear-gradient(90deg,#10284b 34%,#10284bf7 42%,#10284b16 69%);
   z-index:-1;
 }
-.nova-ponte .hero-brand{position:static;width:100%;max-width:710px}
+.nova-ponte .hero-brand{width:100%;max-width:1190px}
 .nova-ponte .store-logo{
-  position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:-2;
-  width:min(100%,960px);height:100%;max-height:none;
-  object-fit:cover;object-position:center top;margin:0;
-  mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+  width:min(100%,235px);height:135px;max-height:none;object-fit:contain;
+  object-position:left center;margin:0 0 12px;border-radius:12px;
 }
 .nova-ponte .store-monogram,.nova-ponte .menu-hero .eyebrow,.nova-ponte .hero-divider{display:none}
-.nova-ponte .menu-hero h1{margin:6px auto 10px;font:600 clamp(30px,5vw,48px)/1.05 Georgia,serif;color:#fff}
+.nova-ponte .menu-hero h1{margin:0 0 10px;font:600 clamp(28px,4vw,42px)/1.1 Georgia,serif;color:#fff}
 .nova-ponte .hero-brand:has(.store-logo:not([hidden])) h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.nova-ponte #descricao{margin:0;color:#eff5ff;font-size:14px}
+.nova-ponte #descricao{
+  max-width:min(43%,430px);margin:0;color:#fff;
+  font-size:clamp(14px,1.5vw,18px);line-height:1.45;font-weight:650;
+}
 .nova-ponte .hero-invitation,.nova-ponte footer p,.nova-ponte .section-heading .eyebrow,.nova-ponte .cart-hint{display:none}
 .nova-ponte .service-options{display:inline-flex;margin:12px 0 0;color:#dce9ff}
 .nova-ponte .service-options i{background:#deb477}
@@ -170,30 +174,21 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   background:var(--surface);
   box-shadow:0 4px 10px #184c8b10;
 }
-.nova-ponte .product-photo-plate {
-  display:grid;
-  place-items:center;
-  min-height:121px;
-  margin-bottom:3px;
-  border-radius:48% 39% 45% 35% / 31% 51% 43% 49%;
-  background:#e0ecff;
-}
-.nova-ponte .product:nth-of-type(3n + 2) .product-photo-plate{background:#e2f3f8;border-radius:35% 44% 36% 48% / 48% 38% 53% 39%}
-.nova-ponte .product:nth-of-type(3n + 3) .product-photo-plate{background:#f9ebd2}
 .nova-ponte .product .picture {
   display:block;
-  width:min(100%,120px);
-  height:120px;
+  width:min(100%,114px);
+  height:114px;
   object-fit:contain;
   padding:0;
-  margin:0;
-  border-radius:14px;
+  margin:0 0 5px;
+  align-self:flex-start;
+  border-radius:11px;
   background:transparent;
 }
-.nova-ponte .product .picture-placeholder{display:grid;place-items:center}
+.nova-ponte .product .picture-placeholder{display:grid;place-items:center;background:#edf3fd}
 .nova-ponte .product small{color:#315b97;font-size:9px;font-weight:800}
 .nova-ponte .product h2{font-size:14px;line-height:1.25;margin:2px 0 3px}
-.nova-ponte .product p:not(.product-price){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.35;font-size:12px}
+.nova-ponte .product p:not(.product-price){line-height:1.4;font-size:12px}
 .nova-ponte .product .product-price{margin-top:auto;padding-top:5px;font-size:17px}
 .nova-ponte .product button{width:100%;display:flex;justify-content:space-between;align-items:center;margin:5px 0 0;min-height:40px;padding:7px 11px;border-radius:25px}
 .nova-ponte .detail-picture{height:auto;max-height:52dvh;object-fit:contain;background:#eaf2ff;border-radius:12px}
@@ -205,23 +200,16 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   .nova-ponte main{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:640px){
-  .nova-ponte .menu-hero{min-height:0;padding:clamp(198px,65vw,335px) 15px 15px}
-  .nova-ponte .store-logo{height:auto;aspect-ratio:3/2;object-fit:contain;mask-image:none}
-  .nova-ponte .menu-hero::after{background:linear-gradient(180deg,transparent 55%,#0b1933 84%)}
-  .nova-ponte::before{background-position:58% center}
-  .nova-ponte .menu-section{
-    width:calc(100% - 20px);
-    margin-top:46px;
-    padding:14px 9px 15px;
-    border-radius:16px;
-  }
-  .nova-ponte #descricao{font-size:12px}
+  .nova-ponte .menu-hero{padding:142px 16px 17px}
+  .nova-ponte .menu-hero::before{inset:0 0 auto;height:156px;background-position:center 62%}
+  .nova-ponte .menu-hero::after{background:linear-gradient(180deg,transparent 60px,#10284b 154px)}
+  .nova-ponte .store-logo{width:min(100%,192px);height:103px;margin-bottom:9px}
+  .nova-ponte #descricao{max-width:420px;font-size:14px}
   .nova-ponte #nova-ponte-ver{margin-right:10px}
   .nova-ponte .service-options{font-size:9px;gap:8px}
   .nova-ponte .search-inner{padding-inline:14px}
   .nova-ponte main{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   .nova-ponte .product{padding:8px;border-radius:20px 9px 20px 9px}
-  .nova-ponte .product-photo-plate{min-height:94px}
   .nova-ponte .product .picture{width:min(100%,94px);height:94px}
   .nova-ponte .product h2{font-size:12px}
   .nova-ponte .product p:not(.product-price){font-size:11px}
