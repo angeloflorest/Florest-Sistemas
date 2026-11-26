@@ -10,8 +10,9 @@ export async function mount99Food(root,{rpc,catalog=[],current=()=>true,notice=(
  async function reload(){data=await call('obter');render()}
  function render(){
   root.replaceChildren(el('h2','99Food · Preparação da integração'));
-  const status=el('p','Desativada — aguardando qualificação da Florest, credenciais, testes e autorização da loja na 99Food.');status.className='msg';status.setAttribute('role','status');root.append(status);
-  const cfg=section('Configuração da loja','É possível salvar sem cadastro na 99Food. Esta preparação não altera o cardápio existente na plataforma e não recebe pedidos.'),form=el('form');form.className='gs-form-grid';cfg.append(form);
+  const sandbox=data.empresa_id==='773dfacb-c0e7-4bd9-8eb4-5208818b1848';
+  const status=el('p',sandbox?'Loja de teste conectada ao receptor 99Food. Consulte a autenticação e os pedidos em Pedidos. Produção ainda depende de aprovação e autorização da loja.':'Desativada — aguardando qualificação da Florest, credenciais, testes e autorização da loja na 99Food.');status.className='msg';status.setAttribute('role','status');root.append(status);
+  const cfg=section('Configuração da loja',sandbox?'A preparação abaixo é para a conexão futura da loja real. O sandbox usa o vínculo Florest Gastronomia Teste e não publica o cardápio.':'É possível salvar sem cadastro na 99Food. Esta preparação não altera o cardápio existente na plataforma e não recebe pedidos.'),form=el('form');form.className='gs-form-grid';cfg.append(form);
   const name=field(form,'Nome da loja (opcional)',data.config.nome_loja);name.maxLength=120;
   const shop=field(form,'ID da loja na 99Food — Shop ID (opcional)',data.config.shop_id);shop.inputMode='numeric';shop.pattern='[1-9][0-9]{0,18}';shop.maxLength=19;shop.placeholder='Identificador fornecido pela 99Food';
   const appShop=field(form,'Identificador de vínculo — AppShopID',data.config.app_shop_id);appShop.required=true;appShop.maxLength=100;

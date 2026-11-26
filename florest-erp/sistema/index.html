@@ -10323,7 +10323,7 @@ async function gsIFood(body){
 async function gs99Food(body){
  const company=GS.ctx.empresa_id,view=GS.food99View=crypto.randomUUID();
  const current=()=>body.isConnected&&GS.area==='configuracao'&&GS.ctx?.empresa_id===company&&GS.food99View===view;
- const {mount99Food}=await import('./gastronomia-99food.js');if(!current())return;
+ const {mount99Food}=await import('./gastronomia-99food.js?v=20261126');if(!current())return;
  await mount99Food(body,{catalog:GS.ctx.catalogo,current,notice:gsNotice,rpc:async(action,values)=>{
   if(!current())throw Error('A empresa da sessão mudou.');
   const {data,error}=await supabase.rpc('gastronomia_99food_admin',{p_acao:action,p_dados:{...values,empresa_esperada:company}});if(error)throw error;
@@ -10587,17 +10587,17 @@ async function gsOrders(body,valid=()=>body.isConnected){
    if(action==='historico'){const r=await supabase.rpc('gastronomia_ifood_historico',{p_empresa:company,p_pedido:values.pedido_id});if(r.error)throw r.error;return r.data}if(action==='receber_presencial'){const r=await supabase.rpc('gastronomia_ifood_receber',{p_empresa:company,p_pedido:values.pedido_id,p_valor:values.valor,p_forma:values.forma,p_chave:values.chave});if(r.error)throw r.error;return r.data}if(action==='pedidos'){if(initialInbox){const inbox=initialInbox;initialInbox=null;return inbox}const r=await supabase.rpc('gastronomia_pedidos_data',{p_data:day,p_empresa:company});if(r.error)throw r.error;return r.data.ifood}const {data,error}=await supabase.rpc('gastronomia_ifood_admin',{p_acao:action,p_dados:{...values,empresa_esperada:company}});if(error)throw error;if(data.empresa_id!==company)throw Error('A empresa da sessão mudou.');return data;
   }}));
  }
- if(company==='773dfacb-c0e7-4bd9-8eb4-5208818b1848'&&gsHas('pedidos')&&!closed&&valid()){
-  const {mountSandbox99Food}=await import('./gastronomia-99food-sandbox.js');
+ if(company==='773dfacb-c0e7-4bd9-8eb4-5208818b1848'&&gsHas('pedidos')&&valid()){
+  const {mountSandbox99Food}=await import('./gastronomia-99food-sandbox.js?v=20261126-operacao');
   const current=()=>valid()&&GS.ctx?.empresa_id===company;
   if(!current())return;
-  await mountSandbox99Food(body,{current,list:async()=>{
+  await mountSandbox99Food(body,{current,closed,canCancel:gsHas('cancelar'),list:async()=>{
    const {data,error}=await supabase.rpc('gastronomia_99food_sandbox_pedidos',{p_empresa:company});
    if(error)throw error;
    return data;
-  },accept:async orderId=>{
-   const {data,error}=await supabase.functions.invoke('gastronomia-99food-sandbox-aceite',{body:{empresa_id:company,order_id:orderId}});
-   if(error)throw error;
+  },invoke:async (acao,values={})=>{
+   const {data,error}=await supabase.functions.invoke('gastronomia-99food-sandbox-aceite',{body:{empresa_id:company,acao,...values}});
+   if(error||data?.erro)throw Error(data?.erro||error?.message||'Falha ao consultar a 99Food.');
    return data;
   }});
  }

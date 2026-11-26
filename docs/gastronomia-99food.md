@@ -1,5 +1,7 @@
 # 99Food no Gastronomia — preparação
 
+Atualização de 26/11/2026: a loja de teste possui receptor, autenticação e ações específicas; veja [operação da loja de teste](gastronomia-99food-operacional.md). A preparação abaixo continua sendo o estado das lojas de produção.
+
 Configuração exclusiva do Gastronomia. Estado fixo `preparacao`, sem credenciais no navegador, worker, cron, publicação de cardápio ou recebimento real. A configuração é persistida por empresa via RPC autorizada com `gastronomia_configurar`; não altera vendas, produtos, fotos ou outros módulos.
 
 ## Portal e processo oficial
