@@ -20,7 +20,7 @@ export function createAPI({secret,rpc,fetchImpl=fetch,now=Date.now}){
   try{response=await fetchImpl(url.toString(),options)}catch{throw new FoodError('Falha de comunicação com a 99Food.',{uncertain:method==='POST'})}
   if(!response.ok)throw new FoodError('A 99Food retornou HTTP '+response.status+'.',{uncertain:method==='POST'});
   try{data=parseJSON(await response.text())}catch{throw new FoodError('Resposta inválida da 99Food.',{uncertain:method==='POST'})}
-  if(data?.errno!==0)throw new FoodError(data?.errno===12004?'Pedido não disponível para consulta pela API (12004). Pedidos injetados pelo portal Sandbox não permitem testar aceite; use a conta de cliente de teste no aplicativo 99Food.':'A 99Food recusou a operação. Código '+data?.errno+'.',{code:Number(data?.errno)||0});
+  if(data?.errno!==0)throw new FoodError(data?.errno===12004?'Pedido não disponível para consulta pela API (12004). Simulações de callback podem não representar pedidos consultáveis. Use a ferramenta de pedidos de teste e confira o vínculo da loja se o erro persistir.':'A 99Food recusou a operação. Código '+data?.errno+'.',{code:Number(data?.errno)||0});
   return {data:data.data,requestId:String(data.requestId??data.request_id??'').slice(0,120)};
  }
  async function token(){
@@ -54,7 +54,7 @@ export function safeError(error){return error instanceof FoodError?error.message
 const reasons=new Set([1010,1020,1030,1040,1050,1060,1070,1071,1072,1073,1074,1080]);
 export function commandSpec(cmd,order,now=Date.now()){
  const d=order.detalhe??{},s=d.status,p=cmd.payload??{},self=d.delivery_type===2,pickup=d.fulfillment_mode===1||d.delivery_type===0;
- if(terminal(s))throw new FoodError('Pedido encerrado na 99Food.');
+ if(terminal(s)&&cmd.acao!=='responder_reembolso')throw new FoodError('Pedido encerrado na 99Food.');
  const spec=(path,payload={})=>({path,payload});
  switch(cmd.acao){
   case 'confirmar':if(s!==100)throw new FoodError('O pedido não está aguardando aceite.');return spec('/v1/order/order/confirm');

@@ -15,15 +15,17 @@ A qualificação da empresa está aprovada no portal; o aplicativo disponível �
 
 ## Duas modalidades de teste — diferença obrigatória
 
-A documentação **Tools Introduction > Sandbox Environment** informa que a ferramenta do portal injeta notificações, mas não permite testar as respostas pela API. **Testing the Integration > Using a Test Store** orienta usar uma conta de cliente de teste no C-App para criar pedidos cujo ciclo possa ser confirmado/cancelado pela integração. Não insistir em confirmar uma injeção que a API não reconhece.
+A documentação **Tools Introduction > Sandbox Environment** distingue notificações injetadas de um ciclo real de pedido. O portal atual possui **Ferramenta de pedido de teste** e **Ferramenta de retorno de chamada webhook**. Não tratar as duas como equivalentes. A inspeção do código público do portal confirma que a primeira cria pedidos em `shop_center/v1/shop/create_test_order` e oferece reenvio do webhook. Não é necessário assumir que todo pedido criado no portal é apenas uma notificação.
 
-Para teste completo: solicitar à equipe 99Food uma conta de cliente de teste; entrar no app, selecionar endereço próximo à loja em Goiânia (Avenida T 2, 1922, Setor Bueno), criar pedido na Florest Gastronomia Teste e confirmar no ERP em até cinco minutos. O operador usa o aplicativo oficial, não o botão Criar da ferramenta de injeções, para essa validação.
+O pedido específico `5764702946243708669`, criado pela ferramenta de pedidos em 26/11 às 08h34, foi efetivamente encontrado por `/v1/order/order/detail`, com status **922** (cancelamento por expiração do prazo de aceite). Isso comprova consulta e vínculo, mas não comprova o aceite, pois o prazo já havia passado. Os exemplos antigos não consultáveis retornaram 12004; esses não devem ser consultados continuamente.
 
-Não afirmar homologação com base em testes simulados locais. A confirmação real depende de um pedido válido criado na conta de testes. Não há autoaceite implícito.
+Para teste completo: manter o ERP aberto em Pedidos, criar **novo pedido** em Ambiente sandbox → Ferramenta de pedido de teste, voltar ao ERP e confirmar em até cinco minutos. A ferramenta de retorno de chamada serve para testar notificações. Como alternativa documentada em **Testing the Integration > Using a Test Store**, solicitar conta de cliente de teste à equipe 99Food e criar pedido pelo C-App próximo à loja em Goiânia. Essa conta não é um pré-requisito demonstrado para a ferramenta nova de pedidos do portal.
+
+Não afirmar homologação com base em testes simulados locais. A confirmação real depende de um novo pedido válido, criado após a publicação, e do aceite no prazo. Não há autoaceite implícito.
 
 ## Antes da produção
 
-Concluir os cenários com conta de cliente de teste e aprovação da 99Food; criar/obter aplicativo de produção e suas credenciais; autorizar a loja real e validar os vínculos por empresa. A versão atual permanece restrita à loja de teste. Catálogo, fotos/publicação de cardápio, baixa financeira/estoque e impressão automática operacional não foram ativados por esta atualização. São necessários validação de pedidos reais de teste, regras financeiras e aprovação antes de conectar os efeitos comerciais. Não reutilizar o segredo de teste em produção.
+Concluir os cenários com pedidos válidos de teste e aprovação da 99Food; criar/obter aplicativo de produção e suas credenciais; autorizar a loja real e validar os vínculos por empresa. A versão atual permanece restrita à loja de teste. Catálogo, fotos/publicação de cardápio, baixa financeira/estoque e impressão automática operacional não foram ativados por esta atualização. São necessários validação de pedidos reais de teste, regras financeiras e aprovação antes de conectar os efeitos comerciais. Não reutilizar o segredo de teste em produção.
 
 ## Fontes oficiais consultadas
 
