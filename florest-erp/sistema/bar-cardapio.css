@@ -96,8 +96,7 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 .nova-ponte::before{
   content:"";
   position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(115deg,#eaf2ffc7 8%,#deebffb3 63%,#eaf2ff9e 100%),
-    url('./assets/nova-ponte/fundo-bar.webp') center/cover no-repeat;
+  background:url('./assets/nova-ponte/balcao.webp') center 54%/cover no-repeat;
 }
 /* Uma cena contínua, com a placa dentro do ambiente do restaurante. */
 .nova-ponte .menu-hero {
@@ -136,9 +135,24 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 .nova-ponte .search-inner{max-width:1226px;padding:9px 28px 11px}
 .nova-ponte .search-input{max-width:540px;border-radius:32px;border-color:#b9ccec}
 .nova-ponte .search input{min-height:42px}
-.nova-ponte .menu-section{max-width:1226px}
+.nova-ponte .menu-section{
+  width:min(calc(100% - 64px),1190px);
+  margin:68px auto 0;
+  padding:22px 22px 25px;
+  background:#f5f8fc;
+  border-radius:22px;
+  box-shadow:0 2px 16px #0a193345;
+}
+.nova-ponte #paginas:not(:empty),.nova-ponte footer{
+  width:fit-content;
+  margin:15px auto 0;
+  padding:10px 17px;
+  border-radius:15px;
+  background:#f5f8fc;
+}
+.nova-ponte #paginas:empty{display:none}
 .nova-ponte .menu-section,.nova-ponte #produtos{scroll-margin-top:100px}
-.nova-ponte .section-heading{margin:24px 0 14px}
+.nova-ponte .section-heading{margin:0 0 14px}
 .nova-ponte .section-heading h2{font:820 clamp(27px,4vw,42px)/1.12 system-ui,sans-serif;letter-spacing:-.048em}
 .nova-ponte #nova-ponte-destaques{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
 .nova-ponte #nova-ponte-destaques button{display:flex;align-items:center;gap:12px;min-height:90px;padding:6px 12px 6px 6px;text-align:left;border:1px solid #b8cdf0;border-radius:19px;background:#f6faff;color:#17366e;font-size:clamp(12px,1.7vw,16px);font-weight:800}
@@ -194,7 +208,13 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   .nova-ponte .menu-hero{min-height:0;padding:clamp(198px,65vw,335px) 15px 15px}
   .nova-ponte .store-logo{height:auto;aspect-ratio:3/2;object-fit:contain;mask-image:none}
   .nova-ponte .menu-hero::after{background:linear-gradient(180deg,transparent 55%,#0b1933 84%)}
-  .nova-ponte::before{background-position:65% center}
+  .nova-ponte::before{background-position:58% center}
+  .nova-ponte .menu-section{
+    width:calc(100% - 20px);
+    margin-top:46px;
+    padding:14px 9px 15px;
+    border-radius:16px;
+  }
   .nova-ponte #descricao{font-size:12px}
   .nova-ponte #nova-ponte-ver{margin-right:10px}
   .nova-ponte .service-options{font-size:9px;gap:8px}
