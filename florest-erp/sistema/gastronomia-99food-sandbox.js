@@ -5,12 +5,12 @@ const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL
 const reasons=[[1010,'Produto esgotado'],[1020,'Loja fechada'],[1030,'Loja sem capacidade de preparo'],[1040,'Acidente ou falta de energia'],[1050,'Problema do cliente'],[1060,'Sem entregador'],[1070,'Cardápio precisa ser atualizado'],[1071,'Fora da área de entrega'],[1072,'Endereço em área insegura'],[1073,'Suspeita de fraude'],[1074,'Dúvida sobre taxas ou promoções'],[1080,'Outro motivo']];
 export async function mountSandbox99Food(root,{list,accept,invoke,current,closed=false,canCancel=false,sharedGrid=false,onCount=()=>{},day=null,showDiagnostics=false}){
  const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n};
- const section=el('section','','gs-card'),message=el('p','','gs-meta'),orders=sharedGrid?root:el('div','','gs-grid gs-orders-compact');let managed=[];
+ const section=el('section','','gs-card'),message=el('p','','gs-meta'),orders=sharedGrid?root:el('div','','gs-grid gs-orders-compact');let managed=[],initialRender=true;
  message.setAttribute('role','status');message.hidden=true;
  if(!sharedGrid){section.append(message,orders);root.append(section)}
  const diagnostics=el('details'),diagnosticTitle=el('summary'),diagnosticBody=el('div');diagnostics.append(diagnosticTitle,diagnosticBody);diagnostics.hidden=true;if(showDiagnostics&&!sharedGrid)section.append(diagnostics);
  const formatter=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'});
- const active=()=>current()&&(sharedGrid?root:section).isConnected;
+ const active=()=>current()&&(initialRender||(sharedGrid?root:section).isConnected);
  const notify=text=>{message.textContent=text;message.hidden=!text;if(sharedGrid&&text&&!message.isConnected){root.append(message);managed.push(message)}};
  const call=(action,values={})=>invoke?invoke(action,values):accept(values.order_id);
  let busy=false;
@@ -58,7 +58,7 @@ export async function mountSandbox99Food(root,{list,accept,invoke,current,closed
    for(const e of order.eventos||[])history.append(el('p',e.tipo+' · '+formatter.format(new Date(e.recebido_em))));card.append(history);orders.append(card);managed.push(card);
   }
  }
- try{await refresh()}catch(e){if(active())notify(e.message||'Não foi possível carregar os pedidos da 99Food.')}
+ try{await refresh()}catch(e){if(active())notify(e.message||'Não foi possível carregar os pedidos da 99Food.')}finally{initialRender=false}
  // Atualiza somente a lista local; não consulta a API da 99Food a cada tela.
  async function poll(){if(!active())return;if(!busy&&!document.hidden&&!(sharedGrid?root:section).querySelector('details[open]'))try{await refresh()}catch{}if(active())setTimeout(poll,15000)}
  setTimeout(poll,15000);

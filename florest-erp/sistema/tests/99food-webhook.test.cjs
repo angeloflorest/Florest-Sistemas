@@ -4,7 +4,9 @@ test('webhook valida assinatura e vínculo, preserva IDs e persiste também even
  global.Deno={env:{get:n=>({FOOD99_SANDBOX_APP_SECRET:'test-secret',SUPABASE_URL:'https://example.invalid',SUPABASE_SERVICE_ROLE_KEY:'service-test'})[n]},serve:fn=>{handler=fn}};
  global.fetch=async(u,o)=>{written.push(JSON.parse(o.body));return new Response('true')};
  try{
-  await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  await import('data:text/javascript;base64,'+Buffer.from('const Buffer=undefined;\n'+source).toString('base64'));
+  // O Edge Runtime não fornece o Buffer global do Node.
+
   const event={app_id:'5764607791191296200',app_shop_id:'florest-gastronomia-teste-01',type:'orderConfirm',data:{order_id:'5764702946243708669'}};
   async function send(e,{sign=true,status}={}){let raw=JSON.stringify(e).replace('"5764702946243708669"','5764702946243708669');const sig=createHash('md5').update(raw).update('test-secret').digest('hex');const r=await handler(new Request('https://test.invalid',{method:'POST',headers:{'didi-header-sign':sign?sig:'0'.repeat(32)},body:raw}));if(status)assert.equal(r.status,status);return r}
   await send(event,{status:200});assert.equal(written[0].p_dados.order_id,'5764702946243708669');

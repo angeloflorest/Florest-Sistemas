@@ -14,7 +14,7 @@ Deno.serve(async(req:Request)=>{
   while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>256*1024){await reader.cancel();return reply(413,1,'Dados excessivos.')}chunks.push(value)}
   const raw=new Uint8Array(size);let offset=0;for(const chunk of chunks){raw.set(chunk,offset);offset+=chunk.length}
   const digest=createHash('md5').update(raw).update(secret).digest();
-  if(!timingSafeEqual(digest,Buffer.from(signature,'hex')))return reply(401,1,'Assinatura inválida.');
+  if(!timingSafeEqual(digest,Uint8Array.from(signature.match(/../g)!,part=>Number.parseInt(part,16))))return reply(401,1,'Assinatura inválida.');
   let event;try{event=parse(new TextDecoder('utf-8',{fatal:true}).decode(raw))}catch{return reply(400,1,'JSON inválido.')}
   if(String(event.app_id)!==appId||event.app_shop_id!==appShopId||typeof event.type!=='string'||!event.type||event.type.length>100)return reply(403,1,'Vínculo inválido.');
   if(typeof event.data==='string')try{event.data=parse(event.data)}catch{return reply(400,1,'Dados inválidos.')}
@@ -27,7 +27,7 @@ Deno.serve(async(req:Request)=>{
   const project=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if(!project||!key)return reply(503,1,'Servidor indisponível.');
   const res=await fetch(project+'/rest/v1/rpc/gastronomia_99food_sandbox_worker',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({p_acao:'evento',p_dados:{id:createHash('sha256').update(raw).digest('hex'),order_id:id,payload:event}}),signal:AbortSignal.timeout(3500)});
-  if(!res.ok)return reply(503,1,'Persistência indisponível.');
+  if(!res.ok){console.error('99food_persistencia_http',res.status);return reply(503,1,'Persistência indisponível.');}
   return reply(200,0,'ok');
- }catch{return reply(503,1,'Não foi possível registrar o evento.')}
+ }catch(error){console.error('99food_webhook_falha',error instanceof Error?error.name:'Erro');return reply(503,1,'Não foi possível registrar o evento.')}
 });

@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {binding,validId,safeError} from './core.mjs';
 import {runWorker} from './worker.mjs';
 const project=Deno.env.get('SUPABASE_URL')??'',key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',anon=Deno.env.get('SUPABASE_ANON_KEY')??'';
@@ -20,6 +21,13 @@ Deno.serve(async(request:Request)=>{
   const data=JSON.parse(raw),action=data.acao??'confirmar';
   if(action==='worker'){
    if(!await rpc('validar_cron',{momento:request.headers.get('x-99food-momento')??'',assinatura:request.headers.get('x-99food-assinatura')??'',corpo:raw}))return reply({erro:'Não autorizado.'},401);
+   if(data.verificar_receptor===true){
+    const secret=Deno.env.get('FOOD99_SANDBOX_APP_SECRET');if(!secret)return reply({erro:'Credencial indisponível.'},503);
+    // Diagnóstico técnico sem pedido, cliente, aceite ou efeito financeiro.
+    const payload=JSON.stringify({app_id:binding.appId,app_shop_id:binding.appShopId,type:'florestReceiverCheck',timestamp:Math.floor(Date.now()/1000),data:{verificacao:'assinatura_e_persistencia'}});
+    const response=await fetch(project+'/functions/v1/gastronomia-99food-sandbox',{method:'POST',headers:{'Content-Type':'application/json','didi-header-sign':createHash('md5').update(payload).update(secret).digest('hex')},body:payload,signal:AbortSignal.timeout(5000)});
+    const result=await response.json();return reply({receptor_ok:response.ok&&result.errno===0,status:response.status});
+   }
    return reply(await runWorker({rpc,secret:Deno.env.get('FOOD99_SANDBOX_APP_SECRET')}));
   }
   const authorization=request.headers.get('Authorization')??'';
