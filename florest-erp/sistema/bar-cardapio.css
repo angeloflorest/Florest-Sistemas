@@ -99,7 +99,19 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   background:radial-gradient(ellipse at 50% 18%,#203f6c 0%,#12274b 49%,#0a1933 100%);
   border-bottom:3px solid #deb477;
 }
-.nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{display:none}
+.nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{
+  top:50%;left:auto;right:auto;width:clamp(128px,22vw,315px);height:clamp(150px,19vw,250px);
+  transform:translateY(-50%);border-radius:28px;border:1px solid #e3bf8170;
+  background-position:center;background-size:cover;
+}
+.nova-ponte .menu-hero::before{
+  right:calc(50% + 202px);
+  background-image:linear-gradient(120deg,#0b204638,transparent 76%),url('./assets/nova-ponte/brasa.webp');
+}
+.nova-ponte .menu-hero::after{
+  left:calc(50% + 202px);
+  background-image:linear-gradient(230deg,#0b204638,transparent 76%),url('./assets/nova-ponte/torresmo.webp');
+}
 .nova-ponte .hero-brand{width:100%;max-width:710px}
 .nova-ponte .store-logo{width:min(100%,342px);height:184px;max-height:none;object-fit:contain;margin:0 auto 12px;border-radius:16px}
 .nova-ponte .store-monogram,.nova-ponte .menu-hero .eyebrow,.nova-ponte .hero-divider{display:none}
@@ -120,9 +132,9 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 .nova-ponte .section-heading{margin:24px 0 14px}
 .nova-ponte .section-heading h2{font:820 clamp(27px,4vw,42px)/1.12 system-ui,sans-serif;letter-spacing:-.048em}
 .nova-ponte #nova-ponte-destaques{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
-.nova-ponte #nova-ponte-destaques button{display:flex;align-items:center;gap:12px;min-height:64px;padding:5px 13px 5px 5px;text-align:left;border:1px solid #b8cdf0;border-radius:40px;background:#dbeaff;color:#17366e;font-size:clamp(12px,1.7vw,16px);font-weight:800}
+.nova-ponte #nova-ponte-destaques button{display:flex;align-items:center;gap:12px;min-height:90px;padding:6px 12px 6px 6px;text-align:left;border:1px solid #b8cdf0;border-radius:19px;background:#f6faff;color:#17366e;font-size:clamp(12px,1.7vw,16px);font-weight:800}
 .nova-ponte #nova-ponte-destaques button:hover{background:#c7e0ff}
-.nova-ponte #nova-ponte-destaques img{width:56px;height:56px;flex:none;object-fit:contain;border-radius:50%}
+.nova-ponte #nova-ponte-destaques img{width:78px;height:78px;flex:none;object-fit:contain;border-radius:13px}
 .nova-ponte .foto-nota{margin:14px 0 9px;color:var(--muted);font-size:11px}
 .nova-ponte main{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
 .nova-ponte .product {
@@ -169,6 +181,9 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 @media(max-width:1000px){
   .nova-ponte main{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+@media(max-width:760px){
+  .nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{display:none}
+}
 @media(max-width:640px){
   .nova-ponte .menu-hero{padding:12px 15px 17px}
   .nova-ponte .store-logo{width:min(100%,285px);height:150px;margin-bottom:9px}
@@ -184,5 +199,5 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   .nova-ponte .product p:not(.product-price){font-size:11px}
   .nova-ponte #nova-ponte-destaques{gap:6px}
   .nova-ponte #nova-ponte-destaques button{flex-direction:column;justify-content:flex-start;gap:4px;border-radius:18px;padding:5px;text-align:center;font-size:10px;line-height:1.2}
-  .nova-ponte #nova-ponte-destaques img{width:46px;height:46px}
+  .nova-ponte #nova-ponte-destaques img{width:min(100%,72px);height:66px}
 }
