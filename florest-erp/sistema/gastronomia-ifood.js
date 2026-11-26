@@ -54,7 +54,7 @@ export async function mountIFoodOrders(root,{rpc,current=()=>root.isConnected,no
  let managed=[],refreshButton=null,refreshTimer=null;
  async function reload(){
   const data=await rpc('pedidos');if(!current())return;const activeDialog=root.querySelector('dialog[open]');const freshActive=data.pedidos.find(p=>p.pedido_id===activeDialog?.dataset.pedido);if(activeDialog?.dataset.editing==='true'&&!['cancelado','concluido'].includes(freshActive?.estado_ifood)){scheduleRefresh();return}const activeId=activeDialog?.dataset.pedido,scroll=activeDialog?.querySelector('.gs-ifood-dialog-body')?.scrollTop||0;clearTimeout(refreshTimer);if(sharedGrid){for(const node of managed)node.remove();managed=[]}else root.replaceChildren();
-  if(!data.conectado&&!data.pedidos.length&&!(data.falhas||[]).length)return;
+  if(!data.conectado&&!data.pedidos.length&&!(data.falhas||[]).length){onCount(0);return;}
   if(!sharedGrid)root.append(el('h3','Pedidos iFood'));
   for(const f of data.falhas||[]){const warning=el('p','Pedido iFood '+(f.pedido_id||'')+' requer revisão: '+(f.erro||f.codigo));root.append(warning);managed.push(warning)}
   if(showRefresh&&(!refreshButton||!refreshButton.isConnected)){refreshButton=el('button','Atualizar pedidos iFood');refreshButton.type='button';refreshButton.onclick=()=>reload().catch(e=>notice(e.message));(toolbar||root).append(refreshButton)}

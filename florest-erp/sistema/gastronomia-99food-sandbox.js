@@ -3,37 +3,39 @@ const stateLabel=order=>order.status_99food>=900?(order.status_99food===922?'Can
 const unavailable=order=>order.status_99food==null&&/12004/.test(order.ultimo_erro||'');
 const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value||0)/100);
 const reasons=[[1010,'Produto esgotado'],[1020,'Loja fechada'],[1030,'Loja sem capacidade de preparo'],[1040,'Acidente ou falta de energia'],[1050,'Problema do cliente'],[1060,'Sem entregador'],[1070,'Cardápio precisa ser atualizado'],[1071,'Fora da área de entrega'],[1072,'Endereço em área insegura'],[1073,'Suspeita de fraude'],[1074,'Dúvida sobre taxas ou promoções'],[1080,'Outro motivo']];
-export async function mountSandbox99Food(root,{list,accept,invoke,current,closed=false,canCancel=false}){
+export async function mountSandbox99Food(root,{list,accept,invoke,current,closed=false,canCancel=false,sharedGrid=false,onCount=()=>{},day=null,showDiagnostics=false}){
  const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n};
- const section=el('section','','gs-card'),message=el('p','','gs-meta'),orders=el('div','','gs-grid gs-orders-compact'),health=el('p','','gs-meta'),toolbar=el('div','','gs-actions');message.setAttribute('role','status');
- section.append(el('h3','99Food · Integração de teste'),el('p','Florest Gastronomia Teste. Pedidos e ações desta seção são simulados na 99Food; não geram recebimento no caixa.','gs-meta'),el('p','Para validar o ciclo completo, crie um pedido em Ambiente sandbox → Ferramenta de pedido de teste e confirme aqui em até cinco minutos. A ferramenta de retorno de chamada webhook testa apenas notificações.','gs-meta'),health,toolbar,message,orders);root.append(section);
- const diagnostics=el('details'),diagnosticTitle=el('summary'),diagnosticBody=el('div');diagnostics.append(diagnosticTitle,diagnosticBody);diagnostics.hidden=true;section.append(diagnostics);
+ const section=el('section','','gs-card'),message=el('p','','gs-meta'),orders=sharedGrid?root:el('div','','gs-grid gs-orders-compact');let managed=[];
+ message.setAttribute('role','status');message.hidden=true;
+ if(!sharedGrid){section.append(message,orders);root.append(section)}
+ const diagnostics=el('details'),diagnosticTitle=el('summary'),diagnosticBody=el('div');diagnostics.append(diagnosticTitle,diagnosticBody);diagnostics.hidden=true;if(showDiagnostics&&!sharedGrid)section.append(diagnostics);
  const formatter=new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'});
- const active=()=>current()&&section.isConnected;
+ const active=()=>current()&&(sharedGrid?root:section).isConnected;
+ const notify=text=>{message.textContent=text;message.hidden=!text;if(sharedGrid&&text&&!message.isConnected){root.append(message);managed.push(message)}};
  const call=(action,values={})=>invoke?invoke(action,values):accept(values.order_id);
  let busy=false;
- function button(parent,label,fn){const b=el('button',label,'gs-btn');b.type='button';b.onclick=async()=>{if(!active()||busy)return;busy=true;b.disabled=true;try{await fn()}catch(e){if(active())message.textContent=e.message||'Não foi possível concluir.'}finally{busy=false;b.disabled=false}};parent.append(b);return b}
+ function button(parent,label,fn){const b=el('button',label,'gs-btn');b.type='button';b.onclick=async()=>{if(!active()||busy)return;busy=true;b.disabled=true;try{await fn()}catch(e){if(active())notify(e.message||'Não foi possível concluir.')}finally{busy=false;b.disabled=false}};parent.append(b);return b}
  async function send(order,action,payload={}){
-  message.textContent='Enviando operação à 99Food…';
+  notify('Enviando operação à 99Food…');
   const result=await call(action,{order_id:order.order_id,chave:crypto.randomUUID(),payload});
   if(!active())return;
-  message.textContent=result.erro||'Operação registrada. O estado abaixo acompanha o retorno da 99Food.';
+  notify(result.erro||'Operação registrada. Aguardando confirmação da 99Food.');
   await refresh();
  }
  function field(parent,label,choices){const wrap=el('label',label),input=el(choices?'select':'input');if(choices)for(const [value,text]of choices){const option=el('option',text);option.value=String(value);input.append(option)}wrap.append(input);parent.append(wrap);return input}
  function actionForm(card,title,build){const box=el('details'),summary=el('summary',title),form=el('form','','gs-form-grid');box.append(summary,form);card.append(box);build(form)}
- function submit(form,label,fn){const b=el('button',label,'gs-btn');b.type='submit';form.append(b);form.onsubmit=async event=>{event.preventDefault();if(busy||!active())return;busy=true;b.disabled=true;try{await fn()}catch(e){if(active())message.textContent=e.message||'Não foi possível enviar.'}finally{busy=false;b.disabled=false}}}
+ function submit(form,label,fn){const b=el('button',label,'gs-btn');b.type='submit';form.append(b);form.onsubmit=async event=>{event.preventDefault();if(busy||!active())return;busy=true;b.disabled=true;try{await fn()}catch(e){if(active())notify(e.message||'Não foi possível enviar.')}finally{busy=false;b.disabled=false}}}
  function items(parent,lines,depth=0){if(depth>8)return;const ul=el('ul');for(const line of (Array.isArray(lines)?lines:[]).slice(0,200)){const li=el('li',`${line.amount??1} × ${line.name||'Item'} · ${money(line.total_price)}`);if(line.remark)li.append(el('p',line.remark));if(line.sub_item_list?.length)items(li,line.sub_item_list,depth+1);ul.append(li)}parent.append(ul)}
  function print(order){const d=order.detalhe??{},dialog=el('dialog'),article=el('article');article.append(el('h2','99Food · PEDIDO DE TESTE'),el('p','#'+(order.order_index??'')+' · '+order.order_id),el('p',stateLabel(order)),el('p',d.receive_address?.name||'Cliente'),el('p',d.receive_address?.poi_address||''));items(article,d.order_items);article.append(el('p','Total informado pela 99Food: '+money(d.price?.real_pay_price)));dialog.append(article);button(dialog,'Imprimir',()=>{const frame=document.createElement('iframe');frame.hidden=true;dialog.append(frame);const doc=frame.contentDocument;doc.body.replaceChildren(article.cloneNode(true));const style=doc.createElement('style');style.textContent='body{color:#000;background:#fff;font:15px monospace}h2{font-size:18px}';doc.head.append(style);frame.contentWindow.focus();frame.contentWindow.print();frame.remove()});button(dialog,'Fechar',()=>{dialog.close();dialog.remove()});document.body.append(dialog);dialog.showModal()}
  async function refresh(){
-  const received=await list();if(!active())return;orders.replaceChildren();
-  if(invoke){try{const s=await call('estado');if(active())health.textContent=(s.token_valido?'Autenticação válida':'Autenticação aguardando renovação')+(s.token_expira_em?' · validade '+formatter.format(new Date(s.token_expira_em)):'')+(s.erro?' · '+s.erro:'')}catch{if(active())health.textContent='Não foi possível consultar a autenticação.'}}
+  const received=await list();if(!active())return;if(sharedGrid){for(const node of managed)node.remove();managed=[]}else orders.replaceChildren();
   const missing=received.filter(unavailable);diagnostics.hidden=!missing.length;diagnosticTitle.textContent='Registros sem consulta na 99Food ('+missing.length+')';diagnosticBody.replaceChildren(el('p','Estes registros retornaram código 12004 e ficam separados dos pedidos em aberto. O histórico foi preservado.','gs-meta'));for(const o of missing)diagnosticBody.append(el('p','Pedido #'+(o.order_index??'—')+' · ID '+o.order_id+' · '+formatter.format(new Date(o.recebido_em))+' · Não disponível para consulta na 99Food.','gs-meta'));
-  const visible=received.filter(o=>!unavailable(o)).filter(o=>closed?(o.status_99food===600||o.status_99food>=900):!(o.status_99food===600||o.status_99food>=900));
-  if(!visible.length)orders.append(el('p',closed?'Nenhum pedido de teste encerrado.':'Nenhum pedido de teste em aberto.','gs-meta'));
+  const visible=received.filter(o=>!unavailable(o)&&(!day||new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(Number(o.detalhe?.create_time)*1000||o.recebido_em))===day)).filter(o=>closed?(o.status_99food===600||o.status_99food>=900):!(o.status_99food===600||o.status_99food>=900));
+  onCount(visible.length);
+  if(!sharedGrid&&!visible.length)orders.append(el('p',closed?'Nenhum pedido de teste encerrado.':'Nenhum pedido de teste em aberto.','gs-meta'));
   for(const order of visible){
    const d=order.detalhe??{},card=el('article','','gs-card gs-order gs-order--99food'),actions=el('div','','gs-actions'),s=order.status_99food,pickup=d.fulfillment_mode===1||d.delivery_type===0,self=d.delivery_type===2;
-   card.append(el('div','99Food · Teste','gs-order-channel gs-order-channel--99food'),el('h4','Pedido #'+(order.order_index??'—')),el('p','ID 99Food: '+order.order_id,'gs-meta'),el('p',formatter.format(new Date(order.recebido_em)),'gs-meta'),el('strong',stateLabel(order)),el('p',pickup?'Retirada pelo cliente':self?'Entrega da loja':d.delivery_type===1?'Entrega da 99Food':'Modalidade aguardando consulta','gs-meta'));
+   card.append(el('div','99Food','gs-order-channel gs-order-channel--99food'),el('h4','Pedido #'+(order.order_index??'—')),el('p','ID 99Food: '+order.order_id,'gs-meta'),el('p',formatter.format(new Date(order.recebido_em)),'gs-meta'),el('strong',stateLabel(order)),el('p',pickup?'Retirada pelo cliente':self?'Entrega da loja':d.delivery_type===1?'Entrega da 99Food':'Modalidade aguardando consulta','gs-meta'));
    if(order.pronto)card.append(el('p','Pronto · confirmado pelo evento da 99Food'));
    if(s===100){const seconds=Math.max(0,300-Math.floor((Date.now()-(Number(d.create_time)*1000||Date.parse(order.recebido_em)))/1000));card.append(el('p',seconds?'Confirme em até '+Math.ceil(seconds/60)+' minuto(s).':'Prazo de confirmação pode ter encerrado; consulte a 99Food.','gs-meta'))}
    if(d.receive_address){const a=d.receive_address;card.append(el('p',a.name||[a.first_name,a.last_name].filter(Boolean).join(' ')||'Cliente'),el('p',a.virtual_phone_number||a.phone||''),el('p',[a.poi_address||a['formatted Address'],a.house_number,a.complement,a.reference].filter(Boolean).join(' · ')))}
@@ -53,12 +55,11 @@ export async function mountSandbox99Food(root,{list,accept,invoke,current,closed
    button(actions,'Imprimir conferência',()=>print(order));card.append(actions);
    const history=el('details');history.append(el('summary','Histórico da integração'));
    for(const c of order.comandos||[])history.append(el('p',`${c.acao}: ${c.estado}${c.erro?' · '+c.erro:''}${c.request_id?' · protocolo '+c.request_id:''}`));
-   for(const e of order.eventos||[])history.append(el('p',e.tipo+' · '+formatter.format(new Date(e.recebido_em))));card.append(history);orders.append(card);
+   for(const e of order.eventos||[])history.append(el('p',e.tipo+' · '+formatter.format(new Date(e.recebido_em))));card.append(history);orders.append(card);managed.push(card);
   }
  }
- button(toolbar,'Atualizar 99Food',async()=>{if(invoke){const result=await call('sincronizar');if(result.erro)message.textContent=result.erro}await refresh()});
- try{await refresh()}catch(e){if(active())message.textContent=e.message||'Não foi possível carregar os pedidos de teste.'}
+ try{await refresh()}catch(e){if(active())notify(e.message||'Não foi possível carregar os pedidos da 99Food.')}
  // Atualiza somente a lista local; não consulta a API da 99Food a cada tela.
- async function poll(){if(!active())return;if(!busy&&!document.hidden&&!section.querySelector('details[open]'))try{await refresh()}catch{}if(active())setTimeout(poll,15000)}
+ async function poll(){if(!active())return;if(!busy&&!document.hidden&&!(sharedGrid?root:section).querySelector('details[open]'))try{await refresh()}catch{}if(active())setTimeout(poll,15000)}
  setTimeout(poll,15000);
 }
