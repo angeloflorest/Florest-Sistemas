@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#0b2a4d" id="cor-navegador">
   <title>Cardápio digital</title>
-  <link rel="stylesheet" href="./bar-cardapio.css?v=20261122-visual">
+  <link rel="stylesheet" href="./bar-cardapio.css?v=20261126-nova-ponte">
 </head>
 <body>
   <a class="skip-link" href="#produtos">Ir para os produtos</a>
@@ -21,6 +21,7 @@
         <span class="hero-divider" aria-hidden="true"></span>
         <p id="descricao"></p>
         <p class="hero-invitation">Escolha seus favoritos. A gente cuida do sabor.</p>
+        <button type="button" id="nova-ponte-ver" hidden>Ver cardápio <span aria-hidden="true">↓</span></button>
         <div class="service-options" aria-label="Modalidades de pedido"><span>Entrega</span><i aria-hidden="true"></i><span>Retirada</span></div>
       </div>
     </header>
@@ -33,6 +34,8 @@
     <p id="erro" role="alert"></p>
     <section class="menu-section" aria-labelledby="titulo-cardapio">
       <div class="section-heading"><div><small class="eyebrow">ESCOLHA E APROVEITE</small><h2 id="titulo-cardapio">Nosso cardápio</h2></div><span id="resumo-produtos" aria-live="polite"></span></div>
+      <div id="nova-ponte-destaques" hidden aria-label="Destaques do Nova Ponte"></div>
+      <p id="nova-ponte-fotos" class="foto-nota" hidden>Fotos ilustrativas.</p>
       <main id="produtos"></main>
     </section>
     <nav id="paginas" aria-label="Páginas de produtos"></nav>
@@ -40,6 +43,6 @@
     <div class="bottom"><div class="bottom-inner"><span class="cart-hint">Seu próximo pedido começa aqui.</span><button id="carrinho">Ver pedido · R$ 0,00</button></div></div>
   </div>
   <dialog id="modal"><button id="fechar" aria-label="Fechar">Voltar ao cardápio</button><div id="conteudo"></div></dialog>
-  <script type="module" src="./bar-cardapio.js?v=20261122-visual"></script>
+  <script type="module" src="./bar-cardapio.js?v=20261126-nova-ponte"></script>
 </body>
 </html>

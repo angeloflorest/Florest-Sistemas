@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id),token=new URLSearchParams(location.hash.slice(1)).get('loja')||'',storage='florest-bar-menu:'+token,endpoint='https://etulhyboogqhyyevpnlo.supabase.co/functions/v1/bar-cardapio';
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;},money=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const novaPonteDigest='a0c20cd97e867886f2939a055ab06cda0631be85704fd6d9a395f550f3fe3118';
 let cart=[],pending=null,receipt=null,busy=false,page=0,seq=0,timer;
 try{const saved=JSON.parse(localStorage.getItem(storage)||'{}');cart=Array.isArray(saved.cart)?saved.cart:[];pending=saved.pending||null;receipt=saved.receipt||null;}catch{}
 function save(){localStorage.setItem(storage,JSON.stringify({cart,pending,receipt}));}
@@ -16,8 +17,43 @@ function productPhoto(product,className='picture',eager=false){
  const src=imageSource(product.foto);if(!src)return el('div',product.nome.slice(0,2).toUpperCase(),className+' picture-placeholder');
  const img=el('img',null,className);img.src=src;img.alt=product.nome;img.loading=eager?'eager':'lazy';img.decoding='async';img.onerror=()=>img.replaceWith(el('div',product.nome.slice(0,2).toUpperCase(),className+' picture-placeholder'));return img;
 }
+async function applyNovaPonteTheme(){
+ if(!globalThis.crypto?.subtle)return;
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
+ const hex=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+ if(hex!==novaPonteDigest)return;
+ document.body.classList.add('nova-ponte');
+ const scrollToMenu=()=>document.querySelector('.menu-section').scrollIntoView({block:'start'});
+ const heroButton=$('nova-ponte-ver');
+ heroButton.hidden=false;
+ heroButton.onclick=scrollToMenu;
+ const highlights=$('nova-ponte-destaques');
+ for(const [name,query,image] of [
+  ['Jantinha com espeto','JANTINHA','jantinha'],
+  ['Picanha na chapa','PICANHA','picanha'],
+  ['Torresmo com mandioca','TORRESMO','torresmo'],
+ ]){
+  const highlight=button(name,async()=>{
+   $('busca').value=query;
+   page=0;
+   await render();
+   $('produtos').scrollIntoView({block:'start'});
+  });
+  const photo=el('img');
+  photo.src='./assets/nova-ponte/'+image+'.webp';
+  photo.alt='';
+  photo.loading='lazy';
+  highlight.prepend(photo);
+  highlights.append(highlight);
+ }
+ highlights.hidden=false;
+ $('nova-ponte-fotos').hidden=false;
+}
 function storeIdentity(data){
- $('loja').textContent=data.nome;document.title=data.nome+' · Cardápio';$('descricao').textContent=data.descricao||'';
+ const themed=document.body.classList.contains('nova-ponte');
+ $('loja').textContent=themed?'Restaurante Nova Ponte':data.nome;
+ document.title=data.nome+' · Cardápio';
+ $('descricao').textContent=themed&&data.descricao==='ABERTO DE TERÇA A DOMINGO, PEDIU CHEGOU'?'Aberto de terça a domingo. Pediu, chegou.':data.descricao||'';
  const initials=String(data.nome||'').split(/\s+/).filter(w=>w&&!['RESTAURANTE','BAR','DA','DE','DO','DOS','DAS','E'].includes(w.toUpperCase())).slice(0,2).map(w=>w[0]).join('').toUpperCase();
  $('marca-loja').textContent=initials||String(data.nome||'').slice(0,2).toUpperCase();
  const logo=$('logo-loja'),source=imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
@@ -43,6 +79,6 @@ function checkout(){const body=modal(pending?'Recuperar envio do pedido':'Seu pe
 async function send(){if(busy||!pending)return;busy=true;const previous=pending.enviado;pending.enviado=true;try{save();for(const i of $('conteudo').querySelectorAll('button,input,textarea,select'))i.disabled=true;const result=await api('confirmar',pending.dados,pending.chave);receipt={...result,chave:pending.chave};pending=null;cart=[];update();const body=modal('Pedido '+result.numero+' enviado!');body.append(el('p','Seu pedido chegou ao estabelecimento. O pagamento será confirmado pelo caixa.'),el('strong','Total: '+money(result.total)),button('Acompanhar pedido',tracking));}catch(e){if(e.definitive&&!previous){pending=null;save();}checkout();error(e);}finally{busy=false;for(const i of $('conteudo').querySelectorAll('button,input,textarea,select'))i.disabled=false;}}
 async function tracking(){if(!receipt)return;const r=await api('acompanhar',{segredo:receipt.segredo},receipt.chave),body=modal('Pedido '+r.numero),labels={recebido:'Recebido pelo estabelecimento',preparando:'Em preparo',pronto:'Pronto',saiu:'Saiu para entrega',finalizado:'Pedido finalizado',cancelado:'Pedido recusado pelo estabelecimento'};body.append(el('p',labels[r.estado]||'Aguardando atualização'),el('p','Total: '+money(r.total)),button('Atualizar andamento',tracking));}
 $('fechar').onclick=()=>$('modal').close();$('carrinho').onclick=()=>{try{checkout();}catch(e){error(e);}};$('acompanhar').onclick=()=>tracking().catch(error);$('busca').oninput=()=>{seq++;clearTimeout(timer);page=0;timer=setTimeout(()=>render().catch(error),300);};
-try{if(!/^[a-f0-9]{64}$/.test(token))throw Error('Use o link ou QR Code fornecido pela loja.');update();await render();}catch(e){$('loja').textContent='Cardápio indisponível';error(e);}
+try{if(!/^[a-f0-9]{64}$/.test(token))throw Error('Use o link ou QR Code fornecido pela loja.');update();await applyNovaPonteTheme();await render();}catch(e){$('loja').textContent='Cardápio indisponível';error(e);}
 
 document.querySelector('.skip-link').onclick=e=>{e.preventDefault();$('produtos').tabIndex=-1;$('produtos').focus();$('produtos').scrollIntoView({block:'start'});};
