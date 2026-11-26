@@ -90,30 +90,39 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
   --gold:#ac670c;
   --line:#c9d9f0;
   --surface:#fff;
-  background:radial-gradient(circle at 10% 43%,#d9e9ff 0%,transparent 35%),var(--canvas);
+  isolation:isolate;
+  background:var(--canvas);
 }
-/* A placa é a assinatura visual da capa. */
+.nova-ponte::before{
+  content:"";
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(115deg,#eaf2ffc7 8%,#deebffb3 63%,#eaf2ff9e 100%),
+    url('./assets/nova-ponte/fundo-bar.webp') center/cover no-repeat;
+}
+/* Uma cena contínua, com a placa dentro do ambiente do restaurante. */
 .nova-ponte .menu-hero {
-  padding:19px 24px 23px;
+  display:grid;
+  align-items:end;
+  isolation:isolate;
+  min-height:clamp(330px,35vw,440px);
+  padding:20px 20px 19px;
   text-align:center;
-  background:radial-gradient(ellipse at 50% 18%,#203f6c 0%,#12274b 49%,#0a1933 100%);
+  background:radial-gradient(ellipse at 45% 10%,#23436e,#0a1933 78%);
   border-bottom:3px solid #deb477;
 }
-.nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{
-  top:50%;left:auto;right:auto;width:clamp(128px,22vw,315px);height:clamp(150px,19vw,250px);
-  transform:translateY(-50%);border-radius:28px;border:1px solid #e3bf8170;
-  background-position:center;background-size:cover;
-}
-.nova-ponte .menu-hero::before{
-  right:calc(50% + 202px);
-  background-image:linear-gradient(120deg,#0b204638,transparent 76%),url('./assets/nova-ponte/brasa.webp');
-}
+.nova-ponte .menu-hero::before{display:none}
 .nova-ponte .menu-hero::after{
-  left:calc(50% + 202px);
-  background-image:linear-gradient(230deg,#0b204638,transparent 76%),url('./assets/nova-ponte/torresmo.webp');
+  inset:0;width:auto;height:auto;border:0;border-radius:0;
+  background:linear-gradient(180deg,transparent 57%,#0b193376 76%,#0b1933 100%);
+  z-index:-1;
 }
-.nova-ponte .hero-brand{width:100%;max-width:710px}
-.nova-ponte .store-logo{width:min(100%,342px);height:184px;max-height:none;object-fit:contain;margin:0 auto 12px;border-radius:16px}
+.nova-ponte .hero-brand{position:static;width:100%;max-width:710px}
+.nova-ponte .store-logo{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:-2;
+  width:min(100%,960px);height:100%;max-height:none;
+  object-fit:cover;object-position:center top;margin:0;
+  mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+}
 .nova-ponte .store-monogram,.nova-ponte .menu-hero .eyebrow,.nova-ponte .hero-divider{display:none}
 .nova-ponte .menu-hero h1{margin:6px auto 10px;font:600 clamp(30px,5vw,48px)/1.05 Georgia,serif;color:#fff}
 .nova-ponte .hero-brand:has(.store-logo:not([hidden])) h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -181,12 +190,11 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 @media(max-width:1000px){
   .nova-ponte main{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-@media(max-width:760px){
-  .nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{display:none}
-}
 @media(max-width:640px){
-  .nova-ponte .menu-hero{padding:12px 15px 17px}
-  .nova-ponte .store-logo{width:min(100%,285px);height:150px;margin-bottom:9px}
+  .nova-ponte .menu-hero{min-height:0;padding:clamp(198px,65vw,335px) 15px 15px}
+  .nova-ponte .store-logo{height:auto;aspect-ratio:3/2;object-fit:contain;mask-image:none}
+  .nova-ponte .menu-hero::after{background:linear-gradient(180deg,transparent 55%,#0b1933 84%)}
+  .nova-ponte::before{background-position:65% center}
   .nova-ponte #descricao{font-size:12px}
   .nova-ponte #nova-ponte-ver{margin-right:10px}
   .nova-ponte .service-options{font-size:9px;gap:8px}

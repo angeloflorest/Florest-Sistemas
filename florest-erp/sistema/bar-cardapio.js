@@ -56,7 +56,7 @@ function storeIdentity(data){
  $('descricao').textContent=themed&&data.descricao==='ABERTO DE TERÇA A DOMINGO, PEDIU CHEGOU'?'Aberto de terça a domingo. Pediu, chegou.':data.descricao||'';
  const initials=String(data.nome||'').split(/\s+/).filter(w=>w&&!['RESTAURANTE','BAR','DA','DE','DO','DOS','DAS','E'].includes(w.toUpperCase())).slice(0,2).map(w=>w[0]).join('').toUpperCase();
  $('marca-loja').textContent=initials||String(data.nome||'').slice(0,2).toUpperCase();
- const logo=$('logo-loja'),source=themed?'./assets/nova-ponte/placa.webp':imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
+ const logo=$('logo-loja'),source=themed?'./assets/nova-ponte/mesa-nova-ponte.webp':imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
  if(source){logo.alt=themed?'':'Logo de '+data.nome;logo.src=source;logo.onerror=()=>{logo.hidden=true;$('marca-loja').hidden=false;};}else logo.removeAttribute('src');
  if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=themed?'#1745a3':data.cor;}
  if(/^#[a-f0-9]{6}$/i.test(data.fundo||''))document.documentElement.style.setProperty('--paper',data.fundo);
