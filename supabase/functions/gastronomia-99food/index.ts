@@ -33,7 +33,10 @@ Deno.serve(async(req:Request)=>{
    const id=String(data.data?.order_id??data.data?.order_info?.order_id??'');
    if(data.type.startsWith('order')&&!validId(id))return reply({errno:1,errmsg:'Pedido inválido.'},400);
    if(data.data?.order_info?.order_id!==undefined&&String(data.data.order_info.order_id)!==id)return reply({errno:1,errmsg:'Pedido divergente.'},400);
-   await db('gastronomia_99food_operacao_worker',{p_empresa:c.empresa_id,p_acao:'evento',p_dados:{id:createHash('sha256').update(bytes).digest('hex'),order_id:validId(id)?id:'',payload:data}},'Bearer '+key,3000);return reply({errno:0,errmsg:'ok'});
+   await db('gastronomia_99food_operacao_worker',{p_empresa:c.empresa_id,p_acao:'evento',p_dados:{id:createHash('sha256').update(bytes).digest('hex'),order_id:validId(id)?id:'',payload:data}},'Bearer '+key,3000);
+   // ACK depende somente da persistência; a conciliação segue em segundo plano no Edge Runtime.
+   const runtime=(globalThis as any).EdgeRuntime;if(runtime?.waitUntil)runtime.waitUntil(sync(c.empresa_id).catch(()=>{}));
+   return reply({errno:0,errmsg:'ok'});
   }
   if(data.acao==='worker'){
    const allowed=await db('gastronomia_99food_sandbox_worker',{p_acao:'validar_cron',p_dados:{momento:req.headers.get('x-99food-momento')??'',assinatura:req.headers.get('x-99food-assinatura')??'',corpo:raw}});
