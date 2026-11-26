@@ -3721,6 +3721,7 @@
           <p class="cr-nota">Marque os títulos que o cliente está pagando agora. Os demais continuam em aberto.</p>
           <div class="cr-barra">
             <div class="cr-barra-info"><b id="cr-sel-qtd">Nenhum título selecionado</b><span class="total" id="cr-sel-total">R$ 0,00</span></div>
+            <button type="button" class="btn-secondary hidden" id="btn-cr-fiscal" disabled>Preparar no Fiscal</button>
             <button type="button" class="btn-accent" id="btn-cr-receber" disabled>RECEBER</button>
           </div>
         </div>
@@ -4026,6 +4027,7 @@
           <div id="nfe55-emitente" aria-live="polite"></div>
         </div>
         <div class="subsection">
+          <div id="nfe55-fila"></div>
           <h3>Selecionar venda existente</h3>
           <form id="nfe55-form" class="fpq-grid" autocomplete="off">
             <label>Número da venda<input id="nfe55-numero" type="text" inputmode="numeric" maxlength="15" placeholder="Número da venda"></label>
@@ -10087,7 +10089,7 @@ const CARREGADORES_VIEW = {
   'fornecedores': () => carregarFornecedores(1),
   'notas-entrada': () => carregarNotasEntrada(),
   'financeiro': () => finAbrir(),
-  'fiscal': () => { fpqResetar(); ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'nfe55') nfe55Abrir(); },
+  'fiscal': (filaNfe55) => { fpqResetar(); if(filaNfe55){ fcpTrocarAba('nfe55',filaNfe55); return; } ctgCarregarStatus(true); ctgRegularizarAutomatico('abertura'); if(typeof FCP !== 'undefined' && FCP.aba === 'corrigir') fcpAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'contingencia') ctgAbrirAba(); else if(typeof FCP !== 'undefined' && FCP.aba === 'xml-contador') xmlcAbrir(); else if(typeof FCP !== 'undefined' && FCP.aba === 'nfe55') nfe55Abrir(); },
   'relatorios': () => prepararCentralRelatorios(),
   'configuracoes': () => { carregarConfiguracoesFiscais(); carregarOpcoesOperacionais(); carregarImpressoras(); paCarregar(); },
   'usuarios': () => carregarUsuarios(),
@@ -10102,7 +10104,7 @@ const CARREGADORES_VIEW = {
   'bar': () => carregarBarView(),
 };
 
-function abrirView(view){
+function abrirView(view, filaNfe55 = null){
   // Use a chave de permissão definida em MODULOS_ACESSO, não o nome da view.
   // Ex.: view 'bar' exige 'bar_visualizar' e também módulo comercial 'bar' ativo.
   const cfgAcessoView = MODULOS_ACESSO.find(m => m.view === view);
@@ -10115,7 +10117,7 @@ function abrirView(view){
   $('aviso-sem-acesso').classList.add('hidden');
   document.querySelectorAll('.nav-item.enabled').forEach(i => i.classList.toggle('active', i.dataset.view === view));
   Object.keys(CARREGADORES_VIEW).forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
-  CARREGADORES_VIEW[view]();
+  CARREGADORES_VIEW[view](filaNfe55);
   fecharMenuMobile();
 }
 
@@ -10731,7 +10733,7 @@ function fcpErroCampo(id, campo){
 }
 
 // ---------- abas ----------
-function fcpTrocarAba(aba){
+function fcpTrocarAba(aba, filaNfe55 = null){
   FCP.aba = aba;
   $('fiscal-aba-docs').classList.toggle('hidden', aba !== 'docs');
   $('fiscal-aba-corrigir').classList.toggle('hidden', aba !== 'corrigir');
@@ -10747,7 +10749,7 @@ function fcpTrocarAba(aba){
   if(aba === 'corrigir') fcpAbrir();
   if(aba === 'contingencia') ctgAbrirAba();
   if(aba === 'xml-contador') xmlcAbrir();
-  if(aba === 'nfe55') nfe55Abrir();
+  if(aba === 'nfe55') nfe55Abrir(filaNfe55);
   else nfe55Painel?.limpar();
 }
 async function fcpAbrir(){
@@ -15775,6 +15777,7 @@ let crTotalRegistros = 0;
 const crSel = new Set();             // titulo_id selecionados
 const crChaves = new Map();          // títulos e formas -> chave de idempotência da mesma operação
 let crOcupado = false;
+let crFiscalValidando = false;
 let crSeq = 0, crResumoSeq = 0, crTitSeq = 0;
 let crReceber = null;                // seleção, saldos, caixa de destino, formas e tentativa idempotente
 let crCancelar = null;               // titulo em cancelamento
@@ -16013,6 +16016,9 @@ function crAtualizarBarra(){
   $('cr-sel-qtd').textContent = n === 0 ? 'Nenhum título selecionado' : n === 1 ? '1 título selecionado' : `${n} títulos selecionados`;
   $('cr-sel-total').textContent = brlCent(c);
   const b = $('btn-cr-receber');
+  const fiscal = $('btn-cr-fiscal');
+  fiscal.classList.toggle('hidden', !podeAcessar('fiscal'));
+  fiscal.disabled = !n || crOcupado || crFiscalValidando;
   let pendente = false;
   try { pendente = !!crLerTentativa(); } catch(e){ pendente = true; }
   $('btn-cr-recuperar').classList.toggle('hidden', !pendente);
@@ -16036,6 +16042,32 @@ function crAlternar(id, marcar){
 }
 
 function crFecharMenus(){ document.querySelectorAll('.cr-menu').forEach(m => m.remove()); }
+
+$('btn-cr-fiscal').addEventListener('click', async ()=>{
+  if(crOcupado || crFiscalValidando || viewAtual!=='financeiro' || !crClienteAtual || !podeAcessar('fiscal')) return;
+  const cliente=crClienteAtual.cliente_id, sequencia=crSeq, carregamento=crTitSeq;
+  const selecionados=new Set(crSel);
+  const ids=[...new Set(crTitulos.filter(t=>crSel.has(t.titulo_id)&&t.cliente_id===cliente&&t.venda_id&&!t.venda_cancelada).map(t=>t.venda_id))];
+  if(!ids.length){ crAviso('cr-msg-det','Selecione títulos de vendas válidas.'); return; }
+  crFiscalValidando=true;
+  crAtualizarBarra();
+  try {
+    const {data}=await supabase.auth.getSession();
+    const usuario=data?.session?.user?.id, empresa=await obterEmpresaId();
+    if(!usuario || !empresa) throw Error('Não foi possível validar a sessão fiscal.');
+    const {listarVendasSemEmissao}=await import('./fiscal-nfe55.js?v=20261126-fila-financeiro');
+    const vendas=await listarVendasSemEmissao(supabase,empresa,cliente,ids);
+    const sessao=await supabase.auth.getSession();
+    const empresaAtual=await obterEmpresaId();
+    if(sequencia!==crSeq || carregamento!==crTitSeq || crOcupado ||
+       crSel.size!==selecionados.size || [...selecionados].some(id=>!crSel.has(id)) || viewAtual!=='financeiro' || crClienteAtual?.cliente_id!==cliente ||
+       sessao.data?.session?.user?.id!==usuario || empresaAtual!==empresa) return;
+    if(!vendas.length){ crAviso('cr-msg-det','Nenhuma das vendas selecionadas está sem registro fiscal e disponível para conferência.'); return; }
+    abrirView('fiscal',{empresa,usuario,cliente,vendas,ignoradas:ids.length-vendas.length});
+  } catch(e) {
+    if(sequencia===crSeq) crAviso('cr-msg-det','Não foi possível preparar a seleção no Fiscal. Confira o acesso e tente novamente.');
+  } finally { crFiscalValidando=false; crAtualizarBarra(); }
+});
 
 // ---- receber títulos selecionados ----
 function crAssinatura(ids){ return ids.slice().sort().join(','); }
@@ -24132,17 +24164,17 @@ async function nfe55ConfiguracaoAbrir(){
 }
 
 // Código carregado só ao abrir a nova aba; uma falha não impede o ERP de iniciar.
-async function nfe55Abrir(){
+async function nfe55Abrir(filaNfe55 = null){
   if(FCP.aba !== 'nfe55' || !podeAcessar('fiscal')) return;
   try {
     if(!nfe55Painel){
-      if(!nfe55Carregamento) nfe55Carregamento = import('./fiscal-nfe55.js').then(({ instalarAbaNfe55 }) => {
+      if(!nfe55Carregamento) nfe55Carregamento = import('./fiscal-nfe55.js?v=20261126-fila-financeiro').then(({ instalarAbaNfe55 }) => {
         nfe55Painel = instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcessar, formatarReais });
         return nfe55Painel;
       }).catch(error => { nfe55Carregamento = null; throw error; });
       await nfe55Carregamento;
     }
-    if(FCP.aba === 'nfe55' && podeAcessar('fiscal')) await nfe55Painel.abrir();
+    if(FCP.aba === 'nfe55' && podeAcessar('fiscal')) await nfe55Painel.abrir(filaNfe55);
   } catch(error){
     if(FCP.aba === 'nfe55') $('nfe55-msg').textContent = 'Não foi possível abrir a conferência de NF-e. As outras funções do ERP continuam disponíveis.';
   }

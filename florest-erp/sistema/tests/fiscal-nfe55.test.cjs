@@ -36,7 +36,7 @@ test('navegador: nova aba consulta somente a empresa, mostra a venda, impede tra
     if(table==='contadores_fiscais')return {ultimo_numero:99};
     if(table==='documentos_fiscais')return window.state.documentos;
     if(table==='itens_venda')return [{empresa_id:window.state.empresa,quantidade:2,preco_unitario:10,subtotal:20,produtos:{nome:'Produto cadastrado',ncm:'12345678',cfop:'5102',tipo_fiscal:'produto'}}];
-    const v={id:'venda-a',empresa_id:window.state.empresa,numero_venda:123,total:20,criado_em:'2026-11-06T12:00:00Z',forma_pagamento:'Pix',clientes:{nome:'Cliente cadastrado',cpf:'00000000000'}};
+    const v={id:'venda-a',empresa_id:window.state.empresa,numero_venda:123,total:20,criado_em:'2026-11-06T12:00:00Z',forma_pagamento:'Pix',cliente_id:'cliente-a',clientes:{nome:'Cliente cadastrado',cpf:'00000000000'}};
     return filters.some(([key])=>key==='id')?v:[v];
    };
    const client={auth:{getSession:async()=>({data:{session:{user:{id:window.state.usuario}}}}),onAuthStateChange:fn=>{window.authChanged=fn;return{data:{subscription:{unsubscribe(){}}}};}},from(table){const filters=[];let columns;
@@ -60,6 +60,11 @@ test('navegador: nova aba consulta somente a empresa, mostra a venda, impede tra
   assert.equal(await page.locator('#nfe55-transmitir').isDisabled(),true);
   await page.evaluate(()=>window.state.documentos=[{empresa_id:window.state.empresa,tipo_documento:'nfce',status:'autorizada',numero:'15'}]);
   await page.getByRole('button',{name:'Conferir para NF-e'}).click();await page.waitForFunction(()=>document.getElementById('nfe55-msg').textContent.includes('NFC-e'));
+  await page.evaluate(async()=>{window.state.documentos=[];await window.controller.abrir({empresa:'empresa-a',usuario:'user-a',cliente:'cliente-a',vendas:[{id:'venda-a',numero_venda:123,total:20}],ignoradas:1});});
+  await page.getByRole('button',{name:'Venda #123 · R$ 20.00'}).click();
+  await page.waitForFunction(()=>document.getElementById('nfe55-detalhes').textContent.includes('Produto cadastrado'));
+  assert.equal(await page.locator('#nfe55-transmitir').isDisabled(),true);
+  assert.match(await page.locator('#nfe55-fila').textContent(),/1 venda\(s\) ficaram fora/);
   await page.evaluate(()=>{window.state.hold=true;window.state.documentos=[];});await page.fill('#nfe55-numero','123');await page.click('#nfe55-pesquisar');await page.waitForFunction(()=>typeof window.release==='function');
   await page.evaluate(()=>{window.state.usuario='user-b';window.state.empresa='empresa-b';window.authChanged();window.release();});
   await page.waitForTimeout(50);assert.equal(await page.locator('#nfe55-resultados').textContent(),'');assert.equal(await page.locator('#nfe55-detalhes').textContent(),'');
@@ -133,4 +138,19 @@ test('navegador: conferência → confirmação produção → pendência → co
   assert.equal(await page.evaluate(()=>window.calls.filter(c=>['calcular','lista'].includes(c.body.acao)).length),0);
   assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.body.acao==='emitir').length),1);assert.deepEqual(errors,[]);
  }finally{await browser.close();}
+});
+
+test('vendas do Financeiro entram na conferência somente sem NFC-e, NF-e ou tentativa',async()=>{
+ const {listarVendasSemEmissao}=await import(moduleUrl);
+ const tables={
+  vendas:[{id:'valid-a',empresa_id:'empresa-a',cliente_id:'cliente-a',numero_venda:250,cancelada_em:null},{id:'nfce',empresa_id:'empresa-a',cliente_id:'cliente-a',numero_venda:290,cancelada_em:null},{id:'tentativa',empresa_id:'empresa-a',cliente_id:'cliente-a',numero_venda:678,cancelada_em:null},{id:'outro',empresa_id:'empresa-b',cliente_id:'cliente-a',numero_venda:780,cancelada_em:null},{id:'cancelada',empresa_id:'empresa-a',cliente_id:'cliente-a',numero_venda:786,cancelada_em:'2026-11-26'}],
+  documentos_fiscais:[{empresa_id:'empresa-a',venda_id:'nfce',tipo_documento:'nfce'}],
+  fiscal_nfe55_emissoes:[{empresa_id:'empresa-a',venda_id:'tentativa'}],
+ };
+ const client={from(table){
+  const filters=[];
+  return {select(){return this;},eq(k,v){filters.push(r=>r[k]===v);return this;},is(k,v){return this.eq(k,v);},in(k,v){filters.push(r=>v.includes(r[k]));return this;},then(resolve){return Promise.resolve({data:tables[table].filter(r=>filters.every(fn=>fn(r)))}).then(resolve);}};
+ }};
+ const candidates=await listarVendasSemEmissao(client,'empresa-a','cliente-a',['valid-a','valid-a','nfce','tentativa','outro','cancelada']);
+ assert.deepEqual(candidates.map(r=>r.id),['valid-a']);
 });

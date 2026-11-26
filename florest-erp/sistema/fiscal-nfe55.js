@@ -14,6 +14,23 @@ export function impedimentoDocumentoNfe55(venda, documentos) {
   if (!conflito) return '';
   return `Esta venda possui ${conflito.tipo_documento === 'nfce' ? 'NFC-e' : 'NF-e'} com situação ${conflito.status || 'não confirmada'}. A emissão de outro documento exige análise fiscal; não será feita automaticamente.`;
 }
+export async function listarVendasSemEmissao(supabase, empresa, cliente, ids) {
+  const vendas = [];
+  const unicos = [...new Set(ids)];
+  for (let i = 0; i < unicos.length; i += 75) {
+    const lote = unicos.slice(i, i + 75);
+    const [origem, docs, emissoes] = await Promise.all([
+      supabase.from('vendas').select('id,numero_venda,total').eq('empresa_id', empresa).eq('cliente_id', cliente).is('cancelada_em', null).in('id', lote),
+      supabase.from('documentos_fiscais').select('venda_id').eq('empresa_id', empresa).in('tipo_documento', ['nfce','nfe']).in('venda_id', lote),
+      supabase.from('fiscal_nfe55_emissoes').select('venda_id').eq('empresa_id', empresa).in('venda_id', lote),
+    ]);
+    if (origem.error || docs.error || emissoes.error) throw Error('Não foi possível verificar os documentos fiscais das vendas selecionadas.');
+    const bloqueadas = new Set([...docs.data, ...emissoes.data].map(d => d.venda_id));
+    vendas.push(...origem.data.filter(v => !bloqueadas.has(v.id)));
+  }
+  return vendas.sort((a,b) => Number(a.numero_venda)-Number(b.numero_venda));
+}
+
 export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcessar, formatarReais }) {
   const $ = id => document.getElementById(id);
   let geracao = 0, selecionada = null, ocupada = false, serieEmpresa = '';
@@ -33,7 +50,7 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
   function limpar() {
     geracao++; selecionada=null;serieEmpresa='';$('nfe55-serie').value='';
     $('nfe55-resultados').replaceChildren(); $('nfe55-detalhes').replaceChildren();
-    $('nfe55-emitente').replaceChildren(); $('nfe55-msg').textContent='';
+    $('nfe55-emitente').replaceChildren(); $('nfe55-fila')?.replaceChildren(); $('nfe55-msg').textContent='';
     $('nfe55-numero').value=''; $('nfe55-inicio').value=''; $('nfe55-fim').value='';
     ultimaPesquisa={numero:'',inicio:'',fim:'',vendaId:null,empresa:null};
     try{sessionStorage.removeItem(chavePesquisa);sessionStorage.removeItem(chaveRascunho);}catch{}
@@ -73,11 +90,28 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     box.append(texto('p',counter.error ? 'Não foi possível consultar a numeração de NF-e.' : counter.data ? `Último número de NF-e série ${serieEmpresa} emitido ou reservado no ERP: ${counter.data.ultimo_numero}.` : 'Nenhum contador desta série NF-e foi encontrado no ERP.'));
     box.append(texto('p',c.nfe_numeracao_confirmada_em?'Sequência conferida pelo responsável. Nenhum número é reservado ao abrir esta aba.':'Antes de emitir, o responsável deve conferir e salvar a sequência NF-e nas Configurações.'));
   }
-  async function abrir() {
+  async function abrir(fila = null) {
+    $('nfe55-fila')?.replaceChildren();
     const lembrada=recuperarPesquisa()||{...ultimaPesquisa};
     geracao++;selecionada=null;serieEmpresa='';$('nfe55-serie').value='';$('nfe55-resultados').replaceChildren();$('nfe55-detalhes').replaceChildren();$('nfe55-emitente').replaceChildren();$('nfe55-msg').textContent='';$('nfe55-transmitir').disabled=true;$('nfe55-pesquisar').disabled=false;
     const req=geracao;
     try { const ctx=await contexto(); await emitente(ctx,req);
+      if (fila) {
+        if (req!==geracao || fila.empresa!==ctx.empresa || fila.usuario!==ctx.usuario) return;
+        const box=$('nfe55-fila');
+        box.append(texto('h4','Vendas selecionadas em Contas a Receber'));
+        box.append(texto('p', `${fila.vendas.length} venda(s) sem documento ou tentativa fiscal registrada. Confira e emita uma por vez.`));
+        if (fila.ignoradas) box.append(texto('p', `${fila.ignoradas} venda(s) ficaram fora por já ter registro fiscal ou não estar disponível para esta seleção.`));
+        const actions=texto('div','','fpq-botoes');
+        box.append(actions);
+        for (const venda of fila.vendas) {
+          const b=texto('button',`Venda #${venda.numero_venda} · ${money(venda.total)}`,'btn-secondary');
+          b.type='button';
+          b.onclick=()=>selecionar(venda.id,{cliente:fila.cliente});
+          actions.append(b);
+        }
+        return;
+      }
       if(req===geracao && lembrada.empresa===ctx.empresa){
         ultimaPesquisa=lembrada;salvarPesquisa();
         $('nfe55-numero').value=lembrada.numero; $('nfe55-inicio').value=lembrada.inicio; $('nfe55-fim').value=lembrada.fim;
@@ -115,7 +149,8 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
     } catch(e) { if(req===geracao){$('nfe55-resultados').replaceChildren();$('nfe55-msg').textContent=e.message || 'Não foi possível pesquisar.';} }
     finally { if(req===geracao)button.disabled=false; }
   }
-  async function selecionar(id) {
+  async function selecionar(id, origem = null) {
+    if (ocupada) return;
     selecionada=null; const req=++geracao; $('nfe55-detalhes').replaceChildren();$('nfe55-msg').textContent='Carregando conferência da venda…';$('nfe55-transmitir').disabled=true;$('nfe55-pesquisar').disabled=false;
     try {
       const ctx=await contexto();
@@ -129,6 +164,9 @@ export function instalarAbaNfe55({ document, supabase, obterEmpresaId, podeAcess
       if(!await atual(ctx,req))return;
       const v=sale.data, linhas=items.data||[], documentos=docs.data||[];
       if(!v||v.id!==id||v.empresa_id!==ctx.empresa||linhas.some(i=>i.empresa_id!==ctx.empresa)||documentos.some(d=>d.empresa_id!==ctx.empresa))throw Error('Os dados não correspondem à empresa autenticada.');
+      if (origem && (v.cliente_id!==origem.cliente || documentos.some(d=>['nfce','nfe'].includes(d.tipo_documento)))) {
+        throw Error('A venda mudou de cliente ou já tem registro fiscal. Refaça a seleção no Financeiro.');
+      }
       const box=$('nfe55-detalhes'), cliente=v.clientes;
       box.append(texto('h3',`Conferência da venda #${v.numero_venda} · NF-e modelo 55 · Série ${serieEmpresa || 'não configurada'}`));
       box.append(texto('p',`Venda registrada em ${new Date(v.criado_em).toLocaleString('pt-BR')} · ${v.forma_pagamento} · Total ${money(v.total)}`));
