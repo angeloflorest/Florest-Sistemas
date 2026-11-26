@@ -1,9 +1,9 @@
 import {createAPI,FoodError,safeError,commandSpec,achieved} from './core.mjs';
-export async function runWorker({rpc,secret,fetchImpl=fetch,now=Date.now}){
+export async function runWorker({rpc,secret,fetchImpl=fetch,now=Date.now,connection,normalize}){
  const lease=await rpc('reservar');if(!lease)return {ocupado:true};
- const api=createAPI({secret,rpc,fetchImpl,now});let failure;
+ const api=createAPI({secret,rpc,fetchImpl,now,connection});let failure;
  async function reconcile(id){
-  try{const detalhe=await api.order(id);return await rpc('detalhe',{order_id:id,detalhe})}
+  try{const detalhe=await api.order(id);return await rpc('detalhe',{order_id:id,detalhe,...(normalize?{normalizado:normalize(detalhe)}:{})})}
   catch(error){await rpc('pedido_erro',{order_id:id,erro:safeError(error)});throw error}
  }
  try{
@@ -19,7 +19,7 @@ export async function runWorker({rpc,secret,fetchImpl=fetch,now=Date.now}){
    try{
     // Reconciliar sempre antes de repetir um comando cujo resultado pode ser incerto.
     let order=checked.has(cmd.order_id)?await rpc('pedido',{order_id:cmd.order_id}):await reconcile(cmd.order_id);
-    const metadata=await rpc('pedido',{order_id:cmd.order_id});order={...order,solicitacoes:metadata.solicitacoes};
+    const metadata=await rpc('pedido',{order_id:cmd.order_id});order={...order,solicitacoes:metadata.solicitacoes,recebimento_confirmado:metadata.recebimento_confirmado};
     if(achieved(cmd,order))await rpc('comando_resultado',{id:cmd.id,estado:'confirmado'});
     else if(cmd.estado==='pendente'){
      const {path,payload}=commandSpec(cmd,order,now());
@@ -27,8 +27,8 @@ export async function runWorker({rpc,secret,fetchImpl=fetch,now=Date.now}){
      try{
       const result=await api.send(path,cmd.order_id,payload);
       // errno:0 significa operação aceita. O estado do pedido ainda vem de consulta/evento.
-      if(['confirmar','cancelar','retirada'].includes(cmd.acao)&&result.data!==true&&!(cmd.acao==='retirada'&&result.data&&typeof result.data==='object'))throw new FoodError('Resposta da operação não foi conclusiva.',{uncertain:true});
-      const oneShot=['responder_cancelamento','responder_reembolso','entregue'].includes(cmd.acao);
+      if(['confirmar','cancelar','retirada','confirmar_dinheiro'].includes(cmd.acao)&&result.data!==true&&!(cmd.acao==='retirada'&&result.data&&typeof result.data==='object'))throw new FoodError('Resposta da operação não foi conclusiva.',{uncertain:true});
+      const oneShot=['responder_cancelamento','responder_reembolso','entregue','confirmar_dinheiro'].includes(cmd.acao);
       await rpc('comando_resultado',{id:cmd.id,estado:oneShot?'confirmado':'enviado',request_id:result.requestId});
       // Sem uma segunda consulta imediata: evento/cron confirma sem ultrapassar 10 consultas/10s.
      }catch(error){

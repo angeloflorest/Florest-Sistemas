@@ -4,17 +4,17 @@ export const validId=id=>typeof id==='string'&&/^[1-9]\d{0,18}$/.test(id);
 export function parseJSON(raw){return JSON.parse(raw.replace(/"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g,v=>v.startsWith('"')||/[.eE]/.test(v)||Number.isSafeInteger(Number(v))?v:JSON.stringify(v)))}
 export class FoodError extends Error{constructor(message,{code=0,uncertain=false,retryAfter=0}={}){super(message);Object.assign(this,{code,uncertain,retryAfter})}}
 export const terminal=s=>s===600||s>=900;
-export function detailOf(data,id){const d=data?.order_info??data;if(!validId(id)||String(d?.order_id)!==id||String(d?.shop?.shop_id??d?.shop_id)!==binding.shopId||!Number.isInteger(d?.status))throw new FoodError('A 99Food retornou dados de outro pedido ou loja.');return d}
-export function createAPI({secret,rpc,fetchImpl=fetch,now=Date.now}){
+export function detailOf(data,id,shopId=binding.shopId){const d=data?.order_info??data;if(!validId(id)||String(d?.order_id)!==id||String(d?.shop?.shop_id??d?.shop_id)!==shopId||!Number.isInteger(d?.status))throw new FoodError('A 99Food retornou dados de outro pedido ou loja.');return d}
+export function createAPI({secret,rpc,fetchImpl=fetch,now=Date.now,connection=binding}){
  async function request(path,params={},method='GET'){
-  if(!secret)throw new FoodError('Credencial da loja de teste indisponível.');
+  if(!validId(connection.appId)||!validId(connection.shopId)||!connection.appShopId||!secret)throw new FoodError('Credencial da loja de teste indisponível.');
   const url=new URL('https://openapi.99food.com'+path),options={method,redirect:'error',signal:AbortSignal.timeout(5000)};
   if(method==='GET')url.search=new URLSearchParams(params).toString();else{
    options.headers={'Content-Type':'application/json'};
    // Serializar identificadores como inteiros JSON exatos, sem arredondar.
    const {order_id,apply_id,...rest}=params;
-   if(!validId(order_id)||(apply_id!==undefined&&!validId(apply_id)))throw new FoodError('Identificador inválido.');
-   options.body=JSON.stringify(rest).slice(0,-1)+',"order_id":'+order_id+(apply_id?',"apply_id":'+apply_id:'')+'}';
+   if((!validId(order_id)&&path!=='/v1/shop/apply/set')||(apply_id!==undefined&&!validId(apply_id)))throw new FoodError('Identificador inválido.');
+   options.body=path==='/v1/shop/apply/set'?JSON.stringify(params):JSON.stringify(rest).slice(0,-1)+',"order_id":'+order_id+(apply_id?',"apply_id":'+apply_id:'')+'}';
   }
   let response,data;
   try{response=await fetchImpl(url.toString(),options)}catch{throw new FoodError('Falha de comunicação com a 99Food.',{uncertain:method==='POST'})}
@@ -27,10 +27,10 @@ export function createAPI({secret,rpc,fetchImpl=fetch,now=Date.now}){
   const state=await rpc('token');
   if(state?.token&&Date.parse(state.expira_em)>now()+5000)return state.token;
   if(!await rpc('token_reservar'))throw new FoodError('Aguardando o intervalo de consulta do token.',{retryAfter:30000});
-  const q={app_id:binding.appId,app_secret:secret,app_shop_id:binding.appShopId};
+  const q={app_id:connection.appId,app_secret:secret,app_shop_id:connection.appShopId};
   try{
    const {data}=await request('/v1/auth/authtoken/get',q);
-   if(String(data?.app_id)!==binding.appId||data?.app_shop_id!==binding.appShopId||typeof data?.auth_token!=='string')throw new FoodError('Token de outra loja.');
+   if(String(data?.app_id)!==connection.appId||data?.app_shop_id!==connection.appShopId||typeof data?.auth_token!=='string')throw new FoodError('Token de outra loja.');
    const expiry=Number(data.token_expiration_time)*1000;
    if(!Number.isFinite(expiry)||expiry<=now())throw new FoodError('Token expirado.',{code:10102});
    await rpc('token_salvar',{token:data.auth_token,expira_em:new Date(expiry).toISOString()});return data.auth_token;
@@ -48,13 +48,13 @@ export function createAPI({secret,rpc,fetchImpl=fetch,now=Date.now}){
   const auth_token=await token();
   try{return await request(path,{...params,auth_token},method)}catch(error){if(error.code===10102)await rpc('token_erro',{erro:'Token expirou; renovação será retomada.'});throw error}
  }
- return {token,order:async id=>{if(!validId(id))throw new FoodError('Pedido inválido.');return detailOf((await authorized('/v1/order/order/detail',{order_id:id})).data,id)},send:(path,id,payload={})=>authorized(path,{...payload,order_id:id},'POST')};
+ return {token,configureRequests:()=>authorized('/v1/shop/apply/set',{receive_cancel_apply:1,receive_refund_apply:1},'POST'),order:async id=>{if(!validId(id))throw new FoodError('Pedido inválido.');return detailOf((await authorized('/v1/order/order/detail',{order_id:id})).data,id,connection.shopId)},store:async()=>{const result=await authorized('/v1/shop/shop/detail',{});return result.data},send:(path,id,payload={})=>authorized(path,{...payload,order_id:id},'POST')};
 }
 export function safeError(error){return error instanceof FoodError?error.message:'Não foi possível confirmar o resultado. Consulte novamente antes de repetir.'}
 const reasons=new Set([1010,1020,1030,1040,1050,1060,1070,1071,1072,1073,1074,1080]);
 export function commandSpec(cmd,order,now=Date.now()){
  const d=order.detalhe??{},s=d.status,p=cmd.payload??{},self=d.delivery_type===2,pickup=d.fulfillment_mode===1||d.delivery_type===0;
- if(terminal(s)&&cmd.acao!=='responder_reembolso')throw new FoodError('Pedido encerrado na 99Food.');
+ if(terminal(s)&&!['responder_reembolso','confirmar_dinheiro'].includes(cmd.acao))throw new FoodError('Pedido encerrado na 99Food.');
  const spec=(path,payload={})=>({path,payload});
  switch(cmd.acao){
   case 'confirmar':if(s!==100)throw new FoodError('O pedido não está aguardando aceite.');return spec('/v1/order/order/confirm');
@@ -69,6 +69,7 @@ export function commandSpec(cmd,order,now=Date.now()){
   }
   case 'entregue':if(!self||pickup||![400,500].includes(s))throw new FoodError('Informe entrega somente após o despacho da entrega própria.');return spec('/v1/order/selfdelivery/delivered');
   case 'concluir':if(!self||pickup||![400,500].includes(s)||!/^\d{4}$/.test(String(p.codigo??'')))throw new FoodError('Informe os quatro dígitos do código do cliente para a entrega própria.');return spec('/v1/order/selfdelivery/verifyDeliveryCode',{delivery_code:Number(p.codigo)});
+  case 'confirmar_dinheiro':if(s!==200||d.delivery_type!==1||d.pay_type!==2||!order.recebimento_confirmado||!(d.price?.shop_paid_money>0))throw new FoodError('Confirme o recebimento real do entregador no caixa antes de informar à 99Food.');return spec('/v1/order/order/payConfirm');
   case 'cancelar':{
    const reason=String(p.motivo??'').trim(),code=Number(p.motivo_id);
    if(!reasons.has(code)||(!self&&[1060,1071,1072].includes(code))||reason.length>500||(code===1080&&reason.length<5))throw new FoodError('Selecione um motivo válido e descreva o cancelamento.');

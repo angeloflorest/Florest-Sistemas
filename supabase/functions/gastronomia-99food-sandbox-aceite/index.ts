@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {binding,validId,safeError} from './core.mjs';
+import {normalizeOrder} from './normalize.mjs';
 import {runWorker} from './worker.mjs';
 const project=Deno.env.get('SUPABASE_URL')??'',key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',anon=Deno.env.get('SUPABASE_ANON_KEY')??'';
 const origins=new Set(['https://erp.florestsistemas.com.br','http://localhost:4173']);
@@ -36,6 +37,11 @@ Deno.serve(async(request:Request)=>{
   // RPC com JWT do usuário valida empresa ativa e permissão antes de qualquer chamada externa.
   const state=await db('gastronomia_99food_sandbox_admin',{p_empresa:binding.company,p_acao:'estado'},authorization);
   if(action==='estado')return reply(state);
+  if(action==='imprimir'){
+   if(!validId(data.order_id)||typeof data.chave!=='string')return reply({erro:'Pedido inválido.'},400);
+   const orders=await db('gastronomia_99food_sandbox_pedidos',{p_empresa:binding.company,p_order_id:data.order_id},authorization),order=orders[0];if(!order?.detalhe)return reply({erro:'Atualize os detalhes do pedido.'},400);
+   try{await db('gastronomia_99food_sandbox_imprimir',{p_empresa:binding.company,p_pedido:data.order_id,p_normalizado:normalizeOrder(order.detalhe),p_chave:data.chave});return reply({ok:true})}catch{return reply({erro:'Configure a impressora da Gastronomia e conecte o Print Agent antes de imprimir.'},409)}
+  }
   if(action==='sincronizar')return reply(await runWorker({rpc,secret:Deno.env.get('FOOD99_SANDBOX_APP_SECRET')}));
   if(!validId(data.order_id)||typeof data.chave!=='string')return reply({erro:'Pedido ou chave inválidos.'},400);
   const command=await db('gastronomia_99food_sandbox_admin',{p_empresa:binding.company,p_acao:action,p_dados:{order_id:data.order_id,chave:data.chave,payload:data.payload??{}}},authorization);
