@@ -81,55 +81,107 @@ form button[type=submit]{width:100%;background:var(--brand);color:#fff;border:0;
 @media(max-width:320px){.grade main{grid-template-columns:1fr}.product{grid-template-columns:1fr}.product .picture{grid-column:auto;grid-row:auto;width:100%;height:200px}.service-options{font-size:10px}}
 @media(prefers-reduced-motion:reduce){button{transition:none}}
 
-/* O tema do Nova Ponte é ativado somente no link público desse cardápio. */
+/* Tema exclusivo do link público do Restaurante Nova Ponte. */
 .nova-ponte {
-  --canvas:#f4efe6;
-  --ink:#1b2735;
-  --muted:#53606a;
-  --gold:#b18646;
-  --line:#e2d8c7;
+  --brand:#8b2720;
+  --canvas:#f7ebd8;
+  --ink:#34201a;
+  --muted:#634c40;
+  --gold:#a66a25;
+  --line:#e7cead;
+  --surface:#fff9ee;
+  background:radial-gradient(ellipse at 100% 22%,#f4d7ad80,transparent 42%),var(--canvas);
 }
 .nova-ponte .menu-hero {
-  min-height:460px;
-  padding:66px 28px 56px;
   display:grid;
   align-items:center;
+  isolation:isolate;
+  min-height:500px;
+  padding:46px 28px;
   text-align:left;
-  background:
-    linear-gradient(90deg,#07192ef2 0%,#091c30e8 30%,#0a1d30ad 54%,#14213122 100%),
-    url('./assets/nova-ponte/restaurante.webp') center 54%/cover no-repeat,#0b2a4d;
-  border-color:#bd945c;
+  background:#3e1516;
+  border-bottom:6px solid #efac50;
 }
-.nova-ponte .menu-hero::before,.nova-ponte .menu-hero::after{display:none}
-.nova-ponte .hero-brand{width:100%;max-width:1064px}
-.nova-ponte .store-monogram,.nova-ponte .store-logo{margin:0 0 19px}
-.nova-ponte .store-monogram{width:58px;height:58px;font-size:21px}
-.nova-ponte .menu-hero .eyebrow{font-size:11px}
-.nova-ponte .menu-hero h1{max-width:620px;margin:13px 0;font-size:clamp(43px,6vw,76px);line-height:1}
-.nova-ponte .hero-divider{margin:20px 0;background:#e9c48e}
-.nova-ponte #descricao{margin:0;max-width:none}
-.nova-ponte .hero-invitation,.nova-ponte footer p,.nova-ponte .section-heading .eyebrow{display:none}
-.nova-ponte .service-options{justify-content:flex-start;margin-top:15px}
-.nova-ponte #nova-ponte-ver{display:inline-flex;gap:18px;align-items:center;margin-top:23px;background:#f5e4c6;color:#13283e;border-color:#f5e4c6;font-weight:700}
-.nova-ponte #nova-ponte-ver:hover{background:#ffefd4}
-.nova-ponte .search{background:#fbf6ed}
-.nova-ponte .search-inner{max-width:1120px;padding-inline:28px}
-.nova-ponte .search-input{max-width:520px;border-color:#d8cbbc}
+.nova-ponte .menu-hero::before {
+  inset:0 0 0 37%;
+  width:auto;
+  height:auto;
+  border:0;
+  border-radius:0;
+  background:url('./assets/nova-ponte/brasa.webp') center/cover no-repeat;
+  z-index:-2;
+}
+.nova-ponte .menu-hero::after {
+  inset:0;
+  width:auto;
+  height:auto;
+  border:0;
+  border-radius:0;
+  background:linear-gradient(90deg,#3e1516 36%,#3e1516f2 41%,#3e151600 68%);
+  z-index:-1;
+}
+.nova-ponte .hero-brand{width:100%;max-width:1130px}
+.nova-ponte .store-monogram,.nova-ponte .store-logo{margin:0 0 21px}
+.nova-ponte .store-monogram{width:49px;height:49px;font-size:19px;color:#ffe0a5;border-color:#e9ad607f;box-shadow:none}
+.nova-ponte .menu-hero .eyebrow{font-size:11px;color:#ffd58f}
+.nova-ponte .menu-hero h1{max-width:470px;margin:12px 0;font-size:clamp(48px,7vw,82px);line-height:.98;letter-spacing:-.035em;color:#fff3db}
+.nova-ponte .hero-divider{width:42px;margin:21px 0;background:#f2ad51}
+.nova-ponte #descricao{margin:0;max-width:360px;color:#fff3db}
+.nova-ponte .hero-invitation,.nova-ponte footer p,.nova-ponte .section-heading .eyebrow,.nova-ponte .cart-hint{display:none}
+.nova-ponte .service-options{justify-content:flex-start;margin-top:17px;color:#ffd58f}
+.nova-ponte #nova-ponte-ver{display:inline-flex;gap:18px;align-items:center;margin-top:24px;background:#ffc367;color:#3e1910;border:0;font-weight:800}
+.nova-ponte #nova-ponte-ver:hover{background:#ffd58d}
+.nova-ponte .search{background:#fff3e1}
+.nova-ponte .search-inner{max-width:1186px;padding-inline:28px}
+.nova-ponte .search-input{max-width:560px;border-color:#dcb78c}
+.nova-ponte .menu-section{max-width:1186px}
 .nova-ponte .menu-section,.nova-ponte #produtos{scroll-margin-top:112px}
-.nova-ponte .section-heading{margin-top:27px}
-.nova-ponte .section-heading h2{font-size:clamp(32px,5vw,43px)}
-#nova-ponte-destaques{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-#nova-ponte-destaques button{position:relative;isolation:isolate;min-height:140px;padding:14px;display:flex;align-items:flex-end;text-align:left;overflow:hidden;border:0;border-radius:12px;background:#152b3c;color:white;font-size:clamp(13px,2vw,18px);font-weight:750;text-shadow:0 1px 5px #000}
-#nova-ponte-destaques button::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent 32%,#0a1628ed)}
-#nova-ponte-destaques img{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 55%}
-.nova-ponte .foto-nota{margin:18px 0 10px;color:var(--muted);font-size:12px}
-.nova-ponte.grade .product{padding:12px;border-radius:15px;box-shadow:0 8px 24px #30221a0b}
-.nova-ponte.grade .product .picture{aspect-ratio:5/4;object-fit:cover;padding:0}
-.nova-ponte .detail-picture{object-fit:contain;background:#f4efe6}
-.nova-ponte .bottom{background:#fffaf2f7}
+.nova-ponte .section-heading{margin:30px 0 17px}
+.nova-ponte .section-heading h2{font-size:clamp(34px,5vw,50px);letter-spacing:-.025em}
+.nova-ponte #nova-ponte-destaques{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.nova-ponte #nova-ponte-destaques button{position:relative;isolation:isolate;min-height:150px;padding:16px;display:flex;align-items:flex-end;text-align:left;overflow:hidden;border:0;border-radius:12px;background:#5d2219;color:#fff9ed;font:700 clamp(15px,2.1vw,23px)/1.15 Georgia,serif;text-shadow:0 1px 5px #2f110b}
+.nova-ponte #nova-ponte-destaques button::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent 25%,#40190eea)}
+.nova-ponte #nova-ponte-destaques img{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:contain;object-position:center}
+.nova-ponte .foto-nota{margin:21px 0 11px;color:var(--muted);font-size:12px}
+.nova-ponte main{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.nova-ponte .product {
+  display:flex;
+  flex-direction:column;
+  padding:15px;
+  gap:7px;
+  border-radius:18px;
+  background:var(--surface);
+  box-shadow:0 9px 24px #6e391412;
+}
+.nova-ponte .product .picture {
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:1;
+  max-height:420px;
+  object-fit:contain;
+  padding:0;
+  margin:0 0 6px;
+  background:#f1e0c8;
+}
+.nova-ponte .product .picture-placeholder{display:grid}
+.nova-ponte .product small{color:#8a422c;font-weight:750}
+.nova-ponte .product h2{font:700 clamp(17px,2.2vw,22px)/1.25 Georgia,serif}
+.nova-ponte .product .product-price{margin-top:auto;padding-top:9px}
+.nova-ponte .product button{width:100%;display:flex;justify-content:space-between;align-items:center}
+.nova-ponte .detail-picture{height:auto;max-height:52dvh;object-fit:contain;background:#f1e0c8;border-radius:12px}
+.nova-ponte dialog::backdrop{background:#381411b8}
+.nova-ponte .bottom{background:#fff3e1f7}
+.nova-ponte .bottom-inner{justify-content:flex-end}
 @media(max-width:640px){
-  .nova-ponte .menu-hero{padding:42px 20px 38px;min-height:370px;background-position:61% center}
-  .nova-ponte .search-inner{padding-inline:18px}
-  #nova-ponte-destaques{gap:7px}
-  #nova-ponte-destaques button{min-height:106px;padding:8px;font-size:12px;line-height:1.25}
+  .nova-ponte .menu-hero{padding:223px 20px 30px;min-height:0}
+  .nova-ponte .menu-hero::before{inset:0 0 auto;height:255px;background-position:50% 58%}
+  .nova-ponte .menu-hero::after{background:linear-gradient(180deg,#3e151600 135px,#3e1516 253px)}
+  .nova-ponte .hero-brand{max-width:450px}
+  .nova-ponte .menu-hero h1{font-size:clamp(40px,11vw,61px);max-width:325px}
+  .nova-ponte .store-monogram,.nova-ponte .store-logo{display:none}
+  .nova-ponte .search-inner{padding-inline:16px}
+  .nova-ponte main{grid-template-columns:1fr;gap:14px}
+  .nova-ponte #nova-ponte-destaques{gap:7px}
+  .nova-ponte #nova-ponte-destaques button{min-height:104px;padding:8px;font-size:13px}
 }

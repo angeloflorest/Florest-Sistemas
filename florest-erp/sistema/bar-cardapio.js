@@ -58,7 +58,7 @@ function storeIdentity(data){
  $('marca-loja').textContent=initials||String(data.nome||'').slice(0,2).toUpperCase();
  const logo=$('logo-loja'),source=imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
  if(source){logo.alt='Logo de '+data.nome;logo.src=source;logo.onerror=()=>{logo.hidden=true;$('marca-loja').hidden=false;};}else logo.removeAttribute('src');
- if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=data.cor;}
+ if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=themed?'#8b2720':data.cor;}
  if(/^#[a-f0-9]{6}$/i.test(data.fundo||''))document.documentElement.style.setProperty('--paper',data.fundo);
  document.body.classList.toggle('grade',data.layout==='grade');
 }
