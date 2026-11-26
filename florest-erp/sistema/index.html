@@ -10588,7 +10588,7 @@ async function gsOrders(body,valid=()=>body.isConnected){
   }}));
  }
  if(company==='773dfacb-c0e7-4bd9-8eb4-5208818b1848'&&gsHas('pedidos')&&valid()){
-  const {mountSandbox99Food}=await import('./gastronomia-99food-sandbox.js?v=20261126-operacao2');
+  const {mountSandbox99Food}=await import('./gastronomia-99food-sandbox.js?v=20261126-diagnostico');
   const current=()=>valid()&&GS.ctx?.empresa_id===company;
   if(!current())return;
   await mountSandbox99Food(body,{current,closed,canCancel:gsHas('cancelar'),list:async()=>{
