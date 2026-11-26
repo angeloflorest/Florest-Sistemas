@@ -58,7 +58,7 @@ function storeIdentity(data){
  $('marca-loja').textContent=initials||String(data.nome||'').slice(0,2).toUpperCase();
  const logo=$('logo-loja'),source=imageSource(data.logo);logo.hidden=!source;$('marca-loja').hidden=Boolean(source);
  if(source){logo.alt='Logo de '+data.nome;logo.src=source;logo.onerror=()=>{logo.hidden=true;$('marca-loja').hidden=false;};}else logo.removeAttribute('src');
- if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=themed?'#8b2720':data.cor;}
+ if(/^#[a-f0-9]{6}$/i.test(data.cor||'')){document.documentElement.style.setProperty('--brand',data.cor);$('cor-navegador').content=themed?'#1745a3':data.cor;}
  if(/^#[a-f0-9]{6}$/i.test(data.fundo||''))document.documentElement.style.setProperty('--paper',data.fundo);
  document.body.classList.toggle('grade',data.layout==='grade');
 }
@@ -66,7 +66,11 @@ async function render(){
  const request=++seq,r=await api('catalogo',{busca:$('busca').value,pagina:page});if(request!==seq)return;storeIdentity(r);
  const products=r.produtos.slice(0,20);$('resumo-produtos').textContent=products.length?(r.produtos.length>20?'20 opções nesta página':products.length+' '+(products.length===1?'opção':'opções')):'Explore nossos sabores';
  $('produtos').replaceChildren();for(const [index,p]of products.entries()){
-  const card=el('article',null,'product');card.append(productPhoto(p,'picture',index<4));if(p.categoria)card.append(el('small',p.categoria));card.append(el('h2',p.nome));if(p.descricao)card.append(el('p',p.descricao));
+  const card=el('article',null,'product'),photo=productPhoto(p,'picture',index<4);
+  if(document.body.classList.contains('nova-ponte')){
+   const plate=el('div',null,'product-photo-plate');plate.append(photo);card.append(plate);
+  }else card.append(photo);
+  if(p.categoria)card.append(el('small',p.categoria));card.append(el('h2',p.nome));if(p.descricao)card.append(el('p',p.descricao));
   const price=el('p',money(p.preco),'product-price');price.append(el('span','/ '+p.unidade));
   const chooseButton=button('Escolher',()=>choose(p));chooseButton.setAttribute('aria-label','Escolher '+p.nome);card.append(price,chooseButton);$('produtos').append(card);
  }
